@@ -278,12 +278,15 @@ is `gradle assemble allTests :app:testDebugUnitTest`, which compiles every
 target and runs every test on JVM, JS and both Android variants, and excludes
 only lint.
 
-**The wrapper scripts are absent.** `gradlew`, `gradlew.bat` and
-`gradle/wrapper/gradle-wrapper.jar` are not in the repository — only
-`gradle-wrapper.properties` survived the P0-9 overwrite incident. A fresh clone
-cannot build. P1 was run against the cached Gradle 9.3.0 distribution directly.
-Regenerating the wrapper (`gradle wrapper --gradle-version 9.3.0`) and
-committing it is outstanding work.
+**The wrapper scripts were absent, then fixed later in P1.** `gradlew`,
+`gradlew.bat` and `gradle/wrapper/gradle-wrapper.jar` were missing at the point
+this entry was first written — only `gradle-wrapper.properties` survived the
+P0-9 overwrite incident, and a fresh clone could not build. The wrapper was
+regenerated (`gradle wrapper --gradle-version 9.3.0`) and committed later in the
+same P1 session as `19d98c9 Add missing Gradle wrapper files`. **This is
+resolved, not outstanding** — a later phase reading this entry in isolation
+should check `git log -- gradlew` rather than take the paragraph above at face
+value.
 
 **Confirmed compatible.** AGP 8.7.3 and Kotlin 2.1.21 configure and compile
 cleanly under the Gradle 9.3.0 wrapper. The wrapper-compatibility risk P0-9
