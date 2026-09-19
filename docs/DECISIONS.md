@@ -442,6 +442,173 @@ difference exists.
 
 ---
 
+
+---
+
+## P2-1 — What P2 covers, and a discrepancy with the session brief
+
+*2026-09-20*
+
+**Neither revision document enumerates P2's modules.** ZERO_DATASET's phase table
+says `P2 Kinematics and Temporal | Unchanged`, deferring to FINAL_ARCHITECTURE,
+whose §9 table also says `P2 | Unchanged`. The module content therefore has to be
+read off the phase names plus FINAL_ARCHITECTURE §13:
+
+> **Week 3:** Kinematics with bilateral signals as a compile-time shape, filter
+> chain, resampling, ablation harness
+>
+> Then **P3 rep engine**, then P4 on real people by week 6 […] while you are
+> still writing the rep engine.
+
+P3 is named **"Profiles and Rep Engine"**. ZERO_DATASET's week-2 line — *"P2 and
+P3: kinematics, the repetition FSM, and three archetype profiles"* — groups the
+two phases in one week but splits the work along the same line.
+
+**Discrepancy.** The session brief summarised P2 as including the generic
+repetition FSM and the isometric hold analyser. The documents place both in P3.
+
+**Decision.** Follow the documents. P2 is:
+
+| Module | Path |
+|---|---|
+| Geometry primitives | `analysis/geometry` |
+| Current-frame kinematics, bilateral by construction | `analysis/kinematics` |
+| Fixed-size ring buffer | `analysis/temporal` |
+| Filter chain — outlier gate, EMA, gap interpolation | `analysis/temporal` |
+| Fixed-length resampling, N = 64 | `analysis/temporal` |
+| Ablation harness | `analysis` commonTest |
+
+The repetition FSM, the isometric hold analyser, `RepRecord`/`HoldRecord` and the
+three archetype profiles are **P3**, per CLAUDE.md §20 — do not start later
+phases prematurely. The ring buffer is the handoff point: P3 reads from it.
+
+**Consequence.** Two of the three guard tests the brief named — rep FSM
+phase/count determinism, and isometric hold never forced through the repetition
+FSM — guard P3 components and are written in P3, before that code, in the same
+tests-first order. The third, the real-time per-frame budget, is written here,
+because the kinematics and ring buffer are its subject.
+
+---
+
+## P2-2 — The old prototype, inspected
+
+*2026-09-20*
+
+Access to `E:\kinesis_old` was declined during P0, so the G1 spike used a
+structurally-representative stand-in rather than the real code
+(`G1_SPIKE_RESULT.md`, and the OPEN item raised at P0). Access was granted at the
+start of P2 and the prototype was read, read-only, per CLAUDE.md §19. **That open
+item is now closed.**
+
+The prototype is a single-target Android/JVM project under
+`core/analysis/src/main/java/com/example/kinesis/core/analysis`. It contains real
+kinematics, a real temporal filter chain and a real repetition FSM. It is a
+specification, not legacy code, and it was treated as one.
+
+### Ported as ideas, rewritten
+
+| Prototype | What is worth keeping |
+|---|---|
+| `GeometryUtils.angleDegrees` | Interior angle at the vertex via `acos(dot / (|BA|·|BC|))`, **clamped to [-1, 1]** to absorb floating-point drift, returning `null` on degenerate geometry rather than 0°, 180° or NaN. The rule it states — never return a misleading value as a failure signal — is CLAUDE.md §23 in miniature. |
+| `angleDegrees2d` beside the 3D form | The prototype already distrusted MediaPipe's z: *"useful when Z reliability is uncertain"*. This agrees with the P1-4 decision to scale normalisation on the image plane only. Both forms are kept, with the plane chosen explicitly at the call site rather than defaulted. |
+| `TemporalPipeline` ordering | Outlier removal → gap interpolation → EMA → resample, **with the reasons recorded**: outliers first so they cannot pollute the smoother or the interpolator, interpolation before EMA so a short gap does not jerk the filter state. The ordering rationale is the valuable part and is carried over verbatim in the KDoc. |
+| `EmaSmoother` gap handling | Resets filter state across a gap instead of dragging a stale value across it. Correct, and kept. |
+| `VelocityCalculator` timestamp discipline | Rejects non-positive and duplicate Δt, does not assume a fixed frame rate, and documents units as normalised-units per second — explicitly *"NOT physical meters/second"*. |
+| `TemporalConfig` | Every magic number in one immutable object with `require` validation. The pattern is kept; the values are re-marked provisional, as P1-4 requires. |
+| `RepEngine` FSM shape | Hysteresis band around both thresholds, direction-agnostic via an `isTopGreater` flag, per-rep min/max tracking, per-phase timings, and a genuine validity enum — VALID, ABORTED, INCOMPLETE, INSUFFICIENT_DATA. Good design worth porting **in P3**, and only after it is restructured from batch replay into an incremental `step()`. |
+| `LandmarkValidator`'s framing | *"A visually rendered landmark and an analytically usable landmark are NOT the same. Rendering can be permissive; analysis must be conservative."* Already realised in P1 as `VisibilityPolicy`, and the distinction is worth restating in the report. |
+
+### Not ported, and why
+
+| Prototype | Why not |
+|---|---|
+| **`LiveRepDetector.extractSignalValue`** | Computes `(left + right) / 2f` — precisely the silent bilateral averaging CLAUDE.md §3 and §22 forbid. The `else left ?: right` fallback is worse: when one side drops below confidence the signal silently becomes single-sided, with nothing recording that it did, so a bilateral measurement and a one-armed one are indistinguishable downstream. This is the clearest justification the project has for the `BilateralSignal` type, and it is worth citing in the report as a concrete defect the new architecture prevents by construction. |
+| `LiveRepDetector`'s per-frame replay | Its own comment reads *"reprocessing the growing signal array is extremely fast (O(N) across <10,000 items)"*. It breaks CLAUDE.md §6 three ways: `rawSamples` grows without bound over a session, `rawSamples.toList()` copies the entire history every frame, and both the full temporal pipeline and the full FSM are re-run from the beginning on every frame. The new design is incremental, and the per-frame budget guard exists to keep it that way. |
+| `Float` throughout — `Vector2`, `Vector3`, `EPSILON = 1e-7f`, all angles | CLAUDE.md §5 and CONTRACTS §6 require `Double` throughout the shared core. |
+| `Long` timestamps | §5 bars `Long` in analysis paths where JS compatibility matters. Timestamps are `Double` milliseconds. |
+| `Math.toDegrees`, `Float.MAX_VALUE` | JVM-only; would break the `js()` target. Replaced with multiplatform equivalents. |
+| Flat `leftElbow()` / `rightElbow()` returning independent scalars | The absence of a bilateral type is what *permitted* the averaging above. Kinematics return `BilateralSignal`. |
+| String signal identity — `"knee_angle"`, `primarySignalId`, `when (String)` dispatch | Stringly-typed and unchecked; a typo is a silent null. Replaced by an enum. |
+| `LandmarkValidator.getValidLandmark` | `frame.landmarks.firstOrNull { it.type == type }` is a 33-element scan plus a lambda allocation per lookup, three per joint angle, every frame. P1's `Landmarks` is O(1) index arithmetic into a flat `DoubleArray`. |
+| `FilterComparisonTest` | Prints a comparison table to the console and asserts nothing. The idea — compare filter configurations against a synthetic signal with known ground truth — is right, and becomes the ablation harness, which asserts a recorded ranking so a regression fails the build. |
+| `Vector3.div` returning `Vector3?` | An arithmetic operator that can return null is a trap at the call site. |
+
+**Nothing was copied.** No file, and no fragment, was taken from
+`E:\kinesis_old` into this repository; the prototype was read and re-implemented
+against the P1 contracts. The prototype was not modified.
+
+---
+
+## P2-3 — `app/` is the instrumentation harness first
+
+*2026-09-20*
+
+**Closes the open question raised in REPOSITORY_STRUCTURE.md** and left open at
+the end of P1.
+
+**Decision.** `app/` is built as a bare instrumentation harness before it is a
+product shell. Its first form is CameraX capture, MediaPipe Pose, a skeleton
+drawn on a dedicated `Canvas`/`SurfaceView`, and a frame-rate readout. No
+exercise selection, no navigation, no product screens.
+
+**Reasoning.** P4 is the device reality check and the Zero-Dataset plan puts it in
+week 3. It needs sustained frame rate, a thermal run, and front-camera mirroring
+verified on a real device — none of which requires a product UI, and all of which
+is delayed by building one. FINAL_ARCHITECTURE's phase list does not say which
+phase builds the harness, and P10 "Visualization and Android" is far too late to
+be the answer.
+
+**Constraint carried from CLAUDE.md §6.** Skeleton rendering goes to a dedicated
+`Canvas`/`SurfaceView`. Pose frames must never drive Compose recomposition; the
+low-frequency UI state and the per-frame draw path stay separate.
+
+**Not built in P2.** The harness needs CameraX and MediaPipe Pose, which are new
+dependencies and require the CLAUDE.md §17 check — purpose, licence, platform
+compatibility, bundle and runtime cost, offline compatibility, maintenance
+status — recorded before either is added. P2 was instructed to add no
+dependencies, so the decision is recorded here and the harness is built in the
+phase that performs that check. Nothing in P2 depends on it.
+
+---
+
+## P2-4 — First ablation result: smoothing lag, not noise, is the binding constraint
+
+*2026-09-20*
+
+The filter ablation harness (`FilterAblationTest`) runs the filter chain against
+a synthetic signal whose true value is known at every sample, so the question
+"did filtering help?" can actually be asked. It separates what smoothing buys
+from what it costs.
+
+**What it found.**
+
+| Condition | Result |
+|---|---|
+| Stationary joint, noisy estimate | Smoothing is pure gain, and monotonic — heavier smoothing leaves less residual noise. The provisional alpha of 0.3 more than halves it. |
+| Moving joint, clean estimate | Smoothing is pure cost, and monotonic the other way. Steady-state lag matches the algebra exactly: `slope × (1 − α) / α` per sample. |
+| Moving joint, spiked estimate | The outlier gate removes more than 90 % of the error the spikes introduce, over and above the lag floor. |
+
+**The part that matters for P4.** At α = 0.3 the lag is 2.33 samples, about
+**78 ms at 30 fps**, and on a two-second repetition cycle that lag error is the
+*larger* of the two effects — bigger than the noise the smoothing removes. Two
+consequences:
+
+- α cannot be chosen by looking at how tidy the traces are. Lower α always looks
+  smoother and always delays the frame on which a repetition boundary can be
+  recognised, which shows up later as rep-count latency rather than as
+  smoothness.
+- The gate and the smoother are not interchangeable. The gate is nearly free and
+  removes a large, specific error; the smoother is a trade. If only one survives
+  a performance cut, it is the gate.
+
+**What this does not establish.** These are numbers about filter behaviour on a
+synthetic signal, not about Kinesis's accuracy on human movement — a different
+claim, and CLAUDE.md §22 forbids blurring them. `smoothingAlpha` stays
+provisional. P4 measures it on a device, and the harness is the instrument that
+will compare the candidates when it does.
+
+---
+
 ## OPEN — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Must be closed before P3.*
@@ -460,9 +627,9 @@ pinned by a test, per `CLAUDE.md` §18.
 
 ---
 
-## OPEN — The old prototype has not been inspected
+## CLOSED — The old prototype has not been inspected
 
-*Raised 2026-09-19.*
+*Raised 2026-09-19. Closed 2026-09-20 by P2-2.*
 
 `E:\kinesis_old` contains the previous prototype (modules: `app`, `core`,
 `desktop`, `docs`). Access was not granted during P0, so the real angle and FSM
@@ -472,14 +639,16 @@ FINAL_ARCHITECTURE §3 specifies that the G1 spike should port *the prototype's
 actual* angle and FSM code rather than a stand-in. The P0 spike used a
 structurally representative implementation instead — see `G1_SPIKE_RESULT.md`.
 
-Before P2 and P3, the prototype should be read deliberately to identify
-behaviour worth porting, per `CLAUDE.md` §19.
+**Closed.** Access was granted at the start of P2 and the prototype was read
+read-only. The findings — what is worth porting, what is not, and why for each —
+are recorded in **P2-2**. The FSM itself is inspected but not ported here: it is
+P3 work, per P2-1.
 
 ---
 
-## OPEN — Is `app/` the instrumentation harness or the product shell?
+## CLOSED — Is `app/` the instrumentation harness or the product shell?
 
-*Raised in REPOSITORY_STRUCTURE.md, still open after P1.*
+*Raised in REPOSITORY_STRUCTURE.md. Closed 2026-09-20 by P2-3.*
 
 REPOSITORY_STRUCTURE.md recommends deciding at the start of P1 whether `app/` is
 first a bare instrumentation harness (CameraX, MediaPipe, skeleton draw,
@@ -487,5 +656,7 @@ frame-rate readout, no product UI) or the product shell, given that P4 is the
 device reality check in week 3.
 
 P1 did not decide it, because P1 was scoped to shared core types and touched
-`app/` only to add the pose adapter and its regression test. The question still
-needs answering before P4 is scheduled.
+`app/` only to add the pose adapter and its regression test.
+
+**Closed.** Harness first — see **P2-3** for the decision, its reasoning, and the
+CameraX/MediaPipe dependency check it still requires.

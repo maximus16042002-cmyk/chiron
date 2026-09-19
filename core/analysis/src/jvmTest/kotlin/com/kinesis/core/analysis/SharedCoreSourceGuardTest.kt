@@ -125,6 +125,83 @@ class SharedCoreSourceGuardTest {
         assertTrue(!CAMERA_FACING.containsMatchIn("requiredView = CameraView.FRONT_ON"))
     }
 
+    // --- Rule 3: the real-time path allocates and iterates nothing ------------
+
+    /**
+     * CLAUDE.md section 6 forbids growing collections and whole-history
+     * reprocessing on the per-frame path. RealTimeBudgetTest and
+     * PerFrameAllocationTest prove the behaviour; this catches the idioms that
+     * cause it, at the point they are written rather than after a device gets
+     * slow.
+     *
+     * The prototype's LiveRepDetector is the case study - see DECISIONS.md P2-2.
+     * It held every sample of the session in a `mutableListOf`, called `toList()`
+     * on it every frame, and re-ran the whole filter chain over the result. Each
+     * of those three is in the pattern list below.
+     *
+     * Scoped to the real-time path only. The post-rep path may allocate freely:
+     * it runs once per repetition, on a bounded, already-completed signal.
+     */
+    @Test
+    fun the_real_time_path_uses_no_growing_collections_or_whole_signal_passes() {
+        val offences = mutableListOf<String>()
+        val scanned = forEachProductionSource(CORE_MODULES) { file, lineNumber, line ->
+            if (file.name !in REAL_TIME_PATH_FILES) return@forEachProductionSource
+            val hit = GROWING_OR_ITERATING.find(line)
+            if (hit != null) {
+                offences += relativePath(file) + ":" + lineNumber + "  [" + hit.value + "]  " + line.trim()
+            }
+        }
+
+        assertScannedSomething(scanned, CORE_MODULES)
+        if (offences.isNotEmpty()) {
+            fail(
+                "The real-time path uses a growing collection or a whole-signal pass.\n" +
+                    "CLAUDE.md section 6: the per-frame path is O(1), must not iterate over\n" +
+                    "session history, and must not reprocess an entire signal per frame.\n" +
+                    "Work in the preallocated ring buffer instead. If this file genuinely is\n" +
+                    "not on the real-time path, take it out of REAL_TIME_PATH_FILES and say\n" +
+                    "why - do not widen the pattern.\n\n" +
+                    offences.joinToString("\n"),
+            )
+        }
+    }
+
+    @Test
+    fun the_real_time_path_detector_recognises_a_violation() {
+        assertTrue(GROWING_OR_ITERATING.containsMatchIn("private val samples = mutableListOf<Double>()"))
+        assertTrue(GROWING_OR_ITERATING.containsMatchIn("val snapshot = rawSamples.toList()"))
+        assertTrue(GROWING_OR_ITERATING.containsMatchIn("val mean = history.map { it.value }.average()"))
+        assertTrue(GROWING_OR_ITERATING.containsMatchIn("samples.add(TemporalSample(t, v))"))
+        assertTrue(GROWING_OR_ITERATING.containsMatchIn("return history.filter { it > 0 }"))
+
+        // Indexed work over a fixed window is the whole point and must pass.
+        assertTrue(!GROWING_OR_ITERATING.containsMatchIn("for (index in 0 until windowSamples) {"))
+        assertTrue(!GROWING_OR_ITERATING.containsMatchIn("scratch[index] = values[slot]"))
+        assertTrue(!GROWING_OR_ITERATING.containsMatchIn("var sum = 0.0"))
+    }
+
+    /**
+     * A list of filenames is only a guard while it names the files that exist. If
+     * the real-time package gains a file, it is on the real-time path until
+     * someone argues otherwise in writing.
+     */
+    @Test
+    fun every_file_in_the_real_time_package_is_covered_by_the_scan() {
+        val temporal = File(repoRoot(), "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/temporal")
+        if (!temporal.isDirectory) return
+        val present = temporal.listFiles().orEmpty()
+            .filter { it.isFile && it.extension == "kt" }
+            .map { it.name }
+            .toSet()
+        val uncovered = present - REAL_TIME_PATH_FILES - POST_REP_PATH_FILES
+        assertTrue(
+            uncovered.isEmpty(),
+            "these temporal files are classified neither real-time nor post-rep: " + uncovered +
+                ". Add each to REAL_TIME_PATH_FILES, or to POST_REP_PATH_FILES with a reason.",
+        )
+    }
+
     // --- Sanity: the jsMain source set holds the facade and nothing else ------
 
     /**
@@ -270,6 +347,41 @@ class SharedCoreSourceGuardTest {
         val CAMERA_FACING = Regex(
             """\bCameraFacing\b|\bcameraFacing\b|\bisMirrored\b|\bmirrorHorizontally\b""" +
                 """|\bfrontCamera\b|\bbackCamera\b|\bLENS_FACING""",
+        )
+
+        /**
+         * Files on the per-frame path. Each runs about thirty times a second for
+         * the length of a set, so each is held to CLAUDE.md section 6.
+         */
+        val REAL_TIME_PATH_FILES = setOf(
+            "DoubleRingBuffer.kt",
+            "EmaSmoother.kt",
+            "MedianOutlierGate.kt",
+            "RealTimeSignalPipeline.kt",
+        )
+
+        /**
+         * Files on the post-rep path. These run roughly once every few seconds, on
+         * a repetition that has already finished, so they may allocate and may
+         * walk the whole signal - that is what they are for.
+         */
+        val POST_REP_PATH_FILES = setOf(
+            "GapInterpolator.kt",
+            "SignalResampler.kt",
+            "SignalMetrics.kt",
+            "TemporalConfig.kt",
+        )
+
+        /**
+         * Growing collections, whole-collection copies, and the functional
+         * sequence operators, each of which walks a collection and allocates.
+         */
+        val GROWING_OR_ITERATING = Regex(
+            """\bmutableListOf\b|\bmutableMapOf\b|\bmutableSetOf\b|\bArrayList\b|\bbuildList\b""" +
+                """|\.toList\(\)|\.toMutableList\(\)|\.toTypedArray\(\)""" +
+                """|\.map\s*[({]|\.filter\s*[({]|\.forEach\s*[({]|\.fold\s*[({]""" +
+                """|\.sumOf\s*[({]|\.average\(\)|\.mapNotNull\s*[({]|\.count\s*[({]""" +
+                """|\.add\(|\.removeAt\(""",
         )
     }
 }
