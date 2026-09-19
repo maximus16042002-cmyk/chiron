@@ -239,6 +239,209 @@ wrapper compatibility, that is the first thing to check.
 
 ---
 
+## P1-1 — Build environment: Android Lint fails on JDK 25, and the Gradle wrapper is missing
+
+*2026-09-19*
+
+**Two findings, both environmental, neither caused by P1 code.**
+
+**Android Lint cannot run.** Every `lint*` task fails with:
+
+```
+Execution failed for task ':core:domain:lintAnalyzeDebug'.
+> A failure occurred while executing AndroidLintWorkAction
+   > 25.0.3
+```
+
+AGP 8.7.3's bundled lint cannot read Java 25 class files. The Gradle daemon runs
+on Android Studio's JBR 25, pinned by `gradle/gradle-daemon-jvm.properties`
+(`toolchainVendor=JETBRAINS`, `toolchainVersion=25`). `lint { abortOnError =
+false }` does not help — this is a worker exception, not a lint finding.
+
+**Decision.** Lint is disabled in `:core:domain` and `:core:analysis` via a
+`tasks.matching { it.name.startsWith("lint") }` block in each build file, with
+the reason stated in a comment beside it. Both are Kotlin Multiplatform library
+modules with no Android sources, resources or manifest logic, so lint has
+nothing there to find. The task names are matched by prefix rather than by
+importing AGP's internal task classes, so the block does not break on an AGP
+bump.
+
+**`:app` lint is still failing and was left enabled** — `:app` has real Android
+code worth linting. `gradle build` is therefore red on `:app:lintAnalyzeDebug`,
+`:app:lintAnalyzeDebugAndroidTest` and `:app:lintAnalyzeDebugUnitTest`. It was
+not reached before P1 because the core-module lint failures stopped the build
+first.
+
+**The real fix is an AGP bump.** P0-9 notes AGP 9.4.0 is already in this
+machine's Gradle cache. Until then, the verification command for this repository
+is `gradle assemble allTests :app:testDebugUnitTest`, which compiles every
+target and runs every test on JVM, JS and both Android variants, and excludes
+only lint.
+
+**The wrapper scripts are absent.** `gradlew`, `gradlew.bat` and
+`gradle/wrapper/gradle-wrapper.jar` are not in the repository — only
+`gradle-wrapper.properties` survived the P0-9 overwrite incident. A fresh clone
+cannot build. P1 was run against the cached Gradle 9.3.0 distribution directly.
+Regenerating the wrapper (`gradle wrapper --gradle-version 9.3.0`) and
+committing it is outstanding work.
+
+**Confirmed compatible.** AGP 8.7.3 and Kotlin 2.1.21 configure and compile
+cleanly under the Gradle 9.3.0 wrapper. The wrapper-compatibility risk P0-9
+flagged did not materialise; only lint is affected.
+
+---
+
+## P1-2 — Where the P1 types live
+
+*2026-09-19*
+
+Neither architecture document allocates the contract types across the
+`domain`/`analysis` split that P0-9 adopted, so P1 had to.
+
+| What | Module | Why |
+|---|---|---|
+| `BilateralSignal`, `ClaimLevel`, `Finding`, `ExerciseProfile`, tier classes, landmark model | `:core:domain` | Types, shared by everything |
+| `LandmarkNormalizer`, `ValidityGate` | `:core:analysis` | CONTRACTS §7 names both as steps of the real-time path, and the real-time path is analysis |
+| `KinesisEngine` | `:core:analysis/src/jsMain` | CONTRACTS §5; the only `@JsExport` surface, and the only file in `jsMain` |
+| `PoseAdapter`, `CameraFacing`, `RawLandmarks` | `:app` | CONTRACTS §4 annotates the adapter *"in platform code only"*, and CLAUDE.md §2 lists the pose adapter and mirroring handling as platform-specific |
+
+**Consequence of the adapter's placement.** `CameraFacing` does not exist in
+either core module, which is what CONTRACTS §4 demands, but it also means the
+mirroring guard test is a JVM unit test in `:app` rather than a `commonTest`.
+The `commonMain` half of that contract — that nothing in the core branches on
+camera facing — is enforced instead by a source scan, described in P1-3.
+
+When `:desktop` needs to replay recorded sessions it will need its own adapter
+or a shared pure-Kotlin one. Revisit then, not now.
+
+**`:core:analysis` now declares `api(project(":core:domain"))`** rather than
+`implementation`. Its public signatures expose domain types, so consumers must
+be able to resolve them.
+
+---
+
+## P1-3 — How claim-level enforcement actually works
+
+*2026-09-19*
+
+CLAUDE.md §8 and CONTRACTS.md §3 require that a Tier B or Tier C profile be
+*structurally unable* to construct a Level 3 finding — a compile-time or
+construction-time impossibility, not a filter applied afterwards. Kotlin has no
+dependent types, so this is done with a capability token.
+
+- `TechniqueAuthority` has a private constructor. Its only issue point is an
+  `internal` companion function in `:core:domain`, invisible to `:core:analysis`
+  and `:app`.
+- `TierAProfile` exposes a `techniqueAuthority` property. `TierBProfile` and
+  `TierCProfile` do not, and nothing else implements the property.
+- `TechniqueFault`'s constructor is private; the only factory, `from`, demands a
+  `TechniqueAuthority`.
+- `tier` and `maxClaimLevel` are `final override` on all three tier classes, so a
+  subclass cannot restate them. `maxClaimLevel` is derived from `Tier` itself, so
+  the two cannot disagree.
+- `TechniqueFault` is deliberately **not** a `data class`: a generated `copy()`
+  would let a caller clone a valid fault into one with a blank `sourceRef`,
+  stepping around the check in `from`.
+
+Abstract classes rather than a sealed hierarchy, because sealed types restrict
+implementations to the declaring module and P3 defines profiles in
+`:core:analysis`.
+
+**Verified, not assumed.** A temporary probe in `:core:analysis` attempted all
+six escape routes. Every one is a compile error:
+
+| Route | Compiler says |
+|---|---|
+| Override `tier` on a Tier B profile | `'tier' in 'TierBProfile' is final and cannot be overridden` |
+| Override `maxClaimLevel` | `'maxClaimLevel' in 'TierBProfile' is final and cannot be overridden` |
+| `tierBProfile.techniqueAuthority` | `Unresolved reference 'techniqueAuthority'` |
+| `TechniqueAuthority("row")` | constructor `is private` |
+| `TechniqueAuthority.issueTo(...)` | companion `is internal` |
+| `TechniqueFault(...)` directly | constructor `is private` |
+
+The probe was deleted after the check.
+
+### The source-scan guards
+
+Two architectural rules are about code that must not exist anywhere, and no type
+signature can express an absence. `SharedCoreSourceGuardTest`, in
+`:core:analysis/src/jvmTest`, reads the source tree:
+
+1. No `*Main` source averages `.left` and `.right` outside `BilateralSignal.kt`.
+2. No source in either core module mentions `CameraFacing`, `isMirrored`,
+   `frontCamera` or `LENS_FACING`.
+
+It strips comments before matching, so a KDoc explaining why the core must not
+know about the front camera is not itself a violation — otherwise the rule would
+push its own explanation out of the source. It also asserts it scanned a
+non-empty file set, so it cannot pass by finding nothing.
+
+**Verified by mutation.** A probe file adding both a `(rom.left + rom.right) /
+2.0` collapse and a `CameraFacing` enum to `commonMain` was detected by both
+scans, reported with file, line and offending text. Probe deleted.
+
+The mirroring guard was verified the same way: removing the x reflection from
+`PoseAdapter.unmirror` while keeping the slot swap failed two of the five
+assertions. Notably it did *not* fail the round-trip assertion — a half-correct
+mirror is still its own inverse, which is exactly why that test checks the two
+halves separately.
+
+---
+
+## P1-4 — Provisional constants, and the normalisation definition
+
+*2026-09-19*
+
+P1 introduces three numbers. **None is a measured result, and none supports any
+claim.** They are placeholders so the code can be built and tested before a
+device exists to calibrate against, per CLAUDE.md §23 — measure, test, document,
+then claim.
+
+| Constant | Value | Status |
+|---|---|---|
+| `VisibilityPolicy.PROVISIONAL.reliable` | 0.70 | Provisional. P4 device testing sets it. |
+| `VisibilityPolicy.PROVISIONAL.marginal` | 0.40 | Provisional. P4 device testing sets it. |
+| `LandmarkNormalizer.MIN_TORSO_SCALE` | 1e-6 | Degenerate-input guard, not a quality threshold |
+
+Each is documented as provisional at its declaration. When P4 measures them, the
+outcome is recorded here and the constants cite it.
+
+**Normalisation is defined as:** origin at the mid-hip, unit scale equal to the
+mid-shoulder-to-mid-hip distance **in the image plane only**. MediaPipe's `z` is
+a relative depth estimate rather than a measured one, and folding it into the
+scale would make the unit fluctuate with depth noise every frame. Revisit in P2
+if the 2D length proves unstable for exercises filmed at an angle.
+
+A frame whose torso length falls below `MIN_TORSO_SCALE` returns `null` rather
+than falling back to a default scale. Losing the torso is an ordinary event
+during a set — the user turns, steps out of shot, or is briefly occluded — and
+substituting a scale would make every downstream measurement quietly wrong
+instead of honestly absent.
+
+The mid-hip and mid-shoulder midpoints are geometric centres between two named
+landmarks, not reductions of a `BilateralSignal`. No left/right quantity is
+averaged away, and both hips stay separately readable in the output.
+
+---
+
+## P1-5 — The front-camera mirroring assumption, stated explicitly
+
+*2026-09-19*
+
+`PoseAdapter` assumes the front camera feed arrives **horizontally mirrored**,
+which is what a front-facing preview conventionally does. That has two
+consequences and the adapter undoes both: the pose model labels landmarks from
+the image it was given, so the subject's left wrist arrives in the `RIGHT_WRIST`
+slot; and the x coordinate is reflected about the centre of the frame.
+
+**This assumption is not yet verified against a device.** CameraX can be
+configured either way, and the preview and the analysis use case do not have to
+agree. If P4 shows the analysis stream is unmirrored, `PoseAdapter.unmirror` is
+the single place that changes — nothing else in the codebase knows the
+difference exists.
+
+---
+
 ## OPEN — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Must be closed before P3.*
@@ -271,3 +474,18 @@ structurally representative implementation instead — see `G1_SPIKE_RESULT.md`.
 
 Before P2 and P3, the prototype should be read deliberately to identify
 behaviour worth porting, per `CLAUDE.md` §19.
+
+---
+
+## OPEN — Is `app/` the instrumentation harness or the product shell?
+
+*Raised in REPOSITORY_STRUCTURE.md, still open after P1.*
+
+REPOSITORY_STRUCTURE.md recommends deciding at the start of P1 whether `app/` is
+first a bare instrumentation harness (CameraX, MediaPipe, skeleton draw,
+frame-rate readout, no product UI) or the product shell, given that P4 is the
+device reality check in week 3.
+
+P1 did not decide it, because P1 was scoped to shared core types and touched
+`app/` only to add the pose adapter and its regression test. The question still
+needs answering before P4 is scheduled.
