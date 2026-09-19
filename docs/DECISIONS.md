@@ -776,6 +776,97 @@ measurement the system reports.
 Worth remembering as a general shape: a threshold used for detection should not be
 allowed to leak into the quantities being measured.
 
+## P3-3 — Scope expansion: engagement dashboard, streaks, Health Connect
+
+*2026-09-20*
+
+**Neither document specifies this. It is a scope addition, not a document
+conflict**, decided directly by the project owner after the P3 review, with the
+timeline risk explicitly accepted.
+
+**Decision.** The Android app gains three things beyond the analysis engine
+`FINAL_ARCHITECTURE.md` and `ZERO_DATASET_BUILD_PLAN.md` describe:
+
+1. **A dashboard** — session history, trends over time (ROM, deviation, and the
+   other Layer 1/2 outputs already produced per rep), built entirely from
+   `RepRecord`/`HoldRecord` history the engine already generates. No new data
+   collection.
+2. **Streaks** — Duolingo-style consecutive-day tracking. Pure local state: a
+   counter and a calendar view over session timestamps. No new architecture.
+3. **Health Connect integration** — read-only context from the platform's
+   on-device health data store (steps, active calories, heart rate — exact set
+   to be pinned when this is built), displayed alongside Kinesis's own
+   measurements rather than replacing them.
+
+**Reasoning, and the tension worth being honest about.** (1) and (2) cost
+almost nothing architecturally — they read data the engine already produces
+and hold no new invariants CLAUDE.md needs to protect. (3) is a real
+dependency addition and needs the full §17 check when it is built: license,
+API level requirements, whether it fits the KMP module split (Health Connect
+is Android-only, so this is `:app`-only like CameraX/MediaPipe), and
+maintenance status. Health Connect itself is on-device, not a cloud service —
+adding it does not violate the "no backend, no auth, no cloud" line in
+`FINAL_ARCHITECTURE.md` §6's final scope table, provided it stays read-only
+and nothing here introduces an account system or server of Kinesis's own.
+
+**The academic framing this needs, if it is going to help rather than hurt.**
+A generic fitness dashboard is not itself a research contribution, and
+piling one on top of an already-tight P4–P12 timeline is a real risk to the
+things that are — accepted here as a stated tradeoff, not an oversight. The
+honest framing, if used in the report: Kinesis measures things a step counter
+or generic tracker cannot — bilateral asymmetry, tempo, deviation from a
+personal calibrated baseline — and the dashboard contextualises those
+technique-specific measurements within the user's broader daily activity
+rather than duplicating what Health Connect already reports. That is a
+defensible sentence. "The app also has a dashboard and streaks" on its own is
+not, and should not be how this is presented in the viva.
+
+**Where this lives.** Primarily **P10 (Visualization and Android)**, which
+already owns the app's UI.
+
+**Not yet decided, deferred to detailed design.** The exact Health Connect
+data types to request, streak mechanics (whether a missed day breaks it or a
+freeze exists), and dashboard layout. Recorded here so the decision to build
+these at all is not lost, not to pin the details early.
+
+---
+
+## P3-4 — All fifteen profiles, and this new scope, now precede P4 device validation
+
+*2026-09-20*
+
+**This reverses one of CLAUDE.md's named non-negotiables, not just a schedule
+reordering.** §9 required building and validating the three archetypes on a
+real device before scaffolding the remaining twelve profiles; §22's "never do"
+list names implementing all profiles before the archetypes are validated
+explicitly. Decided directly by the project owner, after this tradeoff was
+stated plainly, twice, and confirmed both times.
+
+**Decision.** The remaining twelve profiles, the P10 dashboard/streaks/Health
+Connect work (P3-3), and the full app UI are built now, before P4's device
+testing. `CLAUDE.md` §9 and §22 are corrected to point here, per this file's
+own precedence rule — CLAUDE.md is corrected when it disagrees with a recorded
+decision, not the other way round.
+
+**What this trades away, stated once for the record.** §9's ordering existed
+for a specific reason, recorded in P2-3: P4 needs zero product UI, and is
+deliberately scheduled early so a fundamental failure — inadequate frame rate,
+thermal throttling, a wrong mirroring assumption, MediaPipe struggling on a
+lying pose (the Glute Bridge risk named in P0-3) — is caught before weeks are
+spent on twelve more profiles and a full UI built on top of an unverified
+foundation. Building all fifteen first means any such finding could require
+rework across all twelve non-archetype profiles, not just the three already
+device-tested. That risk is accepted here, explicitly, not overlooked.
+
+**What does not change.** Tests-first discipline (§18) and per-exercise
+consideration of camera view, landmark reliability, and bilateral handling
+(§9's other bullet) still apply to every new profile — building ahead of
+device validation is not license to skip guard tests. The three archetypes'
+own P4 validation still happens; it simply happens after the other twelve
+exist rather than before.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

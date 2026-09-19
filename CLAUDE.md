@@ -155,11 +155,16 @@ judgement — trunk compensation, incomplete lockout, body-line deviation).
   count.
 - **MUST**: if the exercise list changes, record it in `docs/DECISIONS.md` —
   never change it silently.
-- **MUST**: build the three archetype profiles first — Squat (bilateral
-  repetition), Bicep Curl (alternating/unilateral repetition), Plank
-  (isometric hold) — and validate all three against live device testing
-  before scaffolding the remaining profiles.
-- **MUST NOT**: implement all exercise profiles in one blind pass.
+- The three archetype profiles — Squat (bilateral repetition), Bicep Curl
+  (alternating/unilateral repetition), Plank (isometric hold) — were built
+  and tested first, per this section's original discipline.
+- **Superseded by `docs/DECISIONS.md` P3-4**: the remaining twelve profiles
+  are now built before the archetypes' own P4 device validation, at the
+  explicit direction of the project owner, accepting the risk P3-4 states.
+  Read P3-4 before treating this section's original ordering as current.
+- **MUST NOT**: implement any profile, including these twelve, without guard
+  tests written first — dropping the validate-before-scaffold order is not
+  license to skip tests-first discipline.
 - **MUST**: treat configuration-cost and validation-cost as separate for
   every new exercise — cheap to configure does not mean cheap to trust.
   Each new exercise needs explicit consideration of camera view, landmark
@@ -350,7 +355,8 @@ to preserve optional UI polish:
 - Rewrite the shared engine in TypeScript without an explicit,
   documented architecture decision.
 - Implement all exercise profiles before the three archetypes are
-  validated.
+  validated — **superseded by `docs/DECISIONS.md` P3-4**; read that entry
+  before citing this line as current.
 - Silently change an already-decided architecture choice.
 
 ## 23. Final rule
