@@ -612,9 +612,173 @@ will compare the candidates when it does.
 
 ---
 
-## OPEN — Bicep curl repetition semantics
 
-*Raised 2026-09-19. Must be closed before P3.*
+---
+
+## P3-1 — Bicep curl repetition semantics, closed against the label file
+
+*2026-09-20*
+
+**Closes the OPEN item raised 2026-09-19**, which the decision record named a
+hard blocker for P3. The question was whether MM-Fit labels one bicep-curl
+repetition as one arm's curl or as both arms.
+
+**Answer: one arm.** MM-Fit performs bicep curls with alternating arms, and each
+single-arm curl is one labelled repetition. A labelled set of 10 is five curls
+per arm.
+
+### Evidence
+
+MM-Fit was extracted to `data/mm-fit/` and read directly — label CSVs and the
+bundled 2D pose. Its label format is
+`start_frame, end_frame, repetition_count, exercise_name`.
+
+Two independent measurements, both over all 21 workouts.
+
+**1. Cycles per arm per labelled repetition.** For each labelled set, the
+dominant frequency of each wrist's vertical motion was taken from the amplitude
+spectrum. Bin *k* of an *N*-point FFT is exactly *k* cycles across the window, so
+the peak bin is the cycle count — no threshold, no smoothing parameter, nothing
+to tune.
+
+| Exercise | Sets | Cycles per arm, per labelled rep | SD | L/R phase |
+|---|---|---|---|---|
+| squats | 64 | 1.00 | 0.21 | +1.00 |
+| pushups | 65 | 1.00 | 0.32 | +0.08 |
+| situps | 65 | 1.00 | 0.24 | +0.95 |
+| lateral_shoulder_raises | 56 | 1.00 | 0.03 | +1.00 |
+| dumbbell_shoulder_press | 60 | 1.00 | 0.05 | +1.00 |
+| tricep_extensions | 64 | 1.00 | 0.04 | +0.99 |
+| dumbbell_rows | 64 | 1.00 | 0.02 | +0.99 |
+| jumping_jacks | 56 | 1.00 | 0.05 | +0.99 |
+| lunges | 62 | 1.00 | 0.16 | +0.93 |
+| **bicep_curls** | **59** | **0.50** | **0.01** | **−0.40** |
+
+Nine exercises return exactly one cycle per arm per labelled repetition. Bicep
+curls return half — and with the *tightest* spread of all ten, 0.01 across 59
+sets, so this is not noise. Every individual set reads 5 cycles on the left wrist
+and 5 on the right against a label of 10.
+
+**2. Left/right phase.** Correlation between the two wrists' vertical motion is
+positive and near +1 for every other exercise, meaning the arms move together.
+For bicep curls it is negative, −0.40, meaning they alternate. Partial rather
+than perfect antiphase is what alternating curls actually look like: one arm
+begins lowering while the other is still rising.
+
+The nine other exercises act as controls for the method. A measurement technique
+that reported 1.00 for nine exercises known to be one cycle per repetition, and
+0.50 only for the one exercise the documents flag as alternating, is measuring
+what it claims to.
+
+### Decision
+
+**Kinesis counts one bicep-curl repetition per arm**, matching MM-Fit.
+`RepetitionSemantics.PER_LIMB`.
+
+**Reasoning.** This is the same argument as P0-4 on seated posture. Matching the
+benchmark's definition is what makes the rep-count comparison 1:1 and meaningful;
+any other choice requires a conversion factor applied at exactly one place, and a
+conversion factor that someone forgets is precisely the factor-of-two error the
+open item warned about — one that presents as a threshold-tuning problem rather
+than a definitional one.
+
+### Consequences
+
+- The rep FSM runs **per side**. An alternating exercise needs two independent
+  state machines, one per arm, and the repetition count is their sum. This falls
+  out of the bilateral architecture rather than fighting it: nothing is averaged,
+  and each arm's range of motion stays separately attributable.
+- Every repetition profile declares its `RepetitionSemantics` explicitly. There
+  is no default, because a silent default is how this gets wrong again.
+- `BicepCurlSemanticsTest` pins both the declaration and the counting behaviour,
+  per CLAUDE.md §18.
+
+**Scope of this entry.** It records what MM-Fit's labels *define*. It is not a
+claim about how accurately Kinesis detects repetitions — nothing here has been
+measured against MM-Fit yet, and no such figure exists. That comparison is P7 and
+P12.
+
+**Not yet verified.** Only MM-Fit's bundled 2D pose was read, to answer a
+question about MM-Fit's own labels. Per CLAUDE.md §14 those OpenPose skeletons
+are never fed to the Kinesis engine: the evaluation pipeline is MM-Fit RGB video
+→ MediaPipe Pose → Kinesis. That pipeline is P7 and nothing here anticipates its
+result.
+
+
+---
+
+## P3-2 — Rep engine design decisions no document specifies
+
+*2026-09-20*
+
+Four choices P3 had to make. None is stated in FINAL_ARCHITECTURE or
+ZERO_DATASET, and each is recorded here rather than left in a comment, per
+CLAUDE.md §20.
+
+### One state machine per side, never a combined signal
+
+An alternating exercise needs to count each arm separately (P3-1), which means
+the FSM cannot be driven by a single fused signal. Rather than special-casing
+that, **every** repetition exercise runs two independent `RepFsm`s with two
+independent filter pipelines — so no bilateral quantity is ever reduced to a
+scalar to drive counting, and an occlusion on one side cannot perturb the other's
+filter state.
+
+What differs between exercises is only how the two machines' cycles combine, which
+the profile declares as `RepetitionSemantics`:
+
+- `PER_LIMB` — each side's cycle is a repetition, carrying the side that performed
+  it. Five curls per arm is ten repetitions.
+- `SIMULTANEOUS` — a cycle from each side pairs into one repetition, counted once,
+  with both sides' range of motion retained so asymmetry stays measurable.
+
+This falls out of the bilateral architecture rather than fighting it. It is also
+the direct structural answer to the prototype's `(left + right) / 2f`.
+
+### A side whose partner never completes is reported, not discarded
+
+Under `SIMULTANEOUS`, if one knee is occluded for a whole repetition its partner
+cycle never arrives. The unpaired side is emitted at the end of the set as
+`INSUFFICIENT_DATA` with the unmeasured side blank, rather than dropped. The
+movement happened and half of it was measured; silently discarding it would
+undercount, and silently completing it would invent the missing half.
+
+### The repetition clock re-bases while the subject waits at the top
+
+Standing between repetitions does not accumulate into either the one before or
+the one after: while the signal is at the starting position, the cycle buffer and
+the repetition clock restart every frame.
+
+Two reasons, both found by test rather than by reasoning ahead.
+
+1. Without it, a pause longer than `maxRepDurationMs` emits a phantom
+   `INCOMPLETE` record — someone resting thirteen seconds between sets generated
+   a repetition record.
+2. Without it, fixed-length resampling stops working as intended. A fixed pause
+   is a large fraction of a fast repetition and a small fraction of a slow one, so
+   two repetitions of identical shape no longer line up point for point — which is
+   the entire purpose of resampling to a fixed length.
+
+### Hysteresis must not reach the range-of-motion measurement
+
+The first correct-looking version of the re-basing above reset the peak value to
+the current sample on every top frame. That was wrong, and the test caught it: the
+descent passes *through* the hysteresis band while still counted as "at top", so
+the recorded peak became the last in-band value rather than the true starting
+position. A 100-degree squat measured as 87.
+
+The band is a **detection** device — it exists so a signal resting on a threshold
+does not flicker between phases and manufacture repetitions out of estimator
+noise. Range of motion is a **Level 1 measurement**. The peak is therefore widened
+while at the top, never reset, so the band cannot subtract itself from every
+measurement the system reports.
+
+Worth remembering as a general shape: a threshold used for detection should not be
+allowed to leak into the quantities being measured.
+
+## CLOSED — Bicep curl repetition semantics
+
+*Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
 
 MM-Fit performs bicep curls **alternating arms**. Kinesis has not defined
 whether one repetition means one arm or both.
@@ -627,6 +791,10 @@ the expensive way to discover it.
 This cannot be resolved from the documents. It requires inspecting MM-Fit's
 actual label file once the dataset is downloaded. Whatever is decided must be
 pinned by a test, per `CLAUDE.md` §18.
+
+**Closed.** The dataset was extracted to `data/mm-fit/` and its label files read
+directly. MM-Fit counts **one repetition per arm**. The evidence, the decision and
+its consequences are in **P3-1**.
 
 ---
 

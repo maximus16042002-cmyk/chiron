@@ -188,16 +188,24 @@ class SharedCoreSourceGuardTest {
      */
     @Test
     fun every_file_in_the_real_time_package_is_covered_by_the_scan() {
-        val temporal = File(repoRoot(), "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/temporal")
-        if (!temporal.isDirectory) return
-        val present = temporal.listFiles().orEmpty()
-            .filter { it.isFile && it.extension == "kt" }
-            .map { it.name }
-            .toSet()
-        val uncovered = present - REAL_TIME_PATH_FILES - POST_REP_PATH_FILES
+        var scannedAnyPackage = false
+        val uncovered = mutableListOf<String>()
+        for (relative in CLASSIFIED_PACKAGES) {
+            val directory = File(repoRoot(), relative)
+            if (!directory.isDirectory) continue
+            scannedAnyPackage = true
+            for (file in directory.listFiles().orEmpty()) {
+                if (!file.isFile || file.extension != "kt") continue
+                if (file.name in REAL_TIME_PATH_FILES) continue
+                if (file.name in POST_REP_PATH_FILES) continue
+                uncovered += relative + "/" + file.name
+            }
+        }
+
+        assertTrue(scannedAnyPackage, "none of the classified packages exist; the scan found nothing")
         assertTrue(
             uncovered.isEmpty(),
-            "these temporal files are classified neither real-time nor post-rep: " + uncovered +
+            "these files are classified neither real-time nor post-rep: " + uncovered +
                 ". Add each to REAL_TIME_PATH_FILES, or to POST_REP_PATH_FILES with a reason.",
         )
     }
@@ -358,6 +366,10 @@ class SharedCoreSourceGuardTest {
             "EmaSmoother.kt",
             "MedianOutlierGate.kt",
             "RealTimeSignalPipeline.kt",
+            // P3: the FSM and the hold analyser step once per frame.
+            "RepFsm.kt",
+            "BilateralRepTracker.kt",
+            "HoldAnalyser.kt",
         )
 
         /**
@@ -370,6 +382,18 @@ class SharedCoreSourceGuardTest {
             "SignalResampler.kt",
             "SignalMetrics.kt",
             "TemporalConfig.kt",
+        )
+
+        /**
+         * Packages whose every file must be classified as one or the other. A
+         * filename list only guards while it names the files that exist, so a
+         * new file in any of these is a test failure until someone says which
+         * path it is on.
+         */
+        val CLASSIFIED_PACKAGES = listOf(
+            "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/temporal",
+            "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/rep",
+            "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/hold",
         )
 
         /**
