@@ -382,6 +382,11 @@ class SharedCoreSourceGuardTest {
             "SignalResampler.kt",
             "SignalMetrics.kt",
             "TemporalConfig.kt",
+            // P3-10: the dashboard and the streak rule run when a screen opens,
+            // over history already written. They walk the whole history on
+            // purpose, which is what this path is for.
+            "Streaks.kt",
+            "Dashboard.kt",
         )
 
         /**
@@ -394,6 +399,7 @@ class SharedCoreSourceGuardTest {
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/temporal",
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/rep",
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/hold",
+            "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/history",
         )
 
         /**

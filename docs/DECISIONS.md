@@ -1984,6 +1984,241 @@ nothing here has been validated against a human being.
 
 ---
 
+## P3-10 — Streaks and the dashboard: the mechanics P3-3 deferred
+
+*2026-09-20*
+
+P3-3 added this scope and explicitly deferred its detail: *"Not yet decided,
+deferred to detailed design … streak mechanics (whether a missed day breaks it
+or a freeze exists), and dashboard layout."* This entry is that design.
+
+### The governing documents say nothing at all
+
+Searched for **streak**, **dashboard**, **engagement**, **Duolingo** and
+**Health Connect** across `CONTRACTS.md`, `FINAL_ARCHITECTURE.md`,
+`ZERO_DATASET_BUILD_PLAN.md`, `CLAUDE.md` and `REPOSITORY_STRUCTURE.md`.
+
+**Not one match, for any of the five terms, in any of the five documents.**
+
+The only hits for **persistence** are two lines of `CLAUDE.md`:
+
+> § 7, the post-rep path: `RepRecord` → feature extraction → deviation rules →
+> technique rules → DTW/reference comparison → ML → explanation → **persistence**.
+
+> § 15: Export formats: JSON, CSV. **Persistence is local only.**
+
+So unlike every prior batch, there is no document text to build from.
+**DECISIONS.md P3-3 is the entire specification**, and it is quoted here in the
+form the project owner agreed to:
+
+> 1. **A dashboard** — session history, trends over time (ROM, deviation, and
+>    the other Layer 1/2 outputs already produced per rep), built entirely from
+>    `RepRecord`/`HoldRecord` history the engine already generates. No new data
+>    collection.
+> 2. **Streaks** — Duolingo-style consecutive-day tracking. Pure local state: a
+>    counter and a calendar view over session timestamps. No new architecture.
+
+Everything below is derived from those two paragraphs. Where they are silent the
+smallest reasonable rule was chosen and recorded, rather than importing what a
+fitness app usually has.
+
+### What persistence existed before this batch: none
+
+Searched the whole repository for `Repository`, `Dao`, `@Entity`, `Room`,
+`SQLDelight`, `sqlite` and `.db`. **Zero matches outside build output.** There is
+no storage layer, no repository interface, and no dependency on any database.
+
+Worse for this batch's purposes, **most of the data model did not exist
+either**. `CLAUDE.md` §15 and `FINAL_ARCHITECTURE.md` §8 both specify:
+
+> Hierarchy: `SessionRecord` → `SetRecord` → `RepRecord` / `HoldRecord`, plus
+> `CalibrationBaseline` and `AnalysisResult`.
+
+Of those six types, **only `RepRecord` and `HoldRecord` had been built** — in
+P3, as outputs of the rep tracker and hold analyser. `SessionRecord`,
+`SetRecord`, `CalibrationBaseline` and `AnalysisResult` were named in two
+documents across five batches of profile work and never written. A dashboard
+"over session timestamps" cannot be built without a session, so that gap is this
+batch's to close, and it is closed.
+
+**The storage technology is already decided, so nothing was chosen here.**
+`FINAL_ARCHITECTURE.md` §8:
+
+> Local storage only — **Room on Android, IndexedDB on web, behind one shared
+> repository interface.** JSON and CSV export. **No backend, no auth, no cloud,
+> no sync.**
+
+and `REPOSITORY_STRUCTURE.md` confirms the dependency is deliberately deferred:
+
+> MediaPipe, CameraX, Compose, **Room** and everything else arrive in the phase
+> that needs them, each with its licence checked at that point.
+
+So there is no gap in the stack decision and no §17 check owed *by this batch* —
+Room owes one when it is written, which is `:app` work.
+
+### What was built, and what deliberately was not
+
+**Built, in `:core:domain`:** `SessionRecord`, the sealed `SetRecord` with
+`RepetitionSetRecord` and `HoldSetRecord`, and `LocalDay`. The set type is sealed
+per analysis mode for the same reason `HoldRecord` carries no repetition count
+(P3): a set that *could* hold both repetitions and holds is a set something will
+eventually put both in.
+
+**Built, in `:core:analysis/history`:** `Streaks` and `Dashboard`, both pure
+functions over a supplied history. Classified post-rep in the source guard, so a
+new file in that package fails the build until someone says which path it is on.
+
+**Not built: the shared repository interface.** This is a judgement call and is
+recorded as one. `FINAL_ARCHITECTURE` specifies it, and it would be fifteen
+lines — but with no implementation and no caller it would be an abstraction that
+nothing reads, which is precisely the failure this project has now found twice:
+`requiredView` and `posture` declared since P1 and read by nothing until P3-8,
+and the near-miss of adding `AnalysedSides` to isometric profiles in P3-9 where
+nothing could have consumed it. The interface belongs in the change that
+implements it against Room, where it can be guard-tested. **Storage therefore
+remains unbuilt, and this entry says so plainly rather than implying the
+dashboard has something to read from.**
+
+### The day model, and why there is no date library
+
+`FINAL_ARCHITECTURE.md` §3 lists what makes this core good multiplatform
+material:
+
+> | No date/time, no locale, no file system | Removes the second largest |
+>
+> If your core needed HTTP, a database driver, or structured concurrency, I
+> would tell you not to do this. It needs none of them.
+
+A timezone database is that kind of dependency, and none is needed. The platform
+records the UTC offset in force when a session starts; `LocalDay.of` is integer
+arithmetic over it. `Streaks.summarise` takes the current day as a parameter
+rather than reading a clock, which follows from the same constraint and makes
+every test deterministic as a by-product.
+
+**The offset is captured, not looked up, and this is a correctness decision.**
+The day a session belongs to is fixed when the session happens. Bucketing a past
+session with the device's *current* offset means a user who flies from Auckland
+to Los Angeles silently rewrites their own history — a Tuesday evening session
+becomes Monday. `moving_timezone_does_not_move_the_day_a_past_session_belongs_to`
+pins it.
+
+**The day number is a floor, not a truncation.** The two agree for every
+timestamp after 1970 and disagree for every one before it, so a truncation
+passes every test written against realistic data and then folds two days into one
+the first time a device clock is wrong. Pinned separately, because it is the kind
+of bug that cannot be found by inspection.
+
+### The four decisions P3-3 left open
+
+**1. What counts as a streak day.** At least one repetition or one hold that
+**actually completed** — `RepValidity.VALID` or `HoldValidity.VALID` — started
+on that local day. Opening the app does not count; a set started and abandoned
+does not count.
+
+*Reasoning.* This agrees with `BilateralRepTracker`, whose repetition count also
+only advances on `VALID`, so the streak and the rep count can never tell
+different stories about the same session. No minimum beyond one, and no
+distinction by exercise or tier: nothing in any document asks for either, and a
+threshold nobody specified is a threshold invented here.
+
+**2. The day boundary.** The device-local calendar day, from the offset captured
+at session start. Two sessions on one day count once; a second either side of
+local midnight is two days. Both pinned.
+
+**3. Grace and freezes: not in scope, and deliberately so.** P3-3 named this as
+undecided and "Duolingo-style" implies it, so the omission is recorded rather
+than left to look like an oversight.
+
+*Reasoning.* A freeze needs state of its own — how many are held, how many spent,
+how they are earned — which is exactly the "new architecture" P3-3 said this
+feature would not add. It is a motivation mechanic with no correctness content,
+and adding an unrequested feature is what CLAUDE.md §20 forbids. Because the
+streak is **computed from history rather than stored**, adding one later is a
+change to one function and not a migration. That is the main reason the streak is
+derived rather than kept as a counter.
+
+**4. Today's silence is not yet a break.** A streak ending yesterday is still
+running this morning; it breaks once a full day has passed with no work in it.
+
+*Reasoning.* Someone who has not trained yet today has not lost anything, and
+showing them a zero would be both wrong and the most demotivating thing the
+feature could do. This is the precise content of "a missed day breaks it", and
+both halves are pinned —
+`not_having_trained_yet_today_does_not_break_yesterdays_streak` and
+`a_full_day_of_silence_does_break_the_streak`.
+
+### What the dashboard shows
+
+Derived from P3-3's "session history, trends over time … built entirely from
+`RepRecord`/`HoldRecord` history":
+
+- **Per exercise** — sets performed, repetitions completed, total hold time,
+  mean and best range of motion, and the day it was last performed. Ordered most
+  recently performed first.
+- **Overall** — session count, total completed repetitions, total hold time,
+  first and last day, and the streak.
+
+The summary carries the streak rather than leaving the screen to recompute it,
+so the two cannot disagree about one history.
+
+**Every measured quantity stays a `BilateralSignal`.** Aggregation is the easiest
+place in the codebase to lose the two sides, because "average range of motion"
+reads like one number — and the obvious implementation is the prototype's
+`(left + right) / 2f` (P2-2) reappearing one layer up from where it was found.
+Left and right are accumulated in fields that never meet. A side that was never
+measured stays `NaN` rather than becoming zero, because zero is a measurement and
+none was made; and an alternating exercise's idle side is skipped rather than
+propagated, or every bicep-curl summary would read `NaN` on both arms.
+
+**Deviation is absent, and that is blocked rather than dropped.** P3-3 names it
+among the trends, but deviation is a Level 2 claim measured against a
+`CalibrationBaseline` — one of the four types §15 specifies and nothing has
+built. P6 builds it. Reporting "below your normal" without a baseline would be
+inventing the comparison, so the dashboard reports what the records measure on
+their own until there is something honest to compare them against.
+
+**Health Connect is untouched**, per the batch scope and P3-3's own note that it
+"is a real dependency addition and needs the full §17 check when it is built".
+
+### Three test expectations that were wrong, and what that says
+
+The first run failed three tests, and in all three cases **the test was wrong and
+the implementation was right**:
+
+- two "same day" sessions were built at noon **plus** nine and eighteen hours,
+  which is 21:00 and 06:00 the next morning;
+- 10:00 UTC was asserted to be the next day at UTC+13, which is 23:00 — the same
+  day.
+
+That is the day arithmetic being subtle enough to catch the person writing the
+tests for it, on the first attempt, in the most obvious direction. It is recorded
+because it is the best available evidence that this batch needed tests at all: a
+streak is exactly the kind of feature that looks correct in a demo and is wrong
+by one day for someone in a timezone the author never tried.
+
+### Mutation results
+
+Every new guard was verified able to fail. Eight probes, each reverted:
+
+| Probe | Caught by |
+|---|---|
+| `LocalDay` truncates instead of flooring | the floor test, alone |
+| `LocalDay` ignores the captured offset | 3 tests, incl. both midnight cases |
+| Aborted repetitions count as work | the streak rule and the dashboard count |
+| Streak anchors only on today | `not_having_trained_yet_today…` |
+| Qualifying days counted per session | `two_sessions_on_the_same_day…` |
+| Range of motion pooled across sides | 3 tests, reporting 80.0 where 105.0 was due |
+| An unmeasured side reported as zero | `a_side_that_was_never_measured…` |
+| An idle side's `NaN` folded into the mean | `an_alternating_exercise_keeps_each_arms_average_separate` |
+
+**Scope of this entry.** It records a product design, not a measurement. Nothing
+here was validated against a dataset or a person, because there is nothing in it
+to validate against one: a streak rule is a definition, and the only thing that
+can be wrong with it is its arithmetic, which is what the tests cover. Nothing on
+the real-time path changed.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
