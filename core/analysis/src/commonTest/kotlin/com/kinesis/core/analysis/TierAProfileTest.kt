@@ -71,8 +71,8 @@ class TierAProfileTest {
             listOf(
                 "bicep_curl", "glute_bridge", "goblet_squat", "hip_abduction",
                 "knee_raise", "lateral_raise", "leg_raise", "lunge", "plank",
-                "pushup", "reverse_lunge", "row", "shoulder_press", "situp",
-                "squat",
+                "pushup", "reverse_lunge", "row", "shoulder_press", "side_plank",
+                "situp", "squat", "wall_sit",
             ),
             ExerciseLibrary.all.map { it.id }.sorted(),
         )
@@ -84,7 +84,7 @@ class TierAProfileTest {
             listOf(
                 "bicep_curl", "glute_bridge", "hip_abduction", "knee_raise",
                 "lateral_raise", "leg_raise", "lunge", "plank", "pushup", "row",
-                "shoulder_press", "situp", "squat",
+                "shoulder_press", "side_plank", "situp", "squat", "wall_sit",
             ),
             ExerciseLibrary.profiles.map { it.id }.sorted(),
         )

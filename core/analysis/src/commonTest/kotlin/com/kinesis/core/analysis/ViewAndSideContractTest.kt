@@ -2,6 +2,7 @@ package com.kinesis.core.analysis
 
 import com.kinesis.core.analysis.profile.AnalysedSides
 import com.kinesis.core.analysis.profile.ExerciseLibrary
+import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.analysis.profile.RepetitionSemantics
 import com.kinesis.core.analysis.rep.BilateralRepTracker
@@ -94,6 +95,23 @@ class ViewAndSideContractTest {
      */
     @Test
     fun the_landmarks_a_profile_requires_match_what_its_view_can_deliver() {
+        // Isometric holds have no `analysedSides` - P3-9 explains why - but the
+        // first half of the rule applies to them unchanged: a hold judged on a
+        // joint must require that joint, or the gate is not checking what the
+        // analysis uses.
+        for (hold in ExerciseLibrary.all.filterIsInstance<IsometricExercise>()) {
+            val joint = hold.holdSignal.joint
+            val declared = hold.requiredLandmarks.toList()
+            for (point in listOf(joint.proximal, joint.vertex, joint.distal)) {
+                for (id in listOf(point.leftId, point.rightId)) {
+                    assertTrue(
+                        id in declared,
+                        hold.id + " holds on " + joint + " but does not require " + id,
+                    )
+                }
+            }
+        }
+
         for (profile in repetitionProfiles) {
             val joint = profile.repSignal.joint
             val bothSides = listOf(joint.proximal, joint.vertex, joint.distal)

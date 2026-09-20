@@ -48,12 +48,26 @@ class IsometricSeparationTest {
     @Suppress("USELESS_IS_CHECK")
     @Test
     fun an_isometric_profile_is_not_a_repetition_profile() {
-        val plank = ArchetypeProfiles.plank
-        assertTrue(plank is IsometricExercise)
-        assertFalse(
-            plank is RepetitionExercise,
-            "the plank profile can be handed to the repetition tracker",
+        // Swept across every hold in the library rather than the plank alone, so
+        // the Wall Sit and Side Plank added in P3-9 - and anything added later -
+        // are covered without this test needing to name them.
+        val holds = ExerciseLibrary.all.filterIsInstance<IsometricExercise>()
+        assertEquals(
+            listOf("plank", "side_plank", "wall_sit"),
+            holds.map { it.id }.sorted(),
+            "an isometric hold exists that this sweep does not cover",
         )
+
+        for (hold in holds) {
+            assertTrue(hold is IsometricExercise)
+            assertFalse(
+                hold is RepetitionExercise,
+                hold.id + " can be handed to the repetition tracker",
+            )
+            assertEquals(AnalysisMode.ISOMETRIC_HOLD, hold.mode)
+        }
+
+        val plank = ArchetypeProfiles.plank
         assertEquals(AnalysisMode.ISOMETRIC_HOLD, plank.mode)
 
         // The following does not compile, and must never be made to:

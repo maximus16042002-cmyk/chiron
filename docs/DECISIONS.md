@@ -1757,6 +1757,233 @@ the Kinesis engine. Every threshold in the two new profiles is provisional.
 
 ---
 
+## P3-9 — Wall Sit and Side Plank, and why neither threshold carries a citation
+
+*2026-09-20*
+
+Completes Tier C, and with it the library. Two questions had to be answered that
+no earlier batch faced: what a published threshold means for an exercise that
+cannot make a technique claim, and whether a one-sided *hold* needs the
+`AnalysedSides` concept P3-8 introduced for repetitions.
+
+### What the documents say, quoted
+
+`docs/CONTRACTS.md` §3, line 104:
+
+> | C | Wall Sit, Plank, Side Plank |
+
+`docs/FINAL_ARCHITECTURE.md` §5, "The final list", rows 15–17:
+
+> | 15  | Wall Sit   | Wall Sit   | **C** | Side  | Hold |
+>
+> | 16  | Plank      | Plank      | **C** | Side  | Hold |
+>
+> | 17  | Side Plank | Side Plank | **C** | Front | Hold |
+
+`docs/FINAL_ARCHITECTURE.md` §4, the configuration-versus-validation table —
+note that the side plank has **no row**, because §5 added it after that table was
+written:
+
+> | Wall Sit | 0.5 d | 1 d | 0 | High | Low    | High | Good |
+>
+> | Plank    | 0.5 d | 1 d | 0 | High | Medium — floor framing | High | Good |
+
+`docs/FINAL_ARCHITECTURE.md` §5, on the side plank's arrival as a replacement:
+
+> **Side Plank** — second isometric, pairs naturally with plank and wall sit,
+> tests the hold analyser on a different geometry, trivially reliable.
+
+`docs/FINAL_ARCHITECTURE.md` §3, on why a body-line rule cannot be shared:
+
+> | Body-line deviation | **No** — push-up sag, plank sag, bridge extension and
+> wall-sit posture are different geometries sharing a word | Partly | **Yes** |
+> **Exercise-specific rule** |
+
+`docs/ZERO_DATASET_BUILD_PLAN.md`, revised exercise scope, line 101 — the only
+statement of what a Tier C profile may claim:
+
+> | Wall Sit, Plank, Side Plank | C | None | Hold duration and stability; no
+> repetition claim applies |
+
+`CLAUDE.md` §11:
+
+> Two modes: **repetition** (generic rep FSM) and **isometric hold** (hold
+> analyser) — e.g. plank, wall sit.
+
+**MM-Fit coverage: none, confirmed.** ZERO_DATASET line 101 states it directly
+for all three, and MM-Fit's ten classes — read from its label files in P3-5 —
+contain no hold of any kind. No document says otherwise.
+
+### Thresholds: two corrections before anything else
+
+**The brief for this batch asked for thresholds cited "the same way the original
+Plank profile's hold threshold is sourced". The plank's threshold is not
+sourced.** It reads, in full:
+
+```kotlin
+// A straight shoulder-hip-knee line. Provisional.
+targetValue = 180.0,
+toleranceBand = 20.0,
+```
+
+There is no citation, and the word "Provisional" is doing the work. So there was
+no precedent to follow, and establishing one is part of this entry rather than
+something to copy.
+
+**The second correction is a category one, and it decides the question.**
+CLAUDE.md §12a requires that *"every Layer 2 technique rule carries a `sourceRef`
+… A rule with no traceable source does not ship"*, and scopes Layer 2 to
+*"Exercise-specific form rules, **Tier A only**"*. In code, `sourceRef` is a
+constructor parameter of `TechniqueFault`, which demands a `TechniqueAuthority`,
+which is reachable only through `TierAProfile.techniqueAuthority` (P1-3).
+
+Wall Sit and Side Plank are **Tier C**. They cannot construct a `TechniqueFault`
+— the call does not compile — so there is no Layer 2 rule for a citation to
+justify and no field for one to live in. `HoldSignalSpec.targetValue` is a
+**detection** parameter: it decides whether the subject is in the position at
+all, on exactly the same footing as every `RepSignalSpec.topThreshold` in the
+library. P3-2 recorded that a detection threshold must not leak into the
+quantities being measured; the same boundary read the other way is that it must
+not be dressed as a validated one. Attaching a citation to
+`HoldSignalSpec` would imply these profiles carry cited technique rules, which
+is precisely the overclaim §12a and P0-7 exist to prevent.
+
+**The literature was searched rather than assumed absent.** Two searches, and
+neither yields a threshold of the kind §12a means:
+
+- **Wall sit.** The work that exists characterises what happens *at* a knee
+  angle — quadriceps activation reaching 80–90% of maximum EMG under isometric
+  contraction, patellofemoral compressive force peaking between 60° and 90° of
+  flexion — rather than publishing a pass/fail criterion for whether a wall sit
+  is being held correctly. "Knees at ninety" is an exercise-prescription
+  convention, not a measured threshold.
+- **Side plank.** The standard protocol is McGill's side bridge, and it is a
+  **duration** test. Its termination criteria are qualitative — the hips drop,
+  the trunk rotates, the shoulder position fails — and the search surfaced no
+  published angle in degrees for hip drop.
+
+**Both thresholds are therefore declared provisional**, exactly like every other
+in the library, and the claim level is marked by the tier itself: Tier C caps at
+`L2_DEVIATION`, structurally, with `TierCProfileTest` pinning it.
+
+**What the literature does support is the shape of the output.** A duration test
+with qualitative failure criteria maps directly onto what `HoldAnalyser` already
+reports — total hold, longest unbroken hold, break count — and onto what
+ZERO_DATASET already permits Tier C to claim: *"Hold duration and stability; no
+repetition claim applies."* That agreement is worth noting precisely because it
+is not a threshold citation and should not be presented as one.
+
+**Where a citation will genuinely be needed** is P8's Tier A technique rules —
+push-up trunk sag, squat depth, and the rest — which do not exist yet. That is
+the work §12a was written for, and nothing in this batch discharges or
+anticipates it.
+
+### The side plank's one-sidedness: no `AnalysedSides` for holds
+
+A side plank is performed on one side of the body. That is a third kind of
+one-sidedness, distinct from both cases already handled: it is not alternating
+limbs (`PER_LIMB`), and it is not a limb the camera cannot see (`NEAR_SIDE_ONLY`,
+P3-8). P3-8 cost a full guard-test cycle because that case had been left
+implicit, so this one is settled here rather than left to surface later.
+
+**Decision: `AnalysedSides` is not extended to `IsometricExercise`.** Two
+reasons, both verified rather than asserted.
+
+**1. The hold signal is a property of the body line, not of a limb.** The side
+plank holds on the shoulder-hip-knee angle, and both sides' triples describe the
+same line. `a_body_line_angle_reads_the_same_on_both_sides_because_it_is_one_line`
+measures it: with both sides visible the two angles agree to within a degree.
+There are not two limbs to choose between, so "which side is analysed" is not a
+question the exercise poses. That is what makes a near-side-only declaration
+*meaningless* here rather than merely unnecessary.
+
+**2. There is nothing that could consume it.** `HoldAnalyser.step` takes a
+`Double`, not a `BilateralSignal`, and there is no landmark-driven hold tracker
+anywhere in the codebase — no isometric counterpart to `BilateralRepTracker`. The
+pairing decision `AnalysedSides` feeds in P3-8 has no analogue on the hold side,
+so a declaration added now would be a field read by nothing. That is exactly the
+failure P3-8 uncovered for `requiredView` and `posture`, and repeating it in a
+new corner to look thorough would be worse than leaving the concept out.
+
+**The degradation is already correct, and was checked.**
+`a_side_plank_with_the_down_side_occluded_yields_one_measured_side_and_a_nan`
+drives `JointAngles.compute` on a side-plank frame whose down-side landmarks sit
+below the visibility floor: one side comes back measured, the other `NaN`, and
+`asymmetry()` is `NaN`. Nothing special was needed, because this is what
+`JointAngles` has done since P2. Mutating it to substitute the other side —
+reintroducing the prototype's `left ?: right`, which DECISIONS.md P2-2 records —
+fails that test alongside the P2 guard and the P3-8 contrast test, three guards
+from three phases catching one anti-pattern.
+
+**What remains open, stated so it is not rediscovered.** When a landmark-driven
+hold tracker is eventually built, it must reduce the `BilateralSignal` to the
+scalar `HoldAnalyser` wants through an explicit named reducer, per CLAUDE.md §3 —
+never an average, and never a silent fallback. That is the point at which the
+question "which side" becomes real for holds, and it is the point at which this
+decision should be revisited. It is not real now.
+
+### Two smaller calls
+
+**Wall Sit is `Posture.SEATED`.** The enum has no better value and none is added:
+a wall sit's body configuration *is* sitting — hips and knees near ninety, trunk
+upright — with the wall in place of a chair. It deliberately does **not** carry
+the implication P0-4 attached to the seated lateral raise and shoulder press,
+that seating removes the lower body from the picture, because for a wall sit the
+lower body is the entire measurement. Recorded because `SEATED` now means two
+different things in two places, and that is worth someone knowing.
+
+**The side plank is filmed front-on, and this is not the intuitive guess.** §5
+row 17 assigns Front. In a side plank the body's frontal plane faces sideways, so
+a camera facing the subject sees the whole body line and the hip drop that breaks
+it; a camera at the subject's side looks *along* that line and sees nothing. The
+profile's hold spec is also deliberately its own instance rather than a reuse of
+the plank's, because §3 lists body-line deviation among the things that cannot be
+shared — "different geometries sharing a word" — and
+`the_plank_and_the_side_plank_are_separate_specifications` fails if someone
+reuses one for the other.
+
+### The library is complete: 17 / 15 / 2, confirmed
+
+| | Before | After |
+|---|---|---|
+| Entries | 15 | **17** |
+| Profiles | 13 | **15** |
+| Variants | 2 | **2** |
+
+That is P0-5's target exactly — *"17 entries / 15 profiles / 2 variants"* — and
+CLAUDE.md §9's honest count: **15 exercise profiles across 3 tiers and 2 analysis
+modes, presented as 17 library entries including 2 variants that share a parent
+profile and calibration.** Tier A holds five, Tier B seven, Tier C three.
+
+The arithmetic was checked entry by entry against FINAL_ARCHITECTURE §5's
+seventeen-row final list rather than by counting to seventeen. Every row maps to
+exactly one library entry, and every library entry to exactly one row.
+
+**That audit turned up one divergence, and it had never been recorded.**
+FINAL_ARCHITECTURE row 4 assigns the Bicep Curl a view of **"Side / 45°"**. The
+profile built in P3 declares `FRONT_ON`, with the reasoning in its KDoc —
+alternating arms must both be visible, and side-on occludes the far arm for the
+whole set and halves the count. That reasoning is sound and the divergence is
+kept, but it was never written down anywhere outside the source file.
+
+It is worth more than a footnote, because the guard added in P3-8 now rejects the
+document's version independently: the bicep curl is `PER_LIMB`, and
+`no_profile_combines_alternating_limbs_with_a_view_that_sees_only_one` forbids
+exactly that pairing. The document's assignment is unsound for the same reason
+§5 cut the front raise — "from the **side**, the two arms travel in the same
+plane and occlude each other" — and §5 simply did not apply that reasoning to the
+curl. This is the second such omission found in §5, after the lunge in P3-7, and
+both were found by building rather than by reading.
+
+**Scope of this entry.** It records what the documents assign, why no threshold
+here carries a citation, and how a one-sided hold is represented. It makes no
+claim about how accurately Kinesis detects any hold — no Kinesis output has been
+compared against anything, and no such figure exists. Every threshold in both new
+profiles is provisional; P6 personalises them, P4 sanity-checks them first, and
+nothing here has been validated against a human being.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

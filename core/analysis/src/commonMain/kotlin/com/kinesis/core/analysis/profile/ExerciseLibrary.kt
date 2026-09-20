@@ -95,6 +95,14 @@ object ExerciseLibrary {
     /** See [RowProfile]. The library's only near-side-only profile. */
     val row: RowProfile = RowProfile()
 
+    // --- Tier C: the remaining isometric holds (DECISIONS.md P3-9) --------------
+
+    /** See [WallSitProfile]. */
+    val wallSit: WallSitProfile = WallSitProfile()
+
+    /** See [SidePlankProfile]. Filmed front-on, which is not the intuitive guess. */
+    val sidePlank: SidePlankProfile = SidePlankProfile()
+
     /**
      * Reverse Lunge — the second variant the documents name, unblocked by
      * [lunge] arriving.
@@ -138,6 +146,8 @@ object ExerciseLibrary {
         legRaise,
         shoulderPress,
         row,
+        wallSit,
+        sidePlank,
         reverseLunge,
     )
 
