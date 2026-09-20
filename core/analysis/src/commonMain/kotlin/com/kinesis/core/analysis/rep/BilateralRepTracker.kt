@@ -117,8 +117,14 @@ class BilateralRepTracker(
             }
 
             RepetitionSemantics.SIMULTANEOUS -> if (pairsSides) {
-                if (left != null) pendingLeft = left
-                if (right != null) pendingRight = right
+                if (left != null) {
+                    if (pendingLeft != null) flushUnpairedSimultaneous(sink)
+                    pendingLeft = left
+                }
+                if (right != null) {
+                    if (pendingRight != null) flushUnpairedSimultaneous(sink)
+                    pendingRight = right
+                }
                 tryPairSimultaneous(sink)
             } else {
                 if (left != null) emitNearSide(left, Side.LEFT, sink)
@@ -138,8 +144,14 @@ class BilateralRepTracker(
             }
 
             RepetitionSemantics.SIMULTANEOUS -> if (pairsSides) {
-                if (left != null) pendingLeft = left
-                if (right != null) pendingRight = right
+                if (left != null) {
+                    if (pendingLeft != null) flushUnpairedSimultaneous(sink)
+                    pendingLeft = left
+                }
+                if (right != null) {
+                    if (pendingRight != null) flushUnpairedSimultaneous(sink)
+                    pendingRight = right
+                }
                 tryPairSimultaneous(sink)
                 flushUnpairedSimultaneous(sink)
             } else {

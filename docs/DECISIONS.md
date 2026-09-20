@@ -1560,11 +1560,12 @@ quality, and it is the reason a comment would not have been enough.
 difference matters.** P3-7 recorded that §4 sent the lunge to §5 under "Fix the
 view or cut" and that §5 never returned to it. Re-checked here: §5 **does**
 address the row, at length, and resolves it — keep it, near-side only. It also
-resolves the front raise (cut) and the overhead triceps extension (cut). So §5
-carried out its instruction for two of the three exercises §4 flagged, and
-skipped only the lunge (while also addressing one unflagged exercise, the
-Overhead Triceps Extension). That narrows P3-7's finding from "§5 is unreliable"
-to "§5 has exactly one omission", which is worth knowing.
+resolves the front raise (cut) and the overhead triceps extension (cut). 
+
+**Correction to original P3-8 claim:** This entry originally claimed that §4 flagged four exercises, and that §5 addressed three of them. A direct grep of `docs/FINAL_ARCHITECTURE.md` for "Fix the view or cut" yields exactly this row from §4:
+`| **Cheap to configure, expensive to validate** | **Lunge, bent-over row, front raise** | **Fix the view or cut** — section 5 |`
+
+The correct count of flagged exercises is **three**, not four. §5 addressed two of those three (row and front raise) while also spontaneously addressing one unflagged exercise (overhead triceps extension), leaving only the lunge skipped. That narrows P3-7's finding from "§5 is unreliable" to "§5 has exactly one omission", which is worth knowing.
 
 §5 **is** silent on Shoulder Press, and that silence is explained rather than
 suspicious: §4 put it in "Cheap to configure, moderate to validate — Add, budget
@@ -2578,6 +2579,10 @@ A full-codebase audit was performed to ensure all implementations comply with th
     - **Fix:** Switched catch blocks to `Exception` and explicitly rethrew `CancellationException`, `NullPointerException`, `IllegalArgumentException`, and `ClassCastException`.
     - **Verification:** Added `HealthConnectExceptionTest.kt` to prove that internal bugs (`NullPointerException`) propagate out of the method instead of returning `DailyMetric.NoData`.
 7. **Dead Code:** Cleaned up unused imports (e.g. `import kotlin.math.abs` in `FilterAblationTest.kt`). No stray `TODO`, `FIXME`, or commented-out code blocks were found. **Clean.**
-8. **Deferred Items:** Addressed "Open — bicep curl repetition semantics" by updating `CONTRACTS.md` Section 9 to explicitly link to the closure in `DECISIONS.md` P3-1.
+8. **Dependency / License Consistency Follow-up:** Removed the undisclosed `kotlin("reflect")` dependency from `app/build.gradle.kts`. Rewrote `HealthConnectExceptionTest.kt` to use a manual `FakeHealthConnectClient` instead of `java.lang.reflect.Proxy`.
+9. **Deferred Items:** Addressed "Open — bicep curl repetition semantics" by updating `CONTRACTS.md` Section 9 to explicitly link to the closure in `DECISIONS.md` P3-1.
+10. **BilateralRepTracker Edge Case:** Addressed the flagged-but-untested single-pending-slot edge case in `BilateralRepTracker.kt`. When `SIMULTANEOUS` and `BOTH` were active, if one side emitted multiple rep cycles while the other side emitted none, the `pendingLeft` or `pendingRight` slots were silently overwritten, losing the cycles instead of flushing them as unpaired `INSUFFICIENT_DATA` repetitions.
+    - **Fix:** Updated `BilateralRepTracker.onFrame` and `finish` to flush any existing orphaned cycle using `flushUnpairedSimultaneous()` before overwriting the slot with a new cycle.
+    - **Verification:** Added `a_simultaneous_repetition_flushes_pending_slots_when_overwritten` test in `ArchetypeProfileTest.kt` which generates two left cycles without any right cycles, proving that the first cycle is flushed correctly.
 
 The audit is complete and the project remains structurally sound per its own constraints.

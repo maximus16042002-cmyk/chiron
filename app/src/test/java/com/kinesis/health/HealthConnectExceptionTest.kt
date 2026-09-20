@@ -7,7 +7,6 @@ import androidx.health.connect.client.time.TimeRangeFilter
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.fail
 import org.junit.Test
-import java.lang.reflect.Proxy
 import java.time.Instant
 
 class HealthConnectExceptionTest {
@@ -18,12 +17,9 @@ class HealthConnectExceptionTest {
                 object : ContextWrapper(null) {}
             )
             
-            val mockClient = Proxy.newProxyInstance(
-                javaClass.classLoader,
-                arrayOf(HealthConnectClient::class.java)
-            ) { _, _, _ ->
+            val mockClient = FakeHealthConnectClient {
                 throw NullPointerException("Internal bug!")
-            } as HealthConnectClient
+            }
             
             source.read<Long>(
                 client = mockClient,

@@ -15,6 +15,7 @@ import com.kinesis.core.domain.profile.Posture
 import com.kinesis.core.domain.profile.Tier
 import com.kinesis.core.domain.profile.TierAProfile
 import com.kinesis.core.domain.rep.RepRecord
+import com.kinesis.core.domain.rep.RepValidity
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -225,6 +226,54 @@ class ArchetypeProfileTest {
             record.rangeOfMotion.asymmetry() > 0.0,
             "an asymmetric squat reported perfect symmetry",
         )
+    }
+
+    @Test
+    fun a_simultaneous_repetition_flushes_pending_slots_when_overwritten() {
+        val tracker = BilateralRepTracker(ArchetypeProfiles.squat)
+        val counted = ArrayList<RepRecord>()
+        
+        val frames = ArrayList<Pair<Double, Landmarks>>()
+        var index = 0
+        fun emit(leftKnee: Double, rightKnee: Double) {
+            frames += (index * frameMs) to legFrame(leftKnee, rightKnee)
+            index++
+        }
+        
+        // Both start standing
+        repeat(10) { emit(170.0, 170.0) }
+        
+        // Left goes down and up, right stays standing. 
+        // This generates a valid cycle for the left, which becomes pendingLeft.
+        for (step in 1..30) emit(170.0 - (170.0 - 70.0) * step / 30.0, 170.0)
+        for (step in 1..30) emit(70.0 + (170.0 - 70.0) * step / 30.0, 170.0)
+        
+        // Wait a bit
+        repeat(10) { emit(170.0, 170.0) }
+        
+        // Left goes down and up AGAIN, right stays standing.
+        // This generates a SECOND valid cycle for the left.
+        // The previous pendingLeft MUST be flushed as INSUFFICIENT_DATA.
+        for (step in 1..30) emit(170.0 - (170.0 - 70.0) * step / 30.0, 170.0)
+        for (step in 1..30) emit(70.0 + (170.0 - 70.0) * step / 30.0, 170.0)
+        
+        // Wait a bit
+        repeat(10) { emit(170.0, 170.0) }
+
+        for ((timestamp, frame) in frames) {
+            tracker.onFrame(timestamp, frame, policy) { counted += it }
+        }
+        
+        // The first left cycle should have been flushed when the second one arrived.
+        // Let's verify that the FIRST left cycle was flushed as INSUFFICIENT_DATA
+        assertEquals(1, counted.size, "The first pending left cycle should have been flushed when overwritten")
+        assertEquals(RepValidity.INSUFFICIENT_DATA, counted[0].validity)
+        
+        // Finish the tracker to flush the second left cycle
+        tracker.finish(frames.last().first + 1000.0) { counted += it }
+        
+        assertEquals(2, counted.size, "The second pending left cycle should have been flushed on finish")
+        assertEquals(RepValidity.INSUFFICIENT_DATA, counted[1].validity)
     }
 
     // --- Signal declarations -------------------------------------------------------
