@@ -867,6 +867,169 @@ exist rather than before.
 
 ---
 
+## P3-5 — Repetition semantics for push-up, lateral raise and glute bridge
+
+*2026-09-20*
+
+The second batch of profiles needs the same question answered that P3-1 answered
+for the bicep curl: does one labelled repetition mean one limb's movement or
+both limbs together? Getting it wrong is a factor-of-two error in every rep count
+the exercise ever produces, and it presents as a threshold-tuning problem rather
+than a definitional one.
+
+Two of the three can be measured. One cannot, and is marked accordingly.
+
+### Method, and one correction to P3-1's
+
+Same threshold-free measurement as P3-1. For each labelled set, the dominant
+frequency of each side's motion is read off the amplitude spectrum; bin *k* of an
+*N*-point FFT is exactly *k* cycles across the window, so the peak bin is the
+cycle count. No deadband, no smoothing window, nothing to tune. Left/right phase
+is the correlation between the two sides' signals: near +1 means they move
+together, negative means they alternate.
+
+**What P3-1 did not do, and this does: choose the signal per exercise.** P3-1
+used wrist height for all ten exercises. That is right for a curl and wrong for a
+push-up — the hands are planted on the floor, so wrist height is the one thing
+that does *not* move. It shows in P3-1's own table: push-ups have the worst
+spread of all ten (SD 0.32, against 0.01–0.05 for exercises whose wrists
+genuinely travel). The conclusion there was unaffected, because the question was
+about bicep curls and the curl figures are unchanged, but the method is improved
+here.
+
+Each exercise is therefore measured on two signals: a raw vertical coordinate of
+whichever joint actually travels, and **the joint angle the Kinesis profile will
+drive off**, which is the one that has to hold for the decision to mean anything
+in the engine.
+
+The MM-Fit array layout was verified against the data rather than assumed:
+`pose_2d` is `(2, frames, 19)`, row 0 is *x* and row 1 is *y* (image *y*-down —
+nose ≈ 266, ankle ≈ 696), column 0 of the joint axis carries the frame number,
+and joints 1–18 are OpenPose COCO-18 shifted by that column.
+
+### Evidence
+
+Cycles per side, per labelled repetition. **1.00** means the label counts a
+two-sided movement once; **0.50** means it counts each side separately.
+
+| Exercise | Signal | Sets | Cycles/side/rep | SD | L/R phase |
+|---|---|---|---|---|---|
+| **pushups** | torso height | 65 | **1.00** | 0.05 | +0.99 |
+| **pushups** | elbow angle | 65 | **1.00** | 0.23 | +0.68 |
+| **lateral_shoulder_raises** | hand height | 56 | **1.00** | 0.03 | +1.00 |
+| **lateral_shoulder_raises** | shoulder abduction angle | 56 | **1.00** | 0.03 | +0.99 |
+| squats *(control)* | hip height | 64 | 1.00 | 0.02 | +1.00 |
+| squats *(control)* | knee angle | 64 | 1.00 | 0.02 | +0.96 |
+| dumbbell_shoulder_press *(control)* | hand height | 60 | 1.00 | 0.05 | +1.00 |
+| bicep_curls *(control)* | hand height | 59 | **0.50** | 0.01 | **−0.40** |
+| bicep_curls *(control)* | elbow angle | 59 | **0.50** | 0.01 | **−0.40** |
+
+The direct discriminator, counted per set on the joint-angle signal — how often
+*both* sides' cycle count equals the label, versus equals half the label:
+
+| Exercise | Sets | Both sides = label | Both sides = label ÷ 2 |
+|---|---|---|---|
+| pushups | 65 | 47 | **0** |
+| lateral_shoulder_raises | 56 | 52 | **0** |
+| squats *(control)* | 64 | 61 | **0** |
+| dumbbell_shoulder_press *(control)* | 60 | 48 | **0** |
+| bicep_curls *(control)* | 59 | **0** | **56** |
+
+**The alternative reading, and why it is rejected.** The plausible alternative is
+that MM-Fit performs these the way it performs curls — alternating single arms,
+one arm per labelled repetition. That reading predicts 0.50 cycles per side per
+repetition and a negative left/right phase, which is exactly what the bicep-curl
+control shows. Push-ups and lateral raises show neither, on either signal, in any
+set: not one of the 121 sets has both sides at half the label, and the phase is
+positive and near +1 throughout. The two readings are cleanly separated by the
+measurement rather than by interpretation of it.
+
+The controls are what make that claim about the *method* rather than about the
+result. Squats and shoulder press are unambiguously two-sided and return 1.00;
+bicep curls are known from P3-1 to be per-limb and return 0.50 under the same
+code in the same run.
+
+**One observation worth flagging, not acted on here.** The push-up elbow angle is
+a visibly noisier signal than push-up torso height — SD 0.23 against 0.05, phase
++0.68 against +0.99 — and the noise is one-sided: the left elbow's cycle count
+disagrees with the label in 18 of 65 sets, the right elbow in 6. That asymmetry
+is what an occluded far arm looks like. It is a property of MM-Fit's camera
+placement and its OpenPose estimates, not a measurement of MediaPipe, and
+nothing here predicts how the same signal behaves in Kinesis. It is recorded
+because P4 should look at it: if the elbow angle proves an unreliable driver for
+push-ups on a real device, torso height is the alternative this data already
+shows to be cleaner.
+
+### Glute bridge — an assumption, not a measurement
+
+**MM-Fit has no glute bridge class.** Its ten are bicep curls, dumbbell rows,
+dumbbell shoulder press, jumping jacks, lateral shoulder raises, lunges,
+pushups, situps, squats and tricep extensions. There is no label file to check
+against, so nothing above applies to it.
+
+The glute bridge is therefore declared `SIMULTANEOUS` **from anatomy**: it is a
+bilateral hip extension performed with both feet planted, both hips extend
+through the same movement at the same time, and there is no common variant in
+which the two sides alternate. A single-leg glute bridge exists, but it is a
+different exercise with its own loading and would be its own profile, not this
+one performed differently.
+
+**This is an assumption that has never been validated against real motion data,
+and it is a weaker basis than the entries above.** It is recorded as a distinct
+claim for exactly that reason: the push-up and lateral-raise decisions are
+measurements with 121 sets behind them, and this one is reasoning. If it is
+wrong, it is wrong in the same factor-of-two way, and the test that pins it
+(`TierAProfileTest`) is what will make the correction cheap.
+
+This compounds a risk already on the record. P0-3 keeps the glute bridge in Tier
+A while noting that MediaPipe is weaker on lying poses, with the contingency that
+P4 may promote the sit-up in its place. The glute bridge is now the one Tier A
+exercise with neither benchmark coverage nor device validation behind any of its
+declarations.
+
+### Decisions
+
+| Profile | Semantics | Basis |
+|---|---|---|
+| Push-up | `SIMULTANEOUS` | Measured, 65 MM-Fit sets, two signals |
+| Lateral Raise | `SIMULTANEOUS` | Measured, 56 MM-Fit sets, two signals |
+| Glute Bridge | `SIMULTANEOUS` | **Assumed from anatomy. No data.** |
+
+With these three, Tier A is complete as CONTRACTS.md §3 assigns it: Squat,
+Push-up, Bicep Curl, Lateral Raise (seated), Glute Bridge.
+
+### Consequences
+
+- The camera view and posture of each is declared beside it and pinned by test.
+  Lateral Raise is **seated**, per P0-4 — a rule derived from seated data does
+  not transfer to standing, and MM-Fit performs it seated.
+- `ArchetypeProfiles.all` is no longer the set of all profiles. A new
+  `ExerciseLibrary` registry is what the guard sweeps iterate, so a profile added
+  outside it is a test failure rather than a silent gap in coverage. The
+  archetypes keep their own object because DECISIONS.md and CLAUDE.md §9 refer to
+  them as a group.
+- `ArchetypeProfileTest.exactly_the_three_archetypes_exist_and_no_more` asserted
+  that no further profiles existed, which P3-4 has now authorised. It is replaced
+  by a pin on the library's full contents, so growth is still deliberate rather
+  than silent.
+
+**Scope of this entry.** It records what MM-Fit's labels *define* for two
+exercises and what anatomy implies for a third. It is not a claim about how
+accurately Kinesis detects any of them — nothing here has been measured against
+MM-Fit, and no such figure exists. That comparison is P7 and P12.
+
+**Not fed to the engine.** Only MM-Fit's bundled OpenPose 2D pose was read, to
+answer a question about MM-Fit's own labels. Per CLAUDE.md §14 those skeletons
+never reach the Kinesis engine: the evaluation pipeline is MM-Fit RGB video →
+MediaPipe Pose → Kinesis.
+
+**Every threshold in the three new profiles is provisional** and marked so in
+source, on the same footing as the archetypes' — starting points that let the
+engine be exercised, not measured quantities. P6 personalises them from the
+user's own calibration repetitions; P4 sanity-checks them on a device first.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

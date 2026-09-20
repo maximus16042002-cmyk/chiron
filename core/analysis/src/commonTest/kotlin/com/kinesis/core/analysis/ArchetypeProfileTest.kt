@@ -25,10 +25,11 @@ import kotlin.test.assertTrue
  * and 8.
  *
  * Squat is the bilateral-simultaneous case, bicep curl the alternating-arm case,
- * plank the isometric hold. CLAUDE.md section 9 requires these three to be built
- * and validated before the remaining profiles are scaffolded, because fifteen
- * untested profiles written in one pass are fifteen things wrong in the same
- * way.
+ * plank the isometric hold. CLAUDE.md section 9 originally required these three
+ * to be validated on a device before the remaining profiles were scaffolded;
+ * DECISIONS.md P3-4 reversed that ordering, so the later profiles now exist
+ * first. They are pinned in `TierAProfileTest` and swept through
+ * [com.kinesis.core.analysis.profile.ExerciseLibrary].
  *
  * Includes the permanent pin on bicep-curl repetition semantics required by
  * DECISIONS.md P3-1 and CLAUDE.md section 18.
@@ -40,10 +41,15 @@ class ArchetypeProfileTest {
 
     // --- Scope ------------------------------------------------------------------
 
+    /**
+     * The archetype grouping stays exactly three. It is not the set of every
+     * profile - that is `ExerciseLibrary`, pinned by `TierAProfileTest` - and
+     * letting it drift would make the two groupings mean the same thing, at
+     * which point the decision record's references to "the three archetypes"
+     * stop resolving to anything.
+     */
     @Test
     fun exactly_the_three_archetypes_exist_and_no_more() {
-        // CLAUDE.md section 9: the other twelve profiles are P10 work and must
-        // not appear before these three have been through P4 device testing.
         assertEquals(
             listOf("bicep_curl", "plank", "squat"),
             ArchetypeProfiles.all.map { it.id }.sorted(),

@@ -3,6 +3,7 @@ package com.kinesis.core.analysis
 import com.kinesis.core.analysis.hold.HoldAnalyser
 import com.kinesis.core.analysis.hold.HoldState
 import com.kinesis.core.analysis.profile.ArchetypeProfiles
+import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.domain.profile.AnalysisMode
@@ -89,7 +90,7 @@ class IsometricSeparationTest {
      */
     @Test
     fun no_profile_declares_itself_both_repetition_and_isometric() {
-        for (profile in ArchetypeProfiles.all) {
+        for (profile in ExerciseLibrary.all) {
             val isRep = profile is RepetitionExercise
             val isHold = profile is IsometricExercise
             assertFalse(

@@ -22,10 +22,16 @@ import com.kinesis.core.domain.profile.TierCProfile
  * | Bicep curl | Alternating single-limb repetition |
  * | Plank | Isometric hold |
  *
- * CLAUDE.md section 9 is explicit that all fifteen must not be written in one
- * pass: fifteen untested profiles are fifteen things wrong in the same way. The
- * remaining profiles arrive in P10, after P4 has exercised these three on a real
- * device.
+ * CLAUDE.md section 9 required all fifteen not to be written in one pass, on the
+ * grounds that fifteen untested profiles are fifteen things wrong in the same
+ * way. **DECISIONS.md P3-4 reversed that ordering** at the project owner's
+ * direction: the remaining profiles are now built before these three have been
+ * through P4 device testing, accepting the rework risk P3-4 states. What did not
+ * change is that each still arrives with its guard tests written first.
+ *
+ * These three keep their own object because CLAUDE.md section 9 and the decision
+ * record refer to them as a group. The registry every guard sweep iterates is
+ * [ExerciseLibrary], which holds these and everything added since.
  *
  * **Every threshold below is provisional.** They are starting points that let
  * the engine be built and tested, not measured quantities, and they support no
