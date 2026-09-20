@@ -67,15 +67,18 @@ class TierBProfileTest {
     // --- Scope --------------------------------------------------------------------
 
     @Test
-    fun the_tier_b_profiles_built_so_far_are_the_lower_body_and_trunk_subset() {
+    fun tier_b_is_exactly_the_seven_exercises_contracts_assigns_it() {
         assertEquals(
-            listOf("hip_abduction", "knee_raise", "leg_raise", "lunge", "situp"),
+            listOf(
+                "hip_abduction", "knee_raise", "leg_raise", "lunge", "row",
+                "shoulder_press", "situp",
+            ),
             ExerciseLibrary.profiles
                 .filter { it.tier == Tier.B }
                 .map { it.id }
                 .sorted(),
-            "CONTRACTS.md section 3 also assigns Shoulder Press and Row to Tier B; they " +
-                "are upper-body and arrive in a later batch",
+            "CONTRACTS.md section 3 assigns exactly these seven to Tier B, and with " +
+                "Shoulder Press and Row the tier is complete",
         )
     }
 
@@ -151,6 +154,32 @@ class TierBProfileTest {
         assertEquals(Posture.SUPINE, ExerciseLibrary.legRaise.posture)
     }
 
+    /**
+     * The two upper-body profiles - DECISIONS.md P3-8.
+     *
+     * Both constraints here are decisions with consequences rather than
+     * descriptions, which is why each carries its own message.
+     */
+    @Test
+    fun the_upper_body_profiles_declare_the_constraints_the_documents_impose() {
+        assertEquals(CameraView.FRONT_ON, ExerciseLibrary.shoulderPress.requiredView)
+        assertEquals(
+            Posture.SEATED,
+            ExerciseLibrary.shoulderPress.posture,
+            "CONTRACTS.md section 3 writes the tier row as \"Shoulder Press (seated)\" and " +
+                "DECISIONS.md P0-4 chose seated so MM-Fit's benchmark applies at all",
+        )
+
+        assertEquals(CameraView.SIDE_ON, ExerciseLibrary.row.requiredView)
+        assertEquals(
+            Posture.HINGED,
+            ExerciseLibrary.row.posture,
+            "a bent-over row is not standing: MM-Fit's row IS standing, and " +
+                "ZERO_DATASET_BUILD_PLAN calls that posture mismatch too large to claim " +
+                "measurement. Declaring both STANDING would erase the difference.",
+        )
+    }
+
     @Test
     fun each_new_profile_drives_off_the_joint_that_defines_its_movement() {
         assertEquals(JointAngleId.KNEE, ExerciseLibrary.lunge.repSignal.joint)
@@ -158,6 +187,45 @@ class TierBProfileTest {
         assertEquals(JointAngleId.HIP, ExerciseLibrary.kneeRaise.repSignal.joint)
         assertEquals(JointAngleId.HIP, ExerciseLibrary.situp.repSignal.joint)
         assertEquals(JointAngleId.HIP, ExerciseLibrary.legRaise.repSignal.joint)
+
+        // Shoulder abduction, not the elbow: FINAL_ARCHITECTURE section 4 warns
+        // the wrists exit the frame at lockout, and the elbow angle needs one.
+        // On MM-Fit the two signals are indistinguishable in quality, so nothing
+        // is given up. DECISIONS.md P3-8.
+        assertEquals(JointAngleId.SHOULDER, ExerciseLibrary.shoulderPress.repSignal.joint)
+        assertEquals(JointAngleId.ELBOW, ExerciseLibrary.row.repSignal.joint)
+    }
+
+    /**
+     * Permanent guard - DECISIONS.md P3-8.
+     *
+     * Both measured against MM-Fit's own label files, each on three independent
+     * signals, with no set at half the label in either case:
+     *
+     * - shoulder press, 60 sets: hand height, shoulder abduction and elbow angle
+     *   all give 1.00 cycles per side per labelled repetition at SD 0.05, phase
+     *   +0.99 or better. This re-derives as a primary finding what P3-5 had only
+     *   used as a control, and agrees with it exactly.
+     * - row, 64 sets: hand height, elbow angle and wrist-to-shoulder distance all
+     *   give 1.00, and **not one of the 64 sets** reads half the label.
+     *
+     * The row's figure describes MM-Fit's *standing* dumbbell row while this
+     * profile is bent-over. What carries across is the definition of a
+     * repetition - both arms pull together - and not any claim about detection,
+     * which CLAUDE.md section 22 forbids transferring across a posture change.
+     */
+    @Test
+    fun shoulder_press_and_row_are_simultaneous_matching_the_mmfit_label_definition() {
+        assertEquals(
+            RepetitionSemantics.SIMULTANEOUS,
+            ExerciseLibrary.shoulderPress.repetitionSemantics,
+        )
+        assertEquals(
+            RepetitionSemantics.SIMULTANEOUS,
+            ExerciseLibrary.row.repetitionSemantics,
+            "both arms row together; that the camera sees only one of them is a " +
+                "separate axis, carried by analysedSides",
+        )
     }
 
     // --- Repetition semantics: measured ----------------------------------------------------

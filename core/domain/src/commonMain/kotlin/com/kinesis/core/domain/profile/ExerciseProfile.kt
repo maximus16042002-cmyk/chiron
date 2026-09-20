@@ -61,6 +61,20 @@ enum class Posture {
     STANDING,
     SEATED,
 
+    /**
+     * Standing with the trunk hinged forward toward horizontal, e.g. a
+     * bent-over row.
+     *
+     * Distinct from [STANDING] for the reason P0-4 gives for posture existing at
+     * all: it changes the trunk reference. FINAL_ARCHITECTURE section 5 notes
+     * that a bent-over row's "trunk angle also varies enormously between
+     * people", and ZERO_DATASET_BUILD_PLAN records that MM-Fit's row is a
+     * *standing* one whose "posture mismatch [is] too large to claim
+     * measurement". Calling both of those STANDING would erase the difference
+     * that makes the benchmark inapplicable. DECISIONS.md P3-8.
+     */
+    HINGED,
+
     /** Face down, e.g. plank, push-up. */
     PRONE,
 

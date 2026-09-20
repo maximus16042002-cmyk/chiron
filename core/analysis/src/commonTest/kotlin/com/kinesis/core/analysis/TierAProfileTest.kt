@@ -71,7 +71,8 @@ class TierAProfileTest {
             listOf(
                 "bicep_curl", "glute_bridge", "goblet_squat", "hip_abduction",
                 "knee_raise", "lateral_raise", "leg_raise", "lunge", "plank",
-                "pushup", "reverse_lunge", "situp", "squat",
+                "pushup", "reverse_lunge", "row", "shoulder_press", "situp",
+                "squat",
             ),
             ExerciseLibrary.all.map { it.id }.sorted(),
         )
@@ -82,8 +83,8 @@ class TierAProfileTest {
         assertEquals(
             listOf(
                 "bicep_curl", "glute_bridge", "hip_abduction", "knee_raise",
-                "lateral_raise", "leg_raise", "lunge", "plank", "pushup",
-                "situp", "squat",
+                "lateral_raise", "leg_raise", "lunge", "plank", "pushup", "row",
+                "shoulder_press", "situp", "squat",
             ),
             ExerciseLibrary.profiles.map { it.id }.sorted(),
         )
@@ -173,29 +174,16 @@ class TierAProfileTest {
         assertEquals(Posture.SUPINE, ExerciseLibrary.gluteBridge.posture)
     }
 
-    /**
-     * A profile that does not require the landmarks its own driving joint is
-     * built from would let the validity gate pass a frame it cannot actually
-     * measure. Checked for every profile in the library, not only the new ones.
-     */
-    @Test
-    fun every_profile_requires_the_landmarks_its_driving_joint_is_built_from() {
-        for (profile in ExerciseLibrary.all) {
-            val joint = when (profile) {
-                is RepetitionExercise -> profile.repSignal.joint
-                else -> continue
-            }
-            val needed = listOf(joint.proximal, joint.vertex, joint.distal)
-                .flatMap { listOf(it.leftId, it.rightId) }
-            val declared = profile.requiredLandmarks.toList()
-            for (id in needed) {
-                assertTrue(
-                    id in declared,
-                    profile.id + " drives off " + joint + " but does not require " + id,
-                )
-            }
-        }
-    }
+    // The sweep that used to live here -
+    // `every_profile_requires_the_landmarks_its_driving_joint_is_built_from` -
+    // moved to `ViewAndSideContractTest` and gained the other half of the rule.
+    // It asserted only that a profile requires its driving joint on both sides,
+    // which would have forced the near-side-only row to require a far elbow and
+    // wrist it can never see - and `ValidityGate` turns any unseen required
+    // landmark into an INVALID frame, blocking the exercise outright. The
+    // replacement keeps that assertion for both-sided profiles and adds the
+    // opposite one for near-side-only profiles, so it is strictly more than what
+    // it replaces. DECISIONS.md P3-8.
 
     // --- Repetition semantics: the measured pins -------------------------------------
 

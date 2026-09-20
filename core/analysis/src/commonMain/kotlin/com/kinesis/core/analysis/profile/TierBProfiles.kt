@@ -80,6 +80,9 @@ class LungeProfile : TierBProfile(), RepetitionExercise {
      */
     override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.SIMULTANEOUS
 
+    /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
+    override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.KNEE,
         plane = MeasurementPlane.IMAGE_2D,
@@ -132,6 +135,9 @@ class HipAbductionProfile : TierBProfile(), RepetitionExercise {
      */
     override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.PER_LIMB
 
+    /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
+    override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.HIP,
         plane = MeasurementPlane.IMAGE_2D,
@@ -180,6 +186,9 @@ class KneeRaiseProfile : TierBProfile(), RepetitionExercise {
      * necessity: one knee lifts while the other leg stands. DECISIONS.md P3-7.
      */
     override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.PER_LIMB
+
+    /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
+    override val analysedSides: AnalysedSides = AnalysedSides.BOTH
 
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.HIP,
@@ -241,6 +250,9 @@ class SitUpProfile : TierBProfile(), RepetitionExercise {
      */
     override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.SIMULTANEOUS
 
+    /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
+    override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.HIP,
         plane = MeasurementPlane.IMAGE_2D,
@@ -257,6 +269,165 @@ class SitUpProfile : TierBProfile(), RepetitionExercise {
         LandmarkId.LEFT_SHOULDER, LandmarkId.RIGHT_SHOULDER,
         LandmarkId.LEFT_HIP, LandmarkId.RIGHT_HIP,
         LandmarkId.LEFT_KNEE, LandmarkId.RIGHT_KNEE,
+    )
+}
+
+/**
+ * Shoulder Press — Tier B, **seated**, bilateral simultaneous.
+ *
+ * Driven by shoulder abduction: the hip-shoulder-elbow angle opens from about
+ * ninety degrees with the upper arms horizontal to nearly one-eighty at lockout.
+ *
+ * **Seated, per DECISIONS.md P0-4** and CONTRACTS.md section 3, which writes the
+ * tier row as "Shoulder Press *(seated)*". MM-Fit performs it seated, and
+ * ZERO_DATASET_BUILD_PLAN is explicit that the Kinesis profile is "measured only
+ * if your profile is seated too; otherwise deviation only". Seated removes the
+ * lower body from the picture and changes the trunk reference, so this is a
+ * decision with consequences rather than a description.
+ *
+ * **Filmed front-on**, per FINAL_ARCHITECTURE section 5's final list.
+ *
+ * **Why the driving joint is the shoulder and not the elbow.** FINAL_ARCHITECTURE
+ * section 4 rates this exercise's view difficulty as "Medium — wrists exit
+ * frame": at lockout the hands are the highest thing in the picture and are the
+ * first to leave it. The elbow angle needs the wrist; shoulder abduction needs
+ * only hip, shoulder and elbow. Measured on MM-Fit, the two signals are
+ * indistinguishable in quality - one cycle per side per labelled repetition
+ * either way, both at SD 0.05 - so nothing is given up by choosing the one that
+ * does not depend on a landmark the documents say leaves the frame.
+ * DECISIONS.md P3-8.
+ */
+class ShoulderPressProfile : TierBProfile(), RepetitionExercise {
+
+    override val id: String = "shoulder_press"
+    override val displayName: String = "Shoulder Press"
+    override val requiredView: CameraView = CameraView.FRONT_ON
+    override val posture: Posture = Posture.SEATED
+
+    /**
+     * Both arms, one repetition.
+     *
+     * Measured from MM-Fit's label files across 60 sets on three signals - hand
+     * height, shoulder abduction and elbow angle - each giving one cycle per side
+     * per labelled repetition at SD 0.05, with the arms in phase at +0.99 or
+     * better and no set at half the label. DECISIONS.md P3-8, pinned by
+     * `TierBProfileTest`.
+     */
+    override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.SIMULTANEOUS
+
+    /** Both arms are visible front-on, which is why that view was chosen. */
+    override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+
+    override val repSignal: RepSignalSpec = RepSignalSpec(
+        joint = JointAngleId.SHOULDER,
+        plane = MeasurementPlane.IMAGE_2D,
+        // Starting position is the upper arms roughly horizontal; lockout is
+        // overhead, close to in line with the trunk. The start is the smaller
+        // value, which the FSM handles through `topIsGreater`. Provisional.
+        topThreshold = 100.0,
+        bottomThreshold = 160.0,
+        hysteresis = 8.0,
+        minRepDurationMs = 600.0,
+        maxRepDurationMs = 12_000.0,
+    )
+
+    /**
+     * Deliberately no wrists - see the note on the driving joint above. These are
+     * the six the shoulder angle is built from, and all six are visible front-on
+     * throughout the movement.
+     */
+    override val requiredLandmarks: RequiredLandmarks = RequiredLandmarks.of(
+        LandmarkId.LEFT_HIP, LandmarkId.RIGHT_HIP,
+        LandmarkId.LEFT_SHOULDER, LandmarkId.RIGHT_SHOULDER,
+        LandmarkId.LEFT_ELBOW, LandmarkId.RIGHT_ELBOW,
+    )
+}
+
+/**
+ * Bent-over Row — Tier B, **near side only**.
+ *
+ * Driven by elbow flexion as the hand is pulled up toward the hip.
+ *
+ * **Only one arm is ever measured.** FINAL_ARCHITECTURE section 5:
+ *
+ * > **Bent-over Row — the far arm is invisible.** With the torso roughly
+ * > horizontal and the camera to one side, the near arm is clean and the far arm
+ * > is behind the body for most of the movement. ... **Keep it, but near-side
+ * > only, and say so explicitly** — no per-side comparison, no symmetry claim.
+ *
+ * That restriction is carried by [analysedSides], not by a comment, and the
+ * tracker acts on it. The movement itself is two-armed - measured as such on
+ * MM-Fit - so the semantics stay `SIMULTANEOUS` and the view restriction is a
+ * separate axis. DECISIONS.md P3-8 explains why the two could not be collapsed
+ * into one enum.
+ *
+ * **The document does not name a camera side**, only "the camera to one side",
+ * so nothing here fixes left or right. Whichever arm is nearer is the one
+ * measured, and the core never learns which that is - CLAUDE.md section 4.
+ *
+ * **Posture is [Posture.HINGED], not standing.** MM-Fit's row is a *standing*
+ * one, and ZERO_DATASET_BUILD_PLAN records the "posture mismatch too large to
+ * claim measurement". Declaring both as STANDING would erase the difference that
+ * makes the benchmark inapplicable.
+ */
+class RowProfile : TierBProfile(), RepetitionExercise {
+
+    override val id: String = "row"
+    override val displayName: String = "Bent-over Row"
+    override val requiredView: CameraView = CameraView.SIDE_ON
+    override val posture: Posture = Posture.HINGED
+
+    /**
+     * Both arms, one repetition — a fact about the movement, not about what the
+     * camera can see.
+     *
+     * Measured from MM-Fit's label files across 64 sets on three signals - hand
+     * height, elbow angle and wrist-to-shoulder distance - each giving one cycle
+     * per side per labelled repetition, arms in phase, and **not one of the 64
+     * sets at half the label**. DECISIONS.md P3-8, pinned by `TierBProfileTest`.
+     *
+     * MM-Fit's rows are performed standing and this profile is bent-over, so what
+     * transfers is the definition of a repetition, not any measurement of how
+     * well Kinesis detects one. P3-8 states that boundary.
+     */
+    override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.SIMULTANEOUS
+
+    /**
+     * The far arm is behind the torso for the whole movement from the required
+     * view. Without this the tracker waits forever for a cycle that never
+     * arrives: verified by test before the handling existed, a ten-repetition set
+     * produced **no counted repetitions at all** and a single
+     * `INSUFFICIENT_DATA` record, losing nine of the ten without a trace. P3-8.
+     */
+    override val analysedSides: AnalysedSides = AnalysedSides.NEAR_SIDE_ONLY
+
+    override val repSignal: RepSignalSpec = RepSignalSpec(
+        joint = JointAngleId.ELBOW,
+        plane = MeasurementPlane.IMAGE_2D,
+        // Starting position is the arm hanging, elbow nearly straight; the top of
+        // the pull brings the hand to the hip with the elbow deeply flexed.
+        // Provisional.
+        topThreshold = 160.0,
+        bottomThreshold = 75.0,
+        hysteresis = 8.0,
+        minRepDurationMs = 500.0,
+        maxRepDurationMs = 12_000.0,
+    )
+
+    /**
+     * The torso, not the arms — and that is not an oversight.
+     *
+     * `ValidityGate` returns `INVALID` if **any** required landmark falls below
+     * the visibility floor, so requiring both elbows and both wrists on a profile
+     * whose far arm is invisible by construction would mark every single frame
+     * invalid and block the exercise entirely. The arm requirement is carried by
+     * [analysedSides] instead, and what the gate checks is the hinged torso -
+     * which is also the thing FINAL_ARCHITECTURE section 5 warns "varies
+     * enormously between people". DECISIONS.md P3-8.
+     */
+    override val requiredLandmarks: RequiredLandmarks = RequiredLandmarks.of(
+        LandmarkId.LEFT_SHOULDER, LandmarkId.RIGHT_SHOULDER,
+        LandmarkId.LEFT_HIP, LandmarkId.RIGHT_HIP,
     )
 }
 
@@ -294,6 +465,9 @@ class LegRaiseProfile : TierBProfile(), RepetitionExercise {
      * pins it so the correction comes with a failing test attached. P3-7.
      */
     override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.SIMULTANEOUS
+
+    /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
+    override val analysedSides: AnalysedSides = AnalysedSides.BOTH
 
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.HIP,

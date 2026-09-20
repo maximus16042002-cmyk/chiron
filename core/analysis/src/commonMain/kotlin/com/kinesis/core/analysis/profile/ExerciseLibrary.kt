@@ -87,6 +87,14 @@ object ExerciseLibrary {
     /** See [LegRaiseProfile]. The weakest semantics declaration in the library. */
     val legRaise: LegRaiseProfile = LegRaiseProfile()
 
+    // --- Tier B: upper body (DECISIONS.md P3-8) ---------------------------------
+
+    /** See [ShoulderPressProfile]. Seated, per P0-4. */
+    val shoulderPress: ShoulderPressProfile = ShoulderPressProfile()
+
+    /** See [RowProfile]. The library's only near-side-only profile. */
+    val row: RowProfile = RowProfile()
+
     /**
      * Reverse Lunge — the second variant the documents name, unblocked by
      * [lunge] arriving.
@@ -128,6 +136,8 @@ object ExerciseLibrary {
         kneeRaise,
         situp,
         legRaise,
+        shoulderPress,
+        row,
         reverseLunge,
     )
 
@@ -187,6 +197,9 @@ class PushUpProfile : TierAProfile(), RepetitionExercise {
      */
     override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.SIMULTANEOUS
 
+    /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
+    override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.ELBOW,
         plane = MeasurementPlane.IMAGE_2D,
@@ -241,6 +254,9 @@ class LateralRaiseProfile : TierAProfile(), RepetitionExercise {
      * DECISIONS.md P3-5, pinned by `TierAProfileTest`.
      */
     override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.SIMULTANEOUS
+
+    /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
+    override val analysedSides: AnalysedSides = AnalysedSides.BOTH
 
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.SHOULDER,
@@ -303,6 +319,9 @@ class GluteBridgeProfile : TierAProfile(), RepetitionExercise {
      * performed differently. DECISIONS.md P3-5.
      */
     override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.SIMULTANEOUS
+
+    /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
+    override val analysedSides: AnalysedSides = AnalysedSides.BOTH
 
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.HIP,

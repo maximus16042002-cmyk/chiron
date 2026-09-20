@@ -32,6 +32,42 @@ enum class RepetitionSemantics {
 }
 
 /**
+ * Which sides of the body the required camera view can actually measure.
+ *
+ * Separate from [RepetitionSemantics] because they answer different questions.
+ * Semantics is a fact about the **movement** - do the limbs work together or in
+ * turn. This is a fact about the **view** - can the camera see both of them.
+ * A bent-over row is a two-armed movement that a side-on camera can only ever
+ * see one arm of, and collapsing the two axes into one enum would make that
+ * inexpressible.
+ *
+ * Declared explicitly on every repetition profile, with no default, for the same
+ * reason [RepetitionSemantics] has none: a silent default is how this gets wrong.
+ * DECISIONS.md P3-8.
+ */
+enum class AnalysedSides {
+
+    /** Both limbs are visible from the required view, and both are measured. */
+    BOTH,
+
+    /**
+     * Only the limb nearer the camera is measurable. The far one is behind the
+     * body from the required view for the whole movement, by construction rather
+     * than by accident.
+     *
+     * This is **not** the same as the intermittent occlusion the rep tracker
+     * already handles by reporting `INSUFFICIENT_DATA`. That case is a
+     * two-sided movement whose far side drops out for a while; this one is a
+     * two-sided movement whose far side is never there at all, so waiting for it
+     * means waiting forever.
+     *
+     * FINAL_ARCHITECTURE section 5, on the bent-over row: "Keep it, but near-side
+     * only, and say so explicitly - no per-side comparison, no symmetry claim."
+     */
+    NEAR_SIDE_ONLY,
+}
+
+/**
  * Which signal drives repetition detection, and the thresholds that bound it.
  *
  * **The threshold values are provisional.** They are starting points chosen so
@@ -122,6 +158,12 @@ interface RepetitionExercise : ExerciseProfile {
     override val mode: AnalysisMode get() = AnalysisMode.REPETITION
 
     val repetitionSemantics: RepetitionSemantics
+
+    /**
+     * Which sides the required view can measure. No default, deliberately -
+     * see [AnalysedSides].
+     */
+    val analysedSides: AnalysedSides
 
     val repSignal: RepSignalSpec
 }

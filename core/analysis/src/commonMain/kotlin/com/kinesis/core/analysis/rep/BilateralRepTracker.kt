@@ -1,6 +1,7 @@
 package com.kinesis.core.analysis.rep
 
 import com.kinesis.core.analysis.kinematics.JointAngles
+import com.kinesis.core.analysis.profile.AnalysedSides
 import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.analysis.profile.RepetitionSemantics
 import com.kinesis.core.analysis.temporal.RealTimeSignalPipeline
@@ -71,6 +72,28 @@ class BilateralRepTracker(
     private var pendingLeft: RepCycle? = null
     private var pendingRight: RepCycle? = null
 
+    /**
+     * Whether a repetition waits for both sides to complete.
+     *
+     * A simultaneous exercise normally does. One whose far limb is behind the
+     * body from its required view never can - the partner cycle is not late, it
+     * does not exist - so waiting for it reports nothing at all. Decided once
+     * here rather than per frame, from two values fixed at construction.
+     * DECISIONS.md P3-8.
+     */
+    private val pairsSides: Boolean =
+        profile.repetitionSemantics == RepetitionSemantics.SIMULTANEOUS &&
+            profile.analysedSides == AnalysedSides.BOTH
+
+    /**
+     * End of the last repetition reported under [AnalysedSides.NEAR_SIDE_ONLY].
+     *
+     * If the far limb does become briefly measurable and completes a cycle
+     * overlapping one already reported, that is the same repetition seen twice,
+     * not a second one.
+     */
+    private var lastNearSideEndMs: Double = Double.NaN
+
     fun onFrame(
         timestampMs: Double,
         landmarks: Landmarks,
@@ -93,10 +116,13 @@ class BilateralRepTracker(
                 if (right != null) emitPerLimb(right, Side.RIGHT, sink)
             }
 
-            RepetitionSemantics.SIMULTANEOUS -> {
+            RepetitionSemantics.SIMULTANEOUS -> if (pairsSides) {
                 if (left != null) pendingLeft = left
                 if (right != null) pendingRight = right
                 tryPairSimultaneous(sink)
+            } else {
+                if (left != null) emitNearSide(left, Side.LEFT, sink)
+                if (right != null) emitNearSide(right, Side.RIGHT, sink)
             }
         }
     }
@@ -111,11 +137,14 @@ class BilateralRepTracker(
                 if (right != null) emitPerLimb(right, Side.RIGHT, sink)
             }
 
-            RepetitionSemantics.SIMULTANEOUS -> {
+            RepetitionSemantics.SIMULTANEOUS -> if (pairsSides) {
                 if (left != null) pendingLeft = left
                 if (right != null) pendingRight = right
                 tryPairSimultaneous(sink)
                 flushUnpairedSimultaneous(sink)
+            } else {
+                if (left != null) emitNearSide(left, Side.LEFT, sink)
+                if (right != null) emitNearSide(right, Side.RIGHT, sink)
             }
         }
     }
@@ -128,11 +157,38 @@ class BilateralRepTracker(
         repetitionCount = 0
         pendingLeft = null
         pendingRight = null
+        lastNearSideEndMs = Double.NaN
     }
 
     // --- Combining the two sides ---------------------------------------------------
 
-    private fun emitPerLimb(cycle: RepCycle, side: Side, sink: RepSink) {
+    /**
+     * Reports a repetition seen on one limb of a two-limbed movement, for a
+     * profile whose required view can only ever show one - DECISIONS.md P3-8.
+     *
+     * Unlike [emitPerLimb] the repetition is **not** attributed to a side: both
+     * arms of a bent-over row pull together, so the repetition belongs to no one
+     * limb and only half of it was measured. The unmeasured side stays
+     * [Double.NaN], which every reducer on [BilateralSignal] propagates, so no
+     * finite asymmetry exists for anything downstream to report - which is
+     * FINAL_ARCHITECTURE section 5's "no per-side comparison, no symmetry claim",
+     * enforced rather than requested.
+     */
+    private fun emitNearSide(cycle: RepCycle, side: Side, sink: RepSink) {
+        if (!lastNearSideEndMs.isNaN() && cycle.startMs < lastNearSideEndMs) return
+        lastNearSideEndMs = cycle.endMs
+        emitOneSided(cycle, side, attributed = null, sink = sink)
+    }
+
+    private fun emitPerLimb(cycle: RepCycle, side: Side, sink: RepSink) =
+        emitOneSided(cycle, side, attributed = side, sink = sink)
+
+    private fun emitOneSided(
+        cycle: RepCycle,
+        side: Side,
+        attributed: Side?,
+        sink: RepSink,
+    ) {
         if (cycle.validity == RepValidity.VALID) repetitionCount++
         val measured = BilateralSignal(
             left = if (side == Side.LEFT) cycle.rangeOfMotion else Double.NaN,
@@ -151,7 +207,7 @@ class BilateralRepTracker(
         sink.onRepetition(
             RepRecord(
                 repIndex = repetitionCount,
-                attributedSide = side,
+                attributedSide = attributed,
                 startMs = cycle.startMs,
                 endMs = cycle.endMs,
                 validity = cycle.validity,

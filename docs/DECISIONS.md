@@ -1473,6 +1473,290 @@ CLAUDE.md §14 those skeletons never reach the Kinesis engine.
 
 ---
 
+## P3-8 — Tier B upper body, and a camera-view contract that nothing was enforcing
+
+*2026-09-20*
+
+Completes Tier B with Shoulder Press and Row. Both repetition semantics were
+measured against MM-Fit rather than assumed. The row forced a question no earlier
+batch had to answer — what it means for a profile to be analysable on one side
+only — and answering it exposed that `requiredView` and `posture` had been
+declared by thirteen profiles and read by nothing.
+
+### What the documents say, quoted
+
+`docs/CONTRACTS.md` §3, line 103 — the tier and both restrictions, in one line:
+
+> | B | Shoulder Press *(seated)*, Row *(near side only)*, Lunge, Hip Abduction,
+> Knee Raise, Sit-up, Leg Raise |
+
+`docs/FINAL_ARCHITECTURE.md` §5, "The final list", rows 7 and 8 — views:
+
+> | 7   | Shoulder Press                   | Shoulder Press | B | Front | Rep |
+>
+> | 8   | Bent-over Row *(near side only)* | Row            | B | Side  | Rep |
+
+`docs/FINAL_ARCHITECTURE.md` §4, the configuration-versus-validation table:
+
+> | Shoulder Press    | 0.5 d | 1.5 d     | 0 | Medium         | Medium — wrists
+> exit frame  | Medium           | Adequate |
+>
+> | **Bent-over Row** | 0.5 d | **2.5 d** | 0 | **Low-medium** | **High — far
+> arm occluded** | Low for far side | **Weak** |
+
+`docs/FINAL_ARCHITECTURE.md` §5, the row's restriction in full — the only place
+any document says what "near side only" means:
+
+> **Bent-over Row — the far arm is invisible.** With the torso roughly
+> horizontal and the camera to one side, the near arm is clean and the far arm is
+> behind the body for most of the movement. Trunk angle also varies enormously
+> between people. **Keep it, but near-side only, and say so explicitly** — no
+> per-side comparison, no symmetry claim. That is an honest restriction and cheap
+> to enforce in the profile.
+
+`docs/FINAL_ARCHITECTURE.md` §12, limitations:
+
+> | Per-side analysis of Bent-over Row | Far arm occluded; near side only |
+
+`docs/ZERO_DATASET_BUILD_PLAN.md`, revised exercise scope, lines 96 and 98:
+
+> | Shoulder Press | A or B | Seated in MM-Fit | Measured only if your profile is
+> seated too; otherwise deviation only |
+>
+> | Bent-over Row | B | Standing row, near-side only | Deviation only; posture
+> mismatch too large to claim measurement |
+
+`docs/ZERO_DATASET_BUILD_PLAN.md` line 53, MM-Fit's own exercise list:
+
+> 10: squats, lunges, bicep curls, sit-ups, push-ups, seated overhead triceps
+> extensions, **standing dumbbell rows**, jumping jacks, **seated dumbbell
+> shoulder press**, seated dumbbell lateral raises
+
+### Checking the two assumptions, as instructed
+
+**"Seated" on Shoulder Press: confirmed, and it is a decision rather than a
+description.** CONTRACTS.md writes the tier row as "Shoulder Press *(seated)*",
+MM-Fit performs it seated, and ZERO_DATASET is explicit that the Kinesis profile
+is "measured only if your profile is seated too; otherwise deviation only".
+P0-4 already took that choice for this exercise and the lateral raise. Nothing is
+looser or stricter than assumed. Declared as `Posture.SEATED` and pinned.
+
+**"Near side only" on Row: looser than assumed in one respect, and stricter in
+another.**
+
+*Looser* — no document names a camera side. §5 says only "the camera to one
+side", and the near arm is whichever is nearer. Nothing in the profile fixes left
+or right, and the shared core still never learns which is which, per CLAUDE.md
+§4. An earlier reading of "near side only" as a required camera side would have
+been wrong.
+
+*Stricter* — the restriction is not merely an acknowledgement that the far arm is
+noisy. §5 says it is **invisible**, "behind the body for most of the movement",
+and forbids two specific outputs: "no per-side comparison, no symmetry claim".
+That is a constraint on what the profile may emit, not a caveat about data
+quality, and it is the reason a comment would not have been enough.
+
+**§5 on these two exercises — silent on one, not silent on the other, and the
+difference matters.** P3-7 recorded that §4 sent the lunge to §5 under "Fix the
+view or cut" and that §5 never returned to it. Re-checked here: §5 **does**
+address the row, at length, and resolves it — keep it, near-side only. It also
+resolves the front raise (cut) and the overhead triceps extension (cut). So §5
+carried out its instruction for three of the four exercises §4 flagged, and
+skipped only the lunge. That narrows P3-7's finding from "§5 is unreliable" to "§5
+has exactly one omission", which is worth knowing.
+
+§5 **is** silent on Shoulder Press, and that silence is explained rather than
+suspicious: §4 put it in "Cheap to configure, moderate to validate — Add, budget
+the testing", not in the category §5 was written to resolve. But §4 does flag one
+view problem for it — "Medium — wrists exit frame" — that no later section picks
+up, and which is acted on below.
+
+### Repetition semantics, both measured
+
+Same threshold-free method as P3-1, P3-5 and P3-7, with signals chosen per
+exercise rather than reused. Three signals each.
+
+| Exercise | Signal | Sets | Cycles/side/rep | SD | L/R phase | Both = label | Both = label ÷ 2 |
+|---|---|---|---|---|---|---|---|
+| **dumbbell_shoulder_press** | hand height | 60 | **1.00** | 0.05 | +1.00 | 47 | **0** |
+| **dumbbell_shoulder_press** | shoulder abduction | 60 | **1.00** | 0.05 | +0.99 | 48 | **0** |
+| **dumbbell_shoulder_press** | elbow angle | 60 | **1.00** | 0.05 | +0.99 | 49 | **0** |
+| **dumbbell_rows** | hand height | 64 | **1.00** | 0.02 | +0.99 | 60 | **0** |
+| **dumbbell_rows** | elbow angle | 64 | **1.00** | 0.07 | +0.90 | 56 | **0** |
+| **dumbbell_rows** | wrist-to-shoulder | 64 | **1.00** | 0.02 | +0.99 | 60 | **0** |
+| squats *(control, re-checked)* | knee angle | 64 | 1.00 | 0.02 | +0.96 | 61 | 0 |
+| lateral_shoulder_raises *(control, re-checked)* | shoulder abduction | 56 | 1.00 | 0.03 | +0.99 | 52 | 0 |
+| bicep_curls *(control, re-checked)* | elbow angle | 59 | **0.50** | 0.01 | **−0.40** | 0 | **56** |
+
+Both are `SIMULTANEOUS`. Not one of the 124 sets across the two exercises reads
+half the label on any signal, while the bicep-curl control reads half in 56 of 59
+under the same code in the same run.
+
+**Shoulder press re-derived rather than cited.** P3-5 used it only as a control
+for the push-up work, on hand height alone, and reported 1.00 at SD 0.05 with
+phase +1.00. Re-derived here as the primary finding on three signals, it gives
+1.00 at SD 0.05 with phase +1.00 — the same numbers. The earlier control result
+stands.
+
+**What the row's measurement does and does not transfer.** MM-Fit's rows are
+**standing** dumbbell rows; the Kinesis profile is a **bent-over** row, and
+ZERO_DATASET says that posture mismatch is "too large to claim measurement".
+What carries across is the **definition of a repetition** — both arms pull
+together, so one pull is one repetition — which is a property of the movement
+pattern rather than of the trunk angle it is performed at. What does **not**
+carry across is any claim about how well Kinesis detects one. CLAUDE.md §22
+forbids transferring a benchmark result across a posture change, and this entry
+does not.
+
+### The row's occlusion, resolved
+
+**The question.** "Near side only" is structurally unlike either case the engine
+already handled. It is not `PER_LIMB`, where limbs alternate and each is
+eventually visible. It is not the intermittent occlusion P3-2 covers, where a
+two-sided movement loses a side for a while and the unpaired cycle is reported as
+`INSUFFICIENT_DATA`. It is a two-sided movement one of whose sides is *never*
+there — so waiting for it means waiting forever.
+
+**What the existing machinery actually did, measured rather than assumed.** The
+guard test was written first and run against the unmodified tracker, with the row
+declared `SIMULTANEOUS` and the far arm below the visibility floor for the whole
+set. Ten repetitions on the visible arm produced:
+
+```
+expected:<10> but was:<0>
+```
+
+**No counted repetitions at all.** Each completed near-side cycle was parked in
+`pendingLeft` waiting for a partner and overwritten by the next, and `finish()`
+flushed a single `INSUFFICIENT_DATA` record. Nine of the ten left no trace of any
+kind. The prediction before running it was that one repetition would survive; the
+observed answer was worse. The existing types do **not** cover this case, and the
+answer to "does it already degrade correctly" is no.
+
+**The representation chosen: a second axis, not a third semantics value.**
+
+```kotlin
+enum class AnalysedSides { BOTH, NEAR_SIDE_ONLY }
+```
+
+declared on every `RepetitionExercise` with no default, exactly as
+`RepetitionSemantics` is and for the same reason.
+
+The two could have been collapsed into one enum — a `NEAR_SIDE_ONLY` case
+alongside `PER_LIMB` and `SIMULTANEOUS` — and that was rejected. They answer
+different questions. Semantics is a fact about the **movement**: do the limbs
+work together or in turn. `AnalysedSides` is a fact about the **view**: can the
+camera see both of them. A bent-over row is a genuinely two-armed movement that a
+side-on camera can only ever see one arm of, and one enum cannot say both things
+at once. Keeping them separate is also what lets a guard test check them against
+each other, which a single enum would make vacuous.
+
+**What the tracker does with it.** Under `SIMULTANEOUS` + `NEAR_SIDE_ONLY` the
+pairing requirement is dropped: each completed cycle is one repetition. Two
+details matter.
+
+- The repetition is **not attributed to a side**. Both arms of a row pull
+  together, so the repetition belongs to no single limb — only half of it was
+  measured. `attributedSide` is therefore `null`, unlike `PER_LIMB`, where the
+  side is the point.
+- The unmeasured side stays `Double.NaN`, and every reducer on `BilateralSignal`
+  propagates `NaN`. So `asymmetry()` on a row repetition is `NaN`, and there is
+  no finite number for anything downstream to report as a symmetry finding.
+  §5's "no per-side comparison, no symmetry claim" is therefore enforced by the
+  arithmetic rather than requested in prose.
+
+If the far arm does become briefly measurable and completes a cycle overlapping
+one already reported, that is the same repetition seen twice and is suppressed.
+
+**The per-frame cost is one boolean test.** The pairing decision is computed once
+at construction from two values fixed at construction, not per frame. The P2
+budget guards, the per-frame allocation test and the source scan were re-run and
+all pass, so CLAUDE.md §6 still holds.
+
+### The gap this uncovered: a view contract nothing was enforcing
+
+Every profile has declared `requiredView` and `posture` since P1. **Nothing read
+either of them** — not the tracker, not the gate, not any sweep. They were pinned
+only by per-profile equality assertions, so a profile could declare a view from
+which its own driving joint is unmeasurable and no test would notice. P3-7
+recorded one instance of exactly that kind of omission going unactioned upstream,
+in the source documents; this was the same shape of omission inside the codebase.
+
+`ViewAndSideContractTest` is the check. It does **not** try to decide whether a
+view is sensible for an exercise — that is a per-exercise judgement the documents
+make, and a general rule here would contradict them, since the push-up and the
+bicep curl drive off the same joint from opposite views each for a stated reason.
+What it checks is that the declarations do not contradict **each other**:
+
+- alternating limbs plus a view that sees only one is a contradiction with no
+  honest resolution, and is forbidden;
+- a near-side-only profile must not require landmarks on the side it cannot see;
+- a both-sided profile must require its driving joint on both sides;
+- a near-side-only profile must produce one measured side and no finite
+  asymmetry, verified by running one;
+- a both-sided profile must *not* report a full count when half the body is
+  missing, which is what stops the near-side handling from being a no-op applied
+  everywhere.
+
+**One earlier test was replaced, and the replacement is strictly larger.**
+`TierAProfileTest.every_profile_requires_the_landmarks_its_driving_joint_is_built_from`
+asserted that every profile requires its driving joint on both sides. Applied to
+the row that would have forced it to require a far elbow and wrist it can never
+see — and `ValidityGate.evaluate` returns `INVALID` if **any** required landmark
+falls below the floor, so the exercise would have been blocked on every frame.
+The replacement keeps that assertion for both-sided profiles and adds the
+opposite assertion for near-side-only ones. It is more than the test it replaces,
+not an exemption from it, and it is recorded here for the same reason P3-7
+recorded the reverse-lunge replacement.
+
+### Two smaller decisions
+
+**Shoulder press drives off the shoulder, not the elbow.** §4 rates its view
+difficulty "Medium — wrists exit frame": at lockout the hands are the highest
+thing in the picture and the first to leave it, and the elbow angle needs a wrist
+while shoulder abduction needs only hip, shoulder and elbow. The measurement
+above shows the two signals are indistinguishable in quality — 1.00 at SD 0.05
+either way — so choosing the one that does not depend on a landmark the documents
+say leaves the frame costs nothing. Its `requiredLandmarks` contain no wrists.
+
+**`Posture.HINGED` was added for the row.** The enum had STANDING, SEATED, PRONE,
+SUPINE and SIDE_LYING, none of which describes a trunk hinged toward horizontal.
+Declaring the row STANDING would have erased the very difference that makes
+MM-Fit's benchmark inapplicable to it — MM-Fit's row *is* standing, and
+ZERO_DATASET calls that mismatch "too large to claim measurement". P0-4's reason
+for posture existing at all is that it changes the trunk reference, and a
+bent-over row changes it more than any other entry in the library. Nothing
+consumes `Posture` exhaustively, so the addition is purely additive.
+
+**The row's required landmarks are the torso, not the arms.** With the far arm
+invisible by construction, requiring both elbows and both wrists would invalidate
+every frame. The arm requirement is carried by `analysedSides`; what the gate
+checks is the hinged torso — which is also the thing §5 warns "varies enormously
+between people".
+
+### Library counts
+
+| | Before this batch | After |
+|---|---|---|
+| Entries | 13 | **15** |
+| Profiles | 11 | **13** |
+| Variants | 2 | **2** |
+
+Tier A is complete at five and Tier B is now complete at seven. The two
+outstanding entries against the 17 / 15 / 2 target of P0-5 are the Tier C
+isometrics that are not yet built: **Wall Sit** and **Side Plank**, alongside the
+existing Plank.
+
+**Scope of this entry.** It records what MM-Fit's labels define for two of its own
+exercises, how the row's documented view restriction is represented, and a gap in
+enforcement that existed before this batch. It is not a claim about how accurately
+Kinesis detects anything — no Kinesis output has been compared against MM-Fit, and
+no such figure exists. Only MM-Fit's bundled OpenPose 2D pose was read, to answer
+questions about MM-Fit's own labels; per CLAUDE.md §14 those skeletons never reach
+the Kinesis engine. Every threshold in the two new profiles is provisional.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

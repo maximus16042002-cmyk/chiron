@@ -96,6 +96,9 @@ class SquatProfile : TierAProfile(), RepetitionExercise {
 
     override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.SIMULTANEOUS
 
+    /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
+    override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.KNEE,
         plane = MeasurementPlane.IMAGE_2D,
@@ -132,6 +135,9 @@ class BicepCurlProfile : TierAProfile(), RepetitionExercise {
      * one to one. DECISIONS.md P3-1, pinned by `ArchetypeProfileTest`.
      */
     override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.PER_LIMB
+
+    /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
+    override val analysedSides: AnalysedSides = AnalysedSides.BOTH
 
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.ELBOW,
