@@ -46,7 +46,37 @@ object ExerciseLibrary {
 
     val gluteBridge: GluteBridgeProfile = GluteBridgeProfile()
 
-    /** Every profile. The sweeps iterate this, so nothing escapes them. */
+    /**
+     * Goblet Squat — the same movement as [squat], under load, named separately
+     * in the library.
+     *
+     * It declares nothing of its own beyond its name and its note: tier, claim
+     * ceiling, camera view, posture, repetition semantics, thresholds and
+     * required landmarks all come from the squat profile instance at runtime.
+     * CONTRACTS.md section 3 and DECISIONS.md P3-6.
+     *
+     * **One assumption rides on this, and it is about people rather than code.**
+     * The documents are explicit that a variant shares its parent's calibration
+     * baseline. A goblet squat is performed holding a weight at the chest, which
+     * plausibly changes trunk angle and achievable depth, so a Level 2 finding of
+     * "shallower than your normal" here is measured against the user's unloaded
+     * squats. That has not been measured against anything. P3-6 records it as the
+     * entry to revisit if P6 calibration shows the two differ.
+     */
+    val gobletSquat: RepetitionVariant = RepetitionVariant(
+        parent = ArchetypeProfiles.squat,
+        id = "goblet_squat",
+        displayName = "Goblet Squat",
+        coachingNote = "Hold the weight at your chest and keep your elbows inside your knees.",
+    )
+
+    /**
+     * Every library entry: profiles and variants together.
+     *
+     * The guard sweeps iterate this, so nothing escapes them. It is **not** the
+     * profile count - see [profiles], and CLAUDE.md section 9 on why the two are
+     * never conflated.
+     */
     val all: List<ExerciseProfile> = listOf(
         ArchetypeProfiles.squat,
         ArchetypeProfiles.bicepCurl,
@@ -54,7 +84,22 @@ object ExerciseLibrary {
         pushUp,
         lateralRaise,
         gluteBridge,
+        gobletSquat,
     )
+
+    /**
+     * The entries that are profiles in their own right.
+     *
+     * CLAUDE.md section 9: "15 exercise profiles ... presented as 17 library
+     * entries including 2 variants that share a parent profile and calibration.
+     * Never '17 exercises'." Separating the two here is what keeps that count
+     * honest structurally rather than editorially - a tier sweep over [all]
+     * would read the goblet squat as a sixth Tier A exercise.
+     */
+    val profiles: List<ExerciseProfile> = all.filter { it !is ExerciseVariant }
+
+    /** The entries that inherit another entry's profile. The complement of [profiles]. */
+    val variants: List<ExerciseVariant> = all.filterIsInstance<ExerciseVariant>()
 }
 
 /**

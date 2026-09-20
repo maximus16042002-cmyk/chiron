@@ -60,12 +60,27 @@ class TierAProfileTest {
      * It is not any more, and a sweep that still iterated it would silently stop
      * covering everything added after it. [ExerciseLibrary] is now the registry,
      * and this is the pin that keeps growth deliberate.
+     *
+     * Entries, not profiles: the goblet squat is a library entry that shares the
+     * squat's profile (DECISIONS.md P3-6). The two counts are pinned separately
+     * below, because conflating them is what CLAUDE.md section 9 forbids.
      */
+    @Test
+    fun the_library_holds_exactly_the_entries_built_so_far() {
+        assertEquals(
+            listOf(
+                "bicep_curl", "glute_bridge", "goblet_squat", "lateral_raise",
+                "plank", "pushup", "squat",
+            ),
+            ExerciseLibrary.all.map { it.id }.sorted(),
+        )
+    }
+
     @Test
     fun the_library_holds_exactly_the_profiles_built_so_far() {
         assertEquals(
             listOf("bicep_curl", "glute_bridge", "lateral_raise", "plank", "pushup", "squat"),
-            ExerciseLibrary.all.map { it.id }.sorted(),
+            ExerciseLibrary.profiles.map { it.id }.sorted(),
         )
     }
 
@@ -73,12 +88,17 @@ class TierAProfileTest {
      * CONTRACTS.md section 3 assigns Tier A to exactly five exercises. With this
      * batch that set is complete, and nothing else may quietly join it - Tier A
      * is the only tier that can produce a technique judgement at all.
+     *
+     * Swept over profiles rather than entries. A variant inherits its parent's
+     * tier and does not add one to it, so counting entries here would read the
+     * goblet squat as a sixth Tier A exercise - the exact miscount CLAUDE.md
+     * section 9 exists to prevent.
      */
     @Test
     fun tier_a_is_exactly_the_five_exercises_contracts_assigns_it() {
         assertEquals(
             listOf("bicep_curl", "glute_bridge", "lateral_raise", "pushup", "squat"),
-            ExerciseLibrary.all.filter { it.tier == Tier.A }.map { it.id }.sorted(),
+            ExerciseLibrary.profiles.filter { it.tier == Tier.A }.map { it.id }.sorted(),
         )
     }
 

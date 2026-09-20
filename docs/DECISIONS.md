@@ -1030,6 +1030,213 @@ user's own calibration repetitions; P4 sanity-checks them on a device first.
 
 ---
 
+## P3-6 — Exercise variants: the documented list, and the mechanism no document specifies
+
+*2026-09-20*
+
+CONTRACTS.md §3 requires that variants inherit their parent's profile,
+calibration and claim ceiling, and CLAUDE.md §22 lists "treat exercise variants
+as separate algorithms" among the things never to do. No document says how that
+is enforced in code. This entry records the variant list as the documents
+actually state it, and the mechanism, which is a gap of the same kind P3-2
+resolved for the rep engine.
+
+### The list, quoted
+
+Both governing documents and CONTRACTS.md were searched for every mention of a
+variant, of inheritance, and of the two named examples. **Exactly two variants
+are named anywhere.** There is no third.
+
+`docs/CONTRACTS.md` §3, lines 106–107:
+
+> Variants inherit their parent's profile, calibration and claim ceiling: Goblet
+> Squat → Squat, Reverse Lunge → Lunge.
+
+`docs/FINAL_ARCHITECTURE.md` §5, "The final list", rows 2 and 10:
+
+> | 2   | **Goblet Squat**                 | *Squat variant* | A     | Side        | Rep  |
+>
+> | 10  | **Reverse Lunge**                | *Lunge variant* | B     | Side        | Rep  |
+
+`docs/FINAL_ARCHITECTURE.md` §5, "Counting honestly", line 300 — the only
+statement anywhere of what a variant may differ in:
+
+> Not "17 exercises". The variants share everything — profile, thresholds,
+> calibration baseline, rules — and differ only in a label and a coaching note.
+> An examiner who asks "is a goblet squat really a different algorithm?" should
+> find you have already said no.
+
+`docs/FINAL_ARCHITECTURE.md` §6, final scope table, line 320:
+
+> | Variants sharing a parent | 2 — Goblet Squat, Reverse Lunge |
+
+`docs/ZERO_DATASET_BUILD_PLAN.md`, revised exercise scope table, line 102:
+
+> | Goblet Squat, Reverse Lunge | Variants | Via parent | Inherit the parent
+> profile's claim ceiling |
+
+`CLAUDE.md` §9, lines 146–147:
+
+> Variants inherit their parent profile and calibration; they are not separate
+> algorithms.
+
+### What is built here, and what is blocked
+
+| Variant | Parent | Parent's tier | Status |
+|---|---|---|---|
+| Goblet Squat | Squat | A | **Built in this batch** |
+| Reverse Lunge | Lunge | B | **Blocked.** Lunge is not in the library |
+
+Lunge is Tier B and has not been built. Per the batch instruction, its parent is
+not built here to unblock it; the variant is deferred to whichever batch adds the
+Tier B profiles. `TierAProfileTest` carries a test asserting that neither `lunge`
+nor `reverse_lunge` is in the library, so that batch fails until Reverse Lunge is
+added alongside its parent rather than being quietly forgotten.
+
+**A third variant was considered by the documents and closed.**
+`ZERO_DATASET_BUILD_PLAN.md` line 108, on shoulder press and lateral raise:
+
+> Pick one: make the Kinesis profile seated so the benchmark applies, keep it
+> standing and accept these two as deviation-only, or ship both as variants.
+
+DECISIONS.md **P0-4** took the first option — both profiles are seated. There is
+therefore no standing variant of either, and this is recorded so the option is
+not re-raised as an oversight.
+
+**A stale count in the source document.** `FINAL_ARCHITECTURE.md` §5's heading
+reads "The final list — 15 entries, 13 profiles, 2 variants" above a table of 17
+rows. **P0-5** already resolved this: the target is 17 entries / 15 profiles / 2
+variants, and 15/13 is the cut-down position. Noted here only because the heading
+is the first thing a reader of that section sees.
+
+### What the documents do not say, stated rather than guessed
+
+Three silences. Each is flagged in the same way P3-5 flagged the glute bridge's
+semantics, because a decision made in the absence of a source should not later
+read like one taken from it.
+
+**1. What a coaching note is, and where it lives.** Line 300 is the only mention
+of one in any document. Nothing defines its content, its length, or whether it is
+analysis or presentation. **Decision:** it is a display-only string carried on
+the variant and on nothing else. It is the one field a variant has of its own,
+and giving it to the variant type rather than to `ExerciseProfile` means the
+other six profiles do not gain a field nothing populates. It is never parsed and
+never reaches an analysis decision, on the same footing as `displayName`.
+
+**2. Whether a variant may differ from its parent in camera view or posture.**
+The FINAL_ARCHITECTURE table gives every entry its own view column, which could
+be read as permitting a difference — but for the only variant in scope the value
+is identical to its parent's ("Side" for both Squat and Goblet Squat), so the
+document never exercises the question. **Decision:** it may not. The mechanism
+below makes every field except the label and the note come from the parent, so a
+difference is not expressible without editing the variant class itself, and the
+guard test is what notices if someone does. If a future variant genuinely needs a
+different view, that is a new decision entry, not an override.
+
+**3. Whether sharing a calibration baseline is the right model.** The documents
+are unambiguous that variants share one — "profile, thresholds, calibration
+baseline, rules" — and this batch follows them. **The consequence is worth
+stating plainly, because it is an assumption about human movement and not about
+software:** a goblet squat is performed holding a weight at the chest, which
+plausibly changes trunk angle and achievable depth relative to an unloaded squat.
+Under a shared baseline, a Level 2 finding of the form "shallower than your
+normal" for a goblet squat is measured against the user's *air squat*
+repetitions. That may well be the wrong comparison. It has not been measured, by
+this project or against any dataset, and nothing here claims otherwise. It is
+recorded so that if P6 calibration or P4 testing shows the two distributions
+differ, this entry is the one to revisit rather than the behaviour being
+rediscovered as a bug.
+
+### The mechanism
+
+No document specifies it, so it is designed here.
+
+**Delegation, not subclassing.** A variant is a small class that delegates the
+whole `ExerciseProfile` surface to its parent instance and re-declares only its
+own identity:
+
+```kotlin
+class RepetitionVariant(
+    override val parent: RepetitionExercise,
+    override val id: String,
+    override val displayName: String,
+    override val coachingNote: String,
+) : RepetitionExercise by parent, ExerciseVariant
+```
+
+`tier`, `maxClaimLevel`, `requiredView`, `posture`, `mode`, `requiredLandmarks`,
+`repetitionSemantics` and `repSignal` are not written anywhere in the variant.
+They are forwarded to the parent object at runtime, so there is no second copy to
+drift and nothing to keep in step. A variant of an isometric profile is the same
+shape against `IsometricExercise`, forwarding `holdSignal` instead.
+
+**Why not subclassing.** `class GobletSquatProfile : SquatProfile()` would
+require every profile class and every one of its properties to be `open`, which
+is the opposite of the intent: it would make the parent's configuration
+overridable by default and leave the invariant to reviewer attention. Delegation
+inverts that. The default is inheritance, and a deviation requires deliberately
+writing an `override` into the variant class, which is exactly the edit the guard
+test is aimed at.
+
+**What a variant may override: its `id`, its `displayName`, its `coachingNote`,
+and nothing else.** That matches line 300's "differ only in a label and a
+coaching note" as closely as a type can.
+
+**A variant carries no technique authority of its own.** `TechniqueAuthority` is
+reachable only through `TierAProfile.techniqueAuthority` (P1-3), and a variant is
+not a `TierAProfile` — it is a delegating class, whichever tier its parent holds.
+Its `maxClaimLevel` is its parent's, so the **ceiling** is inherited exactly as
+CONTRACTS.md §3 requires, but the **route to constructing** a Level 3 finding runs
+through `variant.parent`. This is deliberate and is stronger than the contract
+asks for: a variant cannot author technique rules, it can only be analysed by its
+parent's. That is what "not a separate algorithm" means, expressed in types. It
+also stays safe without a special case — a Tier B parent has no authority to
+lend, so a Tier B variant cannot reach one either.
+
+**`ExerciseVariant` is a `sealed interface` extending `ExerciseProfile`,
+carrying `parent` and `coachingNote`.** Sealed, so no third kind of variant can
+be invented outside this file.
+
+*This was written the other way round first.* The design note said the interface
+should stay out of `ExerciseProfile`'s hierarchy, to avoid an inheritance diamond
+with the delegated interface. Writing the guard tests against it showed that to
+be wrong on both counts: a variant that is not an `ExerciseProfile` cannot be
+asked for its own tier or camera view, so every comparison against the parent
+needed a cast, and the diamond is not real — delegation generates an override for
+every inherited member, so there is never more than one implementation to choose
+between. Corrected here rather than quietly, because the surrounding argument for
+delegation stands and this part of it did not.
+
+**Entries and profiles are counted separately.** `ExerciseLibrary.all` is the
+library's entries; `ExerciseLibrary.profiles` excludes variants and
+`ExerciseLibrary.variants` is the complement. This is CLAUDE.md §9's honest-count
+rule — "15 exercise profiles ... presented as 17 library entries" — made
+structural instead of editorial, and it is why the Tier A sweep counts profiles
+rather than entries. A variant inherits its parent's tier; it does not add one to
+it.
+
+### Consequences
+
+- `TierAProfileTest.tier_a_is_exactly_the_five_exercises_contracts_assigns_it`
+  now sweeps `profiles` rather than `all`. Left on `all`, the goblet squat would
+  have read as a sixth Tier A exercise, which is the exact miscount CLAUDE.md §9
+  forbids.
+- `VariantInheritanceTest` compares every variant against its parent field by
+  field, and drives the same synthetic repetitions through a tracker built on the
+  variant and on the parent to show the counts and ranges of motion are
+  identical. The declaration pin says they agree; that one shows they behave the
+  same way.
+- Nothing on the real-time path changed. `RepFsm`, `BilateralRepTracker` and
+  `HoldAnalyser` see a `RepetitionExercise`/`IsometricExercise` as before and
+  cannot tell a variant from its parent, which is the point.
+
+**Scope of this entry.** It records what the documents name and how inheritance
+is implemented. It makes no claim about how a goblet squat is detected, and none
+about whether sharing a squat's calibration baseline describes a loaded squat
+well — that is the open assumption stated above.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
