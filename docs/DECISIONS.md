@@ -2219,6 +2219,291 @@ the real-time path changed.
 
 ---
 
+## P3-11 — Health Connect: the §17 check, and what it found
+
+*2026-09-20*
+
+P3-3 added Health Connect to scope and set the bar for building it:
+
+> (3) is a real dependency addition and needs the full §17 check when it is
+> built: license, API level requirements, whether it fits the KMP module split
+> (Health Connect is Android-only, so this is `:app`-only like
+> CameraX/MediaPipe), and maintenance status.
+
+That check is below, and **it found two blocking constraints the project did not
+know it had.** Both are measured against the resolved artifacts rather than
+taken from documentation, per CLAUDE.md §23.
+
+### The §17 check
+
+CLAUDE.md §17 requires checking "why it's needed, whether an existing capability
+already covers it, its licence, platform compatibility, bundle/runtime cost,
+offline compatibility, and maintenance status", and separately that "for every
+reused component, determine code licence, model/weights licence, and
+dataset/training-data restrictions separately".
+
+**Purpose.** Kinesis measures bilateral asymmetry, tempo, range of motion and
+deviation from a personal baseline. It measures nothing about the day those
+repetitions happened in. Health Connect supplies that: whether the set was
+performed on a sedentary day or an active one, and whether the user's heart rate
+was elevated. P3-3's framing is that this "contextualises those
+technique-specific measurements within the user's broader daily activity rather
+than duplicating what Health Connect already reports", and the sharpened version
+is the test for what to read at all: **if Health Connect can report it and
+Kinesis already measures it, Kinesis's own number wins and the Health Connect one
+is not read.** That is what excludes exercise sessions, below.
+
+**No existing capability covers it.** Nothing in the codebase reads platform
+health data, and nothing could — the shared core has no Android APIs by design.
+
+**Licence — checked per artifact, which is what §17 asks for, and it mattered.**
+
+| Artifact | Licence | Source |
+|---|---|---|
+| `androidx.health.connect:connect-client:1.0.0-alpha11` | Apache 2.0 | its POM |
+| `com.google.guava:guava:31.1-android` | Apache 2.0 | `guava-parent` POM |
+| `com.google.guava:failureaccess`, `listenablefuture` | Apache 2.0 | as Guava |
+| `org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.7.3` | Apache 2.0 | its POM |
+| *(1.1.0 only)* `connect-client-external-protobuf` | **BSD-3-Clause** | its POM |
+
+All permissive and compatible. The last row is the reason §17 says to check each
+component separately: the stable line pulls a repackaged protobuf under
+**BSD-3-Clause**, not Apache 2.0. It is compatible and needs only attribution and
+the no-endorsement clause, but it would have been missed by checking the headline
+artifact alone. Noted now because it becomes live if the version ceiling below is
+lifted.
+
+No models, no weights, no training data — this is an API client, so those two
+limbs of §17 are empty rather than unexamined.
+
+**Platform.** Android-only, `:app`-only, exactly as P3-3 predicted. `:core:domain`
+and `:core:analysis` have no reference to it and could not compile against one —
+they are Kotlin Multiplatform modules with JS and JVM targets. The one core type
+this code borrows is `LocalDay`, so a day means the same here as it does to the
+streak rule (P3-10).
+
+**Bundle — measured, not estimated.** Release APK built immediately before and
+after the dependency was declared, same toolchain, same sources otherwise:
+
+| | Before | After | Delta |
+|---|---|---|---|
+| `app-release-unsigned.apk` | 6,528,418 B | 7,774,206 B | **+1,245,788 B (+19.1%)** |
+| `app-debug.apk` | 8,821,716 B | 10,420,190 B | +1,598,474 B |
+
+Most of that is **Guava 31.1-android**, which the pinned version drags in; the
+`connect-client` AAR itself is 1,656,115 B. This is a real cost for a
+supplementary panel and is recorded as such rather than waved through.
+
+**Offline — verified, not assumed.** FINAL_ARCHITECTURE §6's "No backend, no
+auth, no cloud" is a hard line, and P3-3 asked for this to be *shown* not
+assumed. The merged release manifest after adding the dependency declares
+exactly four permissions:
+
+```
+android.permission.health.READ_ACTIVE_CALORIES_BURNED
+android.permission.health.READ_HEART_RATE
+android.permission.health.READ_STEPS
+com.kinesis.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION   (AndroidX internal)
+```
+
+**No `INTERNET`. No `ACCESS_NETWORK_STATE`. No `ACCESS_WIFI_STATE`.** Adding
+Health Connect introduced zero network capability to Kinesis, which is as direct
+a demonstration as this line admits. Health Connect's own store is on-device and
+encrypted, and the provider does not request internet access either. Nothing
+here adds an account, a server or a sync path.
+
+**Maintenance.** `androidx.health.connect` is maintained by Google as part of
+AndroidX and is actively released — a stable 1.1.0 exists. **But Kinesis cannot
+use it**, for the reason immediately below, and the version it can use is an
+alpha from the 1.0.0 line. That is the weakest point in this check and it is
+stated plainly rather than buried.
+
+### Finding 1: the stable version is blocked by this project's toolchain
+
+Declaring `connect-client:1.1.0` fails the build, with the reason measured
+rather than predicted:
+
+> Dependency 'androidx.health.connect:connect-client:1.1.0' requires libraries
+> and applications that depend on it to compile against version 36 or later of
+> the Android APIs … Dependency 'androidx.health.connect:connect-client:1.1.0'
+> requires Android Gradle plugin **8.9.1 or higher**.
+
+Kinesis is on AGP **8.7.3** and `compileSdk` **35**. Lifting that means an AGP
+upgrade plus an SDK platform download — the installed platforms are `android-35`
+and `android-37`, with **no `android-36`** — and AGP 8.7.3 is already entangled
+with the JDK 25 lint failure recorded in P1-1. That is a build-infrastructure
+change with its own risk surface, not a feature-batch change.
+
+**Decision: pin `1.0.0-alpha11`**, the newest version that resolves against this
+toolchain (`1.0.0` final does not exist; the line goes alpha11 → 1.1.0).
+
+**This is the weakest dependency decision in the project and is recorded as
+one.** Mitigating it: the dependency is read-only, supplementary, reached only
+through an interface, and every failure mode already degrades to "no context",
+which is a tested path. If the alpha misbehaves, the app shows an empty panel —
+it cannot take a measurement or a screen down with it. Upgrading to stable is
+also *cheaper* on every axis once the toolchain allows it: the 1.1.0 AAR is
+smaller (1,315,867 B against 1,656,115 B) and drops the Guava dependency
+entirely. **Recommendation: do the AGP and `compileSdk` upgrade as its own
+task, then move to 1.1.0.**
+
+### Finding 2: the library needs minSdk 26 and Kinesis supports 24
+
+Measured from the manifest merger:
+
+> `uses-sdk:minSdkVersion 24 cannot be smaller than version 26 declared in
+> library [androidx.health.connect:connect-client:1.0.0-alpha11]`
+
+Three options were offered; the choice is deliberate.
+
+- *Raise the app's minSdk to 26.* **Rejected.** That drops Android 7.0 and 7.1
+  devices from the whole product to gain an optional panel — raising the floor
+  for every user to add supplementary context is backwards, and directly against
+  P3-3's framing.
+- *Find a library with minSdk 24.* None exists.
+- **`tools:overrideLibrary="androidx.health.connect.client"`.** Chosen.
+
+The merger warns this "may lead to runtime failures", and that warning is
+answered rather than ignored: every entry point in
+`HealthConnectActivityContextSource` checks `Build.VERSION.SDK_INT` before
+touching the library, the methods that do touch it are `@RequiresApi(26)`, and
+below API 26 the read path returns `PLATFORM_TOO_OLD` without loading a single
+Health Connect class. The app installs and behaves identically on API 24 and 25;
+it simply has no context to show. **This is exactly absence case 3 from the
+brief, and it is a real case rather than a hypothetical one.**
+
+### The pinned data types
+
+P3-3 named "steps, active calories, heart rate — exact set to be pinned when
+this is built". Those three are the set. Each is justified against the
+contextualises-rather-than-duplicates test.
+
+| Metric | Aggregate | Why it earns a place |
+|---|---|---|
+| **Steps** | `StepsRecord.COUNT_TOTAL` | Whole-day ambulatory volume. Kinesis measures nothing remotely like it, and it is the plainest answer to "was this a sedentary day". |
+| **Active calories** | `ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL` | Whole-day energy expenditure, covering activity Kinesis never sees — cycling, walking, sport. Partly overlaps steps, which is why it is the weakest of the three. |
+| **Mean heart rate** | `HeartRateRecord.BPM_AVG` | The strongest contextualiser. An elevated resting heart rate is the most plausible external explanation for a session below a personal baseline, and it is a fact about the body that no camera can see. |
+
+**What is deliberately excluded, and the exclusion that matters most.**
+
+- **Exercise sessions.** Health Connect exposes `ExerciseSessionRecord`, and
+  reading it would be the single most tempting addition — and it is exactly what
+  P3-3 forbids. Another app's record of "strength training, 40 minutes" *duplicates*
+  what Kinesis measures, and worse, it would put a second, unverified account of
+  the user's training next to Kinesis's own. If they disagreed there would be no
+  principled way to resolve it. **Kinesis's own measurements are the only account
+  of Kinesis's own domain.**
+- **Sleep, weight, distance, VO2 max, blood oxygen.** Each is plausibly
+  interesting and none was asked for. CLAUDE.md §20 is smallest coherent change,
+  and the brief for this batch put it directly: do not default to grabbing
+  everything Health Connect exposes because it is available. Every extra type is
+  another permission prompt, and a permission the user refuses is worse than one
+  never requested.
+- **Any write permission.** None is declared in the manifest and none is
+  requested. P3-3's "read-only" is therefore true by construction.
+
+### Absence is the first-class case
+
+Three ways this can be missing, per the brief, and all of them are values rather
+than exceptions:
+
+```kotlin
+sealed interface ActivityContextResult {
+    data class Available(val context: DailyActivityContext)
+    data class Unavailable(val reason: ContextUnavailable)
+}
+enum class ContextUnavailable {
+    PLATFORM_TOO_OLD, NOT_INSTALLED, PROVIDER_UPDATE_REQUIRED,
+    PERMISSIONS_DENIED, READ_FAILED,
+}
+```
+
+Five reasons rather than three, because the brief's three do not cover a provider
+that is installed but too old to serve reads, or a read that fails for a reason
+the provider's documentation does not list. `ActivityContextResult` is
+deliberately not `DailyActivityContext?`: a null would say "nothing here" and lose
+the reason, and the reason is the whole difference between "install Health
+Connect to see this", "you denied this permission" and "your phone is too old for
+this feature".
+
+**Permissions are granted per metric, so absence is modelled per metric too.**
+`DailyMetric` is `Measured` / `NotPermitted` / `NoData`. A permission the user
+withheld and a day with nothing recorded are different sentences, and collapsing
+both to null would make them one.
+
+**Nothing can fail loudly.** A supplementary feature that can throw is not
+supplementary. Every expected condition is a result, and the implementation
+catches `Throwable` around each provider call because a health provider on an
+arbitrary device fails in ways its documentation does not enumerate.
+
+### What "tested" means for this batch
+
+The pattern from every prior batch — resolve a question against MM-Fit, then
+mutate the guard to prove it fails — does not transfer. There is no dataset and
+no threshold here. The question is not "what is the right number" but "does the
+app survive every way this can be missing", so that is what is tested.
+
+**Tested, on the JVM, with no device or emulator** (`:app:testDebugUnitTest`,
+10 tests against a fake source):
+
+- each of the five absence reasons is a value the caller must handle;
+- a partial permission grant yields the granted metric and marks the rest
+  `NotPermitted`;
+- a permitted metric over an empty day is `NoData`, distinct from refused;
+- **Kinesis's own dashboard summary is identical across every absence case
+  including the fully-available one** — the property that makes "supplementary"
+  true rather than aspirational;
+- computing a Kinesis summary never reads the context source at all
+  (`readCount == 0`).
+
+That last pair matters more than the rest. It is a structural fact today, since
+`:core:analysis` cannot reference `:app`; the tests are there so it fails loudly
+if a future batch wires the two together.
+
+**Not tested here, and flagged for P4 device work rather than faked.** These
+need a real device and a real provider, and a mock would only assert this code's
+own assumptions back at it:
+
+- that `sdkStatus` reports what this code expects on Android 13 with the APK
+  provider and Android 14+ with the framework module;
+- that the permission dialog appears and a partial grant produces the permission
+  set assumed here;
+- that a real `aggregate` returns the units this code converts
+  (`Energy.inKilocalories`, `Long` BPM);
+- **that API 24 and 25 devices install and run with the minSdk override** —
+  the one place Finding 2's decision could bite.
+
+`:app` already had unit-test infrastructure, contrary to what this batch
+expected to find: JUnit 4, one test (`MirroringRegressionTest`, from P1). It now
+has 15.
+
+### The boundary with Batch 8
+
+**Nothing is wired into the dashboard UI, and there is no UI.** This batch built
+the read path only: the types, the interface, the Health Connect implementation,
+and a fake. That is the same boundary Batch 6 drew when it built the dashboard's
+aggregation and deliberately left persistence unbuilt — build the part that can
+be designed and tested now, and leave the part that needs a consumer to the batch
+that has one.
+
+Specifically **not** built here, and belonging to Batch 8:
+
+- any Compose screen, panel or view model;
+- the permission request flow — `ActivityContextPermissions.ALL` names what to
+  request, but nothing launches a request contract, because the thing that should
+  launch it is a screen;
+- any pairing of `DashboardSummary` with `ActivityContextResult` in production
+  code. The test composes both to prove independence; no production type does,
+  because a combiner nothing renders would be an abstraction read by nothing —
+  the failure P3-8 and P3-9 each found once.
+
+**Scope of this entry.** It records a dependency check and a read path. It makes
+no claim about Health Connect's accuracy or about any user's data, and nothing in
+it has run against a real provider. Nothing on the real-time path changed, and
+no analysis decision anywhere depends on anything read here.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

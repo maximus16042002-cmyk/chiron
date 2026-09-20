@@ -1,5 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!--
+        Health Connect read permissions - DECISIONS.md P3-11.
+
+        Read-only, and exactly the three metrics P3-11 pins. No write permission
+        is declared or requested, which is what keeps P3-3's "read-only context"
+        true by construction rather than by intention. Each is granted
+        individually by the user, and the read path treats any of them being
+        withheld as an ordinary result rather than an error.
+    -->
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+
+    <!--
+        The Health Connect client library declares minSdk 26; Kinesis supports 24.
+
+        Overriding rather than raising the app's minSdk is deliberate, and
+        DECISIONS.md P3-11 records why: Health Connect is supplementary context
+        (P3-3, "displayed alongside Kinesis's own measurements rather than
+        replacing them"), and raising the floor for every user to gain an
+        optional panel is backwards. The merger warns this "may lead to runtime
+        failures" - that risk is what HealthConnectActivityContextSource's
+        Build.VERSION.SDK_INT guard and @RequiresApi(26) annotations exist to
+        remove. Below API 26 no Health Connect class is ever loaded and the read
+        path returns PLATFORM_TOO_OLD, which is a tested case.
+    -->
+    <uses-sdk tools:overrideLibrary="androidx.health.connect.client" />
 
     <application
         android:allowBackup="true"
