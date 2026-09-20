@@ -12,6 +12,7 @@ import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.AggregateRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import com.kinesis.core.domain.session.LocalDay
+import kotlinx.coroutines.CancellationException
 import java.time.Instant
 
 /**
@@ -65,7 +66,13 @@ class HealthConnectActivityContextSource(
     private suspend fun availabilityOnSupportedPlatform(): ContextAvailability {
         val status = try {
             HealthConnectClient.sdkStatus(appContext)
-        } catch (error: Throwable) {
+        } catch (error: Exception) {
+            when (error) {
+                is CancellationException,
+                is NullPointerException,
+                is IllegalArgumentException,
+                is ClassCastException -> throw error
+            }
             return ContextAvailability.Unavailable(ContextUnavailable.NOT_INSTALLED)
         }
 
@@ -84,7 +91,13 @@ class HealthConnectActivityContextSource(
                 .permissionController
                 .getGrantedPermissions()
             ContextAvailability.Available(granted.intersect(ActivityContextPermissions.ALL))
-        } catch (error: Throwable) {
+        } catch (error: Exception) {
+            when (error) {
+                is CancellationException,
+                is NullPointerException,
+                is IllegalArgumentException,
+                is ClassCastException -> throw error
+            }
             ContextAvailability.Unavailable(ContextUnavailable.READ_FAILED)
         }
     }
@@ -115,7 +128,13 @@ class HealthConnectActivityContextSource(
 
         val client = try {
             HealthConnectClient.getOrCreate(appContext)
-        } catch (error: Throwable) {
+        } catch (error: Exception) {
+            when (error) {
+                is CancellationException,
+                is NullPointerException,
+                is IllegalArgumentException,
+                is ClassCastException -> throw error
+            }
             return ActivityContextResult.Unavailable(ContextUnavailable.READ_FAILED)
         }
 
@@ -155,7 +174,7 @@ class HealthConnectActivityContextSource(
      * supplementary panel must not take the screen down with it.
      */
     @RequiresApi(Build.VERSION_CODES.O)
-    private suspend fun <T : Any> read(
+    internal suspend fun <T : Any> read(
         client: HealthConnectClient,
         range: TimeRangeFilter,
         granted: Set<String>,
@@ -164,12 +183,23 @@ class HealthConnectActivityContextSource(
         toDouble: (T) -> Double,
     ): DailyMetric {
         if (permission !in granted) return DailyMetric.NotPermitted
-        return try {
-            val value = client
-                .aggregate(AggregateRequest(setOf(metric), range))[metric]
-            if (value == null) DailyMetric.NoData else DailyMetric.Measured(toDouble(value))
-        } catch (error: Throwable) {
+        
+        val value = try {
+            client.aggregate(AggregateRequest(setOf(metric), range))[metric]
+        } catch (error: Exception) {
+            when (error) {
+                is CancellationException,
+                is NullPointerException,
+                is IllegalArgumentException,
+                is ClassCastException -> throw error
+            }
+            return DailyMetric.NoData
+        }
+        
+        return if (value == null) {
             DailyMetric.NoData
+        } else {
+            DailyMetric.Measured(toDouble(value))
         }
     }
 

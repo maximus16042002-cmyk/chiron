@@ -222,6 +222,8 @@ it is honest to do so; technique judgement may not.
 
 ## 9. Open — bicep curl repetition semantics
 
+**(Closed by `DECISIONS.md` P3-1)**
+
 **Blocks P3.** MM-Fit performs bicep curls alternating arms. Kinesis has not
 defined whether one repetition is one arm or both.
 

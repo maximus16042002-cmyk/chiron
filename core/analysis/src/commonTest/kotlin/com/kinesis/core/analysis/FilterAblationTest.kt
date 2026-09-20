@@ -5,7 +5,6 @@ import com.kinesis.core.analysis.temporal.MedianOutlierGate
 import com.kinesis.core.analysis.temporal.RealTimeSignalPipeline
 import com.kinesis.core.analysis.temporal.TemporalConfig
 import kotlin.math.PI
-import kotlin.math.abs
 import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.test.Test

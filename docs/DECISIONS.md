@@ -1561,9 +1561,10 @@ difference matters.** P3-7 recorded that §4 sent the lunge to §5 under "Fix th
 view or cut" and that §5 never returned to it. Re-checked here: §5 **does**
 address the row, at length, and resolves it — keep it, near-side only. It also
 resolves the front raise (cut) and the overhead triceps extension (cut). So §5
-carried out its instruction for three of the four exercises §4 flagged, and
-skipped only the lunge. That narrows P3-7's finding from "§5 is unreliable" to "§5
-has exactly one omission", which is worth knowing.
+carried out its instruction for two of the three exercises §4 flagged, and
+skipped only the lunge (while also addressing one unflagged exercise, the
+Overhead Triceps Extension). That narrows P3-7's finding from "§5 is unreliable"
+to "§5 has exactly one omission", which is worth knowing.
 
 §5 **is** silent on Shoulder Press, and that silence is explained rather than
 suspicious: §4 put it in "Cheap to configure, moderate to validate — Add, budget
@@ -2559,3 +2560,24 @@ P1 did not decide it, because P1 was scoped to shared core types and touched
 
 **Closed.** Harness first — see **P2-3** for the decision, its reasoning, and the
 CameraX/MediaPipe dependency check it still requires.
+
+---
+
+## AUDIT SUMMARY
+
+*Performed 2026-09-20.*
+
+A full-codebase audit was performed to ensure all implementations comply with the documented project rules. The following checks were executed and resolved:
+
+1. **Clean Build:** `gradlew assemble allTests :app:testDebugUnitTest` passed with zero errors or warnings (once JDK 17 environment variables were configured).
+2. **Non-Negotiables:** Evaluated left/right bilateral signal reductions, analysis logic placements (must be in shared core, not app/), numeric types (Double, not Float or Long for analysis), and rule source references. **All clean.**
+3. **Registry Completeness:** Verified 17 exercise entries mapped to 15 profiles and 2 variants. Addressed discrepancy in P3-8 documentation regarding exactly how many exercises were flagged vs resolved in §4 and §5. Tests fully sweep all 17. **Clean.**
+4. **File-Integrity Spot Check:** No signs of file corruption or incomplete git pulls. **Clean.**
+5. **Dependency / License Consistency:** Discovered that Jetpack Compose dependencies were added to `app/build.gradle.kts` despite no formal documentation in `DECISIONS.md`. This is flagged for the next UI integration phase, but as a pure data/logic audit, no dependencies violated existing rules.
+6. **Exception-Handling Audit:** Fixed a silent failure in `HealthConnectActivityContextSource.kt`. General `catch (error: Throwable)` blocks were catching and swallowing internal exceptions like `NullPointerException` and `IllegalArgumentException`, misclassifying them as external Health Connect unavailabilities. 
+    - **Fix:** Switched catch blocks to `Exception` and explicitly rethrew `CancellationException`, `NullPointerException`, `IllegalArgumentException`, and `ClassCastException`.
+    - **Verification:** Added `HealthConnectExceptionTest.kt` to prove that internal bugs (`NullPointerException`) propagate out of the method instead of returning `DailyMetric.NoData`.
+7. **Dead Code:** Cleaned up unused imports (e.g. `import kotlin.math.abs` in `FilterAblationTest.kt`). No stray `TODO`, `FIXME`, or commented-out code blocks were found. **Clean.**
+8. **Deferred Items:** Addressed "Open — bicep curl repetition semantics" by updating `CONTRACTS.md` Section 9 to explicitly link to the closure in `DECISIONS.md` P3-1.
+
+The audit is complete and the project remains structurally sound per its own constraints.
