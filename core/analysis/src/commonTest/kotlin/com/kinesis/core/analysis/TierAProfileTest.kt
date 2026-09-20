@@ -69,8 +69,9 @@ class TierAProfileTest {
     fun the_library_holds_exactly_the_entries_built_so_far() {
         assertEquals(
             listOf(
-                "bicep_curl", "glute_bridge", "goblet_squat", "lateral_raise",
-                "plank", "pushup", "squat",
+                "bicep_curl", "glute_bridge", "goblet_squat", "hip_abduction",
+                "knee_raise", "lateral_raise", "leg_raise", "lunge", "plank",
+                "pushup", "reverse_lunge", "situp", "squat",
             ),
             ExerciseLibrary.all.map { it.id }.sorted(),
         )
@@ -79,7 +80,11 @@ class TierAProfileTest {
     @Test
     fun the_library_holds_exactly_the_profiles_built_so_far() {
         assertEquals(
-            listOf("bicep_curl", "glute_bridge", "lateral_raise", "plank", "pushup", "squat"),
+            listOf(
+                "bicep_curl", "glute_bridge", "hip_abduction", "knee_raise",
+                "lateral_raise", "leg_raise", "lunge", "plank", "pushup",
+                "situp", "squat",
+            ),
             ExerciseLibrary.profiles.map { it.id }.sorted(),
         )
     }

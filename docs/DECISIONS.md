@@ -1237,6 +1237,242 @@ well — that is the open assumption stated above.
 
 ---
 
+## P3-7 — Tier B lower-body and trunk profiles, and an unactioned instruction about the lunge
+
+*2026-09-20*
+
+Builds five of the seven Tier B profiles CONTRACTS.md §3 assigns — Lunge, Hip
+Abduction, Knee Raise, Sit-up, Leg Raise — and the Reverse Lunge variant their
+arrival unblocks. Shoulder Press and Row remain, and are upper-body.
+
+### What the documents already decided, quoted
+
+`docs/CONTRACTS.md` §3, line 103:
+
+> | B | Shoulder Press *(seated)*, Row *(near side only)*, Lunge, Hip Abduction,
+> Knee Raise, Sit-up, Leg Raise |
+
+`docs/FINAL_ARCHITECTURE.md` §5, "The final list", rows 9–14 — the camera view
+and mode for each:
+
+> | 9   | Lunge                  | Lunge         | B | Side        | Rep |
+>
+> | 10  | **Reverse Lunge**      | *Lunge variant* | B | Side      | Rep |
+>
+> | 11  | Standing Hip Abduction | Hip Abduction | B | Front       | Rep |
+>
+> | 12  | Standing Knee Raise    | Knee Raise    | B | Side        | Rep |
+>
+> | 13  | Sit-up                 | Sit-up        | B | Side        | Rep |
+>
+> | 14  | Lying Leg Raise        | Leg Raise     | B | Side, floor | Rep |
+
+`docs/FINAL_ARCHITECTURE.md` §4, the configuration-versus-validation table:
+
+> | Sit-up                 | 0.25 d | 1 d   | 0 | High   | Low    | High   | Good     |
+>
+> | Standing Knee Raise    | 0.25 d | 1 d   | 0 | High   | Low    | High   | Good     |
+>
+> | Lying Leg Raise        | 0.25 d | 1 d   | 0 | High   | Low    | High   | Good     |
+>
+> | Standing Hip Abduction | 0.5 d  | 1.5 d | 0 | Medium | Medium | Medium | Adequate |
+>
+> | **Lunge** | 1 d | **4 d** | 0 | **Low-medium** | **High — rear leg occluded**
+> | Low for rear leg | **Weak** |
+
+`docs/FINAL_ARCHITECTURE.md` §5, on the replacement that brought the leg raise in:
+
+> **Lying Leg Raise** — hip flexion, side view, large clean ROM, present in
+> InfiniteRep, very reliable segmentation.
+
+`docs/ZERO_DATASET_BUILD_PLAN.md`, revised exercise scope, lines 95 and 100:
+
+> | Lunge | B | Direct | Rep counting measured on benchmark; deviation |
+>
+> | Lying Leg Raise | B | None | Deviation only, validated by live testing |
+
+`docs/ZERO_DATASET_BUILD_PLAN.md`, "Two changes worth making", line 114:
+
+> Add **sit-up** to the library. It is in MM-Fit with full labels, it is a
+> side-view exercise whose primary signal is trunk flexion and therefore clearly
+> visible, and it costs nothing in data.
+
+### The lunge: an instruction the documents issue and never carry out
+
+`FINAL_ARCHITECTURE.md` §4 puts the lunge in the worst category it defines and
+tells the reader to go and fix it:
+
+> | **Cheap to configure, expensive to validate** | **Lunge, bent-over row,
+> front raise** | **Fix the view or cut** — section 5 |
+
+§5 then opens:
+
+> Re-examining the list against what a single camera can actually see, three
+> entries have problems I did not flag.
+
+**and the three it examines are Front Raise, Bent-over Row and Overhead Triceps
+Extension.** The lunge is not among them. Front Raise and Overhead Triceps are
+cut, Bent-over Row is restricted to the near side — and the lunge arrives in the
+final list at row 9, filmed "Side", with no restriction and no further mention,
+carrying §4's own verdict of the highest testing cost in the table (4 days), view
+difficulty "High — rear leg occluded", landmark reliability "Low for rear leg",
+and a viva rating of "Weak".
+
+**Decision: build it as the final list specifies, and record the gap rather than
+close it here.** The final list is the later and more specific statement, and
+inventing a restriction for the lunge — by analogy with the row's near-side-only
+treatment, say — would be exactly the silent redesign CLAUDE.md §20 forbids.
+
+**The concrete consequence, stated so P4 can look for it.** Filmed side-on, the
+rear leg is behind the front one for most of the movement. The lunge is
+`SIMULTANEOUS` (measured below), and under that semantics `BilateralRepTracker`
+pairs one cycle from each side into one repetition; a side whose partner never
+completes is emitted as `INSUFFICIENT_DATA` rather than counted (P3-2). So if the
+rear knee tracks as badly as §4 predicts, the failure mode is **under-counting
+with a trail of `INSUFFICIENT_DATA` records**, not a wrong angle. That is a
+prediction from the design, not a measurement; nothing here says how often it
+happens, and P4 is where it is found out. If it does happen, the options are the
+row's near-side-only treatment, a 45-degree view, or the cut §4 already
+authorises — and that will be its own entry.
+
+### Sit-up: this batch, not the upper-body one
+
+CONTRACTS.md lists Sit-up under Tier B without saying which body region it
+belongs to, and it is trunk flexion rather than lower-body movement, so the call
+is genuinely open. **Decision: it is built here.**
+
+**Reasoning.** The batch boundary that matters is not anatomical labelling but
+which joint drives the signal and which landmarks have to be visible, because
+that is what the profiles share and what device testing will exercise together.
+Sit-up drives off the shoulder-hip-knee angle, as do Knee Raise and Leg Raise in
+this batch, and requires the same six landmarks; the two remaining Tier B
+profiles drive off the shoulder and the elbow and require the arms. Grouped by
+that, the sit-up belongs with the trunk-and-leg set and fits the upper-body batch
+worse than it fits this one. It also has MM-Fit labels, so it can be measured in
+the same pass as the lunge rather than in a pass of its own.
+
+`FINAL_ARCHITECTURE.md` §4 groups it the same way, for what that is worth:
+
+> | **Cheap to configure, cheap to validate** | Sit-up, knee raise, lying leg
+> raise, wall sit, plank | Add freely |
+
+**A contingency this keeps cheap.** P0-3 and `FINAL_ARCHITECTURE.md` §12 both say
+that if P4 shows the glute bridge segments poorly, the sit-up is promoted to Tier
+A in its place. Building it now means that promotion is a change of base class
+and of one pinned assertion, rather than a new profile written under time
+pressure.
+
+### Repetition semantics
+
+Two of the five can be measured against MM-Fit's labels. Three cannot, and are
+marked as assumptions in the manner P3-5 established for the glute bridge.
+
+**MM-Fit's ten classes**, read from the label files: `bicep_curls`,
+`dumbbell_rows`, `dumbbell_shoulder_press`, `jumping_jacks`,
+`lateral_shoulder_raises`, `lunges`, `pushups`, `situps`, `squats`,
+`tricep_extensions`. There is no hip abduction, no knee raise and no leg raise.
+`jumping_jacks` was considered as a proxy for hip abduction and rejected: a
+jumping jack abducts both legs at once off the floor, which is the opposite of
+the thing in question for a standing single-leg abduction.
+
+#### Measured — Lunge and Sit-up
+
+Same threshold-free method as P3-1 and P3-5. **The lunge needed a signal the
+earlier passes did not use.** Both knees flex on every repetition of a lunge
+whichever leg is forward, so a knee-angle measurement reads one cycle per side
+either way and cannot distinguish an alternating lunge from a same-leg one. A
+third signal was added for it — each ankle's distance from its hip, which is
+large for the stepping leg and small for the trailing one, so if the legs swap
+roles between repetitions it runs at half the labelled rate on each side.
+
+| Exercise | Signal | Sets | Cycles/side/rep | SD | L/R phase | Both = label | Both = label ÷ 2 |
+|---|---|---|---|---|---|---|---|
+| **lunges** | knee angle | 62 | **1.00** | 0.07 | +0.82 | 59 | 1 |
+| **lunges** | hip height | 62 | **1.00** | 0.01 | +0.99 | 61 | 0 |
+| **lunges** | stance (ankle from hip) | 62 | **1.00** | 0.15 | +0.48 | 37 | 3 |
+| **situps** | hip angle (trunk) | 65 | **1.00** | 0.07 | +0.99 | 52 | 0 |
+| **situps** | shoulder height | 65 | **1.00** | 0.06 | +0.99 | 52 | 0 |
+| squats *(control)* | knee angle | 64 | 1.00 | 0.02 | +0.96 | 61 | 0 |
+| squats *(control)* | stance | 64 | 1.00 | 0.02 | +1.00 | 61 | 0 |
+| bicep_curls *(control)* | elbow angle | 59 | **0.50** | 0.01 | **−0.40** | 0 | **56** |
+
+Both are `SIMULTANEOUS`. The stance signal is the one that carries the argument
+for the lunge: it was constructed specifically to read 0.50 if the legs
+alternate, and it reads 1.00 in 37 of 62 sets against 3 at half.
+
+**One honest detail about the lunge, which the phase column shows.** Its stance
+phase is +0.48, well below the +0.99 its own hip height gives and the +1.00 the
+squat gives on the same signal. That is what it looks like when the two legs do
+*different things* within a repetition — one steps out while the other stays —
+at the *same rate*. Kinesis counts a lunge as one repetition either way, but it
+does not model which leg was forward, so a set of alternating lunges and a set of
+same-leg lunges are indistinguishable to it. That is a stated limitation, not a
+defect being hidden: nothing in the profile claims otherwise, and no document
+asks for the distinction.
+
+#### Assumed from anatomy — Hip Abduction, Knee Raise, Leg Raise
+
+No dataset constrains any of these. Each is flagged the way P3-5 flagged the
+glute bridge, and the three are not equally strong.
+
+**Standing Hip Abduction — `PER_LIMB`.** One leg lifts out to the side while the
+other bears the body's weight. Both legs cannot abduct at once from standing, so
+this is close to physical necessity rather than a judgement about how the
+exercise is usually performed.
+
+**Standing Knee Raise — `PER_LIMB`.** The same argument: one knee lifts while the
+other leg stands.
+
+**Lying Leg Raise — `SIMULTANEOUS`, and this is the weakest of the three.** The
+exercise named in FINAL_ARCHITECTURE is the double-leg version, in which both
+legs rise together from supine, and its "large clean ROM" description fits that
+version. But a single-leg lying leg raise is a common exercise in its own right,
+and nothing in any document says which is meant beyond the name. If the intent
+was the single-leg version this is a factor-of-two error of exactly the kind P3-1
+was raised to prevent. It is recorded here as the one to check first if leg-raise
+counts ever look halved, and `TierBProfileTest` pins it so the correction is a
+one-line change with a failing test attached.
+
+### Reverse Lunge, and a Batch 2 guard test that had to be replaced
+
+The lunge's arrival unblocks the Reverse Lunge variant P3-6 deferred, which is
+built here through the same `RepetitionVariant` delegation.
+
+**The deferral guard could not be made to pass as written, and was replaced by a
+stronger one.** `VariantInheritanceTest.the_reverse_lunge_variant_is_deferred_until_its_parent_profile_exists`
+asserted that *neither* `lunge` nor `reverse_lunge` was in the library. It was
+meant to fire when the parent arrived without its variant; it actually fires
+whenever the parent arrives, variant or no variant. That is a flaw in the guard,
+found by its first real use.
+
+It is replaced by `every_documented_variant_whose_parent_exists_is_built`, which
+holds the two variant-to-parent pairs the documents name — Goblet Squat → Squat,
+Reverse Lunge → Lunge — and asserts for each that if the parent is in the
+library then so is the variant, attached to that parent. This is **stronger, not
+weaker**: the old test would have had to be deleted after this batch, while this
+one keeps guarding both pairs permanently and will guard any pair added to the
+list. Recorded explicitly because replacing a guard test is exactly the move
+CLAUDE.md §18 warns about, and the justification belongs on the record rather
+than in a commit message.
+
+### Provisional thresholds, as always
+
+Every threshold in the five new profiles is provisional and marked so in source,
+on the same footing as every other in the library. They are starting points that
+let the profiles be exercised, not measured quantities; P6 personalises them from
+the user's own calibration repetitions and P4 sanity-checks them on a device
+first. Nothing here has been validated against a human being.
+
+**Scope of this entry.** It records what MM-Fit's labels define for two
+exercises, what anatomy implies for three more, and one instruction the source
+documents issue and never carry out. It is not a claim about how accurately
+Kinesis detects any of them — no Kinesis output has been compared against MM-Fit,
+and no such figure exists. That comparison is P7 and P12. Only MM-Fit's bundled
+OpenPose 2D pose was read, to answer questions about MM-Fit's own labels; per
+CLAUDE.md §14 those skeletons never reach the Kinesis engine.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

@@ -70,6 +70,44 @@ object ExerciseLibrary {
         coachingNote = "Hold the weight at your chest and keep your elbows inside your knees.",
     )
 
+    // --- Tier B: lower body and trunk (DECISIONS.md P3-7) -----------------------
+
+    /** See [LungeProfile]. Filmed side-on, with the rear-leg caveat recorded there. */
+    val lunge: LungeProfile = LungeProfile()
+
+    /** See [HipAbductionProfile]. */
+    val hipAbduction: HipAbductionProfile = HipAbductionProfile()
+
+    /** See [KneeRaiseProfile]. */
+    val kneeRaise: KneeRaiseProfile = KneeRaiseProfile()
+
+    /** See [SitUpProfile]. Tier B, and the standing contingency for the glute bridge. */
+    val situp: SitUpProfile = SitUpProfile()
+
+    /** See [LegRaiseProfile]. The weakest semantics declaration in the library. */
+    val legRaise: LegRaiseProfile = LegRaiseProfile()
+
+    /**
+     * Reverse Lunge — the second variant the documents name, unblocked by
+     * [lunge] arriving.
+     *
+     * Same delegation as [gobletSquat]: tier, claim ceiling, camera view,
+     * posture, repetition semantics, thresholds and required landmarks all come
+     * from the lunge profile instance. Being a variant of a Tier B parent, it
+     * inherits a Level 2 ceiling and has no route to a technique authority - the
+     * rule needs no special case, because a Tier B parent has none to lend.
+     *
+     * It shares the lunge's recorded rear-leg problem, for the same reason it
+     * shares everything else.
+     */
+    val reverseLunge: RepetitionVariant = RepetitionVariant(
+        parent = lunge,
+        id = "reverse_lunge",
+        displayName = "Reverse Lunge",
+        coachingNote = "Step backwards into the lunge rather than forwards, and lower " +
+            "under control.",
+    )
+
     /**
      * Every library entry: profiles and variants together.
      *
@@ -85,6 +123,12 @@ object ExerciseLibrary {
         lateralRaise,
         gluteBridge,
         gobletSquat,
+        lunge,
+        hipAbduction,
+        kneeRaise,
+        situp,
+        legRaise,
+        reverseLunge,
     )
 
     /**

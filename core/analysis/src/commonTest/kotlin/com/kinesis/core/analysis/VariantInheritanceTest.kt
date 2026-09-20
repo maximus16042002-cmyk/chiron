@@ -1,5 +1,6 @@
 package com.kinesis.core.analysis
 
+import com.kinesis.core.analysis.kinematics.JointAngleId
 import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.analysis.profile.ExerciseVariant
 import com.kinesis.core.analysis.profile.IsometricExercise
@@ -82,29 +83,56 @@ class VariantInheritanceTest {
     @Test
     fun the_library_holds_exactly_the_variants_the_documents_name() {
         assertEquals(
-            listOf("goblet_squat"),
+            listOf("goblet_squat", "reverse_lunge"),
             ExerciseLibrary.variants.map { it.id }.sorted(),
         )
     }
 
     /**
-     * The second variant the documents name is Reverse Lunge, whose parent is
-     * Lunge - Tier B, and not built yet. P3-6 defers it rather than dragging a
-     * Tier B profile into a Tier A batch.
+     * Permanent guard - DECISIONS.md P3-6 and P3-7.
      *
-     * **This test is the forcing function.** It fails the moment Lunge is added,
-     * which is exactly when Reverse Lunge should be added beside it. A deferred
-     * item with nothing holding it is an item that gets forgotten.
+     * The documents name exactly two variants and their parents. A variant cannot
+     * be built before its parent exists, so this holds the pairs and asserts that
+     * once a parent is in the library its variant is too, attached to it. A
+     * deferred item with nothing holding it is an item that gets forgotten.
+     *
+     * **This replaced a weaker guard.** P3-6 wrote
+     * `the_reverse_lunge_variant_is_deferred_until_its_parent_profile_exists`,
+     * which asserted that neither `lunge` nor `reverse_lunge` was present. It was
+     * meant to fire when the parent arrived without its variant, and it actually
+     * fired whenever the parent arrived at all - so it could not be made to pass
+     * by doing the right thing, and would have had to be deleted after P3-7. This
+     * one is strictly stronger: it keeps guarding both pairs permanently, and
+     * guards any pair later added to the list. P3-7 records the replacement,
+     * because swapping out a guard test is exactly the move CLAUDE.md section 18
+     * warns about.
      */
     @Test
-    fun the_reverse_lunge_variant_is_deferred_until_its_parent_profile_exists() {
-        val ids = ExerciseLibrary.all.map { it.id }
-        assertFalse(
-            "lunge" in ids,
-            "Lunge now exists, so Reverse Lunge must be added as its variant - " +
-                "DECISIONS.md P3-6 defers it only until this is true",
+    fun every_documented_variant_whose_parent_exists_is_built() {
+        // CONTRACTS.md section 3: "Goblet Squat → Squat, Reverse Lunge → Lunge."
+        val documented = listOf("goblet_squat" to "squat", "reverse_lunge" to "lunge")
+
+        for ((variantId, parentId) in documented) {
+            val parent = ExerciseLibrary.all.firstOrNull { it.id == parentId } ?: continue
+            val variant = ExerciseLibrary.variants.firstOrNull { it.id == variantId }
+            assertTrue(
+                variant != null,
+                parentId + " is in the library, so its documented variant " + variantId +
+                    " must be too",
+            )
+            assertSame(
+                parent,
+                variant.parent,
+                variantId + " does not delegate to " + parentId,
+            )
+        }
+
+        // And nothing calls itself a variant that the documents never named.
+        assertEquals(
+            documented.map { it.first }.sorted(),
+            ExerciseLibrary.variants.map { it.id }.sorted(),
+            "an undocumented variant reached the library",
         )
-        assertFalse("reverse_lunge" in ids, "Reverse Lunge exists without its parent profile")
     }
 
     // --- The inheritance itself ------------------------------------------------------
@@ -249,44 +277,62 @@ class VariantInheritanceTest {
     }
 
     /**
-     * The declarations above say the two agree. This shows they behave the same
-     * way: the identical synthetic repetitions, driven through a tracker built on
-     * the variant and one built on the parent, must produce the same count and
-     * the same ranges of motion.
+     * The declarations above say a variant and its parent agree. This shows they
+     * behave the same way: identical synthetic repetitions, driven through a
+     * tracker built on the variant and one built on the parent, must produce the
+     * same count, the same validity and the same ranges of motion.
      *
      * A variant that declared everything correctly but was somehow routed through
      * different analysis would pass every assertion above and fail this one.
+     *
+     * Swept across every variant, with the track derived from the parent's own
+     * thresholds so it works for whatever the parent measures. A variant whose
+     * parent drives off a joint this test has no frame builder for fails loudly
+     * rather than being skipped - losing behavioural coverage silently is the one
+     * outcome worse than a noisy test.
      */
     @Test
-    fun a_variant_and_its_parent_analyse_identical_movement_identically() {
-        val track = squatTrack(reps = 6)
-        val viaParent = count(ExerciseLibrary.squat, track)
-        val viaVariant = count(ExerciseLibrary.gobletSquat, track)
+    fun every_variant_and_its_parent_analyse_identical_movement_identically() {
+        assertTrue(variants.isNotEmpty(), "no variants to compare")
 
-        assertEquals(
-            viaParent.size,
-            viaVariant.size,
-            "the variant counted a different number of repetitions than its parent",
-        )
-        assertTrue(viaParent.isNotEmpty(), "the parent counted nothing; the comparison is empty")
+        for (variant in variants) {
+            val parent = variant.parent
+            if (parent !is RepetitionExercise) continue
+            val where = variant.id + " vs " + parent.id + ": "
 
-        for (index in viaParent.indices) {
-            val a = viaParent[index]
-            val b = viaVariant[index]
-            assertEquals(a.validity, b.validity, "repetition " + index + " validity")
-            assertEquals(a.attributedSide, b.attributedSide, "repetition " + index + " side")
+            val track = trackFor(parent, reps = 6)
+            val viaParent = count(parent, track)
+            val viaVariant = count(variant as RepetitionExercise, track)
+
+            assertTrue(viaParent.isNotEmpty(), where + "the parent counted nothing")
             assertEquals(
-                a.rangeOfMotion.left,
-                b.rangeOfMotion.left,
-                absoluteTolerance = 1e-12,
-                message = "repetition " + index + " left range of motion",
+                viaParent.size,
+                viaVariant.size,
+                where + "the variant counted a different number of repetitions than its parent",
             )
-            assertEquals(
-                a.rangeOfMotion.right,
-                b.rangeOfMotion.right,
-                absoluteTolerance = 1e-12,
-                message = "repetition " + index + " right range of motion",
-            )
+
+            for (index in viaParent.indices) {
+                val a = viaParent[index]
+                val b = viaVariant[index]
+                assertEquals(a.validity, b.validity, where + "repetition " + index + " validity")
+                assertEquals(
+                    a.attributedSide,
+                    b.attributedSide,
+                    where + "repetition " + index + " side",
+                )
+                assertEquals(
+                    a.rangeOfMotion.left,
+                    b.rangeOfMotion.left,
+                    absoluteTolerance = 1e-12,
+                    message = where + "repetition " + index + " left range of motion",
+                )
+                assertEquals(
+                    a.rangeOfMotion.right,
+                    b.rangeOfMotion.right,
+                    absoluteTolerance = 1e-12,
+                    message = where + "repetition " + index + " right range of motion",
+                )
+            }
         }
     }
 
@@ -304,20 +350,38 @@ class VariantInheritanceTest {
         return counted.filter { it.validity == RepValidity.VALID }
     }
 
-    private fun squatTrack(reps: Int): List<Pair<Double, Landmarks>> {
+    /**
+     * A movement that clears the profile's own thresholds by a margin, so the
+     * same construction works for any parent rather than hard-coding one
+     * exercise's angles.
+     */
+    private fun trackFor(profile: RepetitionExercise, reps: Int): List<Pair<Double, Landmarks>> {
+        val spec = profile.repSignal
+        val outward = if (spec.topIsGreater) -1.0 else 1.0
+        val start = spec.topThreshold - outward * 8.0
+        val far = spec.bottomThreshold + outward * 12.0
+
+        val frame: (Double) -> Landmarks = when (spec.joint) {
+            JointAngleId.KNEE -> { degrees -> legFrame(degrees) }
+            else -> throw AssertionError(
+                profile.id + " drives off " + spec.joint + " and this test has no frame " +
+                    "builder for it. Add one rather than dropping its variant from the sweep.",
+            )
+        }
+
         val frames = ArrayList<Pair<Double, Landmarks>>()
         var index = 0
-        fun emit(knee: Double) {
-            frames += (index * frameMs) to legFrame(knee)
+        fun emit(value: Double) {
+            frames += (index * frameMs) to frame(value)
             index++
         }
 
-        repeat(12) { emit(172.0) }
+        repeat(12) { emit(start) }
         repeat(reps) {
-            for (step in 1..30) emit(172.0 - 102.0 * step / 30.0)
-            repeat(10) { emit(70.0) }
-            for (step in 1..30) emit(70.0 + 102.0 * step / 30.0)
-            repeat(12) { emit(172.0) }
+            for (step in 1..30) emit(start + (far - start) * step / 30.0)
+            repeat(10) { emit(far) }
+            for (step in 1..30) emit(far - (far - start) * step / 30.0)
+            repeat(12) { emit(start) }
         }
         return frames
     }
