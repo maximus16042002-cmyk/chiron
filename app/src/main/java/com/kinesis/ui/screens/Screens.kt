@@ -1,0 +1,377 @@
+package com.kinesis.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.kinesis.core.analysis.history.DashboardSummary
+import com.kinesis.core.analysis.profile.ExerciseLibrary
+import com.kinesis.core.analysis.profile.ExerciseVariant
+import com.kinesis.core.analysis.profile.IsometricExercise
+import com.kinesis.core.domain.profile.ExerciseProfile
+import com.kinesis.health.ActivityContextResult
+import com.kinesis.health.ContextUnavailable
+import com.kinesis.health.DailyMetric
+import com.kinesis.ui.live.LiveUiState
+import com.kinesis.ui.theme.Amber
+import com.kinesis.ui.theme.PhosphorDim
+import com.kinesis.ui.theme.PhosphorFaint
+import com.kinesis.ui.theme.PhosphorGreen
+import com.kinesis.ui.theme.VoidRaised
+import com.kinesis.ui.theme.color
+
+/**
+ * The screens - DECISIONS.md P3-12.
+ *
+ * Phosphor green on near-black, monospace throughout. Every string a user reads
+ * about their movement comes from the core: CONTRACTS.md section 2 and
+ * FINAL_ARCHITECTURE section 6 both say the UI "renders what it is given and
+ * composes no sentences of its own", which is what stops UI copy from making a
+ * claim the tier system would have refused. The labels here name fields; they do
+ * not judge movement.
+ */
+
+// --- Exercise selection -------------------------------------------------------------
+
+/**
+ * Every entry in the library, read from [ExerciseLibrary] rather than listed
+ * here - all seventeen, including the two variants.
+ *
+ * The tier and the analysis mode are shown because they are what the entry is
+ * entitled to claim, not decoration: a Tier C hold can never produce a technique
+ * judgement, and a user who can see that is a user who is not surprised by it.
+ */
+@Composable
+fun ExerciseSelectionScreen(
+    onSelect: (ExerciseProfile) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item {
+            Column(Modifier.padding(vertical = 24.dp)) {
+                Text("KINESIS", style = MaterialTheme.typography.displayLarge)
+                Text(
+                    ExerciseLibrary.profiles.size.toString() + " profiles · " +
+                        ExerciseLibrary.variants.size + " variants · " +
+                        ExerciseLibrary.all.size + " entries",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = PhosphorFaint,
+                )
+            }
+        }
+
+        items(ExerciseLibrary.all, key = { it.id }) { profile ->
+            ExerciseRow(profile, onClick = { onSelect(profile) })
+        }
+
+        item { Spacer(Modifier.height(24.dp)) }
+    }
+}
+
+@Composable
+private fun ExerciseRow(profile: ExerciseProfile, onClick: () -> Unit) {
+    val isVariant = profile is ExerciseVariant
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, if (isVariant) PhosphorFaint else PhosphorDim)
+            .background(VoidRaised)
+            .clickable(onClick = onClick)
+            .padding(14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(profile.displayName, style = MaterialTheme.typography.titleMedium)
+            Text(
+                buildString {
+                    append(profile.requiredView.name.replace('_', ' ').lowercase())
+                    append(" · ")
+                    append(profile.posture.name.lowercase())
+                    if (profile is IsometricExercise) append(" · hold")
+                    if (isVariant) append(" · variant of " + (profile as ExerciseVariant).parent.id)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = PhosphorFaint,
+            )
+        }
+        Text(
+            "TIER " + profile.tier.name,
+            style = MaterialTheme.typography.labelSmall,
+            color = PhosphorDim,
+        )
+    }
+}
+
+// --- Dashboard ------------------------------------------------------------------------
+
+/**
+ * History, read from stored sessions through `Dashboard.summarise`.
+ *
+ * The aggregation is the core's; this only lays it out. Note what is *not*
+ * here: no deviation, because deviation is measured against a
+ * `CalibrationBaseline` that P6 has not built yet, and a dashboard that showed
+ * "below your normal" without one would be inventing the comparison.
+ */
+@Composable
+fun DashboardScreen(
+    summary: DashboardSummary,
+    context: ActivityContextResult?,
+    onRequestHealthAccess: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item {
+            Column(Modifier.padding(top = 24.dp, bottom = 8.dp)) {
+                Text(
+                    summary.streak.currentDays.toString(),
+                    style = MaterialTheme.typography.displayLarge,
+                )
+                Text(
+                    "DAY STREAK · longest " + summary.streak.longestDays,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = PhosphorFaint,
+                )
+            }
+        }
+
+        item {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Stat("SESSIONS", summary.sessionCount.toString(), Modifier.weight(1f))
+                Stat("REPS", summary.totalValidReps.toString(), Modifier.weight(1f))
+                Stat(
+                    "HOLD",
+                    (summary.totalHoldMs / 1000).toInt().toString() + "s",
+                    Modifier.weight(1f),
+                )
+            }
+        }
+
+        if (summary.perExercise.isEmpty()) {
+            item {
+                Text(
+                    "NO SESSIONS RECORDED",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PhosphorFaint,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                )
+            }
+        }
+
+        items(summary.perExercise, key = { it.exerciseId }) { exercise ->
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, PhosphorDim)
+                    .background(VoidRaised)
+                    .padding(14.dp),
+            ) {
+                Text(exercise.exerciseId, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    exercise.validRepCount.toString() + " reps · " +
+                        exercise.setCount + " sets",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = PhosphorFaint,
+                )
+                // Left and right stay separate here too - a single averaged
+                // range of motion would be the one number CLAUDE.md section 3
+                // exists to prevent.
+                Text(
+                    "ROM  L " + format(exercise.meanRangeOfMotion.left) +
+                        "   R " + format(exercise.meanRangeOfMotion.right),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = PhosphorDim,
+                )
+            }
+        }
+
+        item { HealthContextPanel(context, onRequestHealthAccess) }
+        item { Spacer(Modifier.height(24.dp)) }
+    }
+}
+
+@Composable
+private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .border(1.dp, PhosphorDim)
+            .background(VoidRaised)
+            .padding(12.dp),
+    ) {
+        Text(value, style = MaterialTheme.typography.headlineMedium)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = PhosphorFaint)
+    }
+}
+
+/**
+ * Daily context from Health Connect, shown beside Kinesis's own numbers and
+ * never mixed into them - P3-3's "displayed alongside ... rather than replacing".
+ *
+ * Every absence renders as itself. The reasons come from P3-11's
+ * `ContextUnavailable`, so this panel and the read path cannot disagree about
+ * why there is nothing to show.
+ */
+@Composable
+private fun HealthContextPanel(
+    context: ActivityContextResult?,
+    onRequestHealthAccess: (() -> Unit)?,
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .border(1.dp, PhosphorFaint)
+            .padding(14.dp),
+    ) {
+        Text("DAILY CONTEXT", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint)
+        Spacer(Modifier.height(6.dp))
+
+        when (context) {
+            null -> Text("—", style = MaterialTheme.typography.bodySmall, color = PhosphorFaint)
+
+            is ActivityContextResult.Available -> {
+                Metric("STEPS", context.context.steps)
+                Metric("ACTIVE KCAL", context.context.activeCaloriesKcal)
+                Metric("MEAN BPM", context.context.meanHeartRateBpm)
+            }
+
+            is ActivityContextResult.Unavailable -> {
+                Text(
+                    describe(context.reason),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = PhosphorFaint,
+                )
+                if (context.reason == ContextUnavailable.PERMISSIONS_DENIED &&
+                    onRequestHealthAccess != null
+                ) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "[ GRANT ACCESS ]",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = PhosphorGreen,
+                        modifier = Modifier.clickable(onClick = onRequestHealthAccess),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Metric(label: String, metric: DailyMetric) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = PhosphorFaint)
+        Text(
+            when (metric) {
+                is DailyMetric.Measured -> metric.value.toInt().toString()
+                DailyMetric.NotPermitted -> "not permitted"
+                DailyMetric.NoData -> "no data"
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = if (metric is DailyMetric.Measured) PhosphorDim else PhosphorFaint,
+        )
+    }
+}
+
+private fun describe(reason: ContextUnavailable): String = when (reason) {
+    ContextUnavailable.PLATFORM_TOO_OLD -> "this device predates Health Connect"
+    ContextUnavailable.NOT_INSTALLED -> "Health Connect is not installed"
+    ContextUnavailable.PROVIDER_UPDATE_REQUIRED -> "Health Connect needs updating"
+    ContextUnavailable.PERMISSIONS_DENIED -> "no permissions granted"
+    ContextUnavailable.READ_FAILED -> "could not be read"
+}
+
+private fun format(value: Double): String =
+    if (value.isNaN()) "—" else value.toInt().toString() + "°"
+
+// --- Live analysis --------------------------------------------------------------------
+
+/**
+ * The live screen, without a camera.
+ *
+ * DECISIONS.md P3-12 records why this is a shell: CameraX and MediaPipe Pose are
+ * both undeclared dependencies whose CLAUDE.md section 17 checks have never been
+ * run, and the skeleton overlay cannot be verified without a device in any case.
+ * The readout is real and driven by [LiveUiState], so what arrives in the next
+ * batch is the camera and the `SurfaceView` beneath this, not a rewrite of it.
+ *
+ * The state here changes a few times a second at most, because
+ * `LiveAnalysisBridge` is what feeds it - CLAUDE.md section 6.
+ */
+@Composable
+fun LiveAnalysisScreen(state: LiveUiState, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+    ) {
+        Column(
+            Modifier
+                .align(Alignment.Center)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                state.repCount.toString(),
+                style = MaterialTheme.typography.displayLarge,
+                color = state.overlayState.color,
+            )
+            Text(
+                state.phase.name,
+                style = MaterialTheme.typography.titleMedium,
+                color = PhosphorDim,
+            )
+            Spacer(Modifier.height(24.dp))
+            Text(
+                state.overlayState.meaning.uppercase(),
+                style = MaterialTheme.typography.bodySmall,
+                color = state.overlayState.color,
+            )
+            Spacer(Modifier.height(32.dp))
+            Text(
+                "CAMERA PENDING — BATCH 9",
+                style = MaterialTheme.typography.labelSmall,
+                color = Amber,
+            )
+        }
+
+        Text(
+            state.exerciseId,
+            style = MaterialTheme.typography.labelSmall,
+            color = PhosphorFaint,
+            modifier = Modifier.align(Alignment.TopStart).padding(16.dp),
+        )
+    }
+}

@@ -2506,6 +2506,230 @@ no analysis decision anywhere depends on anything read here.
 
 ---
 
+## P3-12 — The app UI, local storage, and a theme that must not hide a fault
+
+*2026-09-22*
+
+The first batch to touch anything visual, and the batch that gives the dashboard
+something real to read. It also ran the §17 check on a storage library, which
+found a second toolchain constraint of the kind P3-11 found for Health Connect.
+
+### Scope, and what was split out
+
+The batch as briefed contained six pieces. Two of them - the live camera feed and
+the skeleton overlay drawn over it - are gated on **CameraX and MediaPipe Pose,
+neither of which is declared anywhere in this project**. CLAUDE.md §1 mandates
+both, P2-3 deferred them pending §17 checks, and those checks have never been
+run; MediaPipe additionally ships a model asset whose **weights licence §17
+requires checking separately** from its code licence. That work is also the one
+part of this batch that cannot be verified without a device, and P4 - the device
+reality check - still has not happened.
+
+Raised with the project owner rather than guessed at, per the batch instruction
+to err on the side of asking. **Decision: the camera work moves to its own
+batch**, alongside the two dependency checks and P4. What is built here is
+everything that can be built and tested now, including the live screen's
+readout and the boundary that will feed it.
+
+### The visual theme, and the risk it carries
+
+**No document in the project says anything about colour, typography or theme.**
+Searching `CONTRACTS.md`, `FINAL_ARCHITECTURE.md`, `ZERO_DATASET_BUILD_PLAN.md`,
+`CLAUDE.md` and `REPOSITORY_STRUCTURE.md` for colour, theme, palette or
+typography returns nothing. The green-on-black requirement is a new direction
+from the project owner and is recorded here as one.
+
+Phosphor green `#39FF14` on near-black `#060A06`, monospace throughout - the
+screen is mostly numbers that change while the user watches them, and a
+proportional face makes a rep count shift sideways going from 9 to 10.
+
+**The requirement carries a specific risk, which the owner named: if everything
+is the same green, the user can no longer tell what needs their attention.** The
+convention that answers it:
+
+| State | Colour | Stroke | Motion | What measures it |
+|---|---|---|---|---|
+| Tracked | `#39FF14` phosphor | 4dp | — | visibility ≥ `reliable` |
+| Degraded | `#208F0B` dim | 3dp | — | `FrameValidity.DEGRADED` |
+| Not visible | `#5C6B5C` grey-green | 2dp | — | below `marginal`, angle is `NaN` |
+| **Attention** | `#FFB000` amber | **6dp** | **pulse** | `RepValidity.ABORTED`/`INCOMPLETE` |
+
+**Amber, not red.** Red on green is the worst pairing available: roughly eight
+percent of men have a red-green deficiency, and for them a red joint on a green
+skeleton is a green joint on a green skeleton.
+
+**Three channels, because colour alone measurably is not enough.** Phosphor green
+and amber are both bright - their luminance contrast is about **1.35:1**, far
+below anything WCAG would call a distinction. In greyscale, on a dim screen at
+arm's length, or through the motion blur of a live repetition, hue is the only
+thing separating them and hue is the first thing to go. So the attention state
+also carries a **fifty percent wider stroke** and **the only pulse in the
+overlay**. The stroke width is load-bearing, not decoration, and
+`SkeletonPaletteLegibilityTest` fails if it is ever flattened "for consistency".
+
+**Only one state pulses**, deliberately: motion is the loudest cue available and
+stops meaning anything if several things use it.
+
+**There is no "correct form" state, because nothing can produce one.** Layer 2
+technique rules are P8 and do not exist; `TechniqueFault` is a type nothing
+constructs. Every state above maps to something the engine measures **today**.
+Inventing a red "fault" joint driven by a stub would be a confident indicator
+with no measurement behind it, which is what CLAUDE.md §22 and §23 exist to
+prevent. `ATTENTION` is the slot P8's findings occupy when they arrive; until
+then it is reached from repetition validity, which is real.
+
+**The guard caught a fault in the first palette written for it.** The degraded
+green came in at 3.20:1 against the backdrop - close to invisible on a dim
+screen. The colour was changed, not the threshold.
+
+One state is held to a lower contrast bar on purpose. "Not visible" must show
+*that* the camera lost a joint while staying quiet enough that a half-occluded
+skeleton does not read as a working one, so it is bounded on both sides: at
+least 3:1 against the backdrop, and less than half the luminance of a tracked
+joint. That is a different requirement for a different role, not a relaxed one.
+
+### §17 check: the storage library
+
+FINAL_ARCHITECTURE §8 already decided this - *"Local storage only - Room on
+Android, IndexedDB on web, behind one shared repository interface"* - so no
+library was chosen here. The check was run anyway, as instructed, and it was not
+a formality.
+
+**Purpose.** Sessions must survive the process. Nothing in the project persists
+anything: P3-10 built the dashboard's aggregation and deliberately left storage
+unbuilt because no screen consumed it.
+
+**Existing capability.** None. No repository, no DAO, no file store.
+
+**Licence, per artifact.** `room-runtime`, `room-common`, `sqlite` and
+`sqlite-framework` are all **Apache 2.0**, read from their POMs. No models, no
+weights, no dataset restrictions.
+
+**Platform.** Android-only and `:app`-only. Nothing in `:core:domain` or
+`:core:analysis` references it.
+
+**Bundle — measured.** Release APK **7,774,206 → 8,028,443 bytes, +254,237
+(+3.3%)**, built before and after on the same toolchain.
+
+**Offline — verified.** The merged release manifest is byte-identical to Batch
+7's: the three Health Connect read permissions and one AndroidX internal
+receiver permission. **Room adds no permission at all**, and no `INTERNET`.
+
+**Maintenance.** AndroidX, actively released.
+
+**And the finding: Room 2.6.1 does not build on this toolchain.** Declaring it
+fails in KSP with
+
+> `e: [ksp] java.lang.IllegalStateException: unexpected jvm signature V`
+
+Room 2.6.1 predates Kotlin 2.1 and its processor does not survive KSP2. **Room
+2.7.1 builds cleanly** with KSP `2.1.21-2.0.1`, and is what is pinned. Unlike
+P3-11's Health Connect constraint this one has no cost - 2.7.1 is the current
+line and needed no AGP or `compileSdk` change - but it is recorded because
+"Room 2.6.1, the version every tutorial uses" would have looked like the safe
+choice and does not compile here.
+
+### Where the repository interface lives, and why not where the document says
+
+FINAL_ARCHITECTURE says "one **shared** repository interface", meaning
+`commonMain`. It is in `:app` instead.
+
+That was written when the Windows PWA was in scope; P0-2 cut the React
+application, and the owner's direction for this batch was explicit - Android
+only, do not over-engineer for multiplatform. It also keeps a promise the core
+makes about itself: FINAL_ARCHITECTURE §3 lists *"No I/O, no networking, no
+threading in the core"* and *"No coroutines needed in the analysis path"* among
+the properties that make Kotlin/JS viable, and a suspending repository interface
+in `commonMain` would spend the first of those for a platform that no longer
+exists. Recorded as a divergence rather than left to be noticed.
+
+### Two rules the schema exists to keep
+
+**Left and right never share a column.** CLAUDE.md §3 says bilateral signals stay
+separate "everywhere", and storage is part of everywhere. A single
+`rangeOfMotion` column would force a reducer at write time - the prototype's
+`(left + right) / 2f` (P2-2) made *durable*, with nothing left to recover from.
+Every bilateral measurement is two nullable columns.
+
+**`NaN` survives the round trip, and this one is not obvious.** `NaN` is the
+sentinel that means "not measured" throughout Kinesis: the idle arm of an
+alternating repetition, the invisible arm of the near-side-only row (P3-8).
+**SQLite has no way to store a `NaN` in a REAL column.** Stored naively, every
+bicep curl in the database would reload claiming a real measurement of **zero**
+on the idle arm - not a display bug but a false measurement written to disk,
+poisoning every average computed afterwards. So `NaN` is written as `NULL` and
+read back as `NaN`, and the resampled arrays go through a blob rather than REAL
+columns precisely because IEEE-754 survives a byte copy.
+
+### The per-frame boundary
+
+CLAUDE.md §6: *"MUST NOT: drive Compose recomposition from pose frames."*
+FINAL_ARCHITECTURE §8 puts a number on it: *"Compose state updates only on
+rep/phase change - a few times per second."*
+
+`LiveAnalysisBridge` is that boundary. It takes every frame and publishes a
+`LiveUiState` only when something a human could perceive has changed. The saving
+is not the call - it is that no object is allocated and no Compose tree is
+diffed for a frame that changed nothing.
+
+Measured by test: **900 unchanged frames produce 0 recompositions**; a ten-
+repetition set is **610 frames and fewer than 60**. The mutation that publishes
+unconditionally gives 611 for 610, and fails four tests.
+
+This breaks quietly if it breaks - publishing per frame does not crash, it just
+starves the analysis path while Compose diffs thirty times a second, and the
+symptom is a dropped frame rate that looks like a pose-estimation problem and is
+not one.
+
+### What was built, and what the screens may say
+
+- **Exercise selection** reads `ExerciseLibrary.all` - all 17 entries, both
+  variants included - rather than any hardcoded list.
+- **Dashboard** reads stored sessions through `Dashboard.summarise`. No fake
+  data remains.
+- **Live screen** renders the real `LiveUiState`; the camera and overlay arrive
+  next batch beneath it, so what changes is what produces the state.
+- **Health Connect permission flow**, which P3-11 left unbuilt because the thing
+  that should launch a request is a screen. Denial surfaces through P3-11's
+  existing `ContextAvailability` / `DailyMetric` types - **not a parallel path** -
+  so a partial grant reads as `NotPermitted` per metric, which is already
+  distinct from `NoData`. Nothing retries or nags: a refusal is an answer.
+
+**No screen composes a sentence about movement.** CONTRACTS.md §2 and
+FINAL_ARCHITECTURE §6 both require that findings carry their own text from
+`commonMain`, *"the UI renders what it is given and composes no sentences of its
+own"*. The labels here name fields; they do not judge movement. **Deviation is
+absent from the dashboard**, because it is measured against a
+`CalibrationBaseline` that P6 has not built, and showing "below your normal"
+without one would invent the comparison.
+
+### What "tested" means here, and what it cannot
+
+47 JVM tests in `:app`, no device: the palette's legibility arithmetic, the
+recomposition budget, the storage round trip, and the recorder-to-dashboard
+loop. Six mutations, every new guard verified able to fail.
+
+**Not tested, and flagged rather than faked.** Room's own SQL - the mapping
+either side of it is covered, the driver is not - needs instrumentation tests;
+the permission dialog and a real partial grant need a device; and nothing here
+has been looked at on a screen, so the palette is verified arithmetically and
+not perceptually. A contrast ratio is a good proxy for legibility and is not the
+same thing as having looked.
+
+### Boundary with the next batch
+
+Not built here: CameraX, MediaPipe, the camera preview, the skeleton overlay
+drawn over it, and P4's device validation. `OverlayState` already defines how
+that overlay must colour itself, and `LiveAnalysisBridge` already defines what
+it may tell Compose, so the next batch adds a `SurfaceView` and a pose callback
+beneath an interface that exists.
+
+**Scope of this entry.** It records a product and storage design. Nothing here
+measures movement or makes a claim about it; the real-time path is unchanged and
+no analysis decision depends on anything added.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
