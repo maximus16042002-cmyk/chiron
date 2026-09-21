@@ -1,0 +1,67 @@
+rules_version = '2';
+
+// Kinesis Firestore security rules — DECISIONS.md P3-14.
+//
+// ============================================================================
+//  THESE RULES ARE NOT DEPLOYED BY THE APP. They must be pasted into the
+//  Firebase console by hand:
+//
+//      Firebase console -> Build -> Firestore Database -> Rules -> Publish
+//
+//  The project (kinesis-5b97b) is currently in TEST MODE, which allows open
+//  read and write to anyone with the project's config — and app/google-services.json
+//  ships in the APK, so "anyone" is not hypothetical. Until these are published,
+//  the per-user isolation described below is NOT ENFORCED, and nothing in the
+//  app's code can enforce it: security rules are the only boundary.
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Every session lives under the user who recorded it. That path shape is
+    // the whole security model, which is why it is worth keeping simple enough
+    // to read in one sitting.
+    match /users/{userId}/sessions/{sessionId} {
+
+      // A signed-in user reads only their own sessions. There is no shared
+      // data, no social feature and no admin view, so there is no case where
+      // one user should see another's.
+      allow read: if request.auth != null
+                  && request.auth.uid == userId;
+
+      // Create is allowed; update and delete are not.
+      //
+      // Sessions are append-only by design — verified in P3-14 rather than
+      // assumed: the record types are entirely val/List, the DAO has no
+      // @Update and no per-session delete, and SessionRecorder writes once.
+      // The rules enforce that same property server-side, so a compromised or
+      // modified client cannot rewrite history that has already been recorded.
+      allow create: if request.auth != null
+                    && request.auth.uid == userId
+                    && isWellFormedSession();
+
+      allow update, delete: if false;
+    }
+
+    // Nothing else exists. An explicit deny means a future collection added by
+    // accident is closed rather than open.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+
+  // A minimal shape check. This is not validation of the measurements — the
+  // client owns those and the server has no way to recompute them — it is a
+  // guard against a document that would break the reader on another device.
+  function isWellFormedSession() {
+    let d = request.resource.data;
+    return d.keys().hasAll(['sessionId', 'startedAtEpochMs', 'utcOffsetMinutes', 'sets'])
+        && d.sessionId is string
+        && d.sessionId.size() > 0
+        && d.sessionId == sessionId
+        && d.startedAtEpochMs is number
+        && d.utcOffsetMinutes is int
+        && d.sets is list
+        && d.sets.size() <= 500;
+  }
+}

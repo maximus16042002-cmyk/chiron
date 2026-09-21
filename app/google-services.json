@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "12298705516",
+    "project_id": "kinesis-5b97b",
+    "storage_bucket": "kinesis-5b97b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:12298705516:android:c959a7ad861cf09d0e5649",
+        "android_client_info": {
+          "package_name": "com.kinesis"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD9e_sFy1JBsv6IGSZ-YzoRa_gzdlqTDM8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

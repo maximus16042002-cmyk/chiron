@@ -265,12 +265,30 @@ judgement — trunk compensation, incomplete lockout, body-line deviation).
 
 ## 16. Privacy and offline operation
 
-- **MUST**: remain offline-first. No backend is required for the core
-  project.
-- **MUST NOT**: use cloud inference, video upload, authentication, a
-  cloud database, server-side processing, or unnecessary network
-  dependencies.
+**Amended in Batch 10 by explicit decision — `docs/DECISIONS.md` P3-14.** The
+prohibition on authentication and a cloud database is lifted *for session-record
+sync only*. Everything else in this section stands unchanged, and the carve-out
+is deliberately narrow.
+
+- **MUST**: keep all analysis on-device and offline. Landmarks, angles,
+  repetitions, holds and every finding are computed on the phone.
+- **MUST**: remain offline-first for recording. A session **MUST** save locally
+  with no network available; sync is additive and never a precondition.
+- **MAY**: use Firebase Authentication (email/password) and Cloud Firestore to
+  sync `SessionRecord` history to the signed-in user's account. This is the
+  entire permitted use.
+- **MUST**: disclose in the UI that session data leaves the device. This project
+  does not collect silently.
+- **MUST NOT**: use cloud inference, video upload, server-side processing, or
+  network dependencies beyond the Firebase artifacts P3-14 names.
+- **MUST NOT**: add analytics, crash reporting or telemetry. P3-13 excluded
+  Google's datatransport backend when MediaPipe pulled it in unasked; that
+  exclusion stands.
 - **MUST NOT**: store user video as part of normal product operation.
+- **MUST**: keep `OfflineManifestGuardTest` able to fail. Its job is now "no
+  network capability from anything other than the declared Firebase artifacts",
+  not "no network capability at all" — weakening it further is an architecture
+  change and needs its own decision entry.
 
 ## 17. Dependencies and licensing
 

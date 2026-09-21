@@ -6,81 +6,198 @@ import org.junit.Assume.assumeTrue
 import org.junit.Test
 
 /**
- * Permanent guard - FINAL_ARCHITECTURE section 6, CLAUDE.md section 16,
- * DECISIONS.md P3-13.
+ * Permanent guard - FINAL_ARCHITECTURE section 6 (as amended), CLAUDE.md
+ * section 16 (as amended), DECISIONS.md P3-13 and P3-14.
  *
- * *"No backend, no auth, no cloud, no sync."* *"MUST: remain offline-first."*
+ * ### What this test used to assert, and why that changed
  *
- * ### Why this test exists at all
+ * P3-13 added it with one job: **no network permission at all**. It was written
+ * because adding MediaPipe silently added `INTERNET` and `ACCESS_NETWORK_STATE`
+ * to the merged manifest - not from MediaPipe, but from
+ * `com.google.android.datatransport`, a telemetry upload backend three levels
+ * down its dependency tree. Nothing in Kinesis asked for it and it appeared in
+ * no diff a reviewer would read.
  *
- * Adding MediaPipe in P3-13 silently added `INTERNET` and `ACCESS_NETWORK_STATE`
- * to the merged manifest. Not from MediaPipe itself - from
- * `com.google.android.datatransport:transport-backend-cct`, a telemetry upload
- * backend three levels down its dependency tree. Nothing in Kinesis asked for
- * it, nothing in the source mentions it, and it would not have appeared in any
- * review of the diff.
+ * P3-14 added Firebase Auth and Firestore by deliberate decision, which
+ * legitimately needs network capability. That makes the original assertion
+ * impossible to satisfy - but **the protection it provided is the entire point
+ * and must survive**, so the job changes rather than the test disappearing:
  *
- * That is the shape of this failure: a hard architectural line crossed by a
- * transitive dependency of a transitive dependency, invisible everywhere except
- * the merged manifest. The permissions are excluded now, and this is what
- * notices if a version bump brings them back.
+ * > Network capability may come **only** from the artifacts P3-14 names.
+ * > Anything else that introduces it fails the build.
  *
- * ### Why it reads a build artefact
+ * That is strictly the more useful assertion. "No network at all" was easy to
+ * satisfy and easy to lose in one commit; this one stays meaningful for the rest
+ * of the project's life, and it is what notices when the next MediaPipe-shaped
+ * surprise arrives.
  *
- * The declaration that matters is the *merged* one - the app's own manifest was
- * never the problem. So this reads what the manifest merger produced. When that
- * artefact has not been built the test skips rather than passing, because a
- * guard that quietly passes when it cannot see anything is worse than no guard:
+ * ### Why it reads the blame report rather than the manifest
+ *
+ * The merged manifest says *that* a permission exists. It does not say **who
+ * asked for it**, and who asked is the whole question now that some askers are
+ * legitimate. The manifest merger writes attribution to
+ * `app/build/outputs/logs/manifest-merger-*-report.txt`, so that is what this
+ * parses.
+ *
+ * When the report has not been built the test skips rather than passing: a guard
+ * that quietly passes when it cannot see anything is worse than no guard.
  * `assemble` is part of this project's verification command, so a full run
- * always has it.
+ * always produces one.
  *
- * This test must not be weakened or deleted to make a build pass.
+ * This test must not be weakened or deleted to make a build pass. Adding an
+ * entry to [DECLARED_NETWORK_ARTIFACTS] *is* weakening it, and needs its own
+ * DECISIONS.md entry saying why.
  */
 class OfflineManifestGuardTest {
 
-    private val forbidden = listOf(
-        "android.permission.INTERNET",
-        "android.permission.ACCESS_NETWORK_STATE",
-        "android.permission.ACCESS_WIFI_STATE",
-    )
-
     @Test
-    fun the_merged_manifest_grants_no_network_capability() {
+    fun network_capability_comes_only_from_the_artifacts_the_decision_record_names() {
         var checkedAny = false
+        val offences = mutableListOf<String>()
 
-        for (manifest in mergedManifests()) {
+        for (report in blameReports()) {
             checkedAny = true
-            val text = manifest.readText()
-            for (permission in forbidden) {
-                assertTrue(
-                    "\n" + manifest.path + " declares " + permission + ".\n" +
-                        "FINAL_ARCHITECTURE section 6 is \"No backend, no auth, no cloud, no " +
-                        "sync\" and CLAUDE.md section 16 is offline-first.\n" +
-                        "This almost certainly arrived transitively rather than from Kinesis's " +
-                        "own manifest - P3-13 records the last time, when MediaPipe pulled in " +
-                        "com.google.android.datatransport.\n" +
-                        "Find the source with the manifest-merger blame report in " +
-                        "app/build/outputs/logs/, then exclude it rather than stripping the " +
-                        "permission, so the code goes too.",
-                    !text.contains(permission),
-                )
+            val text = report.readText()
+            for (permission in NETWORK_PERMISSIONS) {
+                for (source in sourcesOf(text, permission)) {
+                    val coordinate = source.substringBeforeLast(':')
+                    if (coordinate !in DECLARED_NETWORK_ARTIFACTS) {
+                        offences += permission + "  <-  " + source +
+                            "   (" + report.name + ")"
+                    }
+                }
             }
         }
 
         assumeTrue(
-            "no merged manifest has been built, so there was nothing to check - " +
+            "no manifest-merger report has been built, so there was nothing to check - " +
                 "run with `assemble` to exercise this guard",
             checkedAny,
         )
+
+        assertTrue(
+            "\nNetwork capability arrived from an artifact no decision entry declares:\n\n" +
+                offences.joinToString("\n") { "    " + it } + "\n\n" +
+                "CLAUDE.md section 16, as amended by DECISIONS.md P3-14, permits network\n" +
+                "access only for Firebase Auth and Firestore sync of session records.\n" +
+                "Everything else - analytics, crash reporting, telemetry - is still\n" +
+                "forbidden, and P3-13 records the last time one arrived uninvited.\n\n" +
+                "Exclude it at the dependency that pulls it in, the way P3-13 excluded\n" +
+                "com.google.android.datatransport, so the code leaves the APK rather than\n" +
+                "merely losing its manifest entry. If it genuinely belongs, add it to\n" +
+                "DECLARED_NETWORK_ARTIFACTS and write the decision entry that justifies it.",
+            offences.isEmpty(),
+        )
     }
 
-    private fun mergedManifests(): List<File> {
-        val root = File("build/intermediates").takeIf { it.isDirectory }
-            ?: File("app/build/intermediates").takeIf { it.isDirectory }
+    /**
+     * Kinesis's own manifest still declares no network permission.
+     *
+     * Every byte of network capability in this app is attributable to a named
+     * third-party artifact. If Kinesis itself ever declares one, something is
+     * being done directly rather than through the sync path P3-14 sanctioned,
+     * and that deserves to be noticed.
+     */
+    @Test
+    fun kinesis_own_manifest_declares_no_network_permission_of_its_own() {
+        val manifest = File("src/main/AndroidManifest.xml")
+            .takeIf { it.isFile }
+            ?: File("app/src/main/AndroidManifest.xml")
+        assumeTrue("could not locate the app manifest", manifest.isFile)
+
+        val text = manifest.readText()
+        for (permission in NETWORK_PERMISSIONS) {
+            assertTrue(
+                manifest.path + " declares " + permission + " directly. Network " +
+                    "capability should arrive only from the declared sync artifacts, so " +
+                    "that it stays traceable.",
+                !text.contains(permission),
+            )
+        }
+    }
+
+    // --- Parsing ---------------------------------------------------------------------
+
+    /**
+     * The artifacts that declared a given permission, as `group:name:version`.
+     *
+     * The report's shape, confirmed by reading one rather than assumed: a
+     * heading is a column-0 line containing `#`; the lines beneath it until the
+     * next column-0 heading are that element's sources, written as
+     * `ADDED from [artifact] path` or `MERGED from [artifact] path`.
+     * Tab-indented lines belong to attributes of the element and are skipped -
+     * they name the same artifacts and would only add noise.
+     *
+     * An earlier version of this matched on the whole file with a regex and
+     * over-captured, attributing `ACCESS_NETWORK_STATE` to Room among others.
+     * It is line-based now because the report is line-structured.
+     */
+    private fun sourcesOf(report: String, permission: String): Set<String> {
+        val lines = report.lines()
+        val start = lines.indexOfFirst { it == "uses-permission#" + permission }
+        if (start < 0) return emptySet()
+
+        val sources = LinkedHashSet<String>()
+        for (index in start + 1 until lines.size) {
+            val line = lines[index]
+            if (line.isEmpty()) continue
+            if (line[0].isWhitespace()) continue          // an attribute's own block
+            val match = SOURCE.find(line)
+            if (match != null) {
+                sources += match.groupValues[1]
+                continue
+            }
+            break                                          // the next element heading
+        }
+        return sources
+    }
+
+    private fun blameReports(): List<File> {
+        val logs = File("build/outputs/logs").takeIf { it.isDirectory }
+            ?: File("app/build/outputs/logs").takeIf { it.isDirectory }
             ?: return emptyList()
-        return root.walkTopDown()
-            .filter { it.isFile && it.name == "AndroidManifest.xml" }
-            .filter { it.path.replace('\\', '/').contains("/merged_manifest") }
+        return logs.listFiles { f -> f.isFile && f.name.startsWith("manifest-merger") }
+            .orEmpty()
             .toList()
+    }
+
+    private companion object {
+
+        val NETWORK_PERMISSIONS = listOf(
+            "android.permission.INTERNET",
+            "android.permission.ACCESS_NETWORK_STATE",
+            "android.permission.ACCESS_WIFI_STATE",
+        )
+
+        val SOURCE = Regex("""(?:ADDED|MERGED) from \[([^\]]+)\]""")
+
+        /**
+         * The only artifacts permitted to bring network capability, as
+         * `group:name` - version-agnostic, so a routine bump does not fail the
+         * build but a *new* artifact does.
+         *
+         * Every entry is here because DECISIONS.md P3-14 names it:
+         *
+         * - **firebase-auth**, **firebase-firestore** - the two products the
+         *   amendment sanctions.
+         * - **recaptcha** - an unavoidable transitive of `firebase-auth`, which
+         *   uses it for bot protection on authentication endpoints. Listed
+         *   explicitly rather than silently tolerated: it is the one passenger
+         *   in this batch that was not asked for, and naming it is what keeps it
+         *   visible.
+         * - **grpc-android** - Firestore's transport.
+         * - **work-runtime** - WorkManager, which needs `ACCESS_NETWORK_STATE`
+         *   to honour a network constraint on the retry queue. It carries no
+         *   `INTERNET` of its own.
+         *
+         * Adding to this list is an architecture change, not a fix.
+         */
+        val DECLARED_NETWORK_ARTIFACTS = setOf(
+            "com.google.firebase:firebase-auth",
+            "com.google.firebase:firebase-firestore",
+            "com.google.android.recaptcha:recaptcha",
+            "io.grpc:grpc-android",
+            "androidx.work:work-runtime",
+        )
     }
 }

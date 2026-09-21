@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,6 +20,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -36,6 +38,16 @@ import com.kinesis.health.rememberHealthPermissionLauncher
 import com.kinesis.storage.KinesisDatabase
 import com.kinesis.storage.RoomSessionRepository
 import com.kinesis.storage.SessionRepository
+import com.kinesis.sync.AuthFailure
+import com.kinesis.sync.AuthGateway
+import com.kinesis.sync.AuthResult
+import com.kinesis.sync.AuthState
+import com.kinesis.sync.FirebaseAuthGateway
+import com.kinesis.sync.FirestoreSessionStore
+import com.kinesis.sync.SessionMerge
+import com.kinesis.sync.SyncingSessionRepository
+import com.kinesis.sync.WorkManagerSyncQueue
+import com.kinesis.ui.screens.AuthScreen
 import com.kinesis.ui.live.LiveUiState
 import com.kinesis.ui.screens.DashboardScreen
 import com.kinesis.ui.screens.ExerciseSelectionScreen
@@ -43,6 +55,7 @@ import com.kinesis.ui.screens.LiveAnalysisScreen
 import com.kinesis.ui.theme.KinesisTheme
 import com.kinesis.ui.theme.PhosphorFaint
 import com.kinesis.ui.theme.PhosphorGreen
+import kotlinx.coroutines.launch
 import java.util.TimeZone
 
 /**
@@ -56,7 +69,19 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val repository = RoomSessionRepository(KinesisDatabase.get(applicationContext).sessionDao())
+        val local = RoomSessionRepository(KinesisDatabase.get(applicationContext).sessionDao())
+        val auth: AuthGateway = FirebaseAuthGateway()
+
+        // Room stays the source of truth; the decorator only schedules an
+        // upload after a local write has already succeeded - P3-14.
+        val repository: SessionRepository = SyncingSessionRepository(
+            delegate = local,
+            queue = WorkManagerSyncQueue(applicationContext) {
+                (auth.state as? AuthState.SignedIn)?.uid
+            },
+            isSignedIn = { auth.state is AuthState.SignedIn },
+        )
+        val merge = SessionMerge(local, FirestoreSessionStore())
         val contextSource = HealthConnectActivityContextSource(applicationContext)
 
         setContent {
@@ -65,10 +90,79 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    KinesisApp(repository, contextSource)
+                    KinesisRoot(auth, merge, repository, contextSource)
                 }
             }
         }
+    }
+}
+
+/**
+ * Signed out, the app shows the account screen and nothing else - P3-14 makes
+ * sign-in a gate on recording and viewing history.
+ *
+ * On a successful sign-in the account's history is merged before the dashboard
+ * appears, so a new device does not briefly show an empty history that then
+ * fills in. Both halves are wrapped in runCatching: a failed pull is an empty
+ * pull, and neither can block the app from working offline.
+ */
+@Composable
+private fun KinesisRoot(
+    auth: AuthGateway,
+    merge: SessionMerge,
+    repository: SessionRepository,
+    contextSource: ActivityContextSource,
+) {
+    var state: AuthState by remember { mutableStateOf(auth.state) }
+    var busy by remember { mutableStateOf(false) }
+    var failure: AuthFailure? by remember { mutableStateOf(null) }
+    var mergedFor: String? by remember { mutableStateOf(null) }
+    val scope = rememberCoroutineScope()
+
+    when (val current = state) {
+        is AuthState.SignedIn -> {
+            LaunchedEffect(current.uid) {
+                if (mergedFor != current.uid) {
+                    runCatching { merge.pullMissing(current.uid) }
+                    runCatching { merge.pushMissing(current.uid) }
+                    mergedFor = current.uid
+                }
+            }
+            KinesisApp(repository, contextSource, current.email) {
+                scope.launch {
+                    auth.signOut()
+                    state = auth.state
+                    mergedFor = null
+                }
+            }
+        }
+
+        else -> AuthScreen(
+            busy = busy,
+            failure = failure,
+            onSignIn = { email, password ->
+                scope.launch {
+                    busy = true
+                    failure = null
+                    when (val result = auth.signIn(email, password)) {
+                        is AuthResult.Success -> state = auth.state
+                        is AuthResult.Failed -> failure = result.reason
+                    }
+                    busy = false
+                }
+            },
+            onSignUp = { email, password ->
+                scope.launch {
+                    busy = true
+                    failure = null
+                    when (val result = auth.signUp(email, password)) {
+                        is AuthResult.Success -> state = auth.state
+                        is AuthResult.Failed -> failure = result.reason
+                    }
+                    busy = false
+                }
+            },
+        )
     }
 }
 
@@ -82,6 +176,8 @@ private sealed interface Destination {
 private fun KinesisApp(
     repository: SessionRepository,
     contextSource: ActivityContextSource,
+    email: String?,
+    onSignOut: () -> Unit,
 ) {
     var destination: Destination by remember { mutableStateOf(Destination.Dashboard) }
     var summary: DashboardSummary? by remember { mutableStateOf(null) }
@@ -105,8 +201,10 @@ private fun KinesisApp(
     Column(Modifier.fillMaxSize()) {
         NavBar(
             destination = destination,
+            email = email,
             onDashboard = { destination = Destination.Dashboard; reloadToken++ },
             onSelect = { destination = Destination.Select },
+            onSignOut = onSignOut,
         )
 
         when (val current = destination) {
@@ -141,8 +239,10 @@ private fun KinesisApp(
 @Composable
 private fun NavBar(
     destination: Destination,
+    email: String?,
     onDashboard: () -> Unit,
     onSelect: () -> Unit,
+    onSignOut: () -> Unit,
 ) {
     Row(
         Modifier
@@ -153,6 +253,15 @@ private fun NavBar(
     ) {
         NavItem("HISTORY", destination is Destination.Dashboard, onDashboard)
         NavItem("TRAIN", destination !is Destination.Dashboard, onSelect)
+        Spacer(Modifier.weight(1f))
+        // The signed-in address stays visible. A user should never have to
+        // wonder which account their training is going to.
+        Text(
+            text = (email ?: "signed in") + "  [OUT]",
+            style = MaterialTheme.typography.labelSmall,
+            color = PhosphorFaint,
+            modifier = Modifier.clickable(onClick = onSignOut),
+        )
     }
 }
 

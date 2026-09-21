@@ -2921,6 +2921,242 @@ them.
 
 ---
 
+## P3-14 — Firebase Auth and Firestore sync: the first architecture change
+
+*2026-09-22*
+
+This entry records the only deliberate reversal of a founding constraint in this
+project's history. Everything before it either implemented the documents or
+corrected them where they contradicted themselves. This contradicts them on
+purpose.
+
+### What was decided, and by whom
+
+Account-based cloud sync of session history, via Firebase Authentication
+(email/password) and Cloud Firestore. Requested by the project owner and
+**confirmed twice** — first as account creation, then clarified as full data
+sync rather than an identity-only gate. It is a decision, not scope discovered
+mid-batch, and it is recorded here before any of it was built.
+
+### The contradiction, stated before it was resolved
+
+Three things in the project forbade this:
+
+- `FINAL_ARCHITECTURE.md` §6: *"**None.** No auth, no cloud, no server
+  inference, no video upload."*
+- `CLAUDE.md` §16: *"**MUST NOT**: use cloud inference, video upload,
+  **authentication, a cloud database**, server-side processing, or unnecessary
+  network dependencies."*
+- `OfflineManifestGuardTest`, added in P3-13, failing the build on any network
+  permission at all.
+
+None was overridden silently.
+
+**The two documents were amended first**, before a line of Firebase code was
+written. `FINAL_ARCHITECTURE.md` §6's backend row now names Firebase and carries
+an amendment block; `CLAUDE.md` §16 was rewritten as a narrow carve-out. Both
+say the same thing: sync of `SessionRecord` history is in scope, and **no
+cloud inference, no video upload, no analysis off-device, no analytics, and no
+telemetry** remain hard lines. Room stays the source of truth.
+
+### The offline guard was rewritten, not weakened
+
+This is the part that mattered most, and the brief was right to single it out.
+
+P3-13 added the guard because MediaPipe silently introduced `INTERNET` through
+`com.google.android.datatransport`, a telemetry backend three levels down its
+tree — invisible in any diff a reviewer would read. Deleting the guard to make
+this batch pass would have thrown away the only thing that catches that.
+
+**Its job changed from "no network permission" to "no network permission from
+anything other than the artifacts this entry names."** It reads the manifest
+merger's blame report rather than the manifest, because the manifest says *that*
+a permission exists and the blame report says *who asked* — and who asked is the
+whole question once some askers are legitimate.
+
+The allowlist is five entries, each here for a stated reason:
+
+| Artifact | Why |
+|---|---|
+| `com.google.firebase:firebase-auth` | sanctioned by this entry |
+| `com.google.firebase:firebase-firestore` | sanctioned by this entry |
+| `com.google.android.recaptcha:recaptcha` | **unavoidable transitive of firebase-auth**, bot protection on auth endpoints |
+| `io.grpc:grpc-android` | Firestore's transport |
+| `androidx.work:work-runtime` | the retry queue's network constraint |
+
+reCAPTCHA is the one passenger nobody asked for. It is named explicitly rather
+than tolerated silently, because a list somebody had to write is the only thing
+that makes it visible.
+
+**Proved by mutation.** Re-adding `transport-backend-cct` — the exact P3-13
+villain — fails the guard, naming it:
+
+```
+Network capability arrived from an artifact no decision entry declares:
+    android.permission.INTERNET  <-  com.google.android.datatransport:transport-backend-cct:3.1.0
+```
+
+The protection survives the batch. A second test asserts Kinesis's own manifest
+still declares no network permission of its own, so every byte of network
+capability stays attributable to a named third party.
+
+**One correction along the way.** The guard's first parser matched the whole
+report with a regex and over-captured, attributing `ACCESS_NETWORK_STATE` to
+Room among others. Checking that against Room's own manifest showed it was
+wrong, and the parser is line-based now because the report is line-structured.
+Worth recording because it nearly produced a second false finding about Room
+one batch after P3-12's was corrected.
+
+### §17 check: Firebase
+
+**Purpose.** Session history that survives losing the phone.
+
+**Existing capability.** None. Room is local-only by design.
+
+**Licence — and this is the finding.** Not uniformly Apache 2.0:
+
+| Artifact | Licence |
+|---|---|
+| `firebase-firestore`, `firebase-common` | Apache 2.0 |
+| `io.grpc:grpc-okhttp` | Apache 2.0 |
+| `androidx.work:work-runtime-ktx` | Apache 2.0 |
+| **`firebase-auth`** | **Android Software Development Kit License** |
+| **`play-services-auth`** | **Android Software Development Kit License** |
+
+Firebase Auth and Play Services Auth ship under **Google's proprietary Android
+SDK licence, not an open-source one**. It permits use in developing Android
+applications, which covers this, but it is a different legal instrument from
+everything else in the project and §17 asks for exactly this to be determined
+rather than assumed. Recorded because an academic project that has been careful
+about licensing should not describe its dependency set as "all Apache 2.0" when
+two of them are not.
+
+**Uninvited passengers — checked, and the answer was the opposite of expected.**
+The brief warned that Firebase BoMs commonly drag in Analytics, Crashlytics and
+Performance Monitoring. Checked against the resolved tree:
+
+```
+absent : firebase-analytics      absent : firebase-crashlytics
+absent : firebase-perf           absent : play-services-measurement
+absent : datatransport           absent : firebase-messaging
+absent : firebase-installations
+```
+
+**None of them appeared.** Declaring `firebase-auth-ktx` and
+`firebase-firestore-ktx` against the BoM pulls only auth, Firestore and their
+genuine transports. No exclusion was added for them, because adding one against
+a dependency that is not present would be theatre — the guard above is what
+catches them if a version bump ever introduces one. P3-13's `datatransport`
+exclusion on MediaPipe remains and still holds.
+
+**Bundle — measured.** Release APK **53,419,223 → 56,480,938 bytes, +3,061,715
+(+5.7%)**. Modest next to MediaPipe's 45 MB.
+
+**Platform.** Android-only, `:app`-only. Nothing in `:core:domain` or
+`:core:analysis` references Firebase, and the analysis path cannot tell sync
+exists.
+
+**Maintenance.** Google, actively released. BoM 33.7.0.
+
+**`google-services.json` — verified, not assumed.** `package_name` reads
+`com.kinesis`; `applicationId` in `app/build.gradle.kts` reads `com.kinesis`.
+They match. Project `kinesis-5b97b`.
+
+### Offline-first survives where it matters
+
+`SyncingSessionRepository` decorates the local repository. The ordering is the
+guarantee: **the local write happens first**, and the enqueue happens only after
+it returns. A failed enqueue is swallowed, because by then the session is on
+disk and losing an upload is a retry while losing a session is losing the user's
+training.
+
+Nothing in the write path touches the network. `SyncQueue` *schedules*;
+`SessionSyncWorker` does the work later, under WorkManager's network constraint
+and exponential backoff, and returns `retry` rather than `failure` so transient
+problems never drop the work.
+
+`SyncOutageTest` pins it with the queue throwing on every call: the session
+still reaches the dashboard, still earns its streak day, and the local result is
+**identical to running with sync absent entirely**. Two mutations confirm it —
+moving the enqueue ahead of the save, and letting an enqueue failure propagate —
+and both lose the session.
+
+### The append-only assumption, checked rather than assumed
+
+The brief asked for this to be verified rather than taken from the documents. It
+was, and three things hold:
+
+- `SessionRecord`, `SetRecord`, `RepRecord` and `HoldRecord` are entirely `val`
+  and `List` — no `var`, no `MutableList` anywhere.
+- The DAO has no `@Update` and no per-session delete; only `@Insert` and a
+  wholesale `deleteAllSessions`.
+- `SessionRecorder.finish()` writes once and nothing reopens a session.
+
+So two devices can never hold different versions of one `sessionId`, and the
+merge is a union keyed by id rather than a reconciliation.
+
+**But the check found a real defect the assumption would have hidden.**
+`RoomSessionRepository.save` uses a bare `@Insert` against a primary key of
+`sessionId` — so pulling a session this device already holds would **throw a
+constraint violation**, not be ignored. The union filters against local ids
+before writing anything. `a_session_already_held_locally_is_not_written_twice`
+holds it, and the mutation that removes the filter fails with
+`UNIQUE constraint failed: sessions.sessionId`.
+
+That is the entire justification for the brief's instruction to check rather
+than assume, and it paid for itself.
+
+### Disclosure
+
+`SyncDisclosure` sits on the auth screen **above** the sign-in button, at body
+text size, before the user commits. It says what leaves — completed sessions,
+counts, ranges of motion, tempo, hold durations, timestamps — and what does not:
+no video, no photographs, no camera frames, no analysis off-device. The
+signed-in address stays visible in the navigation bar, so a user never has to
+wonder which account their training is going to.
+
+This project has been explicit about data everywhere else — Health Connect asks
+per metric and reports refusals honestly, and the offline guarantees were
+verified rather than asserted. This is the first place data genuinely leaves,
+and it is not the place to go quiet.
+
+Auth failures are named states, not exceptions — the same discipline P3-11
+applied to Health Connect and P3-13 to the pose model. `NETWORK_UNAVAILABLE` is
+distinct from every other failure, because it is the one the user can do nothing
+about, and its message says that recording still works without a network.
+
+### What is NOT verified, and needs the project owner
+
+**The Firestore security rules are not deployed and are not enforced.**
+
+`firestore.rules` is written and is a deliverable of this batch. It locks every
+document to `users/{uid}/sessions/{sessionId}`, allows read and create only when
+`request.auth.uid == userId`, and **denies update and delete outright** — which
+enforces the append-only property server-side, so even a modified client cannot
+rewrite recorded history.
+
+**They must be pasted into the Firebase console by hand:**
+*Firebase console → Build → Firestore Database → Rules → Publish.*
+
+Until that happens the project remains in **test mode, which allows open read
+and write to anyone holding the project config — and `google-services.json`
+ships inside the APK, so that is not hypothetical.** No code in this app can
+enforce the boundary; security rules are the only mechanism. Nothing in this
+batch was able to test the rules, and nothing here claims they work.
+
+Also unverified, and honestly so: no Firebase call in this batch has ever run.
+There is no device attached and no emulator; `FirebaseAuthGateway` and
+`FirestoreSessionStore` compile and are exercised only through their interfaces
+by fakes. What is tested is the merge, the offline guarantee and the document
+mapping. What is not tested is Firebase itself, and that needs the device work
+Phase B of Batch 9 already owes.
+
+**Scope of this entry.** It records an architecture change, two document
+amendments, a guard rewrite and a dependency check. It makes no claim that sync
+works end to end, because nothing here has seen it do so.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

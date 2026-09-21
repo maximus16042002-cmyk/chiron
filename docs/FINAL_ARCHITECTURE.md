@@ -322,7 +322,40 @@ All three are cut for the same underlying reason, and it is worth stating that w
 | Tiers                     | **3** — A validated, B measurement, C hold                         |
 | Flagship (Tier A)         | **5** — Squat, Push-up, Bicep Curl, Lateral Raise, Glute Bridge    |
 | Platforms                 | Android native (primary), Windows PWA (secondary, cuttable)        |
-| Backend                   | **None.** No auth, no cloud, no server inference, no video upload. |
+| Backend                   | **Firebase Auth + Firestore, for account-based sync of session records only** — added by deliberate decision, DECISIONS.md P3-14. Still no server inference, no video upload, and no analysis off-device. |
+
+### Amendment: the backend line, and exactly what it now permits
+
+This section read **"No backend, no auth, no cloud, no server inference, no
+video upload"** from P0 until Batch 10. It was amended by explicit decision of
+the project owner, recorded in DECISIONS.md **P3-14**, and the amendment is
+narrow:
+
+**Now in scope.** Firebase Authentication (email and password) and Cloud
+Firestore, used to sync **`SessionRecord` history** to an account so a user's
+history survives losing the device. Nothing else.
+
+**Still out of scope, and still hard lines.**
+
+- **No cloud inference.** Every landmark, angle, repetition and hold is computed
+  on the device. Nothing about the analysis path changed, and no frame, no
+  landmark and no image ever leaves the phone.
+- **No video upload.** CLAUDE.md §16's prohibition is untouched. What syncs is
+  the numeric record of a completed session, never the footage it came from.
+- **Room remains the source of truth.** Firestore is additive. A local save must
+  succeed with the network down, and a failed push is retried rather than
+  blocking anything.
+- **No analytics, no crash reporting, no telemetry.** P3-13 excluded Google's
+  datatransport backend when MediaPipe pulled it in silently; that exclusion
+  stands, and `OfflineManifestGuardTest` still fails the build on any network
+  capability arriving from anything other than the Firebase artifacts this
+  amendment names.
+
+The honest framing for the report: this is a deliberate product decision that
+trades one of the project's original guarantees for account-based durability,
+taken with the tradeoff stated rather than discovered. It is the first
+architecture change in this project's history, and it is the reason the document
+you are reading carries an amendment rather than a rewrite.
 
 ### The three claim levels, enforced in code
 
