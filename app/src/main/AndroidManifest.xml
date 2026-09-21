@@ -16,6 +16,18 @@
     <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
 
     <!--
+        Camera capture for live analysis - DECISIONS.md P3-13.
+
+        A runtime permission, requested when the live screen opens and refused
+        without consequence for the rest of the app: the dashboard, history and
+        exercise library all work without it. No audio is recorded and no video
+        is stored - CLAUDE.md section 16 forbids storing user video as part of
+        normal operation, and nothing here writes a frame anywhere.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+
+    <!--
         The Health Connect client library declares minSdk 26; Kinesis supports 24.
 
         Overriding rather than raising the app's minSdk is deliberate, and

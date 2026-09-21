@@ -2611,9 +2611,31 @@ weights, no dataset restrictions.
 **Bundle — measured.** Release APK **7,774,206 → 8,028,443 bytes, +254,237
 (+3.3%)**, built before and after on the same toolchain.
 
-**Offline — verified.** The merged release manifest is byte-identical to Batch
-7's: the three Health Connect read permissions and one AndroidX internal
-receiver permission. **Room adds no permission at all**, and no `INTERNET`.
+**Offline — verified, and this line was first written wrong.** It originally
+claimed the merged release manifest was "byte-identical to Batch 7's". That was
+an overclaim: only the `uses-permission` lines had been compared, not the
+manifest. Checked properly afterwards by building the Batch 7 commit in a
+worktree and diffing the two merged manifests, **they are not identical** — Room
+contributes one node:
+
+```xml
+<service
+    android:name="androidx.room.MultiInstanceInvalidationService"
+    android:directBootAware="true"
+    android:exported="false" />
+```
+
+What the line was actually asserting does hold, and is what matters here: the
+permission set is unchanged — the three Health Connect reads and one AndroidX
+internal receiver permission — so **Room adds no permission at all and no
+`INTERNET`**. The service it adds is `exported="false"`, reachable only in-process,
+and exists to invalidate query caches across processes. It adds no network
+capability and no external surface.
+
+Corrected rather than quietly edited, because "byte-identical" is the kind of
+claim that reads as having been checked when it had not been. CLAUDE.md §23 is
+measure, then document, then claim; this was documented from a partial
+measurement.
 
 **Maintenance.** AndroidX, actively released.
 
@@ -2727,6 +2749,175 @@ beneath an interface that exists.
 **Scope of this entry.** It records a product and storage design. Nothing here
 measures movement or makes a claim about it; the real-time path is unchanged and
 no analysis decision depends on anything added.
+
+---
+
+## P3-13 — CameraX and MediaPipe: two §17 checks, and a hard line nearly crossed
+
+*2026-09-22*
+
+Phase A of the batch that finally adds the two dependencies CLAUDE.md §1 has
+mandated since P1 and that P2-3 deferred pending these checks. One of them found
+a dependency quietly crossing FINAL_ARCHITECTURE §6's "no cloud" line.
+
+### §17 check: CameraX
+
+**Purpose.** Frames. Nothing in the project captures any; the analysis engine has
+been fed synthetic landmarks for nine batches.
+
+**Existing capability.** None. `android.hardware.camera2` directly is the
+alternative, and it is substantially more code for lifecycle, rotation and
+back-pressure handling that CameraX already solves.
+
+**Licence, per artifact.** `camera-core`, `camera-camera2`, `camera-lifecycle`
+and `camera-view` are all **Apache 2.0**, read from their POMs.
+
+**Platform.** Android-only, `:app`-only. `minSdk 21`, below Kinesis's 24, so no
+repeat of P3-11's Health Connect conflict.
+
+**Bundle.** Small relative to what follows - the CameraX contribution is the
+`libimage_processing_util_jni.so` entries, tens of kilobytes per ABI.
+
+**Offline.** Declares no network permission of its own.
+
+**Maintenance.** AndroidX, actively released. 1.4.1 pinned.
+
+### §17 check: MediaPipe Pose — code and model checked separately
+
+Batch 8's research flagged that the model asset's terms are a distinct question
+from the library's. They are, and the reason is sharper than expected.
+
+**Purpose.** On-device pose estimation. CLAUDE.md §1 names MediaPipe Pose
+specifically, and the 33-landmark model is what `LandmarkId` has encoded since
+P1.
+
+**Licence — code.** `com.google.mediapipe:tasks-vision:0.10.21` is **Apache
+2.0**, read from its POM, as is its `tasks-core` transitive.
+`com.google.protobuf:protobuf-javalite` comes with it under protobuf's own
+BSD-style terms - permissive, attribution only.
+
+**Licence — model, and this is the finding.** **The Maven artifact ships no
+model.** Inspecting the AAR finds no `.task` and no `.tflite`: the library is
+the runtime only. The pose landmark model is a separate file obtained from
+Google's model page and placed in `assets/` by hand.
+
+So the model's terms are not covered by the POM licence that was just verified,
+and **they could not be verified from a primary source in this environment**.
+The framework documentation describes MediaPipe as Apache 2.0, and that is a
+statement about the framework, not a model card for the specific `.task` file.
+
+**What this means in practice, and why it is not blocking.** No model is
+committed to this repository and none is distributed by it. The app builds,
+installs and runs without one - `PoseModelState` makes its absence a named
+result rather than a crash, the same discipline P3-11 applied to Health Connect.
+So nothing is currently shipped under unverified terms. **Before the model is
+distributed with a build, its model card must be read and its terms recorded
+here.** That is an action for the project owner and it is listed in Phase B.
+
+**Bundle — measured, and it is large.** Release APK **8,028,443 → 53,419,223
+bytes, +45,390,780 (+565%)**. Essentially all of it is one native library
+shipped per ABI:
+
+| Entry | Compressed |
+|---|---|
+| `lib/x86/libmediapipe_tasks_vision_jni.so` | 21,282,336 |
+| `lib/arm64-v8a/libmediapipe_tasks_vision_jni.so` | 13,038,992 |
+| `lib/armeabi-v7a/libmediapipe_tasks_vision_jni.so` | 7,984,040 |
+
+**Not acted on, and flagged.** An `abiFilters` restriction to `arm64-v8a` would
+drop roughly 29 MB, and the Nothing Phone 2a is arm64. It is not applied here
+because nothing in the project states a size budget and silently dropping
+architectures breaks x86 emulator testing - a change that surprises someone
+later. Recorded as available and cheap if the owner wants it.
+
+**Maintenance.** Google, actively released.
+
+### The finding that matters: MediaPipe added INTERNET
+
+After declaring the dependencies, the merged release manifest contained:
+
+```
+android.permission.CAMERA                      (ours, deliberate)
+android.permission.health.READ_*               (three, from P3-11)
+android.permission.ACCESS_NETWORK_STATE        <- new
+android.permission.INTERNET                    <- new
+```
+
+FINAL_ARCHITECTURE §6 is *"No backend, no auth, no cloud, no sync."* CLAUDE.md
+§16 is *"MUST: remain offline-first"* and *"MUST NOT: use cloud inference, video
+upload ... or unnecessary network dependencies."* P3-11 and P3-12 both verified
+that Kinesis granted no network capability at all. This crossed that line.
+
+**The manifest-merger blame report names the source exactly:**
+
+> `uses-permission#android.permission.INTERNET`
+> `ADDED from [com.google.android.datatransport:transport-backend-cct:3.1.0]`
+
+Not MediaPipe itself - **a telemetry upload backend three levels down its
+dependency tree**. Nothing in Kinesis asked for it, nothing in the source
+mentions it, and it appears in no diff a reviewer would read.
+
+**Resolution: the dependency is excluded, not the permission.**
+
+```kotlin
+implementation(libs.mediapipe.tasks.vision) {
+    exclude(group = "com.google.android.datatransport")
+    exclude(group = "com.google.firebase")
+}
+```
+
+Stripping the permission with `tools:node="remove"` would have produced the same
+manifest while leaving the uploader in the APK. Excluding the group removes the
+code. Verified afterwards: the merged manifest is back to the three health
+reads, `CAMERA`, and the AndroidX internal receiver permission - **no `INTERNET`,
+no `ACCESS_NETWORK_STATE`**. Pose estimation is entirely on-device and needs
+none of it.
+
+**`OfflineManifestGuardTest` is the permanent guard**, added because this class
+of regression is invisible: it reads the merged manifest and fails on any
+network permission, naming the blame report as the way to find the source. Its
+mutation - removing the exclusion - reproduces the original failure exactly.
+
+### What was built
+
+- **`PoseLandmarkerSource`** runs MediaPipe and hands results to the P1
+  `PoseAdapter`. **Nothing about mirroring or landmark layout changed** - that
+  was settled in P1, is guarded by `MirroringRegressionTest`, and
+  FINAL_ARCHITECTURE §12-D names front-camera mirroring as the risk that fails
+  most quietly. This batch feeds that adapter; it does not re-derive it.
+- **`SkeletonOverlayView`** is a plain `View` drawing on a `Canvas`, fed straight
+  from the pose callback. CLAUDE.md §6: Compose never sees a frame. Nothing is
+  allocated per frame - the frame is held by reference, the paints are built
+  once, and `onDraw` walks a fixed connection table.
+- **`SkeletonColouring`** holds the state-derivation logic as pure functions so
+  it can be tested on the JVM. It reads the same `VisibilityPolicy` the validity
+  gate reads, at the same inclusive boundaries, so the overlay and the engine
+  cannot disagree about whether a joint was measured.
+- **`PoseModelAsset`** makes a missing model a named state.
+
+**The existing four states were enough.** The brief asked for any uncovered case
+to be raised rather than quietly absorbed by a fifth state; none appeared. A
+landmark MediaPipe cannot see arrives as low visibility, which is already
+`UNTRACKED`, and a missing model is a screen-level condition rather than a
+per-joint one.
+
+Face landmarks are deliberately not drawn. No profile in the library uses them,
+and a skeleton with a face on it invites the user to believe the system is
+looking at more than it is.
+
+### What Phase A could not test
+
+The pose pipeline has never run. There is no model in the repository, no camera
+in a JVM test, and no device attached. What is tested is the colouring logic and
+the offline guarantee; what is not tested is everything that needs a camera, a
+model and a person in front of it. **That is Phase B**, and it is the P4 device
+reality check this project has deferred since P2-3 - deliberately, and now for
+the last time.
+
+**Scope of this entry.** It records two dependency checks and a pipeline that
+has not yet run. It makes no claim about frame rate, pose accuracy or rep
+counting; those are measurements Phase B produces and nothing here anticipates
+them.
 
 ---
 

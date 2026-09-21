@@ -11,6 +11,8 @@ activityCompose = "1.9.3"
 composeBom = "2024.12.01"
 healthConnect = "1.0.0-alpha11"
 room = "2.7.1"
+cameraX = "1.4.1"
+mediapipe = "0.10.21"
 ksp = "2.1.21-2.0.1"
 
 [libraries]
@@ -32,6 +34,12 @@ androidx-health-connect = { group = "androidx.health.connect", name = "connect-c
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+# DECISIONS.md P3-13: camera capture and on-device pose. :app-only.
+androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraX" }
+androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "cameraX" }
+androidx-camera-lifecycle = { group = "androidx.camera", name = "camera-lifecycle", version.ref = "cameraX" }
+androidx-camera-view = { group = "androidx.camera", name = "camera-view", version.ref = "cameraX" }
+mediapipe-tasks-vision = { group = "com.google.mediapipe", name = "tasks-vision", version.ref = "mediapipe" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

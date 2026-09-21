@@ -65,6 +65,22 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+    // Camera capture and on-device pose estimation - DECISIONS.md P3-13.
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+    implementation(libs.mediapipe.tasks.vision) {
+        // MediaPipe pulls Google's datatransport telemetry backend, which
+        // declares INTERNET and ACCESS_NETWORK_STATE. FINAL_ARCHITECTURE
+        // section 6 is "No backend, no auth, no cloud, no sync" and CLAUDE.md
+        // section 16 is offline-first, so the capability is removed rather
+        // than merely unused. Pose estimation itself is entirely on-device and
+        // needs none of it. DECISIONS.md P3-13.
+        exclude(group = "com.google.android.datatransport")
+        exclude(group = "com.google.firebase")
+    }
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
