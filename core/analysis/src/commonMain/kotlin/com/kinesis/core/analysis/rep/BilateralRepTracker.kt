@@ -10,6 +10,7 @@ import com.kinesis.core.domain.bilateral.BilateralSignal
 import com.kinesis.core.domain.bilateral.Side
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
+import com.kinesis.core.domain.rep.MovementPhase
 import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.core.domain.rep.RepValidity
 
@@ -64,6 +65,14 @@ class BilateralRepTracker(
     /** Repetitions counted so far, by this profile's own definition. */
     var repetitionCount: Int = 0
         private set
+
+    /**
+     * Each side's phase, separately. There is deliberately no combined `phase`
+     * property: showing one phase for two limbs is a reduction, and CLAUDE.md
+     * section 3 wants it named where it happens - [BilateralPhase].
+     */
+    val leftPhase: MovementPhase get() = leftFsm.phase
+    val rightPhase: MovementPhase get() = rightFsm.phase
 
     /**
      * A side's cycle waiting for the other side to catch up, under

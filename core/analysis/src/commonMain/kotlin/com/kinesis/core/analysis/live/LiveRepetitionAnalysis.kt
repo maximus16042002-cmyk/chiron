@@ -1,0 +1,111 @@
+package com.kinesis.core.analysis.live
+
+import com.kinesis.core.analysis.landmark.LandmarkNormalizer
+import com.kinesis.core.analysis.landmark.ValidityGate
+import com.kinesis.core.analysis.profile.RepetitionExercise
+import com.kinesis.core.analysis.rep.BilateralPhase
+import com.kinesis.core.analysis.rep.BilateralRepTracker
+import com.kinesis.core.analysis.rep.RepSink
+import com.kinesis.core.analysis.temporal.TemporalConfig
+import com.kinesis.core.domain.landmark.FrameValidity
+import com.kinesis.core.domain.landmark.Landmarks
+import com.kinesis.core.domain.landmark.VisibilityPolicy
+import com.kinesis.core.domain.rep.MovementPhase
+import com.kinesis.core.domain.rep.RepValidity
+
+/**
+ * CONTRACTS.md section 7's real-time path for a repetition exercise, run one
+ * frame at a time - DECISIONS.md P3-15.
+ *
+ *     landmarks -> normalise -> validity -> kinematics -> buffer -> FSM -> phase + count
+ *
+ * In the shared core because deciding what a frame's validity is, and which
+ * repetition was "last", is analysis - CLAUDE.md section 2. The platform feeds
+ * it frames and reads four values back; it computes none of them.
+ *
+ * ### Validity is reported, not used to gate the tracker
+ *
+ * Every frame reaches [BilateralRepTracker], including `INVALID` ones. The
+ * tracker already refuses to measure a side whose landmarks fall below
+ * `policy.marginal` - that side's angle is `NaN` and a repetition in progress on
+ * it ends as `INSUFFICIENT_DATA` - and it does so **per side**. Withholding the
+ * whole frame instead would let an occluded right wrist abandon a left-arm curl
+ * that was being measured perfectly well, which is exactly the coupling
+ * DECISIONS.md P3-2 built two independent machines to prevent. For every
+ * archetype the required landmarks are the joint chain itself, so an `INVALID`
+ * frame and a `NaN` side coincide.
+ *
+ * ### Normalisation, and what consumes it
+ *
+ * Nothing on the real-time path consumes normalised coordinates yet: joint
+ * angles are invariant to translation and uniform scale and are computed from
+ * the anatomical frame directly. What normalisation contributes here is its
+ * degenerate-torso check - a frame with no measurable torso has collapsed and is
+ * `INVALID` whatever its visibility scores say. DECISIONS.md P3-15 records this.
+ *
+ * Not thread-safe. The platform must call it from one thread.
+ */
+class LiveRepetitionAnalysis(
+    val profile: RepetitionExercise,
+    val policy: VisibilityPolicy = VisibilityPolicy.PROVISIONAL,
+    temporalConfig: TemporalConfig = TemporalConfig.PROVISIONAL,
+) {
+
+    private val tracker = BilateralRepTracker(profile, temporalConfig)
+
+    /** Nothing has been seen before the first frame, so nothing is valid. */
+    var frameValidity: FrameValidity = FrameValidity.INVALID
+        private set
+
+    /** Validity of the most recent repetition record, or `null` before the first. */
+    var lastRepValidity: RepValidity? = null
+        private set
+
+    private val sink = RepSink { record -> lastRepValidity = record.validity }
+
+    val repCount: Int get() = tracker.repetitionCount
+
+    /**
+     * One phase for the readout, reduced from the two sides by a named rule.
+     * Display only - see [BilateralPhase] for what this loses and why nothing
+     * downstream may consume it.
+     */
+    val displayPhase: MovementPhase
+        get() = BilateralPhase.furthestThroughRepetition(tracker.leftPhase, tracker.rightPhase)
+
+    /** One frame of anatomical landmarks, from the platform pose adapter. */
+    fun onFrame(timestampMs: Double, landmarks: Landmarks) {
+        frameValidity = if (LandmarkNormalizer.normalize(landmarks) == null) {
+            FrameValidity.INVALID
+        } else {
+            ValidityGate.evaluate(landmarks, profile.requiredLandmarks, policy)
+        }
+        tracker.onFrame(timestampMs, landmarks, policy, sink)
+    }
+
+    /**
+     * A frame in which the pose estimator found nobody.
+     *
+     * Fed to the tracker as a frame in which nothing was seen, so a repetition in
+     * progress when the user steps out of shot ends as `INSUFFICIENT_DATA` -
+     * what the tracker already does for an occlusion - rather than being resumed
+     * later as though no time had passed.
+     */
+    fun onNothingSeen(timestampMs: Double) {
+        frameValidity = FrameValidity.INVALID
+        tracker.onFrame(timestampMs, NOTHING_SEEN, policy, sink)
+    }
+
+    private companion object {
+        /**
+         * Every landmark unseen: zero visibility and no coordinates. Built once.
+         * Visibility 0 is below any marginal threshold, and `NaN` coordinates keep
+         * even a zero threshold from producing an angle.
+         */
+        val NOTHING_SEEN: Landmarks = Landmarks.fromPacked(
+            DoubleArray(Landmarks.PACKED_SIZE) { index ->
+                if (index % Landmarks.STRIDE == Landmarks.STRIDE - 1) 0.0 else Double.NaN
+            },
+        )
+    }
+}

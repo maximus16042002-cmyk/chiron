@@ -44,6 +44,12 @@ class PoseLandmarkerSource(
     private val modelAssetPath: String,
     private val facing: CameraFacing,
     private val onLandmarks: (Landmarks, Long) -> Unit,
+    /**
+     * A frame in which no complete pose was found. Required, not defaulted: a
+     * caller that ignores it keeps drawing the last skeleton after the user has
+     * left the frame, in the colour that means "tracked". DECISIONS.md P3-15.
+     */
+    private val onNoPose: (Long) -> Unit,
 ) : AutoCloseable {
 
     private val adapter = PoseAdapter()
@@ -71,16 +77,22 @@ class PoseLandmarkerSource(
      */
     fun analyse(image: ImageProxy, bitmap: Bitmap, timestampMs: Long) {
         landmarker.detectAsync(BitmapImageBuilder(bitmap).build(), timestampMs)
-        lastTimestampMs = timestampMs
     }
 
-    private var lastTimestampMs: Long = 0
-
+    /**
+     * Stamped with the result's own timestamp, which MediaPipe carries through
+     * from [analyse]. Not "the last frame submitted": `LIVE_STREAM` drops frames
+     * while busy and delivers results after later frames have been submitted, so
+     * that value belongs to a different frame, and repetition tempo is measured
+     * from these timestamps. DECISIONS.md P3-15.
+     */
     private fun onResult(result: PoseLandmarkerResult) {
         val poses = result.landmarks()
-        if (poses.isEmpty()) return
+        if (poses.isEmpty() || poses[0].size != com.kinesis.core.domain.landmark.LandmarkId.COUNT) {
+            onNoPose(result.timestampMs())
+            return
+        }
         val landmarks = poses[0]
-        if (landmarks.size != com.kinesis.core.domain.landmark.LandmarkId.COUNT) return
 
         for (index in landmarks.indices) {
             val landmark = landmarks[index]
@@ -93,7 +105,7 @@ class PoseLandmarkerSource(
         }
 
         // The adapter is the only thing that decides what "left" means.
-        onLandmarks(adapter.toAnatomical(RawLandmarks(packed), facing), lastTimestampMs)
+        onLandmarks(adapter.toAnatomical(RawLandmarks(packed), facing), result.timestampMs())
     }
 
     override fun close() = landmarker.close()

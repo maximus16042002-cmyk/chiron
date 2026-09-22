@@ -36,7 +36,17 @@ import com.kinesis.ui.theme.OverlayState
 class SkeletonOverlayView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
-) : View(context, attrs) {
+) : View(context, attrs), SkeletonSink {
+
+    /**
+     * Draw x reflected, for a mirrored preview - DECISIONS.md P3-15.
+     *
+     * Landmarks arrive anatomical, with x back in unmirrored image coordinates
+     * (`PoseAdapter` reflected it). The front-camera preview is shown mirrored,
+     * so without this the skeleton would be drawn on the wrong side of the
+     * user's body. Drawing only: no landmark and no measurement changes.
+     */
+    var displayMirrored: Boolean = false
 
     /**
      * The latest frame, held by reference rather than copied.
@@ -76,7 +86,7 @@ class SkeletonOverlayView @JvmOverloads constructor(
         private set
 
     /** One frame, straight from the pose callback. */
-    fun submit(landmarks: Landmarks, state: OverlayState, policy: VisibilityPolicy) {
+    override fun submit(landmarks: Landmarks, state: OverlayState, policy: VisibilityPolicy) {
         this.frame = landmarks
         this.overallState = state
         this.policy = policy
@@ -85,7 +95,7 @@ class SkeletonOverlayView @JvmOverloads constructor(
     }
 
     /** Clears the figure, for when tracking is lost entirely. */
-    fun clear() {
+    override fun clear() {
         frame = null
         postInvalidateOnAnimation()
     }
@@ -103,8 +113,8 @@ class SkeletonOverlayView @JvmOverloads constructor(
             val to = connection.second
             val state = segmentState(landmarks, from, to)
             canvas.drawLine(
-                landmarks.x(from).toFloat() * w, landmarks.y(from).toFloat() * h,
-                landmarks.x(to).toFloat() * w, landmarks.y(to).toFloat() * h,
+                screenX(landmarks, from, w), landmarks.y(from).toFloat() * h,
+                screenX(landmarks, to, w), landmarks.y(to).toFloat() * h,
                 paints.getValue(state),
             )
         }
@@ -113,12 +123,17 @@ class SkeletonOverlayView @JvmOverloads constructor(
             val state = jointState(landmarks, id)
             val radius = paints.getValue(state).strokeWidth * 0.8f
             canvas.drawCircle(
-                landmarks.x(id).toFloat() * w,
+                screenX(landmarks, id, w),
                 landmarks.y(id).toFloat() * h,
                 radius,
                 jointPaints.getValue(state),
             )
         }
+    }
+
+    private fun screenX(landmarks: Landmarks, id: LandmarkId, width: Float): Float {
+        val x = landmarks.x(id).toFloat()
+        return (if (displayMirrored) 1f - x else x) * width
     }
 
     // --- Which state a joint is drawn in ------------------------------------------

@@ -69,11 +69,14 @@ class LiveAnalysisBridge(
     private val onUiStateChanged: (LiveUiState) -> Unit,
 ) {
 
+    // INVALID until a frame says otherwise: before the camera has delivered
+    // anything, "tracked reliably" would be a claim with nothing behind it.
+    // DECISIONS.md P3-15.
     private var current = LiveUiState(
         exerciseId = exerciseId,
         repCount = 0,
         phase = MovementPhase.IDLE,
-        frameValidity = FrameValidity.VALID,
+        frameValidity = FrameValidity.INVALID,
         lastRepValidity = null,
     )
 

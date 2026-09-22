@@ -1,9 +1,15 @@
 package com.kinesis.core.analysis
 
+import com.kinesis.core.analysis.live.LiveRepetitionAnalysis
+import com.kinesis.core.analysis.profile.ArchetypeProfiles
 import com.kinesis.core.analysis.temporal.DoubleRingBuffer
 import com.kinesis.core.analysis.temporal.RealTimeSignalPipeline
 import com.kinesis.core.analysis.temporal.TemporalConfig
+import com.kinesis.core.domain.landmark.LandmarkId
+import com.kinesis.core.domain.landmark.Landmarks
 import java.lang.management.ManagementFactory
+import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -89,9 +95,59 @@ class PerFrameAllocationTest {
         )
     }
 
+    /**
+     * The live entry point - normalise, validity, both trackers - DECISIONS.md
+     * P3-15. It allocates per frame (the normaliser builds its output, and each
+     * side's angle is a `BilateralSignal`), so the assertion is the same one as
+     * above: constant, not growing, however long the set runs.
+     */
+    @Test
+    fun live_repetition_analysis_allocation_does_not_grow_as_the_session_runs() {
+        val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.squat)
+        val cycle = Array(SQUAT_CYCLE_FRAMES) { squatFrameAt(it) }
+        fun feed(frame: Int) = analysis.onFrame(frame * 33.0, cycle[frame % SQUAT_CYCLE_FRAMES])
+
+        repeat(100_000) { feed(it) }
+        val early = allocatedBytesDuring(iterations = SAMPLE_FRAMES) { step -> feed(100_000 + step) } ?: return
+
+        repeat(100_000) { feed(200_000 + it) }
+        val late = allocatedBytesDuring(iterations = SAMPLE_FRAMES) { step -> feed(400_000 + step) } ?: return
+
+        assertTrue(analysis.repCount > 0, "the synthetic squat cycle never completed a repetition")
+        assertTrue(
+            late <= early + TOLERANCE_BYTES,
+            "live analysis allocation grew over the session: " + early + " bytes early, " +
+                late + " bytes late, over " + SAMPLE_FRAMES + " frames each.",
+        )
+    }
+
     // --- Measurement -----------------------------------------------------------
 
     private fun signalAt(frame: Int): Double = 90.0 + sin(frame * 0.05) * 30.0
+
+    /** One squat per [SQUAT_CYCLE_FRAMES]: standing, down to 70 degrees, back up. */
+    private fun squatFrameAt(index: Int): Landmarks {
+        val phase = index.toDouble() / SQUAT_CYCLE_FRAMES
+        val knee = 120.0 + 50.0 * cos(phase * 2.0 * PI)
+        val packed = DoubleArray(Landmarks.PACKED_SIZE)
+        fun put(id: LandmarkId, x: Double, y: Double) {
+            packed[id.index * Landmarks.STRIDE] = x
+            packed[id.index * Landmarks.STRIDE + 1] = y
+            packed[id.index * Landmarks.STRIDE + 3] = 0.95
+        }
+        for ((side, x) in listOf(0 to 0.45, 1 to 0.55)) {
+            put(if (side == 0) LandmarkId.LEFT_SHOULDER else LandmarkId.RIGHT_SHOULDER, x, 0.25)
+            put(if (side == 0) LandmarkId.LEFT_HIP else LandmarkId.RIGHT_HIP, x, 0.55)
+            put(if (side == 0) LandmarkId.LEFT_KNEE else LandmarkId.RIGHT_KNEE, x, 0.72)
+            val radians = knee * PI / 180.0
+            put(
+                if (side == 0) LandmarkId.LEFT_ANKLE else LandmarkId.RIGHT_ANKLE,
+                x + 0.15 * sin(radians),
+                0.72 - 0.15 * cos(radians),
+            )
+        }
+        return Landmarks.fromPacked(packed)
+    }
 
     /**
      * The measured body.
@@ -143,5 +199,8 @@ class PerFrameAllocationTest {
 
         /** Absorbs measurement noise from the counter itself. */
         const val TOLERANCE_BYTES = 64L * SAMPLE_FRAMES / 8
+
+        /** Divides the measured windows' offsets, so both see the same cycle phases. */
+        const val SQUAT_CYCLE_FRAMES = 100
     }
 }

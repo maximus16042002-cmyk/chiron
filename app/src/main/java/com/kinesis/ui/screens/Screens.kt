@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.kinesis.core.analysis.history.DashboardSummary
 import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.analysis.profile.ExerciseVariant
@@ -30,6 +33,7 @@ import com.kinesis.health.ActivityContextResult
 import com.kinesis.health.ContextUnavailable
 import com.kinesis.health.DailyMetric
 import com.kinesis.ui.live.LiveUiState
+import com.kinesis.ui.live.SkeletonOverlayView
 import com.kinesis.ui.theme.Amber
 import com.kinesis.ui.theme.PhosphorDim
 import com.kinesis.ui.theme.PhosphorFaint
@@ -319,28 +323,52 @@ private fun format(value: Double): String =
 // --- Live analysis --------------------------------------------------------------------
 
 /**
- * The live screen, without a camera.
+ * The live screen: the camera preview with the skeleton drawn over it, and the
+ * readout beneath - DECISIONS.md P3-15.
  *
- * DECISIONS.md P3-12 records why this is a shell: CameraX and MediaPipe Pose are
- * both undeclared dependencies whose CLAUDE.md section 17 checks have never been
- * run, and the skeleton overlay cannot be verified without a device in any case.
- * The readout is real and driven by [LiveUiState], so what arrives in the next
- * batch is the camera and the `SurfaceView` beneath this, not a rewrite of it.
+ * The preview and the overlay are Android views embedded once. Neither is
+ * driven by Compose: the pose callback feeds the overlay directly, and the only
+ * thing that recomposes this screen is [state], which `LiveAnalysisBridge`
+ * publishes a few times a second at most - CLAUDE.md section 6.
  *
- * The state here changes a few times a second at most, because
- * `LiveAnalysisBridge` is what feeds it - CLAUDE.md section 6.
+ * The camera area is held at the analysis frame's aspect ratio, because the
+ * overlay draws in analysis-frame coordinates and would drift off the body if
+ * the preview were cropped or letterboxed differently.
  */
 @Composable
-fun LiveAnalysisScreen(state: LiveUiState, modifier: Modifier = Modifier) {
-    Box(
+fun LiveAnalysisScreen(
+    state: LiveUiState,
+    preview: PreviewView,
+    overlay: SkeletonOverlayView,
+    modifier: Modifier = Modifier,
+) {
+    Column(
         modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background),
     ) {
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(Modifier.aspectRatio(CAMERA_FRAME_ASPECT)) {
+                AndroidView(factory = { preview }, modifier = Modifier.fillMaxSize())
+                AndroidView(factory = { overlay }, modifier = Modifier.fillMaxSize())
+            }
+            Text(
+                state.exerciseId,
+                style = MaterialTheme.typography.labelSmall,
+                color = PhosphorFaint,
+                modifier = Modifier.align(Alignment.TopStart).padding(16.dp),
+            )
+        }
+
         Column(
             Modifier
-                .align(Alignment.Center)
-                .padding(24.dp),
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -359,19 +387,64 @@ fun LiveAnalysisScreen(state: LiveUiState, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodySmall,
                 color = state.overlayState.color,
             )
-            Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+/**
+ * The live screen when nothing is being measured, and why.
+ *
+ * A missing model, a refused permission or an unwired analysis mode is shown as
+ * that, rather than as a readout of zeroes - a count of 0 would read as "you
+ * did nothing" when the truth is "nothing was watching".
+ */
+@Composable
+fun LiveUnavailableScreen(
+    exerciseId: String,
+    headline: String,
+    detail: String,
+    modifier: Modifier = Modifier,
+    action: String? = null,
+    onAction: (() -> Unit)? = null,
+) {
+    Box(
+        modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+    ) {
+        Column(
+            Modifier
+                .align(Alignment.Center)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(headline, style = MaterialTheme.typography.titleMedium, color = Amber)
+            Spacer(Modifier.height(16.dp))
             Text(
-                "CAMERA PENDING — BATCH 9",
-                style = MaterialTheme.typography.labelSmall,
-                color = Amber,
+                detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = PhosphorDim,
+                textAlign = TextAlign.Center,
             )
+            if (action != null && onAction != null) {
+                Spacer(Modifier.height(24.dp))
+                Text(
+                    "[ $action ]",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = PhosphorGreen,
+                    modifier = Modifier.clickable(onClick = onAction),
+                )
+            }
         }
 
         Text(
-            state.exerciseId,
+            exerciseId,
             style = MaterialTheme.typography.labelSmall,
             color = PhosphorFaint,
             modifier = Modifier.align(Alignment.TopStart).padding(16.dp),
         )
     }
 }
+
+/** Portrait width over height of a 4:3 sensor frame, which `LiveCamera` requests. */
+private const val CAMERA_FRAME_ASPECT = 3f / 4f

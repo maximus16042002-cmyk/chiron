@@ -370,6 +370,10 @@ class SharedCoreSourceGuardTest {
             "RepFsm.kt",
             "BilateralRepTracker.kt",
             "HoldAnalyser.kt",
+            // P3-15: the display-phase reducer is read every frame, and the live
+            // orchestrator is the per-frame entry point itself.
+            "BilateralPhase.kt",
+            "LiveRepetitionAnalysis.kt",
         )
 
         /**
@@ -400,6 +404,7 @@ class SharedCoreSourceGuardTest {
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/rep",
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/hold",
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/history",
+            "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/live",
         )
 
         /**

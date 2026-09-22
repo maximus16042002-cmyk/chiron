@@ -166,6 +166,17 @@ class LiveAnalysisBridgeTest {
     // --- The overlay state it derives ----------------------------------------------------------
 
     /**
+     * Before the first frame nothing has been seen, and the readout must not say
+     * otherwise. DECISIONS.md P3-15.
+     */
+    @Test
+    fun before_any_frame_the_readout_does_not_claim_tracking() {
+        val (_, seen) = bridge()
+        assertEquals(1, seen.size)
+        assertEquals(OverlayState.UNTRACKED, seen.single().overlayState)
+    }
+
+    /**
      * The readout and the skeleton must agree, so the overlay state is derived
      * from the same value the count comes from rather than tracked separately.
      */

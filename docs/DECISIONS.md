@@ -3157,6 +3157,272 @@ works end to end, because nothing here has seen it do so.
 
 ---
 
+## P3-15 — The live screen wired: camera to readout, and what reading the pipeline found
+
+*2026-09-23*
+
+The batch P3-12 and P3-13 deferred. The live screen ran on a hardcoded
+`LiveUiState` behind a "CAMERA PENDING" placeholder; it now runs camera →
+MediaPipe → `PoseAdapter` → shared-core analysis → readout and overlay. **None of
+it has run on a device.** This entry records what was connected, one rule that
+had to be designed, and what reading the pipeline end to end found. One of those
+findings needs a decision before Phase B's rep counts mean anything.
+
+**No new dependency.** P3-13 already declared `camera-core`, `camera-camera2`,
+`camera-lifecycle` and `camera-view`, which cover everything here, so no §17 check
+was due. `OfflineManifestGuardTest` passes unchanged.
+
+### What was built
+
+- **`LiveCamera`** (`:app`) — CameraX `Preview` plus `ImageAnalysis` on the front
+  camera, bound to the activity's lifecycle so backgrounding stops the camera.
+  Keep-only-latest backpressure, RGBA output, and a 4:3 request on both use cases
+  so the preview and the analysis frame share an aspect ratio.
+- **`LiveRepetitionAnalysis`** (`commonMain`, new `live` package) — CONTRACTS.md
+  §7's real-time path for one repetition exercise: normalise, validity,
+  `BilateralRepTracker`, and four values out — display phase, count, frame
+  validity, last repetition validity. In the core because deciding what a
+  frame's validity is and which repetition was "last" is analysis (CLAUDE.md §2).
+- **`BilateralPhase.furthestThroughRepetition`** and `leftPhase` / `rightPhase`
+  on the tracker — below.
+- **`LiveSessionEngine`** (`:app`) — glue on MediaPipe's result thread: frame to
+  the core, the four values to `LiveAnalysisBridge`, the frame itself straight to
+  the overlay. Compose state is set on the main thread from what the bridge
+  publishes. The engine decides nothing.
+- **`LiveAnalysisScreen`** now embeds a `PreviewView` and `SkeletonOverlayView`
+  through `AndroidView`, with the readout unchanged beneath them.
+  **`LiveUnavailableScreen`** shows each reason nothing is being measured.
+- **`MainActivity`**'s live destination checks, in this order: analysis mode,
+  pose model (`PoseModelState.Absent` / `Unreadable`), camera permission (asked
+  once on opening, then only on a tap), pose runtime and camera binding. Each
+  failure is shown as itself — **a count of 0 would read as "you did nothing"
+  when the truth is "nothing was watching".** Teardown closes the landmarker.
+
+**Not built, deliberately.** The live screen counts and shows repetitions; it
+does not record a session. `SessionRecorder` is not connected to it, so nothing
+from a live set reaches storage, the dashboard or sync.
+
+### The phase-reduction rule
+
+The readout has room for one phase and the tracker runs two machines. CLAUDE.md §3
+requires that reduction to be named at the call site, so the tracker exposes
+`leftPhase` and `rightPhase` and no combined `phase`, and the reduction is
+`BilateralPhase.furthestThroughRepetition`.
+
+**The rule:** rank `IDLE < TOP < DESCENDING < BOTTOM < ASCENDING` and show the
+higher-ranked side.
+
+- **Idle only when both sides are idle.** An occluded side reads `IDLE`, so it
+  can never hide a side that is being measured.
+- **Mid-repetition beats at rest.** The resting arm of an alternating curl sits
+  at `TOP`; the working arm is what is shown.
+- **Both mid-repetition: the one closer to completing.** The readout describes
+  the repetition that will be counted next.
+
+For `SIMULTANEOUS` profiles this has a consequence worth having: the tracker
+counts a paired repetition only when the second side returns to the top, and
+this rule shows `TOP` only when both have, so **the phase and the count change on
+the same frame**. The alternative, least-advanced-wins, shows the repetition
+finished a few frames before it is counted.
+
+**What it loses, stated.** Under `PER_LIMB`, when both arms are mid-repetition at
+once, one arm's phase is not shown. That is acceptable only because the result is
+**display-only**: nothing counts, measures, stores or judges from it, and both
+per-side phases remain on the tracker. The ranking is written out as a `when`
+rather than read from `ordinal`, so reordering the enum cannot change it.
+
+**Pinned by `BilateralPhaseTest`:** all 25 pairs as an explicit table, symmetry,
+idle-only-when-both-idle, and two checks against the real tracker — a squat with
+the right knee four frames behind the left shows `TOP` on exactly the frame each
+repetition is counted, and an alternating curl shows the working arm.
+
+### Validity is reported, not used to gate the tracker
+
+Every frame reaches the tracker, `INVALID` ones included. The tracker already
+refuses to measure a side whose landmarks fall below `marginal`, and does it **per
+side**. Withholding the whole frame would let an occluded right wrist abandon a
+left-arm curl that was being measured perfectly well — the coupling P3-2 built
+two independent machines to prevent. For every archetype the required landmarks
+are the joint chain itself, so an `INVALID` frame and a `NaN` side coincide.
+`FrameValidity` drives the readout and the overlay, and is what P8's technique
+rules will be blocked on (CONTRACTS.md §8: measurement may continue if honest,
+technique judgement may not).
+
+Pinned: `an_occluded_right_arm_does_not_stop_the_left_arm_being_counted`. Its
+mutation — skip the tracker on `INVALID` — counts zero curls instead of three.
+
+### Normalisation has no real-time consumer
+
+CONTRACTS.md §7 puts normalise first, and it runs first. But **nothing on the
+real-time path reads normalised coordinates**: joint angles are invariant to
+translation and uniform scale and are computed from `Landmarks` directly, and
+`NormalizedLandmarks` has no production consumer anywhere. What the step
+contributes today is its degenerate-torso check — a collapsed estimate can report
+every landmark clearly visible while placing them all on one point, and that
+frame is `INVALID` (pinned by
+`a_collapsed_torso_is_invalid_however_visible_its_landmarks_claim_to_be`).
+
+It allocates its output every frame to do that. The addition to
+`PerFrameAllocationTest` confirms the cost is constant rather than growing; it is
+not zero. **Open:** either normalised coordinates get a consumer (P5 features are
+the obvious one) or the step's position in §7 should be revisited. Recorded, not
+decided.
+
+### Mirroring is made true in capture, not assumed
+
+P1-5: `PoseAdapter` assumes front-camera frames reach the model **mirrored**.
+CameraX's analysis stream is the raw sensor image, which is not mirrored — only
+the preview is. So `LiveCamera` mirrors every frame before MediaPipe sees it, and
+P1-5's premise now holds by construction rather than by a CameraX setting.
+`PoseAdapter` is unchanged and `MirroringRegressionTest` still guards it.
+
+The claim that CameraX analysis frames arrive unmirrored comes from CameraX's
+documented behaviour and from MediaPipe's own Android sample, which flips
+front-camera frames for the same reason. **It has not been verified on this
+device.** If it is wrong, the line that changes is the flip in `LiveCamera`, not
+the adapter.
+
+The overlay then draws x reflected (`displayMirrored`), because landmarks leave
+the adapter in unmirrored image coordinates and the preview is shown mirrored.
+Drawing only; no landmark and no measurement changes.
+
+### Defects found by reading the pipeline
+
+Three fixed, two flagged.
+
+1. **Fixed — results carried the wrong timestamp.** `PoseLandmarkerSource`
+   stamped each result with the last frame *submitted*. `LIVE_STREAM` drops frames
+   while busy and delivers results after later frames have gone in, so that value
+   belonged to a different frame — and repetition tempo is measured from these
+   timestamps. It now uses `PoseLandmarkerResult.timestampMs()`, the frame's own,
+   confirmed present in 0.10.21 with `javap`. Timestamps are the sensor's exposure
+   time, so tempo does not absorb processing jitter.
+2. **Fixed — a frame with nobody in it produced nothing.** The source returned
+   silently, so when the user stepped out the overlay kept the last skeleton **in
+   the colour that means "tracked"**, and a repetition in progress hung open. A
+   required `onNoPose` callback now clears the overlay and feeds the tracker a
+   frame in which nothing was seen, so the repetition ends `INSUFFICIENT_DATA`
+   exactly as an occlusion does.
+3. **Fixed — the readout claimed tracking before any frame.**
+   `LiveAnalysisBridge` started at `FrameValidity.VALID`, so the screen said
+   "TRACKED RELIABLY" in phosphor green before the camera had delivered anything —
+   the confident indicator with nothing behind it that P3-12 warns against. It
+   starts at `INVALID` now; pinned by
+   `before_any_frame_the_readout_does_not_claim_tracking`.
+4. **Flagged — the attention state does not pulse.** P3-12 gives `ATTENTION`
+   three channels: hue, a wider stroke, and "the only pulse in the overlay".
+   `OverlayState.pulses` is declared and `SkeletonPaletteLegibilityTest` checks
+   it, but **`SkeletonOverlayView` never reads it**. The overlay draws two
+   channels. Not fixed here: it is rendering work outside this batch's scope, and
+   is recorded so the guard is not mistaken for the behaviour.
+5. **Flagged — `NaN` visibility passes the validity gate.** `ValidityGate` and
+   `JointAngles` test `visibility < marginal`, which is false for `NaN`, so a
+   `NaN` visibility counts as fully visible — while `SkeletonColouring` draws it
+   as untracked. The two disagree, contrary to P3-13's "cannot disagree".
+   Unreachable from this pipeline, which substitutes 0 for a missing visibility,
+   so not changed here; a core behaviour change deserves its own test first.
+
+### Two things that need the project owner
+
+**1. Joint angles are distorted by the frame's aspect ratio. This should be
+decided before Phase B interprets any repetition count.**
+
+MediaPipe reports x as a fraction of the image **width** and y as a fraction of
+its **height**. Every profile in the library measures its angle in `IMAGE_2D`,
+from those two numbers as if they shared a unit. On a portrait 4:3 analysis frame
+(480 × 640) they do not: vertical distances are compressed by 0.75 relative to
+horizontal ones. Nothing in the repository corrects for this — a search of code,
+docs and scripts for aspect, width or height handling, run before this batch
+added anything, found nothing.
+
+Computed, not measured on a device:
+
+| True angle | Worst-case error over limb orientations |
+|---|---|
+| 60° | +15.2° |
+| 90° | +16.3° |
+| 120° | −15.2° |
+| 160° | −6.5° |
+| 180° | 0° |
+
+A concrete side-on case: a true 60° knee reads 66.6°. For scale, the squat's
+bottom threshold is 90° with a 5° band and the curl's is 60° with 8°.
+
+**Why it cannot be left to calibration.** The error depends on the limbs'
+orientation in the image, which changes through the repetition, so it is not a
+constant offset a personal baseline absorbs. Thresholds tuned in P4 against
+distorted angles would inherit an orientation-dependent error that differs by
+camera placement.
+
+**Not fixed here, because every fix changes a convention.** Rescaling to one unit
+at the platform edge changes what a `Landmarks` coordinate means and how the
+overlay maps it; letterboxing to a square before MediaPipe changes the overlay's
+mapping instead. Either way, the MM-Fit pipeline in P5 must apply the same
+correction or its results will not transfer. **Recommendation:** correct in
+`PoseLandmarkerSource`, the only place that knows the frame's pixel size, by
+rescaling y into width units; give the overlay the frame's aspect ratio; and
+record the unit in CONTRACTS.md. That is an architecture decision, so it is
+recorded here rather than made.
+
+**2. The pose model is in the working tree and will ship in any build.**
+`app/src/main/assets/pose_landmarker_lite.task` is present — placed by hand,
+untracked, and not added by this batch. Any APK built from this tree packages it.
+P3-13: *"Before the model is distributed with a build, its model card must be
+read and its terms recorded here."* Still not recorded. A local debug build is
+not distribution; handing an APK to anyone else would be.
+
+### Holds, and one device constraint
+
+**Isometric profiles are not wired.** Plank, Wall Sit and Side Plank go through
+`HoldAnalyser`, which this screen does not run. Choosing one shows "ISOMETRIC HOLD
+NOT YET WIRED" and starts no camera. `BilateralRepTracker` accepts only a
+`RepetitionExercise`, so forcing a hold through it would not compile anyway.
+
+**MediaPipe ships no x86_64 library.** Read from the 0.10.21 AAR: `arm64-v8a`,
+`armeabi-v7a`, `x86`. Current emulator images are mostly x86_64, where the
+landmarker fails to load with `UnsatisfiedLinkError`. The live screen reports
+that instead of crashing. Phase B therefore needs a physical device, which it
+needed anyway.
+
+### What "tested" means here
+
+`gradlew assemble allTests :app:testDebugUnitTest`: **BUILD SUCCESSFUL, 984 test
+executions, 0 failures, 0 errors**, no compiler warnings, against a measured
+baseline of 931 immediately before this batch. The additions are
+`BilateralPhaseTest` (5) and `LiveRepetitionAnalysisTest` (7) on JVM, JS and both
+Android unit-test variants, one test in `PerFrameAllocationTest` (JVM),
+`LiveSessionEngineTest` (3), and one in `LiveAnalysisBridgeTest`.
+
+**Eight mutations, each caught by the test written for it:** the reducer showing
+the least-advanced side; the torso check removed from validity; `INVALID` frames
+withheld from the tracker; a no-pose frame not fed to the tracker; the overlay
+coloured independently of the readout; a no-pose frame leaving the skeleton up;
+the bridge starting at `VALID`; and `LiveRepetitionAnalysis.kt` dropped from the
+source guard's real-time list — the guard now covers the new `live` package.
+
+### What is NOT verified — Phase B
+
+Nothing in this entry has run. Specifically unverified:
+
+- that frames arrive at all, and the sustained frame rate — each frame costs two
+  bitmap allocations (`toBitmap`, then rotate and mirror) before MediaPipe;
+- the mirroring premise above, which needs the raise-your-left-arm check;
+- that the overlay lines up with the body — it assumes portrait, a 4:3 frame on
+  both use cases, and `FIT_CENTER`; a device that falls back to another ratio
+  would misalign, and landscape is not handled;
+- the permission dialog, refusal, and "don't ask again";
+- teardown on a real device: leaving the screen, backgrounding, rotation;
+- that `PoseModelAsset`'s one-byte read and MediaPipe's own loader agree about a
+  truncated file.
+
+**Scope of this entry.** It records a pipeline connected and compiled, one
+display rule, three defects fixed and two flagged, and two findings for the owner.
+It makes no claim about frame rate, pose accuracy, mirroring correctness or rep
+counting on a device, and the aspect-ratio finding means any rep count Phase B
+produces before that decision is made measures a distorted angle.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
