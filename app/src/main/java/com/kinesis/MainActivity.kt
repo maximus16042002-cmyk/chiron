@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -247,7 +248,13 @@ private fun NavBar(
     Row(
         Modifier
             .fillMaxWidth()
+            // targetSdk 35 means Android 15 enforces edge-to-edge, so the app
+            // is laid out behind the status bar and has to inset itself. The
+            // background is applied *before* the inset so the bar's colour
+            // still fills the area behind the clock, and only the content is
+            // pushed clear of it.
             .background(MaterialTheme.colorScheme.surface)
+            .statusBarsPadding()
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
