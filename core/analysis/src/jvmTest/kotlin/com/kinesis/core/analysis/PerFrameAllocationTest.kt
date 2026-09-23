@@ -123,13 +123,31 @@ class PerFrameAllocationTest {
     fun live_repetition_analysis_allocation_does_not_grow_as_the_session_runs() {
         val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.squat)
         val cycle = Array(SQUAT_CYCLE_FRAMES) { squatFrameAt(it) }
-        fun feed(frame: Int) = analysis.onFrame(frame * 33.0, cycle[frame % SQUAT_CYCLE_FRAMES])
+        // One frame counter for the whole run, so time only ever moves forward -
+        // including across the harness's untimed and timed passes, which used to
+        // replay the same frame numbers and send the clock back (P3-17).
+        var frame = 0
+        val feedNext = FrameBody {
+            analysis.onFrame(frame * 33.0, cycle[frame % SQUAT_CYCLE_FRAMES])
+            frame++
+        }
 
-        repeat(100_000) { feed(it) }
-        val early = allocatedBytesDuring(iterations = SAMPLE_FRAMES) { step -> feed(100_000 + step) } ?: return
+        // Each point is the smallest of three consecutive windows. A single window
+        // can read high when the JIT stops eliminating an allocation it was
+        // eliminating before; that is noise, and it flaked this test once in a
+        // full-suite run (DECISIONS.md P3-17). Growth - the defect - raises every
+        // window, so the minimum still catches it, at the same tolerance.
+        // A long warm-up, so both measured points see the JIT's settled state. Run
+        // after other test classes in the same JVM, a shorter one measured the
+        // early window before a recompilation stopped eliminating one ~16-byte
+        // allocation per frame, and read that as growth; in isolation the same
+        // test passed. A settled JIT is the fair comparison, and real growth still
+        // shows as a later window allocating more (P3-17).
+        repeat(600_000) { feedNext.run(it) }
+        val early = smallestOfThreeWindows(feedNext) ?: return
 
-        repeat(100_000) { feed(200_000 + it) }
-        val late = allocatedBytesDuring(iterations = SAMPLE_FRAMES) { step -> feed(400_000 + step) } ?: return
+        repeat(200_000) { feedNext.run(it) }
+        val late = smallestOfThreeWindows(feedNext) ?: return
 
         assertTrue(analysis.repCount > 0, "the synthetic squat cycle never completed a repetition")
         assertTrue(
@@ -140,6 +158,20 @@ class PerFrameAllocationTest {
     }
 
     // --- Measurement -----------------------------------------------------------
+
+    /**
+     * Bytes allocated over [SAMPLE_FRAMES] frames, taken as the smallest of three
+     * consecutive windows. Every window, and its untimed pass, is a multiple of
+     * [SQUAT_CYCLE_FRAMES] long, so every window sees the same cycle phases.
+     */
+    private fun smallestOfThreeWindows(body: FrameBody): Long? {
+        var smallest = Long.MAX_VALUE
+        repeat(3) {
+            val bytes = allocatedBytesDuring(iterations = SAMPLE_FRAMES, body = body) ?: return null
+            if (bytes < smallest) smallest = bytes
+        }
+        return smallest
+    }
 
     private fun signalAt(frame: Int): Double = 90.0 + sin(frame * 0.05) * 30.0
 

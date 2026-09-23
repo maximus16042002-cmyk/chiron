@@ -14,6 +14,7 @@ import kotlin.math.sin
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * The live real-time path, end to end on synthetic frames - DECISIONS.md P3-15.
@@ -172,6 +173,23 @@ class LiveRepetitionAnalysisTest {
         analysis.finish(clock)
 
         assertEquals(2, records.size)
+    }
+
+    /**
+     * The raw angle is the measurement before any filtering - what the outlier
+     * gate judges, and what the Phase B readout reports. DECISIONS.md P3-17.
+     */
+    @Test
+    fun the_raw_angle_is_this_frames_measurement_before_filtering() {
+        val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.squat)
+        repeat(10) { analysis.feed(body(knees = 170.0)) }
+        analysis.feed(body(knees = 140.0))
+
+        assertEquals(140.0, analysis.rawAngleLeft, 1e-9)
+        assertEquals(140.0, analysis.rawAngleRight, 1e-9)
+
+        analysis.onNothingSeen(clock)
+        assertTrue(analysis.rawAngleLeft.isNaN() && analysis.rawAngleRight.isNaN())
     }
 
     // --- Synthetic frames -----------------------------------------------------------------

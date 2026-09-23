@@ -16,24 +16,31 @@ import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.google.mediapipe.framework.MediaPipeException
+import com.kinesis.pose.CameraFacing
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.abs
 
 /**
- * Front-camera capture for the live screen: a preview for the user and an
- * analysis stream for [PoseLandmarkerSource] - DECISIONS.md P3-15.
+ * Camera capture for the live screen: a preview for the user and an analysis
+ * stream for [PoseLandmarkerSource] - DECISIONS.md P3-15 and P3-17.
+ *
+ * Which camera is taken from [PoseLandmarkerSource.facing], never passed
+ * separately, so the camera opened, whether its frames are mirrored and what the
+ * adapter is told are one decision and cannot disagree.
  *
  * ### Mirroring is made true here, not assumed
  *
  * `PoseAdapter` assumes front-camera frames reach the pose model mirrored
  * (DECISIONS.md P1-5). CameraX's analysis stream is the raw sensor image, which
- * is not mirrored - only the preview is. So every frame is mirrored here before
- * MediaPipe sees it, which makes P1-5's premise hold by construction rather than
- * by CameraX configuration. Whether CameraX really delivers unmirrored analysis
- * frames on this device is exactly the check Phase B owes; if it does not, this
- * is the line that changes, not the adapter.
+ * is not mirrored - only the front preview is. So a front-camera frame is
+ * mirrored here before MediaPipe sees it, which makes P1-5's premise hold by
+ * construction rather than by CameraX configuration. A back-camera frame is not
+ * touched, and the adapter undoes nothing for it: that path has no mirroring
+ * anywhere. Whether CameraX really delivers unmirrored analysis frames on this
+ * device is exactly the check Phase B owes, once per camera; if it does not,
+ * [mirrorsAnalysisFrame] is what changes, not the adapter.
  *
  * ### Timestamps
  *
@@ -106,10 +113,16 @@ class LiveCamera(
                 .build()
                 .also { it.setAnalyzer(analysisThread, ::analyse) }
 
+            val selector = when (source.facing) {
+                CameraFacing.FRONT -> CameraSelector.DEFAULT_FRONT_CAMERA
+                CameraFacing.BACK -> CameraSelector.DEFAULT_BACK_CAMERA
+            }
             try {
-                cameraProvider.bindToLifecycle(owner, CameraSelector.DEFAULT_FRONT_CAMERA, preview, analysis)
+                cameraProvider.bindToLifecycle(owner, selector, preview, analysis)
             } catch (error: IllegalArgumentException) {
-                onUnavailable("no usable front camera with a 4:3 frame: " + error.message)
+                onUnavailable(
+                    "no usable " + source.facing.name.lowercase() + " camera with a 4:3 frame: " + error.message,
+                )
                 return@addListener
             } catch (error: IllegalStateException) {
                 onUnavailable("camera could not be bound: " + error.message)
@@ -139,7 +152,7 @@ class LiveCamera(
             val timestampMs = image.imageInfo.timestamp / NANOS_PER_MILLI
             if (timestampMs <= lastTimestampMs) return
             lastTimestampMs = timestampMs
-            source.analyse(image, uprightAndMirrored(image), timestampMs)
+            source.analyse(image, upright(image), timestampMs)
         } catch (error: MediaPipeException) {
             // One dropped frame; the next may succeed. Not worth the screen.
         } finally {
@@ -147,12 +160,12 @@ class LiveCamera(
         }
     }
 
-    /** Rotated upright, then mirrored left-to-right. See the class note. */
-    private fun uprightAndMirrored(image: ImageProxy): Bitmap {
+    /** Rotated upright, and mirrored left-to-right for the front camera only. See the class note. */
+    private fun upright(image: ImageProxy): Bitmap {
         val raw = image.toBitmap()
         val transform = Matrix().apply {
             postRotate(image.imageInfo.rotationDegrees.toFloat())
-            postScale(-1f, 1f)
+            if (mirrorsAnalysisFrame(source.facing)) postScale(-1f, 1f)
         }
         val upright = Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, transform, false)
         if (upright !== raw) raw.recycle()
@@ -179,6 +192,22 @@ class LiveCamera(
          * is sized to this, and [bind] refuses a frame of any other shape.
          */
         const val PORTRAIT_FRAME_ASPECT: Float = 3f / 4f
+
+        /**
+         * Whether a frame from [facing] is mirrored before the pose model sees
+         * it: the front camera's is, so that `PoseAdapter`'s P1-5 premise holds;
+         * the back camera's is not, and the adapter undoes nothing for it.
+         * Our decision, pinned by `CameraFacingParityTest`.
+         */
+        fun mirrorsAnalysisFrame(facing: CameraFacing): Boolean = facing == CameraFacing.FRONT
+
+        /**
+         * Whether `PreviewView` shows [facing]'s preview mirrored - CameraX does
+         * for the front camera and not for the back. Not a choice made here but
+         * a statement of CameraX's behaviour, which the overlay has to follow;
+         * Phase B confirms it on the device.
+         */
+        fun previewIsMirrored(facing: CameraFacing): Boolean = facing == CameraFacing.FRONT
 
         /** Either orientation: the sensor reports landscape, the screen shows portrait. */
         fun isFourByThree(width: Int, height: Int): Boolean {

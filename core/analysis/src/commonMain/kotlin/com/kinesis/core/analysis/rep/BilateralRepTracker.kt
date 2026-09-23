@@ -75,6 +75,16 @@ class BilateralRepTracker(
     val rightPhase: MovementPhase get() = rightFsm.phase
 
     /**
+     * Each side's joint angle as measured on the last frame, before filtering -
+     * the value the outlier gate judges. `NaN` where that side was not measured.
+     * Diagnostic only: nothing counts, stores or judges from it. DECISIONS.md P3-17.
+     */
+    var rawAngleLeft: Double = Double.NaN
+        private set
+    var rawAngleRight: Double = Double.NaN
+        private set
+
+    /**
      * A side's cycle waiting for the other side to catch up, under
      * [RepetitionSemantics.SIMULTANEOUS]. At most one is ever held.
      */
@@ -115,6 +125,8 @@ class BilateralRepTracker(
             profile.repSignal.plane,
             policy,
         )
+        rawAngleLeft = angle.left
+        rawAngleRight = angle.right
 
         val left = leftFsm.step(timestampMs, leftPipeline.push(timestampMs, angle.left))
         val right = rightFsm.step(timestampMs, rightPipeline.push(timestampMs, angle.right))
@@ -176,6 +188,8 @@ class BilateralRepTracker(
         leftFsm.reset()
         rightFsm.reset()
         repetitionCount = 0
+        rawAngleLeft = Double.NaN
+        rawAngleRight = Double.NaN
         pendingLeft = null
         pendingRight = null
         lastNearSideEndMs = Double.NaN

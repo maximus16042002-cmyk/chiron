@@ -23,26 +23,46 @@ import kotlin.math.abs
  *
  * ### Cost
  *
- * Fixed. The window is preallocated, the median is found by insertion-sorting
- * into a preallocated scratch array, and nothing here allocates once
- * constructed. Insertion sort rather than [DoubleArray.sort] because the window
+ * Fixed. The window and the held-aside run are preallocated, the median is
+ * found by insertion-sorting into a preallocated scratch array, and nothing here
+ * allocates once constructed. Insertion sort rather than [DoubleArray.sort] because the window
  * is small, insertion sort is faster at this size, and it is provably in-place
  * on every target rather than relying on a platform library's promise.
  */
 class MedianOutlierGate(
     val windowSamples: Int,
     val threshold: Double,
+    /**
+     * How many consecutive rejected samples, each within [threshold] of the one
+     * before, it takes to re-admit a sustained change. DECISIONS.md P3-17.
+     */
+    val readmitSamples: Int,
 ) {
 
     init {
         require(windowSamples >= 1) { "windowSamples must be at least 1, got " + windowSamples }
         require(threshold >= 0.0) { "threshold must be non-negative, got " + threshold }
+        require(readmitSamples >= 2) {
+            "readmitSamples must be at least 2, or every one-frame spike would re-admit itself; got " +
+                readmitSamples
+        }
+        require(readmitSamples <= windowSamples) {
+            "readmitSamples (" + readmitSamples + ") must fit in the window (" + windowSamples + ")"
+        }
     }
 
     private val window = DoubleArray(windowSamples)
     private val scratch = DoubleArray(windowSamples)
     private var writeIndex: Int = 0
     private var held: Int = 0
+
+    /** Consecutive rejected samples that agree with one another, oldest first. */
+    private val pending = DoubleArray(readmitSamples)
+    private var pendingCount: Int = 0
+
+    /** How many sustained changes have been re-admitted. Diagnostic; never drives logic. */
+    var readmittedCount: Long = 0L
+        private set
 
     /** Samples examined by the last [accept] call. Bounded by [windowSamples]. */
     var lastCallSamplesVisited: Int = 0
@@ -64,10 +84,27 @@ class MedianOutlierGate(
      * The first sample, and any sample with no measured predecessors, is accepted
      * unconditionally. There is nothing yet to be an outlier from, and rejecting
      * on no evidence would discard the start of every set.
+     *
+     * ### A sustained change is re-admitted - DECISIONS.md P3-17
+     *
+     * A rejected sample does not join the window, so one wild frame cannot move
+     * the median that judges the next. But that alone meant a real change of more
+     * than [threshold] - a plank that sags 28 degrees in a frame and stays there,
+     * a landmark that jumps and stays - was rejected on every frame for the rest
+     * of the set. So rejected samples are also held aside: when [readmitSamples]
+     * of them arrive in a row, each within [threshold] of the one before, the
+     * change is taken as real. The window is re-seeded with that run and the
+     * sample that completed it is accepted.
+     *
+     * A one-frame spike never completes a run, because the sample after it is
+     * accepted and an accepted sample ends the run. Nor do wild values that
+     * disagree with each other, or a run broken by an unmeasured frame.
      */
     fun accept(value: Double): Double {
         if (value.isNaN()) {
             lastCallSamplesVisited = 0
+            // A run is consecutive measured frames.
+            pendingCount = 0
             return Double.NaN
         }
 
@@ -81,13 +118,19 @@ class MedianOutlierGate(
 
         val median = medianOfScratch(measured)
         if (abs(value - median) > threshold) {
+            // Held aside, not remembered: on its own it is not evidence.
+            if (pendingCount > 0 && abs(value - pending[pendingCount - 1]) > threshold) pendingCount = 0
+            pending[pendingCount] = value
+            pendingCount++
+            if (pendingCount == readmitSamples) {
+                readmit()
+                return value
+            }
             rejectedCount++
-            // Deliberately not remembered: a rejected sample must not become part
-            // of the evidence that judges the next one, or a sustained excursion
-            // would talk the gate into accepting it.
             return Double.NaN
         }
 
+        pendingCount = 0
         remember(value)
         return value
     }
@@ -95,8 +138,19 @@ class MedianOutlierGate(
     fun reset() {
         writeIndex = 0
         held = 0
+        pendingCount = 0
         lastCallSamplesVisited = 0
         rejectedCount = 0L
+        readmittedCount = 0L
+    }
+
+    /** The run becomes the evidence: the window is re-seeded with it, oldest first. */
+    private fun readmit() {
+        writeIndex = 0
+        held = 0
+        for (index in 0 until pendingCount) remember(pending[index])
+        pendingCount = 0
+        readmittedCount++
     }
 
     private fun remember(value: Double) {

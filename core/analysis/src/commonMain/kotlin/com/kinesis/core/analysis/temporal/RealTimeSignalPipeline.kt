@@ -42,6 +42,7 @@ class RealTimeSignalPipeline(
     private val outlierGate = MedianOutlierGate(
         windowSamples = config.outlierWindowSamples,
         threshold = config.outlierThreshold,
+        readmitSamples = config.outlierReadmitSamples,
     )
 
     private val smoother = EmaSmoother(config.smoothingAlpha)

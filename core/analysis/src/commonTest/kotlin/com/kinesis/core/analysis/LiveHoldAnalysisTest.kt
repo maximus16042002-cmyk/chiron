@@ -74,9 +74,24 @@ class LiveHoldAnalysisTest {
     fun a_hold_is_credited_only_while_every_measured_side_is_within_tolerance() {
         val analysis = LiveHoldAnalysis(ArchetypeProfiles.plank)
         analysis.feed(plank(hipDeg = 178.0), frames = 120)
-        // A sag develops over about a second. (An instant 28-degree jump would be
-        // rejected by the outlier gate as a spike - see DECISIONS.md P3-16.)
+        // A sag that develops over about a second.
         for (step in 1..28) analysis.feed(plank(hipDeg = 178.0, rightHipDeg = 178.0 - step))
+        analysis.feed(plank(hipDeg = 178.0, rightHipDeg = 150.0), frames = 60)
+
+        assertEquals(HoldState.DEVIATING, analysis.holdState)
+        assertEquals(1, analysis.finish().breakCount)
+    }
+
+    /**
+     * The case P3-16 found: a 28-degree sag in a single frame, sustained. The
+     * outlier gate used to reject it on every frame for the rest of the set, so
+     * the break was never seen. It is now re-admitted after a short consistent
+     * run - DECISIONS.md P3-17.
+     */
+    @Test
+    fun a_sudden_sag_that_stays_is_seen_as_a_break_after_a_short_run() {
+        val analysis = LiveHoldAnalysis(ArchetypeProfiles.plank)
+        analysis.feed(plank(hipDeg = 178.0), frames = 120)
         analysis.feed(plank(hipDeg = 178.0, rightHipDeg = 150.0), frames = 60)
 
         assertEquals(HoldState.DEVIATING, analysis.holdState)

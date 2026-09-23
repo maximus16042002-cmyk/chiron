@@ -75,7 +75,7 @@ class TemporalPipelineTest {
 
     @Test
     fun a_single_wild_sample_is_rejected_and_its_neighbours_are_not() {
-        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0)
+        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0, readmitSamples = 3)
         for (value in listOf(90.0, 91.0, 90.5, 89.5, 90.0)) {
             assertEquals(value, gate.accept(value))
         }
@@ -86,37 +86,119 @@ class TemporalPipelineTest {
 
     @Test
     fun a_sample_inside_the_threshold_is_kept() {
-        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0)
+        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0, readmitSamples = 3)
         for (value in listOf(90.0, 90.0, 90.0)) gate.accept(value)
         assertEquals(105.0, gate.accept(105.0), "a 15 degree move is movement, not a spike")
     }
 
     @Test
     fun the_first_sample_is_accepted_because_there_is_nothing_to_judge_it_against() {
-        val gate = MedianOutlierGate(windowSamples = 5, threshold = 1.0)
+        val gate = MedianOutlierGate(windowSamples = 5, threshold = 1.0, readmitSamples = 3)
         assertEquals(1000.0, gate.accept(1000.0))
     }
 
     /**
-     * A rejected sample must not join the evidence, or a sustained excursion
-     * would gradually talk the gate into accepting it - the gate would follow the
-     * very thing it exists to reject.
+     * A rejected sample on its own is not evidence: it does not move the median
+     * that judges the next one, so a spike cannot talk the gate into following
+     * it. Only a run of rejected samples that agree with one another can - see
+     * the re-admission tests below.
+     *
+     * Rewritten in DECISIONS.md P3-17. This test used to assert that a sustained
+     * excursion stayed rejected for ten frames, and so pinned the very lock-out
+     * P3-16 flagged: a real change of more than the threshold was refused for the
+     * rest of the set. The owner directed that it be fixed.
      */
     @Test
-    fun a_rejected_sample_does_not_become_evidence_for_the_next_one() {
-        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0)
+    fun a_rejected_sample_is_not_evidence_until_a_run_of_them_agrees() {
+        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0, readmitSamples = 3)
         for (value in listOf(90.0, 90.0, 90.0, 90.0, 90.0)) gate.accept(value)
-        repeat(10) {
-            assertFalse(
-                Geometry.isMeasured(gate.accept(300.0)),
-                "the gate started accepting a sustained excursion",
-            )
+        assertFalse(Geometry.isMeasured(gate.accept(300.0)), "a one-frame excursion was accepted")
+        assertFalse(Geometry.isMeasured(gate.accept(300.0)), "a two-frame excursion was accepted")
+        assertEquals(300.0, gate.accept(300.0), "a sustained, consistent change was never re-admitted")
+    }
+
+    // --- Re-admission of a sustained change - DECISIONS.md P3-17 ------------------
+
+    @Test
+    fun a_sustained_change_beyond_the_threshold_is_readmitted_after_a_short_consistent_run() {
+        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0, readmitSamples = 3)
+        repeat(5) { gate.accept(90.0) }
+
+        // A plank that drops 28 degrees in one frame and stays there.
+        val seen = (0 until 10).map { gate.accept(if (it % 2 == 0) 62.0 else 61.0) }
+
+        assertTrue(seen[0].isNaN() && seen[1].isNaN(), "the first two frames of the change should be withheld")
+        assertEquals(62.0, seen[2], "the third consistent frame should be re-admitted")
+        assertTrue(seen.drop(2).none { it.isNaN() }, "the new level was rejected after re-admission: $seen")
+    }
+
+    @Test
+    fun one_frame_spikes_are_still_rejected_however_many_there_are() {
+        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0, readmitSamples = 3)
+        repeat(5) { gate.accept(90.0) }
+        repeat(50) {
+            assertFalse(Geometry.isMeasured(gate.accept(300.0)), "a spike was accepted")
+            assertEquals(90.0, gate.accept(90.0), "the true signal was rejected after a spike")
+        }
+    }
+
+    @Test
+    fun a_burst_shorter_than_the_run_is_rejected_whole() {
+        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0, readmitSamples = 3)
+        repeat(5) { gate.accept(90.0) }
+        assertFalse(Geometry.isMeasured(gate.accept(300.0)))
+        assertFalse(Geometry.isMeasured(gate.accept(301.0)))
+        assertEquals(90.0, gate.accept(90.0), "the true signal was rejected after a two-frame burst")
+        // The accepted sample ended the run; one more wild frame starts afresh.
+        assertFalse(Geometry.isMeasured(gate.accept(300.0)), "a burst was re-admitted across an accepted sample")
+    }
+
+    /** Wild values that disagree with each other are noise, not a new level. */
+    @Test
+    fun rejections_that_disagree_with_each_other_never_add_up_to_a_readmission() {
+        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0, readmitSamples = 3)
+        repeat(5) { gate.accept(90.0) }
+        repeat(30) {
+            assertFalse(Geometry.isMeasured(gate.accept(if (it % 2 == 0) 300.0 else 10.0)))
+        }
+    }
+
+    /** A run is consecutive measured frames; an unmeasured one breaks it. */
+    @Test
+    fun a_gap_restarts_the_run() {
+        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0, readmitSamples = 3)
+        repeat(5) { gate.accept(90.0) }
+        assertFalse(Geometry.isMeasured(gate.accept(130.0)))
+        assertFalse(Geometry.isMeasured(gate.accept(130.0)))
+        assertFalse(Geometry.isMeasured(gate.accept(Double.NaN)))
+        assertFalse(Geometry.isMeasured(gate.accept(130.0)), "a run was carried across a gap")
+        assertFalse(Geometry.isMeasured(gate.accept(130.0)))
+        assertEquals(130.0, gate.accept(130.0))
+    }
+
+    /** After re-admission the new level is what a spike is judged against. */
+    @Test
+    fun after_readmission_the_new_level_is_the_evidence() {
+        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0, readmitSamples = 3)
+        repeat(5) { gate.accept(90.0) }
+        repeat(3) { gate.accept(130.0) }
+        assertFalse(Geometry.isMeasured(gate.accept(90.0)), "a jump back to the old level is a spike now")
+        assertEquals(131.0, gate.accept(131.0))
+    }
+
+    @Test
+    fun a_run_of_one_would_readmit_every_spike_so_it_is_refused() {
+        assertFailsWith<IllegalArgumentException> {
+            MedianOutlierGate(windowSamples = 5, threshold = 20.0, readmitSamples = 1)
+        }
+        assertFailsWith<IllegalArgumentException> {
+            MedianOutlierGate(windowSamples = 5, threshold = 20.0, readmitSamples = 6)
         }
     }
 
     @Test
     fun a_gap_passes_through_the_gate_without_diluting_the_median() {
-        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0)
+        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0, readmitSamples = 3)
         for (value in listOf(90.0, 90.0, 90.0)) gate.accept(value)
         assertFalse(Geometry.isMeasured(gate.accept(Double.NaN)))
         // The median is still 90, so a spike is still a spike.
@@ -126,7 +208,7 @@ class TemporalPipelineTest {
 
     @Test
     fun the_gate_never_looks_beyond_its_window() {
-        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0)
+        val gate = MedianOutlierGate(windowSamples = 5, threshold = 20.0, readmitSamples = 3)
         repeat(10_000) { step ->
             gate.accept(90.0 + (step % 3))
             assertTrue(

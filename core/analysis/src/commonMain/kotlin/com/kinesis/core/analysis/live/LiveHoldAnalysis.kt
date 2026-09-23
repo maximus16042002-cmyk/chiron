@@ -54,6 +54,15 @@ class LiveHoldAnalysis(
 
     val heldMs: Double get() = analyser.heldMs
 
+    /**
+     * Each side's angle on the last frame, before filtering - the value the
+     * outlier gate judges. Diagnostic only; nothing holds or judges from it.
+     */
+    var rawAngleLeft: Double = Double.NaN
+        private set
+    var rawAngleRight: Double = Double.NaN
+        private set
+
     fun onFrame(timestampMs: Double, landmarks: Landmarks) {
         frameValidity = if (!LandmarkNormalizer.hasMeasurableTorso(landmarks)) {
             FrameValidity.INVALID
@@ -61,6 +70,8 @@ class LiveHoldAnalysis(
             ValidityGate.evaluate(landmarks, profile.requiredLandmarks, policy)
         }
         val angle = JointAngles.compute(landmarks, spec.joint, spec.plane, policy)
+        rawAngleLeft = angle.left
+        rawAngleRight = angle.right
         val filtered = BilateralSignal(
             left = leftPipeline.push(timestampMs, angle.left),
             right = rightPipeline.push(timestampMs, angle.right),
@@ -71,6 +82,8 @@ class LiveHoldAnalysis(
     /** A frame in which the pose estimator found nobody: unseen, not broken. */
     fun onNothingSeen(timestampMs: Double) {
         frameValidity = FrameValidity.INVALID
+        rawAngleLeft = Double.NaN
+        rawAngleRight = Double.NaN
         leftPipeline.push(timestampMs, Double.NaN)
         rightPipeline.push(timestampMs, Double.NaN)
         analyser.step(timestampMs, Double.NaN)

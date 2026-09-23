@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.kinesis.core.analysis.history.Dashboard
 import com.kinesis.core.analysis.history.DashboardSummary
@@ -47,7 +48,9 @@ import com.kinesis.sync.FirestoreSessionStore
 import com.kinesis.sync.SessionMerge
 import com.kinesis.sync.SyncingSessionRepository
 import com.kinesis.sync.WorkManagerSyncQueue
+import com.kinesis.licenses.ThirdPartyNotices
 import com.kinesis.ui.live.LiveDestination
+import com.kinesis.ui.screens.LicencesScreen
 import com.kinesis.ui.screens.AuthScreen
 import com.kinesis.ui.screens.DashboardScreen
 import com.kinesis.ui.screens.ExerciseSelectionScreen
@@ -55,6 +58,7 @@ import com.kinesis.ui.theme.KinesisTheme
 import com.kinesis.ui.theme.PhosphorFaint
 import com.kinesis.ui.theme.PhosphorGreen
 import kotlinx.coroutines.launch
+import java.io.IOException
 
 /**
  * The app shell - DECISIONS.md P3-12.
@@ -168,6 +172,7 @@ private sealed interface Destination {
     data object Dashboard : Destination
     data object Select : Destination
     data class Live(val profile: ExerciseProfile) : Destination
+    data object Licences : Destination
 }
 
 @Composable
@@ -214,7 +219,21 @@ private fun KinesisApp(
                 onRequestHealthAccess = requestPermissions?.let {
                     { it(ActivityContextPermissions.ALL) }
                 },
+                onOpenLicences = { destination = Destination.Licences },
             )
+
+            Destination.Licences -> {
+                val appContext = LocalContext.current.applicationContext
+                val licence = remember {
+                    try {
+                        appContext.assets.open(ThirdPartyNotices.APACHE_LICENSE_ASSET)
+                            .bufferedReader().use { it.readText() }
+                    } catch (error: IOException) {
+                        null
+                    }
+                }
+                LicencesScreen(apacheLicenceText = licence)
+            }
 
             Destination.Select -> ExerciseSelectionScreen(
                 onSelect = { destination = Destination.Live(it) },
@@ -254,7 +273,7 @@ private fun NavBar(
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         NavItem("HISTORY", destination is Destination.Dashboard, onDashboard)
-        NavItem("TRAIN", destination !is Destination.Dashboard, onSelect)
+        NavItem("TRAIN", destination is Destination.Select || destination is Destination.Live, onSelect)
         Spacer(Modifier.weight(1f))
         // The signed-in address stays visible. A user should never have to
         // wonder which account their training is going to.

@@ -41,12 +41,12 @@ class SkeletonOverlayView @JvmOverloads constructor(
 ) : View(context, attrs), SkeletonSink {
 
     /**
-     * Draw x reflected, for a mirrored preview - DECISIONS.md P3-15.
+     * Draw x reflected, for a mirrored preview - DECISIONS.md P3-15 and P3-17.
      *
-     * Landmarks arrive anatomical, with x back in unmirrored image coordinates
-     * (`PoseAdapter` reflected it). The front-camera preview is shown mirrored,
-     * so without this the skeleton would be drawn on the wrong side of the
-     * user's body. Drawing only: no landmark and no measurement changes.
+     * Landmarks arrive anatomical, with x in unmirrored image coordinates
+     * whichever camera took them. The front-camera preview is shown mirrored and
+     * the back camera's is not, so this follows `LiveCamera.previewIsMirrored`.
+     * Drawing only: no landmark and no measurement changes.
      */
     var displayMirrored: Boolean = false
 
@@ -146,18 +146,11 @@ class SkeletonOverlayView @JvmOverloads constructor(
         if (overallState.pulses) postInvalidateOnAnimation()
     }
 
-    /*
-     * Landmarks arrive with both axes in frame widths (DECISIONS.md P3-16), so
-     * both scale by the view's width. The live screen sizes this view to the
-     * analysis frame's shape, which is what makes that land on the preview.
-     */
-    private fun screenX(landmarks: Landmarks, id: LandmarkId, width: Float): Float {
-        val x = landmarks.x(id).toFloat()
-        return (if (displayMirrored) 1f - x else x) * width
-    }
+    private fun screenX(landmarks: Landmarks, id: LandmarkId, width: Float): Float =
+        OverlayGeometry.screenX(landmarks.x(id), displayMirrored, width)
 
     private fun screenY(landmarks: Landmarks, id: LandmarkId, width: Float): Float =
-        landmarks.y(id).toFloat() * width
+        OverlayGeometry.screenY(landmarks.y(id), width)
 
     // --- Which state a joint is drawn in ------------------------------------------
 

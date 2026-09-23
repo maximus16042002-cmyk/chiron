@@ -29,6 +29,7 @@ import com.kinesis.camera.rememberCameraPermissionLauncher
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.domain.profile.ExerciseProfile
+import com.kinesis.diagnostics.phaseBProbeOrNull
 import com.kinesis.pose.CameraFacing
 import com.kinesis.storage.SessionRepository
 import com.kinesis.storage.utcOffsetMinutesAt
@@ -108,6 +109,12 @@ private class LiveEnvironment(
 @Composable
 private fun LiveCameraGate(profile: ExerciseProfile, env: LiveEnvironment) {
     val context = LocalContext.current
+    // Front by default, so the user can see themselves; the back camera is one
+    // tap away. DECISIONS.md P3-17.
+    var facing by remember { mutableStateOf(CameraFacing.FRONT) }
+    val switchCamera = {
+        facing = if (facing == CameraFacing.FRONT) CameraFacing.BACK else CameraFacing.FRONT
+    }
     var permitted by remember { mutableStateOf(hasCameraPermission(context)) }
     var refused by remember { mutableStateOf(false) }
     val request = rememberCameraPermissionLauncher { granted ->
@@ -130,42 +137,83 @@ private fun LiveCameraGate(profile: ExerciseProfile, env: LiveEnvironment) {
     }
 
     when (profile) {
-        is RepetitionExercise -> LiveRepetitionSession(profile, env)
-        is IsometricExercise -> LiveHoldSession(profile, env)
+        is RepetitionExercise -> LiveRepetitionSession(profile, env, facing, switchCamera)
+        is IsometricExercise -> LiveHoldSession(profile, env, facing, switchCamera)
     }
 }
 
+/*
+ * Both sessions key their engine on the facing as well as the profile, so
+ * switching camera is a new set - see LiveCameraSession for why.
+ */
+
 @Composable
-private fun LiveRepetitionSession(profile: RepetitionExercise, env: LiveEnvironment) {
+private fun LiveRepetitionSession(
+    profile: RepetitionExercise,
+    env: LiveEnvironment,
+    facing: CameraFacing,
+    onSwitchCamera: () -> Unit,
+) {
     val overlay = rememberOverlay()
     val main = rememberMainExecutor()
     // The bridge publishes on MediaPipe's thread; Compose state is set on main.
-    val published = remember(profile) { mutableStateOf<LiveUiState?>(null) }
-    val bridge = remember(profile) {
+    val published = remember(profile, facing) { mutableStateOf<LiveUiState?>(null) }
+    val bridge = remember(profile, facing) {
         LiveAnalysisBridge(profile.id) { state -> main.execute { published.value = state } }
     }
-    val engine = remember(profile) { LiveRepetitionEngine(profile, bridge, overlay) }
+    val diagnostics = remember(profile, facing) { mutableStateOf<String?>(null) }
+    val engine = remember(profile, facing) {
+        val probe = phaseBProbeOrNull(profile.requiredLandmarks, facing) { line ->
+            main.execute { diagnostics.value = line }
+        }
+        LiveRepetitionEngine(profile, bridge, overlay, probe = probe)
+    }
 
-    LiveCameraSession(profile, engine, overlay, env) { preview, onEndSet ->
-        LiveAnalysisScreen(published.value ?: bridge.state, preview, overlay, onEndSet)
+    LiveCameraSession(profile, engine, overlay, env, facing, onSwitchCamera) { preview, onEndSet ->
+        LiveAnalysisScreen(
+            published.value ?: bridge.state, preview, overlay, onEndSet, switchCameraLabel(facing), onSwitchCamera,
+            diagnostics = diagnostics.value,
+        )
     }
 }
 
 /** Plank, Wall Sit, Side Plank - through HoldAnalyser, never the repetition tracker. */
 @Composable
-private fun LiveHoldSession(profile: IsometricExercise, env: LiveEnvironment) {
+private fun LiveHoldSession(
+    profile: IsometricExercise,
+    env: LiveEnvironment,
+    facing: CameraFacing,
+    onSwitchCamera: () -> Unit,
+) {
     val overlay = rememberOverlay()
     val main = rememberMainExecutor()
-    val published = remember(profile) { mutableStateOf<LiveHoldUiState?>(null) }
-    val bridge = remember(profile) {
+    val published = remember(profile, facing) { mutableStateOf<LiveHoldUiState?>(null) }
+    val bridge = remember(profile, facing) {
         LiveHoldBridge(profile.id) { state -> main.execute { published.value = state } }
     }
-    val engine = remember(profile) { LiveHoldEngine(profile, bridge, overlay) }
+    val diagnostics = remember(profile, facing) { mutableStateOf<String?>(null) }
+    val engine = remember(profile, facing) {
+        val probe = phaseBProbeOrNull(profile.requiredLandmarks, facing) { line ->
+            main.execute { diagnostics.value = line }
+        }
+        LiveHoldEngine(profile, bridge, overlay, probe = probe)
+    }
 
-    LiveCameraSession(profile, engine, overlay, env) { preview, onEndSet ->
-        LiveHoldScreen(published.value ?: bridge.state, preview, overlay, onEndSet)
+    LiveCameraSession(profile, engine, overlay, env, facing, onSwitchCamera) { preview, onEndSet ->
+        LiveHoldScreen(
+            published.value ?: bridge.state, preview, overlay, onEndSet, switchCameraLabel(facing), onSwitchCamera,
+            diagnostics = diagnostics.value,
+        )
     }
 }
+
+/** The action, not the state: what tapping it switches to. */
+private fun switchCameraLabel(facing: CameraFacing): String = when (facing) {
+    CameraFacing.FRONT -> "BACK CAMERA"
+    CameraFacing.BACK -> "FRONT CAMERA"
+}
+
+private class LiveFailure(val headline: String, val detail: String, val offersCameraSwitch: Boolean)
 
 /**
  * The running pipeline: camera -> MediaPipe -> PoseAdapter -> shared-core
@@ -173,6 +221,16 @@ private fun LiveHoldSession(profile: IsometricExercise, env: LiveEnvironment) {
  *
  * A set ends by the end-set control or by leaving the screen, whichever comes
  * first; both go through the same [LiveSetSaver], so a set is written once.
+ *
+ * ### Switching camera is a new set - DECISIONS.md P3-17
+ *
+ * [engine] is keyed on [facing], so switching replaces it: the set in progress
+ * ends exactly as it does on leaving the screen - saved if anyone was seen, an
+ * unfinished repetition recorded as incomplete - and a new one starts. Two
+ * reasons. A set seen from two viewpoints with a gap between is not one
+ * measurement. And Camera2 does not promise that two camera devices' frame
+ * timestamps share a clock (where it reports the timestamp source as unknown,
+ * they cannot be compared), so one set's timing cannot safely span both.
  */
 @Composable
 private fun LiveCameraSession(
@@ -180,6 +238,8 @@ private fun LiveCameraSession(
     engine: LiveEngine,
     overlay: SkeletonOverlayView,
     env: LiveEnvironment,
+    facing: CameraFacing,
+    onSwitchCamera: () -> Unit,
     screen: @Composable (preview: PreviewView, onEndSet: () -> Unit) -> Unit,
 ) {
     val context = LocalContext.current
@@ -210,24 +270,31 @@ private fun LiveCameraSession(
         )
     }
     var ending by remember(engine) { mutableStateOf(false) }
-    var failure: Pair<String, String>? by remember(engine) { mutableStateOf(null) }
+    var failure: LiveFailure? by remember(engine) { mutableStateOf(null) }
 
-    // Leaving the screen ends the set too. Returns the same write if the
-    // end-set control already started it.
+    // Leaving the screen - or switching camera, which replaces the engine - ends
+    // the set too. Returns the same write if the end-set control already started it.
     DisposableEffect(saver) { onDispose { saver.endSet() } }
 
     if (ending) {
         LaunchedEffect(saver) {
             when (val outcome = saver.endSet().await()) {
                 SetSaveOutcome.Saved, SetSaveOutcome.NothingToSave -> env.onSetEnded()
-                is SetSaveOutcome.Failed -> failure = "SET NOT SAVED" to outcome.reason
+                is SetSaveOutcome.Failed -> failure = LiveFailure("SET NOT SAVED", outcome.reason, false)
             }
         }
     }
 
     val shown = failure
     when {
-        shown != null -> LiveUnavailableScreen(profile.id, shown.first, shown.second)
+        // A camera that cannot be used offers the other one; nothing else does.
+        shown != null -> LiveUnavailableScreen(
+            exerciseId = profile.id,
+            headline = shown.headline,
+            detail = shown.detail,
+            action = if (shown.offersCameraSwitch) switchCameraLabel(facing) else null,
+            onAction = if (shown.offersCameraSwitch) onSwitchCamera else null,
+        )
 
         ending -> LiveUnavailableScreen(
             exerciseId = profile.id,
@@ -242,22 +309,36 @@ private fun LiveCameraSession(
         )
 
         else -> {
-            DisposableEffect(engine, env.modelAssetPath, lifecycleOwner) {
+            DisposableEffect(engine, facing, env.modelAssetPath, lifecycleOwner) {
+                // The skeleton follows the preview: mirrored for the front camera,
+                // as-is for the back. The last camera's figure is cleared.
+                overlay.displayMirrored = LiveCamera.previewIsMirrored(facing)
+                overlay.clear()
                 val camera = try {
+                    // The facing is given once, here; LiveCamera reads it back from
+                    // the source, so the camera, the mirroring and the adapter agree.
                     val source = PoseLandmarkerSource(
-                        context, env.modelAssetPath, CameraFacing.FRONT, engine::onLandmarks, engine::onNoPose,
+                        context, env.modelAssetPath, facing, engine::onLandmarks, engine::onNoPose,
                     )
                     LiveCamera(context, source) { reason ->
-                        failure = "LIVE ANALYSIS UNAVAILABLE" to reason + ". Nothing is being measured."
+                        failure = LiveFailure(
+                            "LIVE ANALYSIS UNAVAILABLE", reason + ". Nothing is being measured.", offersCameraSwitch = true,
+                        )
                     }
                 } catch (error: MediaPipeException) {
-                    failure = "LIVE ANALYSIS UNAVAILABLE" to
-                        "the pose model could not be loaded: " + error.message + ". Nothing is being measured."
+                    failure = LiveFailure(
+                        "LIVE ANALYSIS UNAVAILABLE",
+                        "the pose model could not be loaded: " + error.message + ". Nothing is being measured.",
+                        offersCameraSwitch = false,
+                    )
                     null
                 } catch (error: UnsatisfiedLinkError) {
                     // MediaPipe ships arm64-v8a, armeabi-v7a and x86 only - P3-15.
-                    failure = "LIVE ANALYSIS UNAVAILABLE" to
-                        "MediaPipe has no native library for this device's processor. Nothing is being measured."
+                    failure = LiveFailure(
+                        "LIVE ANALYSIS UNAVAILABLE",
+                        "MediaPipe has no native library for this device's processor. Nothing is being measured.",
+                        offersCameraSwitch = false,
+                    )
                     null
                 }
                 camera?.bind(lifecycleOwner, preview, view.display?.rotation ?: Surface.ROTATION_0)
@@ -299,7 +380,8 @@ private tailrec fun Context.findActivity(): Activity? = when (this) {
 @Composable
 private fun rememberOverlay(): SkeletonOverlayView {
     val context = LocalContext.current
-    return remember { SkeletonOverlayView(context).apply { displayMirrored = true } }
+    // Mirroring is set per camera when the camera starts - LiveCameraSession.
+    return remember { SkeletonOverlayView(context) }
 }
 
 @Composable

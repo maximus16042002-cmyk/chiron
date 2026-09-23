@@ -178,6 +178,7 @@ class FilterAblationTest {
         val gate = MedianOutlierGate(
             windowSamples = TemporalConfig.PROVISIONAL.outlierWindowSamples,
             threshold = TemporalConfig.PROVISIONAL.outlierThreshold,
+            readmitSamples = TemporalConfig.PROVISIONAL.outlierReadmitSamples,
         )
         var accepted = 0
         for (frame in 0 until FRAMES) {

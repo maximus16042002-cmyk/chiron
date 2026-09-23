@@ -4,6 +4,7 @@ import com.kinesis.core.analysis.live.LiveHoldAnalysis
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
+import com.kinesis.diagnostics.PhaseBProbe
 import com.kinesis.storage.SessionRecorder
 
 /**
@@ -18,6 +19,8 @@ class LiveHoldEngine(
     private val bridge: LiveHoldBridge,
     private val skeleton: SkeletonSink,
     policy: VisibilityPolicy = VisibilityPolicy.PROVISIONAL,
+    /** Debug builds' Phase B readout; `null` in release. DECISIONS.md P3-17. */
+    private val probe: PhaseBProbe? = null,
 ) : LiveEngine {
 
     private val analysis = LiveHoldAnalysis(profile, policy)
@@ -32,6 +35,7 @@ class LiveHoldEngine(
         analysis.onFrame(timestampMs.toDouble(), landmarks)
         publish()
         skeleton.submit(landmarks, bridge.state.overlayState, analysis.policy)
+        probe?.onFrame(timestampMs, landmarks, analysis.rawAngleLeft, analysis.rawAngleRight)
     }
 
     @Synchronized
@@ -40,6 +44,7 @@ class LiveHoldEngine(
         analysis.onNothingSeen(timestampMs.toDouble())
         publish()
         skeleton.clear()
+        probe?.onNoPose(timestampMs)
     }
 
     @Synchronized

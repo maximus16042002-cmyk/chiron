@@ -5,6 +5,7 @@ import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
 import com.kinesis.core.domain.rep.RepRecord
+import com.kinesis.diagnostics.PhaseBProbe
 import com.kinesis.storage.SessionRecorder
 
 /**
@@ -27,6 +28,8 @@ class LiveRepetitionEngine(
     private val bridge: LiveAnalysisBridge,
     private val skeleton: SkeletonSink,
     policy: VisibilityPolicy = VisibilityPolicy.PROVISIONAL,
+    /** Debug builds' Phase B readout; `null` in release. DECISIONS.md P3-17. */
+    private val probe: PhaseBProbe? = null,
 ) : LiveEngine {
 
     private val reps = ArrayList<RepRecord>()
@@ -44,6 +47,7 @@ class LiveRepetitionEngine(
         analysis.onFrame(lastTimestampMs, landmarks)
         publish()
         skeleton.submit(landmarks, bridge.state.overlayState, analysis.policy)
+        probe?.onFrame(timestampMs, landmarks, analysis.rawAngleLeft, analysis.rawAngleRight)
     }
 
     @Synchronized
@@ -53,6 +57,7 @@ class LiveRepetitionEngine(
         analysis.onNothingSeen(lastTimestampMs)
         publish()
         skeleton.clear()
+        probe?.onNoPose(timestampMs)
     }
 
     @Synchronized

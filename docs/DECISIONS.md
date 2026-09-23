@@ -2814,6 +2814,13 @@ So nothing is currently shipped under unverified terms. **Before the model is
 distributed with a build, its model card must be read and its terms recorded
 here.** That is an action for the project owner and it is listed in Phase B.
 
+**Closed, 2026-09-23 — read and recorded in P3-17.** The owner supplied the
+model card (`docs/third_party/Model_Card_BlazePose_GHUM_3D.pdf`, dated
+2021-04-16). It was read in full: the model is licensed under the **Apache
+License, Version 2.0**. What that permits and requires, and the card's own
+limits, are in P3-17. The model file and the card are now committed, and the
+app carries an in-app licences screen with the licence text.
+
 **Bundle — measured, and it is large.** Release APK **8,028,443 → 53,419,223
 bytes, +45,390,780 (+565%)**. Essentially all of it is one native library
 shipped per ABI:
@@ -3718,6 +3725,321 @@ reductions, a structural alignment, a save path and four defects fixed —
 aspect, `NaN` visibility, the unfinished-pair validity and daylight saving —
 plus one risk flagged. It makes no claim about anything a camera, a model or a
 person would show.
+
+---
+
+## P3-17 — Either camera, the model's licence, a gate that re-admits, and a Phase B readout
+
+*2026-09-23*
+
+Four items at the owner's direction, in their order. P3-16's work is untouched;
+before starting, the tree was checked against `1e5431e` and only this batch's
+files differed. **Nothing here has run on a device.**
+
+### Front or back camera
+
+The live screen has a camera switch in the camera area's corner. **Front stays
+the default.**
+
+- **One source of truth.** `LiveCamera` reads the facing from the
+  `PoseLandmarkerSource` it is given, never from a second parameter. The camera
+  it opens, whether it mirrors the frame, and what `PoseAdapter` is told are
+  therefore one decision and cannot disagree.
+- **Back camera: no mirroring anywhere.** The frame is not flipped before
+  MediaPipe, the adapter is told `BACK` and undoes nothing, and the overlay is
+  drawn unmirrored. The front path is unchanged from P3-15: flipped before the
+  model so P1-5's premise holds, unmirrored by the adapter, and drawn mirrored
+  over a mirrored preview.
+- **The overlay follows the preview.** `LiveCamera.previewIsMirrored` states
+  CameraX's behaviour — it mirrors the front preview and not the back — as a
+  claim to check on the device, not a choice made here.
+  `LiveCamera.mirrorsAnalysisFrame` is our choice. They are two different facts
+  and are kept as two named functions, even though today they give the same
+  answer.
+- **Switching mid-set ends the set.** The engine is keyed on the facing, so
+  switching replaces it. The set in progress ends through the existing
+  `LiveSetSaver`, exactly as leaving the screen ends it: saved if anyone was
+  seen, with an unfinished repetition as `INCOMPLETE`. A new set starts. Two
+  reasons. A set seen from two viewpoints with a gap between is not one
+  measurement. And Camera2 does not promise that two camera devices' frame
+  timestamps share a clock, so one set's timing cannot safely span both.
+- A camera that fails to bind offers the other one. Nothing else offers it.
+
+**`CameraFacingParityTest`** is a new permanent guard beside
+`MirroringRegressionTest`. It stages one physical pose — left arm raised, so a
+swap shows as a wrong height and not only a wrong x. It runs that pose through
+each facing's real capture decision, a simulated model that labels from the
+image it is given (P1-5's premise, stated), and the real adapter. Both cameras
+give the same anatomical left and right, and both match the pose. It also shows
+the skeleton landing where the preview shows each body part for both cameras,
+and that a capture decision disagreeing with the adapter is detected.
+
+**Not unit-tested:** that switching actually replaces the set. That is Compose
+keying and is left for Phase B.
+
+### The pose model's licence, read and recorded
+
+The owner supplied `docs/third_party/Model_Card_BlazePose_GHUM_3D.pdf`. It was
+read in full. It covers the MediaPipe BlazePose GHUM 3D models, by Valentin
+Bazarevsky, Ivan Grishchenko and Eduard Gabriel Bazavan of Google. The card is
+dated **16 April 2021** and the models are **licensed under the Apache License,
+Version 2.0**. P3-13's item is closed.
+
+**What Apache 2.0 permits:** use, reproduction, modification and distribution,
+in source or object form, including commercially, with the right to sublicense.
+It also gives a patent licence from each contributor, which ends for anyone who
+sues claiming the work infringes a patent (§§2–3).
+
+**What it requires of a redistributor (§4):** give recipients a copy of the
+licence; keep the copyright, patent, trademark and attribution notices; mark any
+modified files; and, if the work includes a NOTICE file, reproduce its
+attributions. It grants no trademark rights (§6), and the work comes as is, with
+no warranty or liability (§§7–8).
+
+**What Kinesis does about it:**
+
+- It ships `pose_landmarker_lite.task` **unmodified**.
+- The file holds two `.tflite` models and no NOTICE, and MediaPipe's AARs carry
+  none either, so §4(d) does not apply.
+- A new **in-app licences screen**, linked from the history dashboard, shows the
+  model's notice: name, authors, card date, licence, "distributed unmodified",
+  and the card's own statement that it is not intended for life-critical
+  decisions.
+- The same screen shows the **full Apache 2.0 text**, shipped as an asset. It was
+  copied byte for byte from Android Studio's canonical `LICENSE.txt` rather than
+  retyped.
+- No new dependency. `ThirdPartyNoticesTest` fails if a model in `assets/` is not
+  named in the notice, or if the shipped licence text is incomplete.
+
+**The card's own limits, recorded because they bear on this project:**
+
+- **Trained only on back-camera photos.** All training images were captured on
+  back-facing smartphone cameras, through an AR app, in real-world conditions.
+  The card reports 30K consented images, most of its 85K training images being
+  fitness poses. Its evaluation also used only back-camera photos. **The back
+  camera path is therefore the one closest to the model's documented
+  conditions.** The front path feeds a mirrored front-camera image, which the
+  card does not evaluate at all.
+- **Out of scope, in the card's words:** more than one person in the image;
+  people further than about 4 m (14 feet); the head not visible; applications
+  that need metric depth; and any surveillance or identity recognition. For
+  Phase B: one person in shot, head in frame, within 4 m.
+- **z is not metric.** It is "up to scale", obtained by fitting a synthetic
+  body model (GHUM) to 2D points. Every Kinesis profile measures in `IMAGE_2D`,
+  so z enters no measurement. Only `SPATIAL_3D` would use it, and no profile
+  does.
+- **Accuracy, as Google measured it.** PDJ, the percentage of correctly detected
+  keypoints (PCK@0.2 of torso diameter), averaged over 14 regions and 1,400
+  back-camera photos drawn from the same source as the training data:
+  **Lite 87.0%, Full 91.8%, Heavy 94.2%.** Kinesis ships Lite. **These are
+  Google's figures, on Google's data, under Google's conditions. They are not
+  Kinesis measurements, and they must never be quoted as Kinesis's accuracy** —
+  CLAUDE.md §22.
+- The card contradicts itself in one place. Its gender text gives Lite an
+  average of 83.7%, while its table gives 87.6%. Only the geographic averages,
+  where text and table agree, are quoted above.
+- The card states the model is "not intended for human life-critical
+  decisions", which is consistent with CLAUDE.md's "not a medical diagnostic
+  system".
+
+**The licences screen also lists the app's direct dependencies,** each with the
+licence read from its own POM. All are Apache 2.0 except Firebase
+Authentication, which is under the Android Software Development Kit License, as
+P3-14 recorded.
+
+**A correction to P3-13, found by reading the POMs.** `camera-core`'s POM
+declares two licences: Apache 2.0, and a **BSD licence for libyuv**, which it
+bundles. P3-13 recorded CameraX as Apache 2.0 only. A BSD licence requires its
+copyright notice and licence text to be reproduced in a binary distribution. The
+AAR bundles only the Apache text, and libyuv's text was not obtained here. It was
+deliberately not reproduced from memory or from a summarising fetch. **The
+libyuv notice is owed before a build is distributed.** The licences screen names
+the BSD licence but does not yet carry its text.
+
+The model file (5,777,746 bytes) and the card are now committed, as the owner
+directed.
+
+### The outlier gate re-admits a sustained change
+
+P3-16 flagged it: `MedianOutlierGate` never remembered a rejected sample, so any
+sustained change of more than 20° was rejected on every later frame, for the
+rest of the set.
+
+**The rule now:**
+
+- Rejected samples are held aside. Each rejected sample within the threshold of
+  the one before extends the run. A sample that disagrees, an accepted sample,
+  or an unmeasured frame ends it.
+- When the run reaches `outlierReadmitSamples`, the window is re-seeded with the
+  run and the completing sample is accepted.
+- That number is **3**, provisional: about 100 ms at 30 fps. It must be at least
+  2, so a one-frame spike can never re-admit itself, and it must fit in the
+  window.
+- Still allocation-free, with a fixed cost per sample.
+
+**The price:** the first two frames of a real sudden change are withheld, about
+67 ms at 30 fps.
+
+**The residual, stated.** A movement that stays faster than 20° per frame means
+each sample disagrees with the one before by more than the threshold, so no run
+forms. Such a movement is still dropped while it lasts, and a repetition under
+way ends as `INSUFFICIENT_DATA`. It is re-admitted within three frames of
+slowing down, where before it was never re-admitted. Whether real movements
+reach that speed at real frame rates is what the Phase B readout measures.
+
+**Tests first.** The new tests were written before the rule. Five failed first,
+against the old gate:
+
+- the four re-admission tests in `TemporalPipelineTest`;
+- a new hold-level test, `a_sudden_sag_that_stays_is_seen_as_a_break_after_a_short_run`
+  — the case P3-16 found, a 28° one-frame sag that stays.
+
+The spike, burst and disagreeing-values tests passed before and after. They guard
+against re-admitting too eagerly.
+
+**A P2 test was rewritten, on the owner's direction, and is recorded rather than
+quietly changed.** `a_rejected_sample_does_not_become_evidence_for_the_next_one`
+asserted that a sustained excursion stayed rejected for ten frames. It pinned the
+lock-out itself. It is now
+`a_rejected_sample_is_not_evidence_until_a_run_of_them_agrees`. It keeps what
+the original protected — one wild sample never moves the gate — and changes only
+the sustained case.
+
+**`FilterAblationTest` was re-run:** 6 of 6 pass on JVM and JS. Its spikes are
+single frames, one every 37 frames, so a run can never form against them.
+`the_gate_rejects_the_spikes_and_leaves_the_movement_alone` still requires the
+gate to reject exactly the injected spikes, no more and no fewer.
+
+### A flaky allocation guard, made reliable without loosening it
+
+The allocation-growth test added in P3-15 failed in full-suite runs. It read
+3.08 MB, and on a later run 2.74 MB, early, against 3.55 MB late, per 50,000
+frames. It passed three times out of three when run alone. Two causes:
+
+- **A flaw in the test as I wrote it in P3-15.** The harness runs an untimed pass
+  and then a timed pass, and both replayed the same frame numbers. The analysis
+  saw time jump back about 1,650 s at the start of every measured window.
+- **The JIT.** Running after other test classes, the JIT stopped eliminating
+  about 16 bytes of allocation per frame between the early and late windows.
+  That is a change in compiled code, not growth over the session.
+
+The fix:
+
+- the frame counter now only moves forward;
+- each point is the smallest of three windows;
+- the warm-up is long enough that both points see the settled JIT;
+- **the tolerance is unchanged.**
+
+Mutation A1 below, a history that grows and is copied as the session runs, is
+still caught.
+
+### The Phase B readout, debug builds only
+
+It shows four things:
+
+- the **frame rate sustained** over the last second, counting every result
+  MediaPipe delivered;
+- the **largest per-frame change** of either side's unfiltered angle over the
+  last second — the quantity the gate judges against its 20°. A frame with
+  nobody in it breaks the chain;
+- the **least and most visible** of the profile's required landmarks on the
+  latest frame;
+- the **active camera**.
+
+It appears in the camera area's corner and is logged once a second under the
+Logcat tag **`KinesisPhaseB`** (`adb logcat -s KinesisPhaseB`).
+
+- **Release builds do not contain it.** The interface is in `main`, the
+  implementation is in `src/debug`, and `src/release` has a twin that returns
+  `null`. Checked in the built artefacts: the release APK's dex contains no
+  `PhaseBStats`, `DebugPhaseBProbe` or `KinesisPhaseB`, and the debug APK
+  contains all three. `ReleaseHasNoPhaseBProbeTest` pins it in
+  `testReleaseUnitTest`.
+- **Zero allocation per frame.** 50,000 frames measure under 1 KB in total,
+  where one 16-byte object per frame would be 800,000 bytes. The JVM's counter is
+  reached by reflection, because `java.lang.management` is not on an Android
+  unit test's compile classpath. The reflective reads cost 40–128 bytes and vary
+  slightly, which is why the bound is a total rather than exactly zero. The
+  string is built once a second, never per frame.
+- **Nothing stored.**
+- The core now exposes each side's unfiltered angle on the last frame
+  (`rawAngleLeft`, `rawAngleRight`). They are two read-only values, not a
+  reduction, and are marked diagnostic; nothing counts or judges from them.
+
+### What "tested" means here
+
+`gradlew assemble allTests :app:testDebugUnitTest`: **BUILD SUCCESSFUL, 1,128
+test executions, 0 failures, 0 errors**, and 0 compiler warnings on a forced
+recompile of every Kotlin source set, the `debug` and `release` sets included.
+P3-16 stood at 1,078, so this batch adds 50:
+
+| Module and target | Before | After |
+|---|---|---|
+| `:core:analysis`, per shared target (JS and both Android variants) | 209 | 218 |
+| `:core:analysis`, JVM | 223 | 232 |
+| `:app`, debug unit tests | 96 | 110 |
+| `:core:domain`, per target | 33 | 33 |
+
+Separately, `:app:testReleaseUnitTest` — not part of the command above — runs
+105 tests with 0 failures. Its count differs from the debug run's because the
+probe's tests exist only for debug, and the release-only test only for release.
+
+**Eighteen mutations, each caught by the test written for it,** with every file
+restored and verified byte for byte afterwards:
+
+| Mutation | Caught by |
+|---|---|
+| Back-camera frame mirrored too | `CameraFacingParityTest` — three tests |
+| Front-camera frame not mirrored | `CameraFacingParityTest` — three tests |
+| Preview assumed never mirrored | `the_front_camera_is_mirrored_twice_and_the_back_not_at_all` |
+| Overlay ignores the mirror flag | `the_overlay_lands_on_the_preview_for_both_cameras` |
+| Adapter unmirrors the back camera | `CameraFacingParityTest` — three tests |
+| A sustained change never re-admitted | `TemporalPipelineTest` — three re-admission tests |
+| Re-admission ignores whether rejections agree | `rejections_that_disagree_with_each_other_never_add_up_to_a_readmission` |
+| An accepted sample does not end the run | the one-frame spike and short-burst tests |
+| A gap does not end the run | `a_gap_restarts_the_run` |
+| Re-admitted without re-seeding the window | `after_readmission_the_new_level_is_the_evidence` and one other |
+| The same, seen at hold level | `a_sudden_sag_that_stays_is_seen_as_a_break_after_a_short_run` |
+| Live analysis grows with the session | `live_repetition_analysis_allocation_does_not_grow_as_the_session_runs` |
+| Notice names a model that does not ship | `every_pose_model_shipped_in_assets_is_named_in_the_model_notice` |
+| Shipped licence text truncated | `the_apache_licence_shipped_is_the_complete_text` |
+| Probe window never expires | `the_largest_angle_change_is_the_worst_side_over_the_last_second` |
+| A gap does not break the probe's change chain | `a_frame_with_nobody_in_it_breaks_the_change_chain` |
+| Probe allocates per frame | `a_frame_allocates_nothing` |
+| Probe publishes every frame | `the_readout_is_published_about_once_a_second_and_names_the_camera` |
+
+**Tests-first, stated as it happened.** The gate's tests were written first and
+five failed first; the licence test was written before the notices; the probe's
+tests were written before its implementation. `CameraFacingParityTest` was
+written before the camera changes. The probe's zero-allocation test did not
+compile at first, because `java.lang.management` is not on an Android unit
+test's classpath. It was rewritten to reach the counter by reflection, and its
+first bound, exact equality with an empty-body baseline, was wrong: the
+reflective reads' own cost varies by tens of bytes. It was replaced by the
+under-1-KB bound above.
+
+### What is NOT verified — Phase B
+
+Everything in P3-15's and P3-16's lists still stands. Added:
+
+- **Both cameras, separately.** Raise the left arm and the left-side values must
+  move, once with the front camera and once with the back. They are different
+  code paths: the back path has no mirroring anywhere.
+- The skeleton on the body with each camera — which also tests the
+  `previewIsMirrored` claim about CameraX.
+- Switching mid-set: the first set is saved and a new one starts.
+- The model card's conditions: head in frame, within 4 m, one person. Compare the
+  front and back cameras at the same distance, since only the back matches the
+  model's training.
+- Real sudden changes are re-admitted, and the readout's largest per-frame
+  change against 20° shows whether fast movements are being dropped.
+- The readout itself: its frame rate against the device, and its Logcat output.
+
+**Scope of this entry.** It records a camera choice, a licence read and
+recorded, a correction to P3-13, one filter rule changed and one P2 test
+rewritten at the owner's direction, a test flaw fixed, and a debug-only
+instrument. It makes no accuracy claim of any kind. The PDJ figures above are
+Google's.
 
 ---
 

@@ -22,6 +22,13 @@ data class TemporalConfig(
     val outlierThreshold: Double,
 
     /**
+     * How many consecutive, mutually consistent rejected samples re-admit a
+     * sustained change beyond [outlierThreshold]. At least 2, so a one-frame
+     * spike can never re-admit itself. DECISIONS.md P3-17.
+     */
+    val outlierReadmitSamples: Int,
+
+    /**
      * EMA smoothing factor, in (0, 1]. 1.0 is no smoothing; lower is smoother
      * and laggier. Lag matters: it delays the frame on which a repetition is
      * detected.
@@ -52,6 +59,9 @@ data class TemporalConfig(
         require(outlierThreshold >= 0.0) {
             "outlierThreshold must be non-negative, got " + outlierThreshold
         }
+        require(outlierReadmitSamples in 2..outlierWindowSamples) {
+            "outlierReadmitSamples must be in 2.." + outlierWindowSamples + ", got " + outlierReadmitSamples
+        }
         require(smoothingAlpha > 0.0 && smoothingAlpha <= 1.0) {
             "smoothingAlpha must be in (0, 1], got " + smoothingAlpha
         }
@@ -81,6 +91,10 @@ data class TemporalConfig(
          *   movement.
          * - `outlierThreshold = 20.0` — degrees, the prototype's figure, itself
          *   unvalidated.
+         * - `outlierReadmitSamples = 3` — about 100 ms at 30 fps: long enough
+         *   that a one- or two-frame estimator failure is still rejected whole,
+         *   short enough that a real sudden change is seen within a tenth of a
+         *   second. Chosen, not measured - DECISIONS.md P3-17.
          * - `smoothingAlpha = 0.3` — the prototype's figure. Its own filter
          *   comparison printed results for 0.2 to 0.5 without concluding.
          * - `maxInterpolationGapMs = 300.0` — the prototype's figure, roughly nine
@@ -95,6 +109,7 @@ data class TemporalConfig(
         val PROVISIONAL: TemporalConfig = TemporalConfig(
             outlierWindowSamples = 5,
             outlierThreshold = 20.0,
+            outlierReadmitSamples = 3,
             smoothingAlpha = 0.3,
             maxInterpolationGapMs = 300.0,
             resampleLength = 64,

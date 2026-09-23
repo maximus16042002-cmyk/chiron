@@ -34,6 +34,8 @@ import com.kinesis.health.ActivityContextResult
 import com.kinesis.health.ContextUnavailable
 import com.kinesis.health.DailyMetric
 import com.kinesis.camera.LiveCamera
+import com.kinesis.licenses.ThirdPartyNotice
+import com.kinesis.licenses.ThirdPartyNotices
 import com.kinesis.ui.live.LiveHoldUiState
 import com.kinesis.ui.live.LiveUiState
 import com.kinesis.ui.live.SkeletonOverlayView
@@ -148,6 +150,7 @@ fun DashboardScreen(
     summary: DashboardSummary,
     context: ActivityContextResult?,
     onRequestHealthAccess: (() -> Unit)?,
+    onOpenLicences: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -226,7 +229,75 @@ fun DashboardScreen(
         }
 
         item { HealthContextPanel(context, onRequestHealthAccess) }
+        item {
+            Text(
+                "[ LICENCES ]",
+                style = MaterialTheme.typography.labelSmall,
+                color = PhosphorFaint,
+                modifier = Modifier
+                    .clickable(onClick = onOpenLicences)
+                    .padding(vertical = 12.dp),
+            )
+        }
         item { Spacer(Modifier.height(24.dp)) }
+    }
+}
+
+// --- Licences --------------------------------------------------------------------------
+
+/**
+ * The terms the app's third-party components ship under - DECISIONS.md P3-17.
+ *
+ * Static text from [ThirdPartyNotices] plus the full Apache License 2.0, read
+ * from the APK's assets by the caller. [apacheLicenceText] is `null` only if
+ * that asset could not be read, which is said rather than hidden.
+ */
+@Composable
+fun LicencesScreen(apacheLicenceText: String?, modifier: Modifier = Modifier) {
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item {
+            Text(
+                "LICENCES",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(top = 24.dp),
+            )
+        }
+        item { Text("POSE MODEL", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint) }
+        item { NoticeRow(ThirdPartyNotices.poseModel) }
+        item { Text("SOFTWARE", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint) }
+        items(ThirdPartyNotices.software) { NoticeRow(it) }
+        item { Text("APACHE LICENSE, VERSION 2.0", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint) }
+        item {
+            Text(
+                apacheLicenceText ?: "The licence text could not be read from the app's assets.",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (apacheLicenceText == null) Amber else PhosphorDim,
+            )
+        }
+        item { Spacer(Modifier.height(24.dp)) }
+    }
+}
+
+@Composable
+private fun NoticeRow(notice: ThirdPartyNotice) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .border(1.dp, PhosphorDim)
+            .background(VoidRaised)
+            .padding(14.dp),
+    ) {
+        Text(notice.component, style = MaterialTheme.typography.bodyMedium)
+        Text(notice.licence, style = MaterialTheme.typography.bodySmall, color = PhosphorGreen)
+        if (notice.detail.isNotEmpty()) {
+            Text(notice.detail, style = MaterialTheme.typography.bodySmall, color = PhosphorFaint)
+        }
     }
 }
 
@@ -339,9 +410,14 @@ fun LiveAnalysisScreen(
     preview: PreviewView,
     overlay: SkeletonOverlayView,
     onEndSet: () -> Unit,
+    switchCameraLabel: String,
+    onSwitchCamera: () -> Unit,
     modifier: Modifier = Modifier,
+    diagnostics: String? = null,
 ) {
-    LiveCameraLayout(state.exerciseId, preview, overlay, onEndSet, modifier) {
+    LiveCameraLayout(
+        state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
+    ) {
         Text(
             state.repCount.toString(),
             style = MaterialTheme.typography.displayLarge,
@@ -372,9 +448,14 @@ fun LiveHoldScreen(
     preview: PreviewView,
     overlay: SkeletonOverlayView,
     onEndSet: () -> Unit,
+    switchCameraLabel: String,
+    onSwitchCamera: () -> Unit,
     modifier: Modifier = Modifier,
+    diagnostics: String? = null,
 ) {
-    LiveCameraLayout(state.exerciseId, preview, overlay, onEndSet, modifier) {
+    LiveCameraLayout(
+        state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
+    ) {
         Text(
             (state.heldSeconds / 60).toString() + ":" + (state.heldSeconds % 60).toString().padStart(2, '0'),
             style = MaterialTheme.typography.displayLarge,
@@ -403,6 +484,10 @@ fun LiveHoldScreen(
  * without - with a preview scale type that does not crop. So the preview and
  * the overlay share exact bounds, and the overlay, drawing in frame widths,
  * lands on the body by construction rather than by luck. DECISIONS.md P3-16.
+ *
+ * The camera switch sits in the camera area's corner. Switching starts a new
+ * set - the one in progress is saved as leaving the screen would save it.
+ * DECISIONS.md P3-17.
  */
 @Composable
 private fun LiveCameraLayout(
@@ -410,6 +495,10 @@ private fun LiveCameraLayout(
     preview: PreviewView,
     overlay: SkeletonOverlayView,
     onEndSet: () -> Unit,
+    switchCameraLabel: String,
+    onSwitchCamera: () -> Unit,
+    /** Debug builds' Phase B readout, about once a second; always `null` in release. */
+    diagnostics: String?,
     modifier: Modifier,
     readout: @Composable ColumnScope.() -> Unit,
 ) {
@@ -434,6 +523,26 @@ private fun LiveCameraLayout(
                 color = PhosphorFaint,
                 modifier = Modifier.align(Alignment.TopStart).padding(16.dp),
             )
+            Text(
+                "[ $switchCameraLabel ]",
+                style = MaterialTheme.typography.labelSmall,
+                color = PhosphorGreen,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .clickable(onClick = onSwitchCamera)
+                    .padding(16.dp),
+            )
+            if (diagnostics != null) {
+                Text(
+                    diagnostics,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PhosphorFaint,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .background(VoidRaised)
+                        .padding(8.dp),
+                )
+            }
         }
 
         Column(

@@ -75,6 +75,10 @@ class LiveRepetitionAnalysis(
 
     val repCount: Int get() = tracker.repetitionCount
 
+    /** The last frame's unfiltered angle, per side. Diagnostic only - see the tracker. */
+    val rawAngleLeft: Double get() = tracker.rawAngleLeft
+    val rawAngleRight: Double get() = tracker.rawAngleRight
+
     /**
      * One phase for the readout, reduced from the two sides by a named rule.
      * Display only - see [BilateralPhase] for what this loses and why nothing

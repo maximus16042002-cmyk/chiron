@@ -42,7 +42,13 @@ import com.kinesis.pose.RawLandmarks
 class PoseLandmarkerSource(
     context: Context,
     private val modelAssetPath: String,
-    private val facing: CameraFacing,
+    /**
+     * The camera these frames come from. Public so `LiveCamera` takes its facing
+     * from here rather than being told separately: the camera it opens, whether
+     * it mirrors the frame, and what the adapter is told can then never disagree.
+     * DECISIONS.md P3-17.
+     */
+    val facing: CameraFacing,
     private val onLandmarks: (Landmarks, Long) -> Unit,
     /**
      * A frame in which no complete pose was found. Required, not defaulted: a

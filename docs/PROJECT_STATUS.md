@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
 *Snapshot updated 2026-09-23, from the repository as it stands at the end of
-DECISIONS.md P3-16. This file summarises. It is not an authority: where it
+DECISIONS.md P3-17. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date.*
 
@@ -79,11 +79,12 @@ past half; the thesis is well short of it.
 
 ### Test suite
 
-Last full run (DECISIONS.md P3-16): **1,078 test executions, 0 failures, 0
-errors**, via `gradlew assemble allTests :app:testDebugUnitTest` — core tests
-count once per target (JVM, JS, both Android variants), so this is executions,
-not distinct tests. `:app` holds 96 of them. Everything is synthetic: no test
-has seen a camera frame, a model or a device.
+Last full run (DECISIONS.md P3-17): **1,128 test executions, 0 failures, 0
+errors, 0 compiler warnings**, via `gradlew assemble allTests
+:app:testDebugUnitTest` — core tests count once per target (JVM, JS, both
+Android variants), so this is executions, not distinct tests. `:app` holds 110
+of them. Everything is synthetic: no test has seen a camera frame, a model or a
+device.
 
 ---
 
@@ -99,7 +100,8 @@ has seen a camera frame, a model or a device.
 | **Streaks** | Consecutive-day tracking over stored session timestamps, timezone-aware (DECISIONS.md P3-10). |
 | **Daily health context** | Steps, active calories and mean heart rate from Health Connect, read-only, shown *beside* Kinesis's own numbers. Every absence is named honestly — not installed, needs update, permission denied, device too old, read failed — with an in-app "grant access" button. |
 | **Cloud backup/sync** | Completed sessions sync to Firestore under the user's account. Local save always happens first; upload is scheduled afterwards by WorkManager and retried with backoff, so training is never lost to a bad connection. Merge on sign-in pulls history to a new device before the dashboard appears. |
-| **Live analysis screen** | Front-camera preview with the skeleton drawn over it, portrait only. Repetition exercises show rep count, movement phase and tracking state; holds (plank, wall sit, side plank) show time held, hold state and tracking state. **[ END SET ]**, or leaving the screen, finishes the set — an unfinished repetition is recorded as incomplete — and saves it locally, then to sync. Missing model, refused camera permission and an unsuitable camera are each shown as themselves. **Built and unit-tested; never run on a phone.** |
+| **Live analysis screen** | Camera preview with the skeleton drawn over it, portrait only, front camera by default with a switch to the back camera (switching starts a new set; the one in progress is saved). Repetition exercises show rep count, movement phase and tracking state; holds (plank, wall sit, side plank) show time held, hold state and tracking state. **[ END SET ]**, or leaving the screen, finishes the set — an unfinished repetition is recorded as incomplete — and saves it locally, then to sync. Missing model, refused camera permission and an unsuitable camera are each shown as themselves. Debug builds add a Phase B readout (frame rate, largest per-frame angle change, landmark visibility, active camera; Logcat tag `KinesisPhaseB`). **Built and unit-tested; never run on a phone.** |
+| **Licences** | Linked from the history screen: the pose model's notice (Apache 2.0, from its model card), the app's direct dependencies with the licence each declares, and the full Apache License 2.0 text. |
 
 ### What the engine can do (built and tested; wired to the camera, never run on a device)
 
@@ -170,6 +172,18 @@ In the order it has to happen.
   user can reach their own sessions and not anyone else's, or that update and
   delete are refused. That check belongs with the first Firebase round trip
   below.
+- **P3-17:**
+  - A front/back camera switch, with a permanent guard that both cameras give
+    the same anatomical left and right.
+  - **The pose model's licence read and recorded**: Apache 2.0, card dated
+    2021-04-16. The model file and card are now committed, with an in-app
+    licences screen.
+  - The outlier gate now re-admits a sustained change after three consistent
+    frames instead of locking a side out.
+  - A debug-only Phase B readout.
+  - The model card's limits are recorded in P3-17: trained only on back-camera
+    photos; out of scope beyond about 4 m, without the head visible, or with
+    more than one person; z not metric.
 
 ### Next — the device reality check (P4 / Phase B)
 
@@ -179,30 +193,36 @@ emulator cannot load it.
 1. First run on a real phone (Nothing Phone 2a): sustained frame rate,
    per-frame latency, memory, 15-minute thermal run. Each frame currently costs
    two bitmap allocations before MediaPipe.
-2. Confirm front-camera mirroring live — the one failure that produces no
-   visible symptom, only silently swapped left/right numbers. Raise the left
-   arm; the left-side values must move.
-3. Confirm the skeleton lies on the body, and that a known angle measures true
-   on a real frame (the aspect correction is only synthetic-tested).
-4. Real rep counts against real movement; real hold times; landmark reliability
-   per exercise and camera view. Watch for side-on profiles (squat, plank) whose
-   far-side landmarks may read "not visible" all set while the near side is
-   measured.
-5. **Measure per-frame angle change at the real frame rate.** The outlier gate
-   rejects any sustained jump of more than 20° and never recovers from it until
-   the set ends (P3-16), so a fast movement at a low frame rate could lock one
-   side out.
-6. First real Firebase round trip (no Firebase call has ever executed), including
+2. Confirm left and right live **with each camera separately** — the one
+   failure that produces no visible symptom, only silently swapped numbers.
+   Raise the left arm; the left-side values must move. Do it once with the front
+   camera and once with the back: they are different code paths, and the back
+   path has no mirroring anywhere.
+3. Confirm the skeleton lies on the body **with each camera** (this also checks
+   that CameraX mirrors the front preview and not the back), and that a known
+   angle measures true on a real frame (the aspect correction is only
+   synthetic-tested). Check that switching camera mid-set saves the first set
+   and starts a new one.
+4. Work inside the model card's conditions — one person in shot, head in frame,
+   within about 4 m — and compare front and back at the same distance: the model
+   was trained and evaluated only on back-camera photos.
+5. Real rep counts against real movement; real hold times against a stopwatch;
+   landmark reliability per exercise and camera view. Watch for side-on
+   profiles (squat, plank) whose far-side landmarks may read "not visible" all
+   set while the near side is measured — the debug readout's visibility range
+   shows it directly.
+6. **Read the debug readout's largest per-frame angle change against 20°.** The
+   outlier gate now re-admits a sustained change after three consistent frames
+   (P3-17), but a movement that stays faster than 20° per frame is still dropped
+   while it lasts. Check real sudden changes are re-admitted, and the readout's
+   frame rate against the device.
+7. First real Firebase round trip (no Firebase call has ever executed), including
    the security-rules check above.
-7. Permission dialog, refusal, backgrounding, leaving mid-set — and that the set
+8. Permission dialog, refusal, backgrounding, leaving mid-set — and that the set
    is saved on each exit path.
-8. Tune the provisional constants (`smoothingAlpha`, `VisibilityPolicy`
-   thresholds, hold tolerances) against device data; P2-4's ablation showed
-   smoothing lag, not noise, is the binding constraint.
-9. Read and record the pose model's licence (model card). The
-   `pose_landmarker_lite.task` file is in `assets/` but deliberately **not
-   committed**, because its terms are not yet recorded in DECISIONS.md. Any APK
-   built from this tree packages it.
+9. Tune the provisional constants (`smoothingAlpha`, `VisibilityPolicy`
+   thresholds, hold tolerances, `outlierReadmitSamples`) against device data;
+   P2-4's ablation showed smoothing lag, not noise, is the binding constraint.
 
 ### Then — the research core
 
@@ -245,6 +265,10 @@ emulator cannot load it.
   fails after leaving the screen is not reported anywhere (P3-16).
 - Normalised coordinates still have no consumer on the real-time path; whether
   normalisation belongs in CONTRACTS.md §7's per-frame order is open (P3-15).
+- **The libyuv licence notice is owed before any build is distributed.**
+  CameraX's `camera-core` bundles libyuv under a BSD licence, which requires its
+  notice in a binary distribution; its text is not yet in the app (P3-17,
+  correcting P3-13).
 - The `:desktop` module is an empty placeholder (intended home for a replay-only
   client).
 - Optional: an `abiFilters` restriction to arm64 would cut roughly 29 MB from
@@ -270,8 +294,9 @@ emulator cannot load it.
 
 | Library | Version | Used for | Decision |
 |---|---|---|---|
-| CameraX (core, camera2, lifecycle, view) | 1.4.1 | Camera capture | P3-13 |
-| MediaPipe Tasks Vision | 0.10.21 | On-device pose estimation, `pose_landmarker_lite.task` model. Google's telemetry backend is excluded so it adds no network permission. | P3-13 |
+| CameraX (core, camera2, lifecycle, view) | 1.4.1 | Camera capture. Apache 2.0; `camera-core` also bundles libyuv under BSD. | P3-13, P3-17 |
+| MediaPipe Tasks Vision | 0.10.21 | On-device pose estimation. Google's telemetry backend is excluded so it adds no network permission. | P3-13 |
+| BlazePose GHUM 3D Lite model | card 2021-04-16 | `pose_landmarker_lite.task`, shipped unmodified. Apache 2.0. | P3-13, P3-17 |
 | Room (+ KSP compiler) | 2.7.1 | Local session storage — the source of truth | P3-12 |
 | Health Connect client | 1.0.0-alpha11 | Read-only steps, active calories, heart rate | P3-11 |
 | Firebase BoM → Auth, Firestore | 33.7.0 | Account sign-in and session sync (the one deliberate exception to "no cloud") | P3-14 |
