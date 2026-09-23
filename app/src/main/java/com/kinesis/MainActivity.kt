@@ -3,7 +3,6 @@ package com.kinesis
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,7 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,21 +24,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.google.mediapipe.framework.MediaPipeException
-import com.kinesis.camera.LiveCamera
-import com.kinesis.camera.PoseLandmarkerSource
-import com.kinesis.camera.PoseModelAsset
-import com.kinesis.camera.PoseModelState
-import com.kinesis.camera.hasCameraPermission
-import com.kinesis.camera.rememberCameraPermissionLauncher
 import com.kinesis.core.analysis.history.Dashboard
 import com.kinesis.core.analysis.history.DashboardSummary
-import com.kinesis.core.analysis.live.LiveRepetitionAnalysis
-import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.core.domain.session.LocalDay
 import com.kinesis.health.ActivityContextPermissions
@@ -51,6 +37,7 @@ import com.kinesis.health.rememberHealthPermissionLauncher
 import com.kinesis.storage.KinesisDatabase
 import com.kinesis.storage.RoomSessionRepository
 import com.kinesis.storage.SessionRepository
+import com.kinesis.storage.utcOffsetMinutesAt
 import com.kinesis.sync.AuthFailure
 import com.kinesis.sync.AuthGateway
 import com.kinesis.sync.AuthResult
@@ -60,21 +47,14 @@ import com.kinesis.sync.FirestoreSessionStore
 import com.kinesis.sync.SessionMerge
 import com.kinesis.sync.SyncingSessionRepository
 import com.kinesis.sync.WorkManagerSyncQueue
-import com.kinesis.pose.CameraFacing
-import com.kinesis.ui.live.LiveAnalysisBridge
-import com.kinesis.ui.live.LiveSessionEngine
-import com.kinesis.ui.live.LiveUiState
-import com.kinesis.ui.live.SkeletonOverlayView
+import com.kinesis.ui.live.LiveDestination
 import com.kinesis.ui.screens.AuthScreen
 import com.kinesis.ui.screens.DashboardScreen
 import com.kinesis.ui.screens.ExerciseSelectionScreen
-import com.kinesis.ui.screens.LiveAnalysisScreen
-import com.kinesis.ui.screens.LiveUnavailableScreen
 import com.kinesis.ui.theme.KinesisTheme
 import com.kinesis.ui.theme.PhosphorFaint
 import com.kinesis.ui.theme.PhosphorGreen
 import kotlinx.coroutines.launch
-import java.util.TimeZone
 
 /**
  * The app shell - DECISIONS.md P3-12.
@@ -202,7 +182,9 @@ private fun KinesisApp(
     var context: ActivityContextResult? by remember { mutableStateOf(null) }
     var reloadToken by remember { mutableStateOf(0) }
 
-    val offsetMinutes = remember { TimeZone.getDefault().rawOffset / 60_000 }
+    // The same offset the recorder files sessions under, daylight saving
+    // included - P3-16. rawOffset ignored it.
+    val offsetMinutes = remember { utcOffsetMinutesAt(System.currentTimeMillis()) }
     val today = remember(reloadToken) {
         LocalDay.of(System.currentTimeMillis().toDouble(), offsetMinutes)
     }
@@ -238,134 +220,15 @@ private fun KinesisApp(
                 onSelect = { destination = Destination.Live(it) },
             )
 
-            is Destination.Live -> LiveDestination(current.profile)
-        }
-    }
-}
-
-/**
- * The live screen's preconditions, checked in the order a failure should be
- * reported - DECISIONS.md P3-15. Each unmet one is shown as itself rather than
- * as a readout of zeroes.
- */
-@Composable
-private fun LiveDestination(profile: ExerciseProfile) {
-    if (profile !is RepetitionExercise) {
-        // Holds go through HoldAnalyser, which this screen does not run yet.
-        // Forcing one through the repetition tracker is what CLAUDE.md section
-        // 11 forbids, and the type system already refuses it.
-        LiveUnavailableScreen(
-            exerciseId = profile.id,
-            headline = profile.mode.name.replace('_', ' ') + " NOT YET WIRED",
-            detail = "The live camera runs repetition exercises only. " + profile.displayName +
-                " is analysed as a hold, by an analyser this screen does not run yet. " +
-                "Nothing is being measured.",
-        )
-        return
-    }
-
-    val context = LocalContext.current
-    when (val model = remember { PoseModelAsset.locate(context) }) {
-        PoseModelState.Absent -> LiveUnavailableScreen(
-            exerciseId = profile.id,
-            headline = "NO POSE MODEL",
-            detail = "No pose_landmarker .task file is in the app's assets, so pose estimation " +
-                "cannot run and nothing is being measured. The rest of Kinesis works without it.",
-        )
-
-        is PoseModelState.Unreadable -> LiveUnavailableScreen(
-            exerciseId = profile.id,
-            headline = "POSE MODEL UNREADABLE",
-            detail = model.reason + ". Nothing is being measured.",
-        )
-
-        is PoseModelState.Present -> LiveCameraGate(profile, model.assetPath)
-    }
-}
-
-/** Asks once when the screen opens; after that, only when the user taps. */
-@Composable
-private fun LiveCameraGate(profile: RepetitionExercise, modelAssetPath: String) {
-    val context = LocalContext.current
-    var permitted by remember { mutableStateOf(hasCameraPermission(context)) }
-    var refused by remember { mutableStateOf(false) }
-    val request = rememberCameraPermissionLauncher { granted ->
-        permitted = granted
-        refused = !granted
-    }
-    LaunchedEffect(Unit) { if (!permitted) request() }
-
-    if (permitted) {
-        LiveCameraSession(profile, modelAssetPath)
-    } else {
-        LiveUnavailableScreen(
-            exerciseId = profile.id,
-            headline = if (refused) "CAMERA PERMISSION REFUSED" else "CAMERA PERMISSION NEEDED",
-            detail = "Live analysis needs the camera. Frames are analysed on this phone; none is " +
-                "stored or uploaded." +
-                if (refused) " If the system no longer asks, allow it in Settings > Apps > Kinesis." else "",
-            action = "ALLOW CAMERA",
-            onAction = request,
-        )
-    }
-}
-
-/**
- * The running pipeline: camera -> MediaPipe -> PoseAdapter -> shared-core
- * analysis -> bridge and overlay. Torn down when the screen leaves composition;
- * CameraX's lifecycle binding stops the camera when the app is backgrounded.
- */
-@Composable
-private fun LiveCameraSession(profile: RepetitionExercise, modelAssetPath: String) {
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val main = remember { ContextCompat.getMainExecutor(context) }
-
-    val preview = remember {
-        PreviewView(context).apply {
-            // A TextureView, so the overlay above it composites like any other
-            // view instead of depending on SurfaceView z-ordering inside Compose.
-            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-            scaleType = PreviewView.ScaleType.FIT_CENTER
-        }
-    }
-    val overlay = remember { SkeletonOverlayView(context).apply { displayMirrored = true } }
-
-    // The bridge publishes on MediaPipe's thread; Compose state is set on main.
-    val published = remember(profile) { mutableStateOf<LiveUiState?>(null) }
-    val bridge = remember(profile) {
-        LiveAnalysisBridge(profile.id) { state -> main.execute { published.value = state } }
-    }
-    val engine = remember(profile) { LiveSessionEngine(LiveRepetitionAnalysis(profile), bridge, overlay) }
-    var failure: String? by remember(profile) { mutableStateOf(null) }
-
-    DisposableEffect(engine, modelAssetPath, lifecycleOwner) {
-        val camera = try {
-            val source = PoseLandmarkerSource(
-                context, modelAssetPath, CameraFacing.FRONT, engine::onLandmarks, engine::onNoPose,
+            is Destination.Live -> LiveDestination(
+                profile = current.profile,
+                repository = repository,
+                // A set saved by leaving the screen lands after the dashboard
+                // has already been read, so the save itself asks for a re-read.
+                onSessionSaved = { reloadToken++ },
+                onSetEnded = { destination = Destination.Dashboard; reloadToken++ },
             )
-            LiveCamera(context, source) { reason -> failure = reason }
-        } catch (error: MediaPipeException) {
-            failure = "the pose model could not be loaded: " + error.message
-            null
-        } catch (error: UnsatisfiedLinkError) {
-            // MediaPipe ships arm64-v8a, armeabi-v7a and x86 only - DECISIONS.md P3-15.
-            failure = "MediaPipe has no native library for this device's processor"
-            null
         }
-        camera?.bind(lifecycleOwner, preview)
-        onDispose { camera?.close() }
-    }
-
-    val reason = failure
-    if (reason != null) {
-        LiveUnavailableScreen(
-            exerciseId = profile.id,
-            headline = "LIVE ANALYSIS UNAVAILABLE",
-            detail = reason + ". Nothing is being measured.",
-        )
-    } else {
-        LiveAnalysisScreen(state = published.value ?: bridge.state, preview = preview, overlay = overlay)
     }
 }
 

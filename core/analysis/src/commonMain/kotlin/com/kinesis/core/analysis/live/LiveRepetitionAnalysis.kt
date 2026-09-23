@@ -41,7 +41,9 @@ import com.kinesis.core.domain.rep.RepValidity
  * angles are invariant to translation and uniform scale and are computed from
  * the anatomical frame directly. What normalisation contributes here is its
  * degenerate-torso check - a frame with no measurable torso has collapsed and is
- * `INVALID` whatever its visibility scores say. DECISIONS.md P3-15 records this.
+ * `INVALID` whatever its visibility scores say. That check is asked directly,
+ * through `LandmarkNormalizer.hasMeasurableTorso`, rather than by building a
+ * normalised frame and discarding it. DECISIONS.md P3-15 and P3-16.
  *
  * Not thread-safe. The platform must call it from one thread.
  */
@@ -49,6 +51,11 @@ class LiveRepetitionAnalysis(
     val profile: RepetitionExercise,
     val policy: VisibilityPolicy = VisibilityPolicy.PROVISIONAL,
     temporalConfig: TemporalConfig = TemporalConfig.PROVISIONAL,
+    /**
+     * Every completed repetition record, as it completes - post-rep path, a few
+     * times a minute. The platform collects them for the session recorder.
+     */
+    private val onRepetition: RepSink = RepSink { },
 ) {
 
     private val tracker = BilateralRepTracker(profile, temporalConfig)
@@ -61,7 +68,10 @@ class LiveRepetitionAnalysis(
     var lastRepValidity: RepValidity? = null
         private set
 
-    private val sink = RepSink { record -> lastRepValidity = record.validity }
+    private val sink = RepSink { record ->
+        lastRepValidity = record.validity
+        onRepetition.onRepetition(record)
+    }
 
     val repCount: Int get() = tracker.repetitionCount
 
@@ -75,7 +85,7 @@ class LiveRepetitionAnalysis(
 
     /** One frame of anatomical landmarks, from the platform pose adapter. */
     fun onFrame(timestampMs: Double, landmarks: Landmarks) {
-        frameValidity = if (LandmarkNormalizer.normalize(landmarks) == null) {
+        frameValidity = if (!LandmarkNormalizer.hasMeasurableTorso(landmarks)) {
             FrameValidity.INVALID
         } else {
             ValidityGate.evaluate(landmarks, profile.requiredLandmarks, policy)
@@ -95,6 +105,12 @@ class LiveRepetitionAnalysis(
         frameValidity = FrameValidity.INVALID
         tracker.onFrame(timestampMs, NOTHING_SEEN, policy, sink)
     }
+
+    /**
+     * Ends the set. A repetition still under way is reported `INCOMPLETE` - not
+     * counted, not dropped - through the same sink as every other record.
+     */
+    fun finish(timestampMs: Double) = tracker.finish(timestampMs, sink)
 
     private companion object {
         /**

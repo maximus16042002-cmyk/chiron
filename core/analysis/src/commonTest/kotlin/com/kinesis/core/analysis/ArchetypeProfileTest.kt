@@ -276,6 +276,31 @@ class ArchetypeProfileTest {
         assertEquals(RepValidity.INSUFFICIENT_DATA, counted[1].validity)
     }
 
+    /**
+     * A squat still under way when the set ends is INCOMPLETE on both knees, and
+     * the paired repetition must say so. It used to be reported ABORTED - "turned
+     * back before reaching depth" - which is a claim about the movement the
+     * system never observed. DECISIONS.md P3-16.
+     */
+    @Test
+    fun a_simultaneous_repetition_unfinished_when_the_set_ends_is_incomplete_not_aborted() {
+        val tracker = BilateralRepTracker(ArchetypeProfiles.squat)
+        val counted = ArrayList<RepRecord>()
+        val frames = squatTrack(reps = 1)
+        for ((timestamp, frame) in frames) tracker.onFrame(timestamp, frame, policy) { counted += it }
+        var t = frames.last().first
+        for (step in 1..15) {
+            t += frameMs
+            tracker.onFrame(t, legFrame(170.0 - 100.0 * step / 30.0, 170.0 - 100.0 * step / 30.0), policy) { counted += it }
+        }
+
+        tracker.finish(t + frameMs) { counted += it }
+
+        assertEquals(2, counted.size)
+        assertEquals(RepValidity.INCOMPLETE, counted.last().validity)
+        assertEquals(1, tracker.repetitionCount)
+    }
+
     // --- Signal declarations -------------------------------------------------------
 
     @Test

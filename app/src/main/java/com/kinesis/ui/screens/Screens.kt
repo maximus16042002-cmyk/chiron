@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.Spacer
@@ -32,6 +33,8 @@ import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.health.ActivityContextResult
 import com.kinesis.health.ContextUnavailable
 import com.kinesis.health.DailyMetric
+import com.kinesis.camera.LiveCamera
+import com.kinesis.ui.live.LiveHoldUiState
 import com.kinesis.ui.live.LiveUiState
 import com.kinesis.ui.live.SkeletonOverlayView
 import com.kinesis.ui.theme.Amber
@@ -323,24 +326,92 @@ private fun format(value: Double): String =
 // --- Live analysis --------------------------------------------------------------------
 
 /**
- * The live screen: the camera preview with the skeleton drawn over it, and the
- * readout beneath - DECISIONS.md P3-15.
+ * The live screen for a repetition exercise: the camera preview with the
+ * skeleton drawn over it, and the readout beneath - DECISIONS.md P3-15.
  *
- * The preview and the overlay are Android views embedded once. Neither is
- * driven by Compose: the pose callback feeds the overlay directly, and the only
- * thing that recomposes this screen is [state], which `LiveAnalysisBridge`
- * publishes a few times a second at most - CLAUDE.md section 6.
- *
- * The camera area is held at the analysis frame's aspect ratio, because the
- * overlay draws in analysis-frame coordinates and would drift off the body if
- * the preview were cropped or letterboxed differently.
+ * The only thing that recomposes this screen is [state], which
+ * `LiveAnalysisBridge` publishes a few times a second at most - CLAUDE.md
+ * section 6.
  */
 @Composable
 fun LiveAnalysisScreen(
     state: LiveUiState,
     preview: PreviewView,
     overlay: SkeletonOverlayView,
+    onEndSet: () -> Unit,
     modifier: Modifier = Modifier,
+) {
+    LiveCameraLayout(state.exerciseId, preview, overlay, onEndSet, modifier) {
+        Text(
+            state.repCount.toString(),
+            style = MaterialTheme.typography.displayLarge,
+            color = state.overlayState.color,
+        )
+        Text(
+            state.phase.name,
+            style = MaterialTheme.typography.titleMedium,
+            color = PhosphorDim,
+        )
+        Spacer(Modifier.height(24.dp))
+        Text(
+            state.overlayState.meaning.uppercase(),
+            style = MaterialTheme.typography.bodySmall,
+            color = state.overlayState.color,
+        )
+    }
+}
+
+/**
+ * The live screen for an isometric hold - DECISIONS.md P3-16. Time held, the
+ * hold's state and the tracking state; no repetition count, because a hold has
+ * none (CLAUDE.md section 11).
+ */
+@Composable
+fun LiveHoldScreen(
+    state: LiveHoldUiState,
+    preview: PreviewView,
+    overlay: SkeletonOverlayView,
+    onEndSet: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LiveCameraLayout(state.exerciseId, preview, overlay, onEndSet, modifier) {
+        Text(
+            (state.heldSeconds / 60).toString() + ":" + (state.heldSeconds % 60).toString().padStart(2, '0'),
+            style = MaterialTheme.typography.displayLarge,
+            color = state.overlayState.color,
+        )
+        Text(
+            state.holdState.name.replace('_', ' '),
+            style = MaterialTheme.typography.titleMedium,
+            color = PhosphorDim,
+        )
+        Spacer(Modifier.height(24.dp))
+        Text(
+            state.overlayState.meaning.uppercase(),
+            style = MaterialTheme.typography.bodySmall,
+            color = state.overlayState.color,
+        )
+    }
+}
+
+/**
+ * The camera area and the readout beneath it.
+ *
+ * The preview and the overlay are Android views embedded once, never driven by
+ * Compose. They fill the same box, and that box is sized to the analysis
+ * frame's exact shape - a portrait 4:3 frame, which `LiveCamera` refuses to run
+ * without - with a preview scale type that does not crop. So the preview and
+ * the overlay share exact bounds, and the overlay, drawing in frame widths,
+ * lands on the body by construction rather than by luck. DECISIONS.md P3-16.
+ */
+@Composable
+private fun LiveCameraLayout(
+    exerciseId: String,
+    preview: PreviewView,
+    overlay: SkeletonOverlayView,
+    onEndSet: () -> Unit,
+    modifier: Modifier,
+    readout: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
         modifier
@@ -353,12 +424,12 @@ fun LiveAnalysisScreen(
                 .fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
-            Box(Modifier.aspectRatio(CAMERA_FRAME_ASPECT)) {
+            Box(Modifier.aspectRatio(LiveCamera.PORTRAIT_FRAME_ASPECT)) {
                 AndroidView(factory = { preview }, modifier = Modifier.fillMaxSize())
                 AndroidView(factory = { overlay }, modifier = Modifier.fillMaxSize())
             }
             Text(
-                state.exerciseId,
+                exerciseId,
                 style = MaterialTheme.typography.labelSmall,
                 color = PhosphorFaint,
                 modifier = Modifier.align(Alignment.TopStart).padding(16.dp),
@@ -371,21 +442,13 @@ fun LiveAnalysisScreen(
                 .padding(vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            readout()
+            Spacer(Modifier.height(16.dp))
             Text(
-                state.repCount.toString(),
-                style = MaterialTheme.typography.displayLarge,
-                color = state.overlayState.color,
-            )
-            Text(
-                state.phase.name,
+                "[ END SET ]",
                 style = MaterialTheme.typography.titleMedium,
-                color = PhosphorDim,
-            )
-            Spacer(Modifier.height(24.dp))
-            Text(
-                state.overlayState.meaning.uppercase(),
-                style = MaterialTheme.typography.bodySmall,
-                color = state.overlayState.color,
+                color = PhosphorGreen,
+                modifier = Modifier.clickable(onClick = onEndSet),
             )
         }
     }
@@ -394,9 +457,10 @@ fun LiveAnalysisScreen(
 /**
  * The live screen when nothing is being measured, and why.
  *
- * A missing model, a refused permission or an unwired analysis mode is shown as
- * that, rather than as a readout of zeroes - a count of 0 would read as "you
- * did nothing" when the truth is "nothing was watching".
+ * A missing model, a refused permission or a camera that cannot provide the
+ * frame the screen needs is shown as that, rather than as a readout of zeroes -
+ * a count of 0 would read as "you did nothing" when the truth is "nothing was
+ * watching".
  */
 @Composable
 fun LiveUnavailableScreen(
@@ -446,5 +510,3 @@ fun LiveUnavailableScreen(
     }
 }
 
-/** Portrait width over height of a 4:3 sensor frame, which `LiveCamera` requests. */
-private const val CAMERA_FRAME_ASPECT = 3f / 4f

@@ -374,6 +374,9 @@ class SharedCoreSourceGuardTest {
             // orchestrator is the per-frame entry point itself.
             "BilateralPhase.kt",
             "LiveRepetitionAnalysis.kt",
+            // P3-16: the hold path's reducer and orchestrator, likewise per frame.
+            "HoldReading.kt",
+            "LiveHoldAnalysis.kt",
         )
 
         /**

@@ -68,24 +68,51 @@ class RawLandmarks(packed: DoubleArray) {
  * be configured either way, and the preview and the analysis use case do not
  * have to agree - this is the one place that changes. Nowhere else in the
  * codebase knows the difference exists.
+ *
+ * ### One unit for both axes - DECISIONS.md P3-16
+ *
+ * MediaPipe reports x as a fraction of the frame's width and y as a fraction of
+ * its height. On a frame that is not square those are different units, and an
+ * angle computed from them is wrong by up to about sixteen degrees on a portrait
+ * 3:4 frame (P3-15). So y is rescaled into frame widths: x runs 0..1 across the
+ * frame, y runs 0..height/width down it, and a pixel is the same length in both
+ * directions. z is left alone - MediaPipe gives it "roughly the same scale as x",
+ * which is the unit both axes now share.
+ *
+ * Frame shape is camera geometry, so it is corrected here and the shared core
+ * never learns a frame had one. `AspectCorrectionRegressionTest` pins it.
  */
 class PoseAdapter {
 
     /**
      * @param raw one frame in camera coordinates.
      * @param facing which lens produced it.
-     * @return the same frame in the anatomical frame of reference, ready for the
-     *   shared core.
+     * @param frameWidthPx width of the image the pose model was given, upright.
+     * @param frameHeightPx its height.
+     * @return the same frame in the anatomical frame of reference, both axes in
+     *   frame widths, ready for the shared core.
      */
-    fun toAnatomical(raw: RawLandmarks, facing: CameraFacing): Landmarks {
-        val source = raw.copyPacked()
-        return when (facing) {
+    fun toAnatomical(
+        raw: RawLandmarks,
+        facing: CameraFacing,
+        frameWidthPx: Int,
+        frameHeightPx: Int,
+    ): Landmarks {
+        require(frameWidthPx > 0 && frameHeightPx > 0) {
+            "frame size must be positive, got " + frameWidthPx + "x" + frameHeightPx
+        }
+        val anatomical = when (facing) {
             // The back camera sees the subject the way another person would.
             // Nothing to undo.
-            CameraFacing.BACK -> Landmarks.fromPacked(source)
+            CameraFacing.BACK -> raw.copyPacked()
 
-            CameraFacing.FRONT -> Landmarks.fromPacked(unmirror(source))
+            CameraFacing.FRONT -> unmirror(raw.copyPacked())
         }
+        val heightInWidths = frameHeightPx.toDouble() / frameWidthPx
+        for (index in 0 until LandmarkId.COUNT) {
+            anatomical[index * Landmarks.STRIDE + 1] *= heightInWidths
+        }
+        return Landmarks.fromPacked(anatomical)
     }
 
     /**

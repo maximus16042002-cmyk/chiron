@@ -6,6 +6,7 @@ import com.kinesis.core.domain.session.HoldSetRecord
 import com.kinesis.core.domain.session.RepetitionSetRecord
 import com.kinesis.core.domain.session.SessionRecord
 import com.kinesis.core.domain.session.SetRecord
+import java.util.TimeZone
 
 /**
  * Collects a session as it happens and writes it once - DECISIONS.md P3-12.
@@ -87,3 +88,11 @@ class SessionRecorder(
         return session
     }
 }
+
+/**
+ * Minutes east of UTC in force at [epochMs], daylight saving included -
+ * DECISIONS.md P3-16. `TimeZone.rawOffset`, which the dashboard used to read,
+ * ignores daylight saving; the recorder and the dashboard must agree on which
+ * day a session belongs to, so both read this.
+ */
+fun utcOffsetMinutesAt(epochMs: Long): Int = TimeZone.getDefault().getOffset(epochMs) / 60_000

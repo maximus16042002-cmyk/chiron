@@ -258,12 +258,19 @@ class BilateralRepTracker(
         pendingLeft = null
         pendingRight = null
 
+        // Unseen outranks unfinished outranks turned-back. An INCOMPLETE half -
+        // the set ended with that side still moving - makes the repetition
+        // INCOMPLETE; it used to fall through to ABORTED, which told the user
+        // they turned back early when the truth was that the set stopped.
+        // DECISIONS.md P3-16.
         val validity = if (left.validity == RepValidity.VALID && right.validity == RepValidity.VALID) {
             RepValidity.VALID
         } else if (left.validity == RepValidity.INSUFFICIENT_DATA ||
             right.validity == RepValidity.INSUFFICIENT_DATA
         ) {
             RepValidity.INSUFFICIENT_DATA
+        } else if (left.validity == RepValidity.INCOMPLETE || right.validity == RepValidity.INCOMPLETE) {
+            RepValidity.INCOMPLETE
         } else {
             RepValidity.ABORTED
         }

@@ -33,7 +33,8 @@ object JointAngles {
      * The [joint] angle on both sides, in degrees over 0..180.
      *
      * A side is [Double.NaN] when any of its three landmarks falls below
-     * [VisibilityPolicy.marginal], or when the geometry is degenerate.
+     * [VisibilityPolicy.marginal] or has a `NaN` visibility, or when the
+     * geometry is degenerate.
      */
     fun compute(
         landmarks: Landmarks,
@@ -73,9 +74,9 @@ object JointAngles {
         plane: MeasurementPlane,
         policy: VisibilityPolicy,
     ): Double {
-        if (landmarks.visibility(proximal) < policy.marginal) return Double.NaN
-        if (landmarks.visibility(vertex) < policy.marginal) return Double.NaN
-        if (landmarks.visibility(distal) < policy.marginal) return Double.NaN
+        if (!policy.isMeasurable(landmarks.visibility(proximal))) return Double.NaN
+        if (!policy.isMeasurable(landmarks.visibility(vertex))) return Double.NaN
+        if (!policy.isMeasurable(landmarks.visibility(distal))) return Double.NaN
 
         return when (plane) {
             MeasurementPlane.IMAGE_2D -> Geometry.angleAtVertex2dDegrees(

@@ -3144,6 +3144,16 @@ ships inside the APK, so that is not hypothetical.** No code in this app can
 enforce the boundary; security rules are the only mechanism. Nothing in this
 batch was able to test the rules, and nothing here claims they work.
 
+**Follow-up, 2026-09-23 — published, not yet tested.** The project owner reports
+that `firestore.rules` has been published in the Firebase console, so the
+owner's action above is done and the project should no longer be in test mode.
+That is recorded on the owner's report; no session here saw the console. **The
+rules have not been exercised by any client.** Nothing has yet shown that a
+signed-in user can create and read their own sessions, that another account or
+an unauthenticated client is refused, or that update and delete are denied.
+That check needs a real client and belongs with Phase B's first Firebase round
+trip. Until it runs, the rules are published, not verified.
+
 Also unverified, and honestly so: no Firebase call in this batch has ever run.
 There is no device attached and no emulator; `FirebaseAuthGateway` and
 `FirestoreSessionStore` compile and are exercised only through their interfaces
@@ -3420,6 +3430,294 @@ display rule, three defects fixed and two flagged, and two findings for the owne
 It makes no claim about frame rate, pose accuracy, mirroring correctness or rep
 counting on a device, and the aspect-ratio finding means any rep count Phase B
 produces before that decision is made measures a distorted angle.
+
+---
+
+## P3-16 — Frame shape corrected, holds wired, sets saved
+
+*2026-09-23*
+
+The batch after P3-15, at the project owner's direction and in their order. The
+owner accepted P3-15's recommendation on frame shape. **Nothing in this entry has
+run on a device either**; everything below is measured on synthetic frames on
+the JVM and JS, and the device work stays Phase B.
+
+### Housekeeping
+
+The eight `.kt` copies at the repository root were deleted, and the P3-15 work
+committed as a checkpoint (`7d61424`). **`app/src/main/assets/pose_landmarker_lite.task`
+was not committed and is still untracked**: its model-card terms are not yet
+recorded, which P3-13 requires before a build carrying it is distributed.
+
+### Frame shape: corrected in the adapter
+
+`PoseAdapter.toAnatomical` now takes the frame's width and height and rescales y
+into **frame widths**: x runs 0..1 across the frame, y runs 0..height/width down
+it, and a pixel is the same length in both directions. Frame shape is camera
+geometry, so it is corrected there, in platform code (CLAUDE.md §2), and the core
+never learns a frame had one. The size comes from the `MPImage` MediaPipe hands
+back with each result — the exact image that result was computed from.
+
+- **Why widths and not heights:** x and the mirror axis stay exactly as they
+  were, and MediaPipe gives z "on roughly the same scale as x", so the unit both
+  axes now share is the one z already had.
+- **`AspectCorrectionRegressionTest`** (new, beside `MirroringRegressionTest`)
+  builds its scene in pixels, where angles are true, poses a 60° and a 120° knee
+  at the orientations where the distortion is worst, and requires both to come
+  out within 10⁻⁹ on a portrait 480 × 640 frame and on a landscape one, through
+  both camera paths. It pins the unit (the bottom edge of a portrait frame is
+  640/480 widths down), and shows the same scene reading more than 10° wrong
+  uncorrected, so the guard can fail.
+- **`MirroringRegressionTest` is unchanged in substance.** Its calls now pass a
+  named square frame, on which the aspect step is the identity, so every one of
+  its assertions is as it was and it still tests mirroring alone. The
+  combination is covered by the new test.
+- The overlay draws both axes scaled by the view's width. `LandmarkVelocity`'s
+  units are now frame widths per second, and `CONTRACTS.md` §4 records the unit.
+
+**The P7 MM-Fit pipeline must apply the same correction, using MM-Fit's own
+frame size.** Landmarks from MM-Fit's video without it carry a different
+orientation-dependent angle error from the phone's, so a rep-count evaluation
+run on them tests the thresholds against a different measurement and would not
+transfer to the phone. `CONTRACTS.md` §4 now says every producer of
+`Landmarks` must do this.
+
+**A correction to P3-15:** it placed that pipeline in P5. It is P7, per
+`ZERO_DATASET_BUILD_PLAN.md`'s phase table.
+
+### `NaN` visibility: one predicate, used everywhere
+
+`VisibilityPolicy` gains `isMeasurable` and `isReliable`, written as `>=` so a
+`NaN` visibility is neither. `ValidityGate`, `JointAngles`, `LandmarkVelocity`
+and `SkeletonColouring` all use them.
+
+The brief named `ValidityGate` only; the kinematics were changed too, on
+purpose. P3-15 lets `INVALID` frames reach the tracker because "an `INVALID`
+frame and a `NaN` side coincide". That holds only if the gate and the kinematics
+agree about a landmark, and fixing the gate alone would have made them disagree
+the other way round. Pinned on JVM, JS and both Android variants.
+
+### The attention pulse, drawn
+
+P3-12 gave `ATTENTION` three channels and the overlay drew two. It now pulses,
+decided by `SkeletonColouring.strokeScale`, a pure function tested on the JVM.
+Only a state whose palette entry says it pulses ever varies.
+
+**The pulse widens the stroke, from its own width to half again, rather than
+fading it.** Fading would drop amber's contrast below the floor
+`SkeletonPaletteLegibilityTest` guarantees for part of every cycle, and the
+width channel P3-12 made load-bearing would be the one giving way. It never gets
+thinner than 6 dp. **1 Hz**, under WCAG 2.3.1's three flashes a second. The view
+keeps redrawing while the figure pulses, so the pulse does not freeze if pose
+results stall. Not yet seen on a screen.
+
+### The torso check no longer allocates
+
+`LandmarkNormalizer.normalize` built two 99-element arrays and a wrapper each
+frame to answer yes or no. `hasMeasurableTorso` shares the one torso computation
+with `normalize`, so the two cannot disagree (pinned case by case), and allocates
+nothing — `PerFrameAllocationTest` asserts zero bytes over 50,000 calls. The live
+path no longer builds a normalised frame at all. P3-15's open question about
+normalisation's place in CONTRACTS.md §7 stands.
+
+### Overlay alignment, true by construction
+
+- Both use cases request **4:3 with no fallback**. After binding, both bound
+  resolutions are checked, and any other shape is refused with a named state
+  rather than shown with a skeleton drifting off the body.
+- The camera area is sized to `LiveCamera.PORTRAIT_FRAME_ASPECT`, the preview
+  uses a scale type that never crops, and the preview and the overlay fill the
+  same box, so they share exact bounds. The overlay draws in frame widths.
+- The target rotation is passed explicitly from the display.
+- **The live screen is locked to portrait** while it is shown and restored when
+  it leaves, and the camera starts only once the configuration is portrait.
+  `MainActivity` now declares that it handles orientation changes itself. Without
+  that the lock would recreate the activity, and the navigation state — held in
+  Compose and not saved — would drop the user on the dashboard mid-set. Other
+  screens now re-lay themselves out on rotation instead of being recreated.
+
+**What "by construction" does not cover:** that CameraX's preview and analysis
+take the same crop of the sensor at the same aspect ratio. Expected, since it is
+one sensor and one ratio, but not verified. Phase B looks.
+
+### Holds wired
+
+Plank, Wall Sit and Side Plank now run live through `LiveHoldAnalysis`
+(`commonMain`): torso check → validity → a filter pipeline per side →
+`HoldReading` → `HoldAnalyser`. It accepts only an `IsometricExercise`, so a hold
+cannot reach the repetition tracker; the type refuses it. The app side,
+`LiveHoldEngine` and `LiveHoldBridge`, is glue in the same shape as the
+repetition path. `HoldAnalyser` gains a read-only `heldMs`.
+
+**The reduction P3-9 left open, now decided.** P3-9: *"When a landmark-driven
+hold tracker is eventually built, it must reduce the `BilateralSignal` ...
+through an explicit named reducer — never an average, and never a silent
+fallback."* `HoldReading.furthestFromTarget`:
+
+- **Both sides measured:** the side further from the target is read, so a hold
+  is credited only while every side that was seen agrees the body is within
+  tolerance. One side sagging out of it is a break, not something the other side
+  can outvote.
+- **One side measured:** that side is read, as the body line. P3-9 established
+  that the hold signal belongs to the line, not to a limb, and measured the two
+  sides agreeing within a degree. It is also the normal case: a side-on plank
+  sees its near side only.
+- **Neither measured:** `NaN`, which `HoldAnalyser` treats as unseen rather than
+  broken.
+- **Equally far on opposite sides of the target:** the lower value, so the
+  answer never depends on which side is called left. The first version returned
+  the left side on a tie; the symmetry test caught it.
+
+The result is always exactly one side's value. Pinned by `HoldReadingTest` and,
+end to end, by `LiveHoldAnalysisTest`.
+
+**The readout** is time held (m:ss), the hold's state and the tracking state.
+`LiveHoldBridge` publishes on whole seconds: a 30-second plank is 900 frames and
+31 publications. A hold reached and then lost takes the attention state while it
+lasts. That is the hold's counterpart of an abandoned repetition — a measured
+event, the body line outside its band — and so the same footing P3-12 gave
+`ATTENTION`.
+
+**Plank is ready for Phase B in one sense only:** it runs the same pipeline as
+the repetition exercises. One thing to watch there: plank and squat are side-on
+profiles that require **both** sides' landmarks. If the far side reads below
+marginal on a real device, the readout will say "not visible" for the whole set
+while the near side is measured and the hold still counts
+(`a_plank_seen_from_one_side_only_is_still_measured`). Whether that wording is
+right is a Phase B finding, not a design decided here.
+
+### Sets saved
+
+A set ends by **[ END SET ]** or by leaving the screen, whichever comes first.
+Both go through one `LiveSetSaver`, which is idempotent, so a set is written
+once. The set is closed synchronously at the tap, and frames arriving after it
+are ignored by the engine. The tracker or analyser is finished first, so a
+repetition still under way is recorded as `INCOMPLETE`: not counted, not
+dropped.
+
+**A defect found on the way:** `BilateralRepTracker` paired two `INCOMPLETE`
+halves of a simultaneous repetition as **`ABORTED`** — "turned back before
+reaching depth", a claim about the movement the system never observed. It fell
+through a branch that knew only VALID, INSUFFICIENT_DATA and ABORTED. The
+precedence is now unseen > unfinished > turned back. The test the brief asked
+for found it, and `ArchetypeProfileTest` pins it. This also changes one existing
+behaviour: a simultaneous repetition timed out by `maxRepDurationMs`, which the
+FSM reports as `INCOMPLETE` per side, now pairs as `INCOMPLETE` rather than
+`ABORTED`.
+
+**The write path is the existing one, unchanged.** `SessionRecorder` →
+`SyncingSessionRepository` → Room: local write first, upload scheduled after
+(P3-14). `LiveSetSaverTest` drives it with a sync queue that throws on every
+call, which is what no network looks like from here. The set still lands
+locally, and the upload attempt comes only after the local write.
+
+- **One set, one session.** The repository is append-only, and the Firestore
+  rules deny update, so a saved session can never gain another set. Each set is
+  therefore written as its own session the moment it ends, rather than held open
+  for more sets a crash could lose. Consequence: the dashboard's session count
+  counts live sets.
+- **A set in which nobody was ever seen is not saved.** `SessionRecorder` records
+  an empty set because "the user pointed a camera at themselves and nothing
+  completed". That still holds when someone was seen and nothing completed. It
+  does not hold when no pose ever arrived.
+- **Writes run on a process-lifetime scope.** Leaving the screen disposes the
+  composition that ended the set before the write completes.
+- **Not handled, stated:** a save that fails after the user has left the screen
+  is reported nowhere; the end-set path shows "SET NOT SAVED". And a set under
+  way when the app is killed is lost, because nothing is persisted until it ends.
+- **Daylight saving.** The dashboard computed "today" with
+  `TimeZone.rawOffset`, which ignores daylight saving. Sessions are now filed,
+  and today computed, with the offset actually in force (`utcOffsetMinutesAt`),
+  so the two cannot put one session on different days. Pinned by
+  `UtcOffsetTest`.
+
+### A risk found, not fixed: the outlier gate can lock a side out
+
+Writing `LiveHoldAnalysisTest`, a one-frame 28° sag was never seen at all.
+`MedianOutlierGate` does not remember samples it rejects. That is deliberate
+(P2), "or a sustained excursion would talk the gate into accepting it". But it
+means **any sustained jump of more than 20° from the window's median is
+rejected on every later frame, and that side reads `NaN` until the pipeline
+resets.** A real sag develops over many frames and passes, and the test now
+models one.
+
+On a device the same property could bite in either direction. A limb moving
+faster than about 20° per frame — a brisk curl at a low frame rate — or a
+landmark that jumps and stays could lock that side out for the rest of the set.
+It is not changed here, because it is P2's real-time design, with its own
+ablation (P2-4), and the right threshold depends on frame rates only Phase B can
+measure. **Phase B must measure per-frame angle change at the real frame rate.**
+
+### What "tested" means here
+
+`gradlew assemble allTests :app:testDebugUnitTest`: **BUILD SUCCESSFUL, 1,078
+test executions, 0 failures, 0 errors**, and 0 compiler warnings on a forced
+recompile of every Kotlin source set. The P3-15 checkpoint stood at 984, so this
+batch adds 94. `:core:analysis` rose from 191 to 209 per shared target (JS and
+both Android variants) and from 204 to 223 on the JVM, which alone runs the
+allocation guards. `:app` rose from 75 to 96. `:core:domain` is unchanged at 33
+per target.
+
+**Twenty-one mutations, each caught by the test written for it,** with every
+file restored and verified byte for byte afterwards:
+
+| Mutation | Caught by |
+|---|---|
+| Aspect correction removed | `AspectCorrectionRegressionTest` — all three frame tests |
+| Axes put in frame heights, not widths (angles still right) | the unit pin alone |
+| Policy predicate written as `!(v < marginal)` | three `NaN` tests |
+| Gate reverted to `<` | `a_nan_visibility_makes_the_frame_invalid` |
+| Kinematics reverted to `<` | `a_nan_visibility_side_is_not_measured_by_the_kinematics_either` |
+| Torso check builds a normalised frame | `the_torso_check_allocates_nothing_at_all` |
+| Torso check always passes | `the_torso_check_agrees_with_normalisation_on_every_case` |
+| Every state pulses | `a_state_that_does_not_pulse_never_changes_width` |
+| Pulse fades instead of widening | `attention_pulses_between_its_own_width_and_half_again` |
+| Any frame shape accepted | `any_other_shape_is_refused` |
+| Hold reading averages the sides | `HoldReadingTest` — two tests |
+| Hold reading takes the side nearest the target | `a_hold_is_credited_only_while_every_measured_side_is_within_tolerance` |
+| Unfinished pair falls back to `ABORTED` | `a_simultaneous_repetition_unfinished_when_the_set_ends_is_incomplete_not_aborted` |
+| Set closed without finishing the tracker | `ending_a_set_mid_repetition_saves_it_locally_with_no_network` |
+| Ending twice writes twice | `ending_the_same_set_twice_writes_it_once` |
+| Frames after the end still processed | `frames_after_the_set_ended_are_ignored` |
+| A set nobody was seen in is saved | `a_set_in_which_nobody_was_seen_is_not_saved` |
+| Offset ignores daylight saving | `the_offset_includes_daylight_saving_when_it_is_in_force` |
+| Hold bridge publishes every frame | `a_thirty_second_hold_recomposes_about_once_a_second_and_not_per_frame` |
+| A broken hold not shown as attention | `a_broken_hold_turns_the_skeleton_to_the_attention_state_while_it_lasts` |
+| `LiveHoldAnalysis.kt` dropped from the source guard | `every_file_in_the_real_time_package_is_covered_by_the_scan` |
+
+**Tests-first, honestly stated.** The core pieces were written test-first, and
+three of those tests failed first for real reasons: the `ABORTED` defect, the
+reducer's tie, and the gate lockout. The app-side engines were written before
+their tests, which followed immediately. One of those tests, as first written,
+could not fail: it checked the saved set after ending, which is copied at the
+end anyway. It was rewritten to assert that frames after the end reach neither
+the readout nor the skeleton, and its mutation is among those above.
+
+**A build-environment note.** On this machine the Kotlin compile daemon kept a
+module jar open between builds, failing the next one with a Windows file lock.
+Builds here ran with `-Pkotlin.compiler.execution.strategy=in-process` after
+stopping the daemons. It changes where the compiler runs, not what it compiles.
+
+### What is NOT verified — Phase B
+
+Everything in P3-15's list still stands. Added by this entry:
+
+- the aspect correction on a real frame, and whether the bound frames really are
+  4:3;
+- that the skeleton lies on the body, including the preview/analysis crop
+  question above;
+- the pulse, seen rather than computed;
+- the portrait lock and rotation handling on a device;
+- live hold times against a stopwatch, and the side-on far-side question;
+- per-frame angle change against the outlier gate's 20°;
+- a set saved on every exit path — END SET, the nav bar, back, backgrounding;
+- the Firestore rules against a real client (P3-14 follow-up).
+
+**Scope of this entry.** It records a coordinate convention, two named
+reductions, a structural alignment, a save path and four defects fixed —
+aspect, `NaN` visibility, the unfinished-pair validity and daylight saving —
+plus one risk flagged. It makes no claim about anything a camera, a model or a
+person would show.
 
 ---
 

@@ -90,6 +90,15 @@ class MirroringRegressionTest {
 
     private val adapter = PoseAdapter()
 
+    /**
+     * The adapter also puts both axes in one unit (P3-16). On a square frame
+     * that step changes nothing, so every assertion here tests mirroring and
+     * mirroring alone. AspectCorrectionRegressionTest covers the two together,
+     * through the front path, on frames that are not square.
+     */
+    private fun PoseAdapter.toAnatomical(raw: RawLandmarks, facing: CameraFacing): Landmarks =
+        toAnatomical(raw, facing, frameWidthPx = SQUARE_FRAME_PX, frameHeightPx = SQUARE_FRAME_PX)
+
     // --- The contract ---------------------------------------------------------
 
     @Test
@@ -213,5 +222,7 @@ class MirroringRegressionTest {
          * values across platforms, so a tolerance is used even here.
          */
         const val TOLERANCE = 1e-12
+
+        const val SQUARE_FRAME_PX = 640
     }
 }

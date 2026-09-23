@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.View
 import com.kinesis.core.domain.landmark.LandmarkId
@@ -22,8 +23,9 @@ import com.kinesis.ui.theme.OverlayState
  * terms.
  *
  * So the pose callback calls [submit] directly and this invalidates itself.
- * Compose never sees a frame; it only sees what `LiveAnalysisBridge` publishes,
- * which is a few times a second. The two paths meet nowhere.
+ * Compose never sees a frame; it only sees what `LiveAnalysisBridge` or
+ * `LiveHoldBridge` publishes, a few times a second at most. The two paths meet
+ * nowhere.
  *
  * ### Allocation
  *
@@ -106,15 +108,24 @@ class SkeletonOverlayView @JvmOverloads constructor(
         val landmarks = frame ?: return
 
         val w = width.toFloat()
-        val h = height.toFloat()
+
+        // The pulse - P3-12's third channel for the attention state, decided by
+        // SkeletonColouring.strokeScale so it can be tested without a View. Every
+        // state's width is set each draw; only a state that pulses ever changes.
+        val now = SystemClock.uptimeMillis()
+        val density = resources.displayMetrics.density
+        for (state in STATES) {
+            paints.getValue(state).strokeWidth =
+                state.strokeDp * density * SkeletonColouring.strokeScale(state, now)
+        }
 
         for (connection in CONNECTIONS) {
             val from = connection.first
             val to = connection.second
             val state = segmentState(landmarks, from, to)
             canvas.drawLine(
-                screenX(landmarks, from, w), landmarks.y(from).toFloat() * h,
-                screenX(landmarks, to, w), landmarks.y(to).toFloat() * h,
+                screenX(landmarks, from, w), screenY(landmarks, from, w),
+                screenX(landmarks, to, w), screenY(landmarks, to, w),
                 paints.getValue(state),
             )
         }
@@ -124,17 +135,29 @@ class SkeletonOverlayView @JvmOverloads constructor(
             val radius = paints.getValue(state).strokeWidth * 0.8f
             canvas.drawCircle(
                 screenX(landmarks, id, w),
-                landmarks.y(id).toFloat() * h,
+                screenY(landmarks, id, w),
                 radius,
                 jointPaints.getValue(state),
             )
         }
+
+        // Keep animating while the figure pulses, so the pulse does not freeze if
+        // pose results stall. Stops by itself when the state changes.
+        if (overallState.pulses) postInvalidateOnAnimation()
     }
 
+    /*
+     * Landmarks arrive with both axes in frame widths (DECISIONS.md P3-16), so
+     * both scale by the view's width. The live screen sizes this view to the
+     * analysis frame's shape, which is what makes that land on the preview.
+     */
     private fun screenX(landmarks: Landmarks, id: LandmarkId, width: Float): Float {
         val x = landmarks.x(id).toFloat()
         return (if (displayMirrored) 1f - x else x) * width
     }
+
+    private fun screenY(landmarks: Landmarks, id: LandmarkId, width: Float): Float =
+        landmarks.y(id).toFloat() * width
 
     // --- Which state a joint is drawn in ------------------------------------------
 
@@ -151,6 +174,9 @@ class SkeletonOverlayView @JvmOverloads constructor(
     )
 
     private companion object {
+
+        /** An array, so iterating it each draw allocates no iterator. */
+        val STATES: Array<OverlayState> = OverlayState.entries.toTypedArray()
 
         /**
          * The figure, as landmark pairs. Torso, arms and legs - the parts every

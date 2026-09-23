@@ -1,5 +1,6 @@
 package com.kinesis.core.analysis
 
+import com.kinesis.core.analysis.landmark.LandmarkNormalizer
 import com.kinesis.core.analysis.live.LiveRepetitionAnalysis
 import com.kinesis.core.analysis.profile.ArchetypeProfiles
 import com.kinesis.core.analysis.temporal.DoubleRingBuffer
@@ -96,10 +97,27 @@ class PerFrameAllocationTest {
     }
 
     /**
-     * The live entry point - normalise, validity, both trackers - DECISIONS.md
-     * P3-15. It allocates per frame (the normaliser builds its output, and each
-     * side's angle is a `BilateralSignal`), so the assertion is the same one as
-     * above: constant, not growing, however long the set runs.
+     * The per-frame torso check reads eight numbers and returns a Boolean. It
+     * replaced a call to `normalize` whose output was thrown away, and exists
+     * only to allocate nothing - DECISIONS.md P3-16.
+     */
+    @Test
+    fun the_torso_check_allocates_nothing_at_all() {
+        val frame = squatFrameAt(0)
+        var seen = 0
+        val bytes = allocatedBytesDuring(iterations = SAMPLE_FRAMES) {
+            if (LandmarkNormalizer.hasMeasurableTorso(frame)) seen++
+        } ?: return
+
+        assertTrue(seen > 0, "the synthetic frame has no torso, so the check proved nothing")
+        assertEquals(0L, bytes, "the torso check allocated " + bytes + " bytes over " + SAMPLE_FRAMES + " frames")
+    }
+
+    /**
+     * The live entry point - torso check, validity, both trackers - DECISIONS.md
+     * P3-15. It allocates per frame (each side's angle is a `BilateralSignal`),
+     * so the assertion is the same one as above: constant, not growing, however
+     * long the set runs.
      */
     @Test
     fun live_repetition_analysis_allocation_does_not_grow_as_the_session_runs() {

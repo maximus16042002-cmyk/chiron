@@ -63,7 +63,7 @@ class PoseLandmarkerSource(
             .setBaseOptions(BaseOptions.builder().setModelAssetPath(modelAssetPath).build())
             .setRunningMode(RunningMode.LIVE_STREAM)
             .setNumPoses(1)
-            .setResultListener { result, _ -> onResult(result) }
+            .setResultListener { result, input -> onResult(result, input.width, input.height) }
             .setErrorListener { /* a dropped frame is not worth taking the screen down */ }
             .build(),
     )
@@ -86,7 +86,7 @@ class PoseLandmarkerSource(
      * that value belongs to a different frame, and repetition tempo is measured
      * from these timestamps. DECISIONS.md P3-15.
      */
-    private fun onResult(result: PoseLandmarkerResult) {
+    private fun onResult(result: PoseLandmarkerResult, frameWidthPx: Int, frameHeightPx: Int) {
         val poses = result.landmarks()
         if (poses.isEmpty() || poses[0].size != com.kinesis.core.domain.landmark.LandmarkId.COUNT) {
             onNoPose(result.timestampMs())
@@ -104,8 +104,13 @@ class PoseLandmarkerSource(
             packed[base + 3] = landmark.visibility().orElse(0f).toDouble()
         }
 
-        // The adapter is the only thing that decides what "left" means.
-        onLandmarks(adapter.toAnatomical(RawLandmarks(packed), facing), result.timestampMs())
+        // The adapter is the only thing that decides what "left" means, and the
+        // only thing that knows the frame had a shape. The size is the image
+        // this result was computed from, as MediaPipe hands it back.
+        onLandmarks(
+            adapter.toAnatomical(RawLandmarks(packed), facing, frameWidthPx, frameHeightPx),
+            result.timestampMs(),
+        )
     }
 
     override fun close() = landmarker.close()

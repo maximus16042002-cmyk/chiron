@@ -1,6 +1,5 @@
 package com.kinesis.ui.live
 
-import com.kinesis.core.analysis.live.LiveRepetitionAnalysis
 import com.kinesis.core.analysis.profile.ArchetypeProfiles
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.landmark.LandmarkId
@@ -20,7 +19,7 @@ import kotlin.math.sin
  * real bridge - DECISIONS.md P3-15. What it cannot cover is anything a camera,
  * a model or a device is needed for; that is Phase B.
  */
-class LiveSessionEngineTest {
+class LiveRepetitionEngineTest {
 
     private class RecordingSkeleton : SkeletonSink {
         val states = ArrayList<OverlayState>()
@@ -36,7 +35,7 @@ class LiveSessionEngineTest {
     private val skeleton = RecordingSkeleton()
     private val published = ArrayList<LiveUiState>()
     private val bridge = LiveAnalysisBridge("squat") { published += it }
-    private val engine = LiveSessionEngine(LiveRepetitionAnalysis(ArchetypeProfiles.squat), bridge, skeleton)
+    private val engine = LiveRepetitionEngine(ArchetypeProfiles.squat, bridge, skeleton)
     private var clockMs = 0L
 
     private fun feed(knees: Double) {

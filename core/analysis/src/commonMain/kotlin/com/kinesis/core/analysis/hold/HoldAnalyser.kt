@@ -56,6 +56,10 @@ class HoldAnalyser(val profile: IsometricExercise) {
     private var lastHeldTimestampMs: Double = Double.NaN
 
     private var totalHoldMs: Double = 0.0
+
+    /** Time held so far, for a live readout. The same figure [finish] reports. */
+    val heldMs: Double get() = totalHoldMs
+
     private var longestUnbrokenMs: Double = 0.0
     private var breakCount: Int = 0
 

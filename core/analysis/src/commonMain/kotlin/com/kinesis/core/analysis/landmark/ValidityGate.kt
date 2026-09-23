@@ -24,7 +24,9 @@ object ValidityGate {
      * Thresholds are inclusive: visibility exactly at [VisibilityPolicy.reliable]
      * counts as reliable, and exactly at [VisibilityPolicy.marginal] counts as
      * marginal. Pinned by test so a later change of comparison direction is
-     * visible rather than silent.
+     * visible rather than silent. A `NaN` visibility is below marginal - the
+     * frame is INVALID - rather than slipping through a `<` comparison as fully
+     * seen. DECISIONS.md P3-16.
      */
     fun evaluate(
         landmarks: Landmarks,
@@ -34,8 +36,8 @@ object ValidityGate {
         var degraded = false
         for (index in 0 until required.size) {
             val visibility = landmarks.visibility(required[index])
-            if (visibility < policy.marginal) return FrameValidity.INVALID
-            if (visibility < policy.reliable) degraded = true
+            if (!policy.isMeasurable(visibility)) return FrameValidity.INVALID
+            if (!policy.isReliable(visibility)) degraded = true
         }
         return if (degraded) FrameValidity.DEGRADED else FrameValidity.VALID
     }

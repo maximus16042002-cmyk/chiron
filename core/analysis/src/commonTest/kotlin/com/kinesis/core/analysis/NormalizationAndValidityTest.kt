@@ -1,5 +1,10 @@
 package com.kinesis.core.analysis
 
+import com.kinesis.core.analysis.kinematics.BodyPoint
+import com.kinesis.core.analysis.kinematics.JointAngleId
+import com.kinesis.core.analysis.kinematics.JointAngles
+import com.kinesis.core.analysis.kinematics.LandmarkVelocity
+import com.kinesis.core.analysis.kinematics.MeasurementPlane
 import com.kinesis.core.analysis.landmark.LandmarkNormalizer
 import com.kinesis.core.analysis.landmark.ValidityGate
 import com.kinesis.core.domain.landmark.FrameValidity
@@ -222,6 +227,87 @@ class NormalizationAndValidityTest {
             FrameValidity.INVALID,
             ValidityGate.evaluate(Landmarks.fromPacked(packed), squatLandmarks, policy),
         )
+    }
+
+    // --- NaN visibility - DECISIONS.md P3-16 ------------------------------------
+
+    /**
+     * `NaN < marginal` is false, so a comparison written that way let a `NaN`
+     * visibility through as fully seen. A visibility nobody could state is not
+     * a landmark anybody saw.
+     */
+    @Test
+    fun a_nan_visibility_makes_the_frame_invalid() {
+        val packed = standingFrame(visibility = 0.95).copyPacked()
+        packed[LandmarkId.RIGHT_KNEE.index * Landmarks.STRIDE + 3] = Double.NaN
+        assertEquals(
+            FrameValidity.INVALID,
+            ValidityGate.evaluate(Landmarks.fromPacked(packed), squatLandmarks, VisibilityPolicy.PROVISIONAL),
+        )
+    }
+
+    /**
+     * The gate and the kinematics must agree, or an INVALID frame could still
+     * drive the rep tracker through a side it considers measured (P3-15).
+     */
+    @Test
+    fun a_nan_visibility_side_is_not_measured_by_the_kinematics_either() {
+        val packed = standingFrame(visibility = 0.95).copyPacked()
+        packed[LandmarkId.RIGHT_KNEE.index * Landmarks.STRIDE + 3] = Double.NaN
+        val frame = Landmarks.fromPacked(packed)
+        val policy = VisibilityPolicy.PROVISIONAL
+
+        val knee = JointAngles.compute(frame, JointAngleId.KNEE, MeasurementPlane.IMAGE_2D, policy)
+        assertTrue(knee.right.isNaN(), "a NaN-visibility knee produced an angle: " + knee.right)
+        assertTrue(!knee.left.isNaN(), "the other, clearly seen, knee lost its angle")
+
+        val speed = LandmarkVelocity.compute(
+            standingFrame(), 0.0, frame, 33.0, BodyPoint.KNEE, MeasurementPlane.IMAGE_2D, policy,
+        )
+        assertTrue(speed.right.isNaN(), "a NaN-visibility knee produced a speed: " + speed.right)
+    }
+
+    @Test
+    fun the_policy_treats_nan_as_neither_measurable_nor_reliable() {
+        val policy = VisibilityPolicy.PROVISIONAL
+        assertTrue(!policy.isMeasurable(Double.NaN))
+        assertTrue(!policy.isReliable(Double.NaN))
+        assertTrue(policy.isMeasurable(policy.marginal))
+        assertTrue(policy.isReliable(policy.reliable))
+    }
+
+    // --- The non-allocating torso check - DECISIONS.md P3-16 --------------------
+
+    /**
+     * The live path asks only whether a frame has a torso to scale by, so it uses
+     * the check rather than building a normalised frame to throw away. The two
+     * must never disagree.
+     */
+    @Test
+    fun the_torso_check_agrees_with_normalisation_on_every_case() {
+        val collapsed = DoubleArray(Landmarks.STRIDE * LandmarkId.COUNT)
+        for (id in listOf(LandmarkId.LEFT_SHOULDER, LandmarkId.RIGHT_SHOULDER, LandmarkId.LEFT_HIP, LandmarkId.RIGHT_HIP)) {
+            collapsed[id.index * Landmarks.STRIDE] = 0.5
+            collapsed[id.index * Landmarks.STRIDE + 1] = 0.5
+        }
+        val unplaced = DoubleArray(Landmarks.STRIDE * LandmarkId.COUNT) { Double.NaN }
+
+        val frames = listOf(
+            standingFrame(),
+            standingFrame(offsetX = 0.3, scale = 0.2),
+            standingFrame(scale = 1e-7),
+            Landmarks.fromPacked(collapsed),
+            Landmarks.fromPacked(unplaced),
+        )
+        val expected = listOf(true, true, false, false, false)
+        for ((index, frame) in frames.withIndex()) {
+            assertEquals(expected[index], LandmarkNormalizer.hasMeasurableTorso(frame), "case " + index)
+            assertEquals(
+                LandmarkNormalizer.normalize(frame) != null,
+                LandmarkNormalizer.hasMeasurableTorso(frame),
+                "case " + index + ": the check and normalisation disagree",
+            )
+        }
     }
 
     @Test

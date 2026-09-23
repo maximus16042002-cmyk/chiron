@@ -9,8 +9,13 @@ diagnostic system.
 
 ## Status
 
-**P0 complete.** Architecture locked, contracts specified, repository structure
-defined. No analysis code written yet — that is P1.
+**P0–P3 complete; the camera is wired to the live screen; P4 (device testing)
+not started.** The shared analysis engine, all 15 profiles and 2 variants, the
+Android app shell, local storage and sync are built and tested on JVM and JS.
+The live screen runs camera → MediaPipe → shared core for repetitions and holds
+and saves finished sets, but **none of it has run on a phone yet** — that is P4.
+See `docs/PROJECT_STATUS.md` for the current state and `docs/DECISIONS.md` for
+why.
 
 ## Read in this order
 
@@ -27,18 +32,18 @@ defined. No analysis code written yet — that is P1.
 ## Build
 
 ```
-gradle :core:jvmTest :core:jsNodeTest
+gradlew assemble allTests :app:testDebugUnitTest
 ```
 
-Both targets must stay green. The `js()` target is not optional — it carries the
-cross-platform parity result.
-
-Versions are unverified against a repository; see `docs/REPOSITORY_STRUCTURE.md`.
+Compiles every target and runs every test on JVM, JS and both Android variants.
+Android Lint is excluded because it cannot run on this machine's JDK 25 —
+`docs/DECISIONS.md` P1-1. Both core targets must stay green. The `js()` target
+is not optional — it carries the cross-platform parity result.
 
 ## The three things that matter most
 
 - **Bilateral signals are never averaged.** Left and right stay separate.
-- **All analysis lives in `core/src/commonMain`.** Platform code holds camera,
+- **All analysis lives in `core/analysis/src/commonMain`.** Platform code holds camera,
   rendering and storage — no decisions about movement.
 - **Measure, then claim.** No number appears anywhere until it has been measured
   on this system.

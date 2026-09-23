@@ -11,8 +11,9 @@ import com.kinesis.core.domain.landmark.VisibilityPolicy
  *
  * ### Units
  *
- * Normalised image units per second - the same coordinate space the landmarks
- * arrive in, where 1.0 spans the frame. **These are not metres per second.** A
+ * Frame widths per second - the same coordinate space the landmarks arrive in,
+ * where both axes are measured in widths of the analysis frame (DECISIONS.md
+ * P3-16). **These are not metres per second.** A
  * single camera with no scale reference cannot produce physical velocity, and
  * reporting one would be inventing a measurement the system never made
  * (CLAUDE.md section 22).
@@ -64,8 +65,8 @@ object LandmarkVelocity {
         policy: VisibilityPolicy,
         seconds: Double,
     ): Double {
-        if (previous.visibility(id) < policy.marginal) return Double.NaN
-        if (current.visibility(id) < policy.marginal) return Double.NaN
+        if (!policy.isMeasurable(previous.visibility(id))) return Double.NaN
+        if (!policy.isMeasurable(current.visibility(id))) return Double.NaN
 
         val displacement = when (plane) {
             MeasurementPlane.IMAGE_2D -> Geometry.distance2d(

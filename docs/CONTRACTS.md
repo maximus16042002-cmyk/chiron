@@ -132,6 +132,16 @@ fun PoseAdapter.toAnatomical(raw: RawLandmarks, facing: CameraFacing): Landmarks
 `FRONT` and with `BACK` facing, produces the same anatomical assignment. This
 test exists from P1 and is never deleted.
 
+**Units** (added by `DECISIONS.md` P3-16). `x` and `y` in a `Landmarks` share
+one unit: the width of the image the pose model was given. `x` runs 0..1 across
+it and `y` runs 0..height/width down it, so a pixel is the same length in both
+directions and an angle computed from them is the angle in the image. `z` is as
+MediaPipe reports it, on roughly `x`'s scale. The platform adapter makes this so,
+from the frame's pixel size; the core never learns a frame had a shape. **Every
+producer of `Landmarks` must apply the same correction with its own frame size**
+— the P7 MM-Fit pipeline included — or its angles are not the phone's angles.
+Pinned by `AspectCorrectionRegressionTest`.
+
 ---
 
 ## 5. The JS facade

@@ -2,6 +2,8 @@ package com.kinesis.ui.live
 
 import com.kinesis.core.domain.landmark.VisibilityPolicy
 import com.kinesis.ui.theme.OverlayState
+import kotlin.math.PI
+import kotlin.math.cos
 
 /**
  * Which state each part of the skeleton is drawn in - DECISIONS.md P3-13.
@@ -28,12 +30,37 @@ object SkeletonColouring {
         overall: OverlayState,
     ): OverlayState {
         if (overall == OverlayState.ATTENTION) return OverlayState.ATTENTION
+        // The policy's own predicates, which the validity gate and the
+        // kinematics also use - one definition, NaN included (P3-16).
         return when {
-            visibility.isNaN() -> OverlayState.UNTRACKED
-            visibility >= policy.reliable -> OverlayState.TRACKED
-            visibility >= policy.marginal -> OverlayState.DEGRADED
+            policy.isReliable(visibility) -> OverlayState.TRACKED
+            policy.isMeasurable(visibility) -> OverlayState.DEGRADED
             else -> OverlayState.UNTRACKED
         }
+    }
+
+    /** One full pulse. 1 Hz: visible, and well under WCAG 2.3.1's three flashes a second. */
+    const val PULSE_PERIOD_MS: Long = 1000L
+
+    /** The widest a pulsing stroke gets, as a multiple of its palette width. */
+    const val PULSE_PEAK_STROKE_SCALE: Float = 1.5f
+
+    /**
+     * How wide to draw [state]'s stroke at [elapsedMs], as a multiple of its
+     * palette width - DECISIONS.md P3-12 and P3-16.
+     *
+     * Only a state whose palette entry says it pulses - today, `ATTENTION` - ever
+     * returns anything but 1. The pulse **widens** the stroke, from its own width
+     * to half again, rather than fading it: fading would drop the colour's
+     * contrast below the floor `SkeletonPaletteLegibilityTest` guarantees for
+     * part of every cycle, and the width channel P3-12 made load-bearing would be
+     * the one giving way. Widening only ever adds.
+     */
+    fun strokeScale(state: OverlayState, elapsedMs: Long): Float {
+        if (!state.pulses) return 1f
+        val phase = elapsedMs.mod(PULSE_PERIOD_MS).toDouble() / PULSE_PERIOD_MS
+        val wave = 0.5 - 0.5 * cos(2.0 * PI * phase)
+        return (1.0 + (PULSE_PEAK_STROKE_SCALE - 1.0) * wave).toFloat()
     }
 
     /**

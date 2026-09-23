@@ -25,6 +25,10 @@ data class Landmark(
  * and no branch anywhere downstream that depends on either - that conversion has
  * already happened, in the platform pose adapter, before a `Landmarks` exists.
  *
+ * `x` and `y` share one unit, the width of the image the pose model was given, so
+ * an angle computed from them is the angle in the image; `z` is on roughly `x`'s
+ * scale. The producer guarantees it - CONTRACTS.md section 4, DECISIONS.md P3-16.
+ *
  * Stored as one flat `DoubleArray` of `x, y, z, visibility` per landmark, so
  * reads in the real-time path are index arithmetic with no allocation and no
  * boxing (CLAUDE.md section 6).

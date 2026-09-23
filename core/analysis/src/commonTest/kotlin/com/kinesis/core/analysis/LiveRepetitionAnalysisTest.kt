@@ -6,6 +6,7 @@ import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.landmark.LandmarkId
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.rep.MovementPhase
+import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.core.domain.rep.RepValidity
 import kotlin.math.PI
 import kotlin.math.cos
@@ -140,6 +141,37 @@ class LiveRepetitionAnalysisTest {
         squat(analysis, reps = 1)
         assertEquals(RepValidity.VALID, analysis.lastRepValidity)
         assertEquals(1, analysis.repCount)
+    }
+
+    /**
+     * A set ends while a repetition is under way. The finished ones and the
+     * unfinished one all reach the recorder, the last marked INCOMPLETE rather
+     * than dropped or counted - DECISIONS.md P3-16.
+     */
+    @Test
+    fun finishing_mid_repetition_records_every_repetition_and_an_incomplete_one() {
+        val records = ArrayList<RepRecord>()
+        val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.squat, onRepetition = { records += it })
+        squat(analysis, reps = 2)
+        for (step in 1..15) analysis.feed(body(knees = 170.0 - 100.0 * step / 30.0))
+
+        analysis.finish(clock)
+
+        assertEquals(3, records.size)
+        assertEquals(listOf(RepValidity.VALID, RepValidity.VALID, RepValidity.INCOMPLETE), records.map { it.validity })
+        assertEquals(2, analysis.repCount, "the unfinished repetition was counted")
+        assertEquals(RepValidity.INCOMPLETE, analysis.lastRepValidity)
+    }
+
+    @Test
+    fun finishing_between_repetitions_adds_nothing() {
+        val records = ArrayList<RepRecord>()
+        val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.squat, onRepetition = { records += it })
+        squat(analysis, reps = 2)
+
+        analysis.finish(clock)
+
+        assertEquals(2, records.size)
     }
 
     // --- Synthetic frames -----------------------------------------------------------------

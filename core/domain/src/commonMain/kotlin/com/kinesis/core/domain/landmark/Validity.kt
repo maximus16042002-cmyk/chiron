@@ -45,6 +45,20 @@ data class VisibilityPolicy(val reliable: Double, val marginal: Double) {
         }
     }
 
+    /*
+     * The only comparisons against these thresholds - DECISIONS.md P3-16.
+     * Written as `>=` so a NaN visibility is neither: `NaN < marginal` is false,
+     * and the `<` form every caller used to write let an unstated visibility
+     * through as fully seen. One definition, so the validity gate, the
+     * kinematics and the overlay cannot disagree about a landmark.
+     */
+
+    /** At or above [marginal]: seen well enough to measure. False for NaN. */
+    fun isMeasurable(visibility: Double): Boolean = visibility >= marginal
+
+    /** At or above [reliable]: seen clearly. False for NaN. */
+    fun isReliable(visibility: Double): Boolean = visibility >= reliable
+
     companion object {
 
         /**

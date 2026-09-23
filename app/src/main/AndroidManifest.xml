@@ -47,8 +47,15 @@
         android:label="Kinesis"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <!--
+            configChanges: the live screen locks itself to portrait (DECISIONS.md
+            P3-16). Without this the lock would recreate the activity, and the
+            navigation state - held in Compose, not saved - would reset to the
+            dashboard mid-set. Compose re-lays itself out on the change anyway.
+        -->
         <activity
             android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
