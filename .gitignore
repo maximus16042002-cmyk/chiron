@@ -17,3 +17,7 @@ data/
 # Personal and device-session files: screenshots of the owner, local model
 # downloads, benchmark inputs. Never committed - DECISIONS.md P3-18.
 local/
+
+# Signing keys. Never committed.
+*.jks
+*.keystore
