@@ -4043,6 +4043,284 @@ Google's.
 
 ---
 
+## P3-18 — The first Phase B finding: the live screen crashed on MediaPipe's telemetry
+
+*2026-09-25*
+
+The first run on a real device — the owner's Nothing Phone (2a), model A142,
+Android 16 — crashed the moment camera permission was granted. This entry is the
+crash as the phone logged it, its cause, the fix, and what a session on the phone
+then showed. It is the first entry in this record written from a device.
+
+**Provenance.** The stand-ins, the failure boundaries and the on-device test
+below were already in the working tree, uncommitted and with no decision entry,
+when this session began. They named this cause. They were not accepted on that
+basis: the cause was read from the phone first, and the inherited work was then
+checked, corrected in four places (listed below) and mutation-tested.
+
+### The crash, from the phone
+
+`adb logcat -b crash` held two identical `com.kinesis` crashes, six seconds
+apart (13:54:30 and 13:54:36 on 2026-09-24), both on the main thread:
+
+```
+FATAL EXCEPTION: main   Process: com.kinesis
+java.lang.NoClassDefFoundError: Failed resolution of:
+    Lcom/google/android/datatransport/runtime/TransportRuntime;
+  at com.google.mediapipe.tasks.core.logging.RemoteLoggingClient.<init>(RemoteLoggingClient.java:34)
+  at com.google.mediapipe.tasks.core.logging.TasksStatsProtoLogger.<init>(TasksStatsProtoLogger.java:126)
+  at com.google.mediapipe.tasks.core.logging.TasksStatsProtoLogger.create(TasksStatsProtoLogger.java:121)
+  at com.google.mediapipe.tasks.core.TaskRunner.create(TaskRunner.java:59)
+  at com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker.createFromOptions(PoseLandmarker.java:200)
+  at com.kinesis.camera.PoseLandmarkerSource.<init>(PoseLandmarkerSource.kt:66)
+  at com.kinesis.ui.live.LiveHostKt.LiveCameraSession...(LiveHost.kt:320)
+  at androidx.compose.runtime.DisposableEffectImpl.onRemembered(Effects.kt:83)
+  ...
+Caused by: java.lang.ClassNotFoundException: Didn't find class
+    "com.google.android.datatransport.runtime.TransportRuntime" on path: DexPathList[base.apk ...]
+```
+
+The full log had no `Fatal signal` (no native crash) and no other MediaPipe
+error: the landmarker never got as far as a frame. Two other crashes in the same
+buffer belong to `com.harman.smartlink`, a different app.
+
+Of the suspects the owner's brief listed, only the missing telemetry classes
+fits the trace. A view touched off the main thread does not: the overlay already
+invalidates with `postInvalidateOnAnimation()`, which is safe from any thread.
+Timestamps, the model file, CameraX binding, `ImageProxy` misuse and a native
+crash would all have needed the landmarker to exist.
+
+### Why: P3-13's exclusion removed code MediaPipe links against unconditionally
+
+P3-13 excluded `com.google.android.datatransport` from MediaPipe to keep its
+telemetry uploader, and that uploader's `INTERNET` permission, out of the app.
+It was checked against the manifest and the build. Nothing ran on a device, and
+this failure only exists at run time.
+
+Disassembling `tasks-core-0.10.21` shows why. Creating **any** MediaPipe task
+runs `TaskRunner.create`, which always builds `TasksStatsProtoLogger`, which
+always builds `RemoteLoggingClient`. That client's constructor links against
+datatransport at nine points: `TransportRuntime.initialize`, `getInstance` and
+`newFactory`; `CCTDestination.INSTANCE`; `Encoding.of`; a lambda converted to
+`Transformer`; `TransportFactory.getTransport`; `Event.ofData`; and
+`Transport.send`. It sends to Google's Clearcut service under the log source
+`COREML_ON_DEVICE_SOLUTIONS`. There is no flag that turns it off. Nothing else
+in `tasks-core` or `tasks-vision` touches datatransport, and neither jar contains
+any `java.net`, `javax.net`, OkHttp or `HttpURLConnection` reference. This
+logger is MediaPipe's only route off the phone.
+
+### The fix: inert stand-ins, so MediaPipe links and sends nothing
+
+Three ways to make the landmarker construct were weighed.
+
+| Option | Outcome |
+|---|---|
+| Restore the real library | MediaPipe would upload usage statistics through `transport-backend-cct`, bringing back `INTERNET` and the Clearcut uploader. **Rejected.** It would falsify the privacy notice's "nothing is sent while you are training". |
+| Restore only `transport-api` and `transport-runtime` | Does not link: `CCTDestination` lives in the backend. It would also bring an on-disk event store and an upload scheduler. **Rejected.** |
+| Inert stand-ins for exactly the linked members | **Chosen.** |
+
+`app/src/main/java/com/google/android/datatransport/` holds Kinesis's own
+declarations of the nine members MediaPipe links against, with their exact
+descriptors, verified with `javap` against MediaPipe's call sites. Every
+factory returns one transport whose `send` does nothing, and `Event.ofData`
+returns one shared event, so no payload is kept past the call that would log it.
+MediaPipe still builds its usage report in memory (package name and version,
+task name, running mode, latency and drop counts), and the report goes nowhere.
+The APK contains no uploader, event store, scheduler or network code for it.
+
+**§17.** This is not a dependency and copies no code. The names and signatures
+are read from MediaPipe's bytecode, and Google's datatransport is Apache 2.0 in
+any case (read from the `transport-api` 3.0.0 and `transport-runtime` and
+`transport-backend-cct` 3.1.0 POMs). **Privacy notice: unchanged.** Its statement that nothing is sent
+while training was true of the build P3-13 intended, and is true now.
+`OfflineManifestGuardTest` is untouched.
+
+**One inherited claim was false, measured.** The stand-in file said that if the
+real library ever came back, "the build fails on duplicate classes". With the
+P3-13 exclusion removed, the real `transport-api`, `transport-runtime` and
+`transport-backend-cct` all return through `tasks-core`, and **`assembleDebug`
+still succeeds**. A debug build dexes app and library code separately, so the
+duplicate is never detected, and which `TransportRuntime` a phone loads is
+undefined. What does catch it, measured with that mutation:
+`googles_telemetry_uploader_and_event_store_are_absent` fails,
+`OfflineManifestGuardTest` fails, and a release build's dex merge fails
+(`Type com.google.android.datatransport.Event is defined multiple times`).
+The comment now says so.
+
+### The live screen fails safe
+
+No failure in camera setup, pose model creation, the frame analyser or the
+result listener may crash the app. Each is a boundary now:
+
+| Boundary | Thread | What happens |
+|---|---|---|
+| `PoseLandmarkerSource.open` | main | Returns `Opened` or `Failed(reason)`. Catches exceptions **and `LinkageError`**: this crash was a `NoClassDefFoundError`, and a missing native library is an `UnsatisfiedLinkError`. Neither is an `Exception`. |
+| `LiveCamera.bind` listener | main | Camera service, 4:3 binding and any other failure is reported through the existing `onUnavailable`. |
+| `LiveCamera.analyse` | CameraX analysis | Anything thrown stops analysis through `source.fail`. |
+| Result listener (`deliver`) | MediaPipe | Same. |
+| MediaPipe error listener | MediaPipe | Same. **Previously it discarded errors silently.** |
+
+Every failure is logged under `KinesisLive` (`adb logcat -s KinesisLive`) and
+reported once. The host then shows the existing `LiveUnavailableScreen` ("LIVE
+ANALYSIS STOPPED" or "UNAVAILABLE"), which takes the camera session out of
+composition and so unbinds the camera. No zero count is left on screen as if
+all were well.
+
+**A behaviour change, stated.** A `MediaPipeException` in the analyser used to
+drop one frame silently. It now stops analysis for the set. That trades a
+recoverable glitch for a visible stop, which is the owner's instruction: never
+swallow an error. If device use shows transient errors, recovering from them
+is a separate decision.
+
+**Real-time path.** The happy path gains `AtomicBoolean` reads and no
+allocation. Only a failure allocates, once, for its message. The two bitmap
+allocations per frame that P3-15 recorded are unchanged.
+
+**Timestamps (suspect c).** They are unchanged and safe by construction.
+MediaPipe's monotonic-timestamp rule applies per graph, and a camera switch
+builds a new landmarker (P3-17). The analyser also drops any frame whose
+timestamp does not advance.
+
+### Tests
+
+**JVM: `MediaPipeTelemetryStandInTest`, five tests.** As inherited, it checked
+only that datatransport *class names* resolve, and only in the jar holding the
+logger. A MediaPipe upgrade calling a new method on an existing class would
+have passed it and crashed a phone. It now reads the constant pool of every
+class in `tasks-core` and `tasks-vision` (JVMS §4.4), which is what the device's
+linker resolves, and checks each field, method, interface method and lambda
+target, by name and exact descriptor. It also pins the surface to the nine
+members above, so an upgrade that needs more is reviewed ("does the new call
+send anything?") rather than absorbed.
+
+**On-device: `PoseLandmarkerOnDeviceTest`, four tests**, run by
+`gradlew connectedDebugAndroidTest`. They cover: the bundled model is in the
+APK; the landmarker opens from it and MediaPipe answers a 480×640 frame stamped
+with that frame's timestamp; a missing model is reported, not thrown; and the
+overlay accepts frames from a background thread while attached to a real window.
+
+**Mutations.** Every file was restored and verified byte for byte afterwards:
+backups compared with `cmp` and `git diff --no-index`, and tracked files
+restored with `git checkout`.
+
+| Mutation | Result |
+|---|---|
+| `Event.ofData` loses `@JvmStatic`; `newFactory` takes `CCTDestination` | JVM member test fails, naming both descriptors. The inherited class-name test would have passed. |
+| `TransportRuntime` stand-in removed | On the phone, `the_bundled_model_opens_and_runs_a_frame` fails with the phone's own error, reported as a message, not a crash. |
+| The same, plus `open`'s `LinkageError` catch removed | The `NoClassDefFoundError` escapes `open` with the crash log's frames (`RemoteLoggingClient.<init>:34` … `createFromOptions:200`). The boundary is what prevents the crash. |
+| `requestLayout()` added to the overlay's `submit` | Background-thread test fails with `CalledFromWrongThreadException`. |
+| `invalidate()` in place of `postInvalidateOnAnimation()` | **Not caught.** On a hardware-accelerated window Android does not check the thread for `invalidate()`. The test's comment now says so. |
+| P3-13 exclusion removed | Debug build succeeds. Caught by the absence test, `OfflineManifestGuardTest` and the release dex merge, as above. |
+
+**The four corrections to the inherited work:**
+
+1. The JVM guard was raised from class names to members, across both jars.
+2. The missing-model test also passed with the P3-18 fault back, because
+   MediaPipe builds its logger before loading the model. It now asserts the
+   failure is about the model.
+3. The background-thread test's comment claimed more than the test catches. It
+   now says what the test catches and what it cannot.
+4. The stand-ins' duplicate-class claim is corrected, as above.
+
+### What "tested" means here
+
+`gradlew assemble allTests :app:testDebugUnitTest`: **BUILD SUCCESSFUL, 1,133
+test executions, 0 failures, 0 errors.** P3-17 stood at 1,128. The five new
+tests are the JVM stand-in guard.
+
+| Module and target | Before | After |
+|---|---|---|
+| `:core:analysis`, per shared target (JS and both Android variants) | 218 | 218 |
+| `:core:analysis`, JVM | 232 | 232 |
+| `:app`, debug unit tests | 110 | 115 |
+| `:core:domain`, per target | 33 | 33 |
+
+The core modules' test tasks were up to date, because no core source changed.
+`:app`'s tests ran, and the release variant compiled and dex-merged fresh with
+the stand-ins in place.
+
+`gradlew connectedDebugAndroidTest` on the A142: **4 tests, 0 failures.**
+
+Compiler warnings were not checked in this entry.
+
+### Verified on the phone
+
+`com.kinesis`, debug, with no ID suffix. It was installed with `installDebug`,
+camera granted with `pm grant`, and driven by `input tap` and `screencap`.
+The screenshots show the owner, so they are kept out of git, in the ignored
+`local/phase-b/`, and are described here in words.
+
+- **The crash is gone.** The live screen (Squat) ran about seven minutes on the
+  front camera (00:04–00:11) and about five on the back. The back run ended when
+  the test reinstall stopped the app, not by any fault. Throughout: no
+  `com.kinesis` entry in the crash buffer, no `FATAL EXCEPTION`, no `Fatal
+  signal`, no ANR, nothing under `KinesisLive`, and one process ID.
+- **The preview shows on both cameras.** The switch works mid-set, and the
+  readout names the camera.
+- **The Phase B readout updates.** The probe logs under `KinesisPhaseB` about
+  once a second. This closes P3-17's "Logcat output" item.
+- **The skeleton lies on the body with both cameras**, including frames where
+  the person is off-centre (a full-body frame on each camera, visibility
+  0.83–1.00). This agrees with `previewIsMirrored` for both cameras.
+  It is not the left/right check (see below).
+- **Frames arrive, and the rate is measured, not explained:** front 7.8–16.4
+  fps, back 3.9–15.0 fps, from screenshots and the probe's log. That is well
+  below 30. Light, the device and the per-frame bitmap work are all candidates;
+  none was measured.
+- **Switching camera saves the first set.** The app's Room database, read with
+  `run-as`, holds one session and one squat set started at 00:04:22 (the front
+  run), with 12 candidate repetitions: 11 `INSUFFICIENT_DATA` and 1 `ABORTED`.
+  None is valid, matching the 0 shown. The back camera's set is absent because
+  the reinstall killed the process with the screen open. A set is written on
+  leaving the screen, so that is expected.
+
+### Found on the phone, not fixed
+
+- **The skeleton is drawn outside the camera area**, over the readout and the
+  END SET control (the first live frame, upper body in shot, hips and legs
+  drawn below the camera area), when MediaPipe places landmarks outside
+  the frame. The preview and overlay `AndroidView`s sit in a 3:4 `Box` with no
+  `clipToBounds()`, and Compose does not clip an `AndroidView`'s drawing to its
+  bounds. `Modifier.clipToBounds()` on that box is the likely fix. It is neither
+  applied nor verified.
+- **The phone was upside down for the whole run.** With a USB cable in the
+  bottom port, that is how it stands. Android's orientation listener proposed
+  `ROTATION_180` while the live screen's portrait lock held the display at
+  `ROTATION_0`. So both the preview and the frames MediaPipe analysed showed the
+  person inverted. The image evidence agrees: lettering on a shirt was flipped
+  vertically on the mirrored front camera and rotated 180° on the back.
+  MediaPipe tracked the inverted body, but its accuracy on inverted people is
+  not established. Any measurement that relies on the image's vertical axis
+  would be inverted; which ones do has not been audited here. For the owner:
+  the portrait lock could become `sensorPortrait`, or the setup assistant (§10)
+  could refuse an inverted phone.
+- **The saved set is no evidence about rep counting.** The squats were done
+  front-on, the Squat profile requires side-on, and the frames were inverted.
+
+### What is NOT verified — Phase B
+
+Everything in P3-15's, P3-16's and P3-17's lists still stands, except the items
+marked verified above. Added:
+
+- **The back camera with the phone upright.** It could not be propped upright
+  with the cable in.
+- **The left/right check** (raise the left arm, once per camera). Not done.
+  Skeleton placement does not test it.
+- **The failure screens on the device.** No failure occurred, so neither "LIVE
+  ANALYSIS STOPPED" nor "UNAVAILABLE" has been seen on the phone. On the device,
+  only `open` has been tested, by the instrumented test. The analyser,
+  result-listener, error-listener and binding boundaries have no test that
+  triggers them.
+- Rep counting under the profile's required view, with the phone upright.
+- Sessions longer than a few minutes, and the effect of heat on frame rate.
+
+**Scope of this entry.** It records a crash read from a device, its cause, a fix
+that keeps MediaPipe silent, failure boundaries, a JVM and an on-device guard,
+one false claim corrected, and one device session with its findings. It makes
+no accuracy claim of any kind.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

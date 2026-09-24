@@ -3,6 +3,7 @@ package com.kinesis.camera
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Matrix
+import android.util.Log
 import android.util.Size
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
@@ -15,7 +16,6 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import com.google.mediapipe.framework.MediaPipeException
 import com.kinesis.pose.CameraFacing
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.ExecutorService
@@ -84,77 +84,97 @@ class LiveCamera(
         val future = ProcessCameraProvider.getInstance(context)
         future.addListener({
             if (closed) return@addListener
-            val cameraProvider = try {
-                future.get()
-            } catch (error: ExecutionException) {
-                onUnavailable("camera service unavailable: " + error.cause?.message)
-                return@addListener
-            }
-
-            // 4:3 on both use cases with no fallback - DECISIONS.md P3-16. The
-            // live screen sizes the preview and the overlay to exactly this shape,
-            // so a device that cannot provide it is told so below rather than
-            // drawing a skeleton that drifts off the body.
-            val resolution = ResolutionSelector.Builder()
-                .setAspectRatioStrategy(
-                    AspectRatioStrategy(AspectRatio.RATIO_4_3, AspectRatioStrategy.FALLBACK_RULE_NONE),
-                )
-                .build()
-            val preview = Preview.Builder()
-                .setResolutionSelector(resolution)
-                .setTargetRotation(displayRotation)
-                .build()
-                .also { it.setSurfaceProvider(previewView.surfaceProvider) }
-            val analysis = ImageAnalysis.Builder()
-                .setResolutionSelector(resolution)
-                .setTargetRotation(displayRotation)
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
-                .build()
-                .also { it.setAnalyzer(analysisThread, ::analyse) }
-
-            val selector = when (source.facing) {
-                CameraFacing.FRONT -> CameraSelector.DEFAULT_FRONT_CAMERA
-                CameraFacing.BACK -> CameraSelector.DEFAULT_BACK_CAMERA
-            }
+            // The binding boundary - DECISIONS.md P3-18. This runs on the main
+            // thread, where anything uncaught kills the app.
             try {
-                cameraProvider.bindToLifecycle(owner, selector, preview, analysis)
+                bindNow(future.get(), owner, previewView, displayRotation)
+            } catch (error: ExecutionException) {
+                unavailable("the camera service is unavailable", error.cause ?: error)
             } catch (error: IllegalArgumentException) {
-                onUnavailable(
-                    "no usable " + source.facing.name.lowercase() + " camera with a 4:3 frame: " + error.message,
-                )
-                return@addListener
-            } catch (error: IllegalStateException) {
-                onUnavailable("camera could not be bound: " + error.message)
-                return@addListener
-            }
-            provider = cameraProvider
-            analysisUseCase = analysis
-            previewUseCase = preview
-
-            val previewSize = preview.resolutionInfo?.resolution
-            val analysisSize = analysis.resolutionInfo?.resolution
-            if (!isFourByThree(previewSize) || !isFourByThree(analysisSize)) {
-                close()
-                onUnavailable(
-                    "the camera bound a frame that is not 4:3 (preview " + previewSize +
-                        ", analysis " + analysisSize + "), so the skeleton would not line up",
-                )
+                unavailable("no usable " + source.facing.name.lowercase() + " camera with a 4:3 frame", error)
+            } catch (error: Exception) {
+                unavailable("the camera could not be started", error)
+            } catch (error: LinkageError) {
+                unavailable("a camera library is missing from this build", error)
             }
         }, ContextCompat.getMainExecutor(context))
+    }
+
+    private fun unavailable(what: String, error: Throwable?) {
+        Log.e(LIVE_LOG_TAG, what, error)
+        onUnavailable(if (error == null) what else what + " (" + error.javaClass.simpleName + ": " + error.message + ")")
+    }
+
+    private fun bindNow(
+        cameraProvider: ProcessCameraProvider,
+        owner: LifecycleOwner,
+        previewView: PreviewView,
+        displayRotation: Int,
+    ) {
+        // 4:3 on both use cases with no fallback - DECISIONS.md P3-16. The
+        // live screen sizes the preview and the overlay to exactly this shape,
+        // so a device that cannot provide it is told so below rather than
+        // drawing a skeleton that drifts off the body.
+        val resolution = ResolutionSelector.Builder()
+            .setAspectRatioStrategy(
+                AspectRatioStrategy(AspectRatio.RATIO_4_3, AspectRatioStrategy.FALLBACK_RULE_NONE),
+            )
+            .build()
+        val preview = Preview.Builder()
+            .setResolutionSelector(resolution)
+            .setTargetRotation(displayRotation)
+            .build()
+            .also { it.setSurfaceProvider(previewView.surfaceProvider) }
+        val analysis = ImageAnalysis.Builder()
+            .setResolutionSelector(resolution)
+            .setTargetRotation(displayRotation)
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
+            .build()
+            .also { it.setAnalyzer(analysisThread, ::analyse) }
+
+        val selector = when (source.facing) {
+            CameraFacing.FRONT -> CameraSelector.DEFAULT_FRONT_CAMERA
+            CameraFacing.BACK -> CameraSelector.DEFAULT_BACK_CAMERA
+        }
+        cameraProvider.bindToLifecycle(owner, selector, preview, analysis)
+        provider = cameraProvider
+        analysisUseCase = analysis
+        previewUseCase = preview
+
+        val previewSize = preview.resolutionInfo?.resolution
+        val analysisSize = analysis.resolutionInfo?.resolution
+        if (!isFourByThree(previewSize) || !isFourByThree(analysisSize)) {
+            close()
+            unavailable(
+                "the camera bound a frame that is not 4:3 (preview " + previewSize +
+                    ", analysis " + analysisSize + "), so the skeleton would not line up",
+                null,
+            )
+        }
     }
 
     private fun isFourByThree(size: Size?): Boolean =
         size != null && isFourByThree(size.width, size.height)
 
+    /**
+     * The analyzer's boundary - DECISIONS.md P3-18. Anything thrown here is on
+     * CameraX's thread, where an uncaught throwable kills the app, so it is
+     * caught, logged, and stops analysis through the source's single failure
+     * path. It is not dropped as "one bad frame": a frame that fails to convert
+     * or submit is a fault to see, not to hide.
+     */
     private fun analyse(image: ImageProxy) {
         try {
+            if (source.hasFailed) return
             val timestampMs = image.imageInfo.timestamp / NANOS_PER_MILLI
             if (timestampMs <= lastTimestampMs) return
             lastTimestampMs = timestampMs
-            source.analyse(image, upright(image), timestampMs)
-        } catch (error: MediaPipeException) {
-            // One dropped frame; the next may succeed. Not worth the screen.
+            source.analyse(upright(image), timestampMs)
+        } catch (error: Exception) {
+            source.fail("a camera frame could not be analysed", error)
+        } catch (error: LinkageError) {
+            source.fail("a library pose estimation needs is missing from this build", error)
         } finally {
             image.close()
         }

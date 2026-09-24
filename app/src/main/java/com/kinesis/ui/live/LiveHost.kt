@@ -19,9 +19,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.google.mediapipe.framework.MediaPipeException
 import com.kinesis.camera.LiveCamera
 import com.kinesis.camera.PoseLandmarkerSource
+import com.kinesis.camera.PoseSourceOpening
 import com.kinesis.camera.PoseModelAsset
 import com.kinesis.camera.PoseModelState
 import com.kinesis.camera.hasCameraPermission
@@ -245,6 +245,7 @@ private fun LiveCameraSession(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val view = LocalView.current
+    val main = rememberMainExecutor()
     val portrait = LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT
 
     val preview = remember {
@@ -314,32 +315,35 @@ private fun LiveCameraSession(
                 // as-is for the back. The last camera's figure is cleared.
                 overlay.displayMirrored = LiveCamera.previewIsMirrored(facing)
                 overlay.clear()
-                val camera = try {
-                    // The facing is given once, here; LiveCamera reads it back from
-                    // the source, so the camera, the mirroring and the adapter agree.
-                    val source = PoseLandmarkerSource(
-                        context, env.modelAssetPath, facing, engine::onLandmarks, engine::onNoPose,
-                    )
-                    LiveCamera(context, source) { reason ->
+                // The facing is given once, here; LiveCamera reads it back from the
+                // source, so the camera, the mirroring and the adapter agree.
+                // Nothing below may crash the app (P3-18): creation failures come
+                // back as a value, and analysis failures - on MediaPipe's or
+                // CameraX's thread - stop analysis and arrive here, once.
+                val opening = PoseLandmarkerSource.open(
+                    context, env.modelAssetPath, facing, engine::onLandmarks, engine::onNoPose,
+                    onFailure = { reason ->
+                        main.execute {
+                            failure = LiveFailure(
+                                "LIVE ANALYSIS STOPPED", reason + ". Nothing is being measured.", offersCameraSwitch = false,
+                            )
+                        }
+                    },
+                )
+                val camera = when (opening) {
+                    is PoseSourceOpening.Failed -> {
+                        failure = LiveFailure(
+                            "LIVE ANALYSIS UNAVAILABLE", opening.reason + ". Nothing is being measured.",
+                            offersCameraSwitch = false,
+                        )
+                        null
+                    }
+
+                    is PoseSourceOpening.Opened -> LiveCamera(context, opening.source) { reason ->
                         failure = LiveFailure(
                             "LIVE ANALYSIS UNAVAILABLE", reason + ". Nothing is being measured.", offersCameraSwitch = true,
                         )
                     }
-                } catch (error: MediaPipeException) {
-                    failure = LiveFailure(
-                        "LIVE ANALYSIS UNAVAILABLE",
-                        "the pose model could not be loaded: " + error.message + ". Nothing is being measured.",
-                        offersCameraSwitch = false,
-                    )
-                    null
-                } catch (error: UnsatisfiedLinkError) {
-                    // MediaPipe ships arm64-v8a, armeabi-v7a and x86 only - P3-15.
-                    failure = LiveFailure(
-                        "LIVE ANALYSIS UNAVAILABLE",
-                        "MediaPipe has no native library for this device's processor. Nothing is being measured.",
-                        offersCameraSwitch = false,
-                    )
-                    null
                 }
                 camera?.bind(lifecycleOwner, preview, view.display?.rotation ?: Surface.ROTATION_0)
                 onDispose { camera?.close() }

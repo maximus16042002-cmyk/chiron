@@ -2,7 +2,7 @@ package com.kinesis.camera
 
 import android.content.Context
 import android.graphics.Bitmap
-import androidx.camera.core.ImageProxy
+import android.util.Log
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
@@ -12,6 +12,7 @@ import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.pose.CameraFacing
 import com.kinesis.pose.PoseAdapter
 import com.kinesis.pose.RawLandmarks
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Turns camera frames into anatomical landmarks - DECISIONS.md P3-13.
@@ -38,8 +39,16 @@ import com.kinesis.pose.RawLandmarks
  * where I say it is" rather than "this landmark is in frame at all". Recorded
  * because the two are easy to swap and the failure would be a validity gate
  * that passes frames it should not.
+ *
+ * ### Failing safe - DECISIONS.md P3-18
+ *
+ * The first Phase B run crashed the app when the landmarker was created. Nothing
+ * that goes wrong here may do that again. [open] reports a creation failure,
+ * `Error`s included, instead of throwing; a failure in the result listener or a
+ * MediaPipe error stops analysis, is logged under [LIVE_LOG_TAG], and is reported
+ * once through [onFailure] so the screen can say so. Nothing is swallowed.
  */
-class PoseLandmarkerSource(
+class PoseLandmarkerSource private constructor(
     context: Context,
     private val modelAssetPath: String,
     /**
@@ -56,6 +65,11 @@ class PoseLandmarkerSource(
      * left the frame, in the colour that means "tracked". DECISIONS.md P3-15.
      */
     private val onNoPose: (Long) -> Unit,
+    /**
+     * Analysis has stopped, and why, in words a screen can show. Called at most
+     * once, on whichever thread failed - post to the main thread before touching UI.
+     */
+    private val onFailure: (String) -> Unit,
 ) : AutoCloseable {
 
     private val adapter = PoseAdapter()
@@ -63,14 +77,19 @@ class PoseLandmarkerSource(
     /** Reused across frames. Allocating one per frame is what section 6 forbids. */
     private val packed = DoubleArray(Landmarks.PACKED_SIZE)
 
+    /** Set once, from any thread; after it, nothing is analysed or delivered. */
+    private val failure = AtomicBoolean(false)
+
+    val hasFailed: Boolean get() = failure.get()
+
     private val landmarker: PoseLandmarker = PoseLandmarker.createFromOptions(
         context,
         PoseLandmarker.PoseLandmarkerOptions.builder()
             .setBaseOptions(BaseOptions.builder().setModelAssetPath(modelAssetPath).build())
             .setRunningMode(RunningMode.LIVE_STREAM)
             .setNumPoses(1)
-            .setResultListener { result, input -> onResult(result, input.width, input.height) }
-            .setErrorListener { /* a dropped frame is not worth taking the screen down */ }
+            .setResultListener { result, input -> deliver(result, input.width, input.height) }
+            .setErrorListener { error -> fail("pose estimation reported an error", error) }
             .build(),
     )
 
@@ -79,10 +98,31 @@ class PoseLandmarkerSource(
      *
      * `LIVE_STREAM` mode is asynchronous: this returns immediately and the
      * result arrives on the listener. That is what keeps the analysis off the
-     * camera thread.
+     * camera thread. Does nothing once analysis has failed.
      */
-    fun analyse(image: ImageProxy, bitmap: Bitmap, timestampMs: Long) {
+    fun analyse(bitmap: Bitmap, timestampMs: Long) {
+        if (hasFailed) return
         landmarker.detectAsync(BitmapImageBuilder(bitmap).build(), timestampMs)
+    }
+
+    /**
+     * Stops analysis and reports why, once. Public so the capture side can report
+     * its own failures through the same path.
+     */
+    fun fail(what: String, error: Throwable) {
+        if (!failure.compareAndSet(false, true)) return
+        Log.e(LIVE_LOG_TAG, what, error)
+        onFailure(what + " (" + error.javaClass.simpleName + ": " + error.message + ")")
+    }
+
+    /** The result listener's boundary: an exception here must not reach MediaPipe's thread. */
+    private fun deliver(result: PoseLandmarkerResult, frameWidthPx: Int, frameHeightPx: Int) {
+        if (hasFailed) return
+        try {
+            onResult(result, frameWidthPx, frameHeightPx)
+        } catch (error: Exception) {
+            fail("analysing a pose result failed", error)
+        }
     }
 
     /**
@@ -120,4 +160,45 @@ class PoseLandmarkerSource(
     }
 
     override fun close() = landmarker.close()
+
+    companion object {
+
+        /**
+         * Creates the landmarker, or says why it could not.
+         *
+         * Catches `LinkageError` as well as exceptions: the P3-18 crash was a
+         * `NoClassDefFoundError`, which is an `Error`, and a missing native
+         * library is an `UnsatisfiedLinkError`. Both are ordinary conditions on
+         * some device or some build, and both must produce a message, not a crash.
+         */
+        fun open(
+            context: Context,
+            modelAssetPath: String,
+            facing: CameraFacing,
+            onLandmarks: (Landmarks, Long) -> Unit,
+            onNoPose: (Long) -> Unit,
+            onFailure: (String) -> Unit,
+        ): PoseSourceOpening = try {
+            PoseSourceOpening.Opened(
+                PoseLandmarkerSource(context, modelAssetPath, facing, onLandmarks, onNoPose, onFailure),
+            )
+        } catch (error: Exception) {
+            Log.e(LIVE_LOG_TAG, "the pose landmarker could not be created from $modelAssetPath", error)
+            PoseSourceOpening.Failed("the pose model could not be started (" + describe(error) + ")")
+        } catch (error: LinkageError) {
+            Log.e(LIVE_LOG_TAG, "the pose landmarker could not be created from $modelAssetPath", error)
+            PoseSourceOpening.Failed("a library pose estimation needs is missing from this build (" + describe(error) + ")")
+        }
+
+        private fun describe(error: Throwable): String = error.javaClass.simpleName + ": " + error.message
+    }
 }
+
+/** What [PoseLandmarkerSource.open] produced. */
+sealed interface PoseSourceOpening {
+    class Opened(val source: PoseLandmarkerSource) : PoseSourceOpening
+    class Failed(val reason: String) : PoseSourceOpening
+}
+
+/** Every live-pipeline failure is logged under this tag: `adb logcat -s KinesisLive`. */
+const val LIVE_LOG_TAG = "KinesisLive"
