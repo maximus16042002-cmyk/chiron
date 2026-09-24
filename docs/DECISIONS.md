@@ -4525,6 +4525,67 @@ unmeasurable runs, so part 5's readout now logs each side's run lengths. The
 decision belongs to the owner, and it touches Level 1 measurements, so it gets
 its own entry when it is made.
 
+### 6. Firestore rules, tested on the emulator: they refused every upload
+
+`firestore.rules` had never been run. P3-14 wrote it, and the owner was to paste
+it into the console by hand. It is now tested by `tools/firestore-rules/`: 14
+rules unit tests on the Firebase Local Emulator, against a `demo-` project that
+cannot reach the real `kinesis-5b97b`. Run them with
+`cd tools/firestore-rules && npm install && npm test`.
+
+**§17 check. Development tools only; nothing enters the APK.**
+- `firebase-tools` 14.27.0 is MIT. It downloads Google's Firestore emulator on
+  first run; that is a local development binary under Firebase's terms, and it
+  is not redistributed.
+- `@firebase/rules-unit-testing` 4.0.1 and the `firebase` JS SDK 11.10.0 are
+  Apache 2.0.
+- The test runner is Node's own `node:test`, so no test framework was added.
+- `node_modules` and the emulator's log are ignored. `package-lock.json` is
+  committed, so the versions are pinned.
+
+**Bug found: a signed-in user could not upload anything.** The emulator's
+evaluation log gave `Null value error` at line 61, column 27, which is
+`d.sessionId == sessionId` inside `isWellFormedSession()`. That function is
+declared outside the `match` block, so it cannot see the path variable
+`sessionId`, which reads as null and fails the create. **Had these rules been
+published, every upload would have been refused**, and `SessionSyncWorker`
+would have retried each one forever. Its only answer to a failed push is
+`Result.retry()`. **Fixed:** the path's `sessionId` is passed in as a parameter.
+
+**Gap found: a retried upload would be refused.** The app uploads with `set()`
+on a fixed document id and retries every failed push. If the server commits an
+upload but the reply is lost, the retry is a second, identical `set()`. The rules
+evaluate that as an *update*, and updates were refused, so the retry failed
+forever too. **Changed:** an update is allowed only when the new document equals
+the stored one, `request.resource.data == resource.data`. That edits nothing.
+Any difference is still refused, and delete is still refused. **This is a policy
+change to the security boundary.** The owner is told of it when asked to
+publish, and can refuse it.
+
+**What the 14 tests hold:**
+- **Signed out:** no read, no list, no add.
+- **Signed in:**
+  - can add, read and list their own sessions;
+  - can neither read nor list another user's;
+  - cannot add to another user's account;
+  - cannot edit their own session, by field update or by a changed `set()`;
+  - cannot delete their own session;
+  - cannot add a malformed session: `sessionId` differing from the path, no
+    `sets`, a string offset, a non-numeric start, or an empty id;
+  - cannot touch anything outside their sessions.
+- **A retried upload:** an identical one succeeds, one differing in any field is
+  refused, and an identical one into another user's account is refused.
+
+**Tests first.** Before the fixes, "adds a session of their own" and the
+identical retry both failed. **Mutations**, with the file restored byte for
+byte: an update rule of `true` and a delete rule of `true` together failed three
+tests, "cannot edit", "cannot delete" and "differs in any way".
+
+**Not yet verified, needs the owner:**
+- that the console's published rules match this file, which now differs from
+  what P3-14 wrote, so it must be published again;
+- that the P3-18 session reached Firestore under the owner's account.
+
 ---
 
 ## P3-20 — The repository gets a remote: private GitHub, `google-services.json` included

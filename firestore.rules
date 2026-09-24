@@ -29,7 +29,7 @@ service cloud.firestore {
       allow read: if request.auth != null
                   && request.auth.uid == userId;
 
-      // Create is allowed; update and delete are not.
+      // Create is allowed; editing and deleting are not.
       //
       // Sessions are append-only by design — verified in P3-14 rather than
       // assumed: the record types are entirely val/List, the DAO has no
@@ -38,9 +38,19 @@ service cloud.firestore {
       // modified client cannot rewrite history that has already been recorded.
       allow create: if request.auth != null
                     && request.auth.uid == userId
-                    && isWellFormedSession();
+                    && isWellFormedSession(sessionId);
 
-      allow update, delete: if false;
+      // An identical re-write is allowed, because it is not an edit: nothing
+      // changes. The app uploads with set() on a fixed id and retries every
+      // failed upload, so an upload the server committed but whose reply was
+      // lost comes back as a second, identical set() - which the rules see as an
+      // update. Refusing it made SessionSyncWorker retry that session forever.
+      // Any difference at all is still refused. DECISIONS.md P3-19.
+      allow update: if request.auth != null
+                    && request.auth.uid == userId
+                    && request.resource.data == resource.data;
+
+      allow delete: if false;
     }
 
     // Nothing else exists. An explicit deny means a future collection added by
@@ -53,7 +63,11 @@ service cloud.firestore {
   // A minimal shape check. This is not validation of the measurements — the
   // client owns those and the server has no way to recompute them — it is a
   // guard against a document that would break the reader on another device.
-  function isWellFormedSession() {
+  //
+  // The path's sessionId is a parameter: a function declared out here cannot see
+  // the match block's variables, and reading `sessionId` bare evaluated to null,
+  // which refused every upload. Found by the emulator tests, DECISIONS.md P3-19.
+  function isWellFormedSession(sessionId) {
     let d = request.resource.data;
     return d.keys().hasAll(['sessionId', 'startedAtEpochMs', 'utcOffsetMinutes', 'sets'])
         && d.sessionId is string
