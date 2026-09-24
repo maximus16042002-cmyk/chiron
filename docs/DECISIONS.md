@@ -4319,6 +4319,63 @@ that keeps MediaPipe silent, failure boundaries, a JVM and an on-device guard,
 one false claim corrected, and one device session with its findings. It makes
 no accuracy claim of any kind.
 
+
+---
+
+## P3-19 — Phase B without the camera: screenshots out of git, the overlay clipped
+
+*2026-09-25*
+
+The P4 work that does not need the owner exercising in front of the camera, at
+the owner's direction, in their order. The phone stays connected by USB for
+automated tests only. Each part below was committed as it landed. Camera and
+exercise checks are listed as pending at the end.
+
+### 1. Screenshots of the owner stay out of git
+
+P3-18's commit put seven screenshots in `docs/phase-b/`. They show the owner's
+face, room and account email. The commit was unpushed, so it was amended: the
+images moved to `local/phase-b/`, `local/` is in `.gitignore`, and P3-18
+describes each screenshot in words. `git log --all` lists no image file in any
+commit. **Standing rule from here:** device screenshots are saved only under
+`local/`, and this record describes them. The same goes for any image a test
+captures from the camera.
+
+### 2. The skeleton is clipped to the camera area
+
+P3-18 found landmarks below the frame drawn over the rep counter and END SET.
+**Cause, read from Compose UI 1.7.6's bytecode:** `AndroidViewsHandler` and
+`ViewFactoryHolder`, the holders every `AndroidView` sits in, both call
+`setClipChildren(false)`. An embedded view is therefore never clipped to its own
+bounds, and the overlay draws wherever a landmark falls. **Fix:** `clipToBounds()`
+on the 3:4 box in `LiveCameraLayout`, which both the repetition and the hold
+screen use.
+
+**Guard: `LiveScreenClippingTest`, on the phone, two tests, one per screen.** Each
+renders the real screen, hosted as `MainActivity` hosts it (theme, surface, the
+shell's column, the debug readout on), locked to portrait. It gives the overlay a
+figure whose shoulders are in the frame and whose legs are below it, and compares
+the window's pixels before and after, captured with `PixelCopy` from the real
+hardware-rendered surface. It requires changed pixels inside the box, so it can
+see the skeleton, and none outside.
+
+- **Without the clip:** 8,477 pixels (repetition) and 6,931 (hold) outside the
+  box `Rect(0, 320 – 1084, 1765)`. **With it: 0.** File restored byte for byte.
+- **Written first and failing first, but not at the first attempt.** The first
+  version passed without the fix, because its "legs below the frame" were at
+  y = 1.3. The overlay measures y in frame *widths* (P3-16), so a portrait 4:3
+  frame ends at y = 4/3, and 1.3 is still inside. Two wrong leads were tested
+  and ruled out before a saved capture showed the legs on the box's bottom edge:
+  hosting the screen as the app does, and binding a live camera to the preview.
+  Neither changed the result. The camera binding was removed from the test, and
+  its captures, which showed the room, were deleted from the phone and the PC.
+- One run went to landscape because the phone was lying on its side. It still
+  failed without the clip, but the test now locks portrait so it matches the
+  live screen.
+
+**Pending, for the camera session:** see the clipped skeleton on the live screen
+with a person partly out of frame.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

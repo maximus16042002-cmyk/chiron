@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -513,7 +514,10 @@ private fun LiveCameraLayout(
                 .fillMaxWidth(),
             contentAlignment = Alignment.Center,
         ) {
-            Box(Modifier.aspectRatio(LiveCamera.PORTRAIT_FRAME_ASPECT)) {
+            // Clipped: embedded views are not clipped to their own bounds in
+            // Compose, and MediaPipe places landmarks outside the frame - on the
+            // phone the legs were drawn over the rep counter. DECISIONS.md P3-19.
+            Box(Modifier.aspectRatio(LiveCamera.PORTRAIT_FRAME_ASPECT).clipToBounds()) {
                 AndroidView(factory = { preview }, modifier = Modifier.fillMaxSize())
                 AndroidView(factory = { overlay }, modifier = Modifier.fillMaxSize())
             }
