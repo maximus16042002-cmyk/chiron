@@ -10,13 +10,13 @@ kotlin-js-store/
 .DS_Store
 
 # Datasets are never committed — see docs/ZERO_DATASET_BUILD_PLAN.md
-data/
+/data/
 *.mp4
 *.bin
 
 # Personal and device-session files: screenshots of the owner, local model
 # downloads, benchmark inputs. Never committed - DECISIONS.md P3-18.
-local/
+/local/
 
 # Signing keys. Never committed.
 *.jks
