@@ -67,6 +67,17 @@ class BilateralRepTracker(
         private set
 
     /**
+     * Records reported so far, valid or not - the source of [RepRecord.repIndex],
+     * which is the position in the set counting from 1. Kept apart from
+     * [repetitionCount]: numbering records by the valid count gave every record
+     * before the first valid one the number 0, and a rejected record the number
+     * of the valid one before it. DECISIONS.md P3-19.
+     */
+    private var recordsReported: Int = 0
+
+    private fun nextPosition(): Int = ++recordsReported
+
+    /**
      * Each side's phase, separately. There is deliberately no combined `phase`
      * property: showing one phase for two limbs is a reduction, and CLAUDE.md
      * section 3 wants it named where it happens - [BilateralPhase].
@@ -188,6 +199,7 @@ class BilateralRepTracker(
         leftFsm.reset()
         rightFsm.reset()
         repetitionCount = 0
+        recordsReported = 0
         rawAngleLeft = Double.NaN
         rawAngleRight = Double.NaN
         pendingLeft = null
@@ -241,7 +253,7 @@ class BilateralRepTracker(
 
         sink.onRepetition(
             RepRecord(
-                repIndex = repetitionCount,
+                repIndex = nextPosition(),
                 attributedSide = attributed,
                 startMs = cycle.startMs,
                 endMs = cycle.endMs,
@@ -269,6 +281,16 @@ class BilateralRepTracker(
     private fun tryPairSimultaneous(sink: RepSink) {
         val left = pendingLeft ?: return
         val right = pendingRight ?: return
+        // Two halves that never shared a moment are not one repetition. Without
+        // this, a side's cycle waited for the other side's next one however late,
+        // and the pair became one record spanning both: 93.5 s on the phone, and
+        // two valid one-sided halves a minute apart were counted as a squat.
+        // The older half is reported alone; the newer waits for its own partner.
+        // DECISIONS.md P3-19.
+        if (!overlaps(left, right)) {
+            flushOrphan(if (left.endMs <= right.endMs) Side.LEFT else Side.RIGHT, sink)
+            return
+        }
         pendingLeft = null
         pendingRight = null
 
@@ -292,7 +314,7 @@ class BilateralRepTracker(
 
         sink.onRepetition(
             RepRecord(
-                repIndex = repetitionCount,
+                repIndex = nextPosition(),
                 attributedSide = null,
                 startMs = if (left.startMs <= right.startMs) left.startMs else right.startMs,
                 endMs = if (left.endMs >= right.endMs) left.endMs else right.endMs,
@@ -320,15 +342,31 @@ class BilateralRepTracker(
      * rather than assume a symmetric measurement.
      */
     private fun flushUnpairedSimultaneous(sink: RepSink) {
-        val orphan = pendingLeft ?: pendingRight ?: return
-        val side = if (pendingLeft != null) Side.LEFT else Side.RIGHT
-        pendingLeft = null
-        pendingRight = null
+        val left = pendingLeft
+        val right = pendingRight
+        if (left != null && right != null) {
+            // Only reachable if both are held without overlapping; oldest first.
+            val first = if (left.endMs <= right.endMs) Side.LEFT else Side.RIGHT
+            flushOrphan(first, sink)
+            flushOrphan(if (first == Side.LEFT) Side.RIGHT else Side.LEFT, sink)
+        } else if (left != null) {
+            flushOrphan(Side.LEFT, sink)
+        } else if (right != null) {
+            flushOrphan(Side.RIGHT, sink)
+        }
+    }
+
+    /** Whether two cycles' time spans share at least one instant. */
+    private fun overlaps(a: RepCycle, b: RepCycle): Boolean = a.startMs <= b.endMs && b.startMs <= a.endMs
+
+    private fun flushOrphan(side: Side, sink: RepSink) {
+        val orphan = (if (side == Side.LEFT) pendingLeft else pendingRight) ?: return
+        if (side == Side.LEFT) pendingLeft = null else pendingRight = null
 
         val blank = DoubleArray(orphan.resampled.size) { Double.NaN }
         sink.onRepetition(
             RepRecord(
-                repIndex = repetitionCount,
+                repIndex = nextPosition(),
                 attributedSide = null,
                 startMs = orphan.startMs,
                 endMs = orphan.endMs,

@@ -4440,6 +4440,91 @@ display to `ROTATION_180`, and both use cases followed it there and back.
 open, on each camera. The screen, preview and skeleton must turn with it, the
 person must stay upright in the preview, and the set must carry on.
 
+### 4. The P3-18 squat set: two bugs found and fixed, one behaviour for the owner
+
+The set was pulled from the phone again with `run-as`: one set, 12 records.
+**Every `repIndex` was 0. Durations ran from 0.1 s to 93.5 s**, with 21.8 s and
+6.3 s among them. 11 were `INSUFFICIENT_DATA` and 1 `ABORTED`, and
+`attributedSide`, descent time and ascent time were empty in all of them. Each
+suspect was read in the code, then reproduced in a JVM test before any fix.
+
+**Bug 1: `repIndex` numbering.** `RepRecord` documents `repIndex` as "position in
+the set, counting from 1". `BilateralRepTracker` set it to the count of *valid*
+repetitions so far. So every record before the first valid one was 0, and a
+rejected record repeated the number of the valid one before it. A set of
+aborted, valid, valid, incomplete was numbered `[0, 1, 2, 2]`. **Fixed:** a
+separate record counter numbers every record, and `repetitionCount` still counts
+only valid ones. This matters beyond display: `SessionMapping` sorts a stored
+set's repetitions by `repIndex`, and that sort now means chronological order.
+Records saved before this fix, including the phone's 12, keep their old numbers.
+
+**Bug 2: left and right cycles paired across any gap.** Under `SIMULTANEOUS`
+semantics, one side's finished cycle waited for the other side's next cycle
+however late it came, and the pair became one record from the earlier start to
+the later end. That produced the 93.5 s, 21.8 s and 6.3 s records. **Worse,
+reproduced:** if each knee is seen for a different repetition, two valid
+one-sided halves a minute apart became **one VALID, counted squat** spanning
+63.6 s. On the phone the halves happened to be invalid, so nothing was counted,
+but the count could be inflated. **Fixed:** two halves pair only if their time
+spans overlap. Otherwise the older half is reported alone as
+`INSUFFICIENT_DATA`, the existing treatment for a half-seen repetition, and the
+newer waits for its own partner. Normal pairing is untouched; a test with the
+right knee four frames behind the left still gives one valid repetition.
+
+**The max-duration rule has no bug.** `RepFsm` abandons one side's cycle as
+`INCOMPLETE` once it runs past `maxRepDurationMs`, 15 s for the squat. No phone
+record was `INCOMPLETE`, so no side overran: the long records were pairing
+artefacts, and now every record stays inside the limit. The empty descent and
+ascent times are expected. A cycle abandoned before it reaches the bottom has no
+ascent, and one abandoned mid-descent has no descent time.
+
+**Guard: `RepRecordIntegrityTest`**, 4 tests in the shared core, run on JVM, JS
+and Android. Before the fix three failed:
+- numbering came out `[0, 1, 2, 2]`, not `[1, 2, 3, 4]`;
+- a one-sided record then a valid one came out `[0, 1]`;
+- the minute-apart halves made one counted VALID squat 63,591 ms long.
+
+The fourth, ordinary overlapping pairing, passed before and after. After the fix
+all 236 `:core:analysis` JVM tests pass. These failures are the mutation check:
+they are the pre-fix code.
+
+**What a single bad frame does: it abandons the whole repetition.** Read from
+the code, not changed:
+- A frame in which a required landmark falls below the visibility threshold, a
+  frame in which MediaPipe found nobody (`onNothingSeen`), and **a single sample
+  the outlier gate rejects** all reach the tracker as `NaN` for that side.
+- `EmaSmoother` resets on `NaN`, and `RepFsm.onUnmeasurableFrame` ends the cycle
+  in progress as `INSUFFICIENT_DATA`, then returns to `IDLE`.
+- `IDLE` begins a new repetition only at the starting position, so the rest of
+  the movement is lost as well.
+- Under simultaneous pairing, one side's lost half makes the whole repetition
+  `INSUFFICIENT_DATA`.
+- A frame the camera never delivers does no harm; it is only a longer time step.
+
+With the phone inverted, the subject front-on and 8–16 fps, this is the likely
+main cause of 11 of 12 records being `INSUFFICIENT_DATA`. That is a hypothesis;
+the frame-level data was not kept.
+
+**Proposal, not implemented. It waits for measured dropout lengths.**
+1. In `RepFsm`, an unmeasurable frame mid-repetition starts a gap instead of
+   ending the cycle. If measurement resumes within a tolerance `maxGapMs`, the
+   cycle continues.
+2. Past the tolerance, the cycle is abandoned as today, but with `endMs` at the
+   last measured frame, not at the frame that exceeded the tolerance.
+3. The smoother keeps its state across a bridged gap instead of resetting.
+4. `SignalResampler` already bridges internal gaps within a cycle, so the
+   resampled record needs no change.
+5. A rejected outlier counts as a gap sample, so one spike no longer costs a
+   repetition.
+6. Optionally, `RepRecord` records how many frames were bridged, so a bridged
+   repetition is distinguishable. That is a schema change and needs its own
+   decision.
+
+`maxGapMs` must come from the camera session's measured distribution of
+unmeasurable runs, so part 5's readout now logs each side's run lengths. The
+decision belongs to the owner, and it touches Level 1 measurements, so it gets
+its own entry when it is made.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics
