@@ -4527,6 +4527,58 @@ its own entry when it is made.
 
 ---
 
+## P3-20 — The repository gets a remote: private GitHub, `google-services.json` included
+
+*2026-09-25*
+
+Until now the repository existed only on the owner's disk. At the owner's
+direction, `master` is pushed to a private GitHub repository,
+`maximus16042002-cmyk/chiron`, as `origin`.
+
+### Checked before the first push
+
+- **No image of the owner in any commit.** Every blob reachable from any ref was
+  checked by path and by content signature (PNG, JPEG, GIF, WebP, BMP, MP4/MOV).
+  None matched. The only file containing pictures is the third-party BlazePose
+  model card PDF in `docs/third_party/`, whose images are Google's. P3-19 §1
+  holds.
+- **No file over 50 MB.** The largest is `pose_landmarker_lite.task`, 5.5 MB.
+- **No signing key anywhere**, on disk or in history. `*.jks` and `*.keystore`
+  are now in `.gitignore` so none can be committed later.
+- **`data/` and `local/` are anchored to the root, as `/data/` and `/local/`.**
+  Unanchored, they would also have hidden any nested folder with the same
+  name, such as a future Kotlin package `com.kinesis.data`. `git status
+  --ignored` listed the same files before and after. `data/mm-fit/` and
+  `local/phase-b/` stay ignored.
+
+### `google-services.json` is committed on purpose
+
+`app/google-services.json` has been tracked since Batch 10 (P3-14). It holds
+the Firebase project ID and the Android API key. **The owner decided to keep it
+in the pushed history**, for these reasons:
+
+- **The repository is private.**
+- **It is not a secret.** Every copy of the APK carries the same values, so
+  anyone holding the app already has them. Hiding it from git would protect
+  nothing.
+- **The protection is elsewhere:** the Firestore security rules, and
+  restrictions on the API key in the Google Cloud console, limiting it to the
+  `com.kinesis` package and its signing certificate and to the APIs the app
+  calls.
+
+**What this entry does not claim.** The Firestore rules are published but have
+never been exercised by a client (P3-14 follow-up, 2026-09-23). Whether the
+API key carries any restriction has not been checked by any session here; that
+lives in the console, not the repository. Both remain owner checks.
+
+**Before the repository is ever made public, this decision must be reviewed.**
+A public repository puts the key in front of automated scanners that never see
+an APK. At that point, at minimum, confirm the key's restrictions and the
+rules' behaviour. Also consider rotating the key and dropping the file from
+history.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
