@@ -2,7 +2,9 @@ package com.kinesis.camera
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Matrix
+import android.hardware.display.DisplayManager
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.util.Size
 import androidx.camera.core.AspectRatio
@@ -67,6 +69,8 @@ class LiveCamera(
     private var provider: ProcessCameraProvider? = null
     private var previewUseCase: Preview? = null
     private var analysisUseCase: ImageAnalysis? = null
+    private var displayListener: DisplayManager.DisplayListener? = null
+    private val displays = context.getSystemService(DisplayManager::class.java)
     private var closed = false
 
     // Analysis thread only.
@@ -75,10 +79,11 @@ class LiveCamera(
     /**
      * Binds to [owner]'s lifecycle, so backgrounding the app stops the camera.
      *
-     * @param displayRotation the display's `Surface.ROTATION_*` while the live
-     *   screen is locked to portrait. Passed explicitly rather than left to
+     * @param displayRotation the display's `Surface.ROTATION_*` when binding -
+     *   upright or upside-down portrait. Passed explicitly rather than left to
      *   CameraX's default, which is read when the use case is built and would be
-     *   wrong if that happened mid-rotation.
+     *   wrong if that happened mid-rotation. Later turns are followed by a display
+     *   listener - DECISIONS.md P3-19.
      */
     fun bind(owner: LifecycleOwner, previewView: PreviewView, displayRotation: Int) {
         val future = ProcessCameraProvider.getInstance(context)
@@ -142,6 +147,18 @@ class LiveCamera(
         analysisUseCase = analysis
         previewUseCase = preview
 
+        val listener = object : DisplayManager.DisplayListener {
+            override fun onDisplayAdded(displayId: Int) = Unit
+            override fun onDisplayRemoved(displayId: Int) = Unit
+            override fun onDisplayChanged(displayId: Int) {
+                if (displayId == previewView.display?.displayId) followDisplay(previewView)
+            }
+        }
+        displays.registerDisplayListener(listener, Handler(Looper.getMainLooper()))
+        displayListener = listener
+        // The display may have turned between the host reading it and this bind.
+        followDisplay(previewView)
+
         val previewSize = preview.resolutionInfo?.resolution
         val analysisSize = analysis.resolutionInfo?.resolution
         if (!isFourByThree(previewSize) || !isFourByThree(analysisSize)) {
@@ -181,21 +198,43 @@ class LiveCamera(
     }
 
     /** Rotated upright, and mirrored left-to-right for the front camera only. See the class note. */
-    private fun upright(image: ImageProxy): Bitmap {
-        val raw = image.toBitmap()
-        val transform = Matrix().apply {
-            postRotate(image.imageInfo.rotationDegrees.toFloat())
-            if (mirrorsAnalysisFrame(source.facing)) postScale(-1f, 1f)
+    private fun upright(image: ImageProxy): Bitmap =
+        FrameUpright.upright(image.toBitmap(), image.imageInfo.rotationDegrees, mirrorsAnalysisFrame(source.facing))
+
+    /**
+     * The target rotations CameraX was last given, preview then analysis; `null`
+     * before binding. Main thread. For `LiveRotationOnDeviceTest`, which turns the
+     * display and checks both follow.
+     */
+    internal val targetRotations: Pair<Int, Int>?
+        get() {
+            val preview = previewUseCase ?: return null
+            val analysis = analysisUseCase ?: return null
+            return preview.targetRotation to analysis.targetRotation
         }
-        val upright = Bitmap.createBitmap(raw, 0, 0, raw.width, raw.height, transform, false)
-        if (upright !== raw) raw.recycle()
-        return upright
+
+    /**
+     * The display turned - DECISIONS.md P3-19. Between upright and upside-down
+     * portrait the configuration does not change, so nothing recomposes; this is
+     * the only notice. The new rotation goes to both use cases without rebinding:
+     * CameraX applies it to the frames that follow, and `PreviewView` redraws
+     * itself on the same display change. Landscape is ignored - the live screen
+     * never asks for it.
+     */
+    private fun followDisplay(previewView: PreviewView) {
+        val display = previewView.display ?: return
+        val rotation = display.rotation
+        if (!LiveOrientation.isSupported(rotation)) return
+        previewUseCase?.targetRotation = rotation
+        analysisUseCase?.targetRotation = rotation
     }
 
     /** Main thread. Idempotent. */
     override fun close() {
         if (closed) return
         closed = true
+        displayListener?.let { displays.unregisterDisplayListener(it) }
+        displayListener = null
         // No frame is dispatched after clearAnalyzer, so the close queued below
         // runs after every frame that ever will.
         analysisUseCase?.clearAnalyzer()

@@ -4376,6 +4376,70 @@ see the skeleton, and none outside.
 **Pending, for the camera session:** see the clipped skeleton on the live screen
 with a person partly out of frame.
 
+### 3. An upside-down phone is supported (owner's decision)
+
+**Decision.** The live screen follows the phone either way up, and never goes
+landscape. The owner's phone stands upside down whenever its USB cable is in,
+and P3-18 found that the portrait lock then showed the person inverted, and
+analysed them inverted.
+
+**The owner asked for `SCREEN_ORIENTATION_SENSOR_PORTRAIT`. It would not have
+worked on their phone, measured.** `dumpsys window` reports
+`mAllowAllRotations=false`. Android's rotation policy then refuses the sensor's
+180° reading for every sensor-driven orientation except `FULL_SENSOR` and
+`FULL_USER`, and those also allow landscape. The owner chose between three
+options: an explicit tilt listener, `FULL_SENSOR`, and sensor portrait anyway.
+**They chose the tilt listener.**
+
+- **`LiveOrientation.requestFor`** turns `OrientationEventListener`'s tilt into
+  fixed `PORTRAIT` within 60° of upright, fixed `REVERSE_PORTRAIT` within 60° of
+  upside down, and "keep the current one" in the two landscape bands and when
+  the phone lies flat. The bands never meet, so the screen cannot flap. Fixed
+  orientations are honoured regardless of `mAllowAllRotations`, which is measured
+  below. Like sensor portrait, this ignores the user's rotation lock while the
+  live screen is open.
+- **No camera restart, so the set does not end.** 0° ↔ 180° is not a
+  configuration change, and nothing recomposes. `LiveCamera` registers a
+  `DisplayListener` and gives each supported display rotation to both use cases
+  with `setTargetRotation`, without rebinding. `PreviewView` already redraws
+  itself on the same display change: it has its own `DisplayRotationListener`,
+  read from camera-view 1.4.1's bytecode. The listener is removed on `close()`.
+- **Frame rotation and mirroring.** The rotate-then-mirror step moved unchanged
+  from `LiveCamera` into `FrameUpright`, so it can be tested and, in part 5,
+  benchmarked. The mirror is left to right in the upright frame, so it is the
+  same selfie mirror either way up. **How mirroring is done is unchanged**, and
+  `CameraFacingParityTest` is untouched and green.
+- **The overlay** draws in upright-frame coordinates, which follow the display,
+  so it needs no change.
+
+**Measured on the phone.** With the target rotation turned over and no rebind,
+the back camera went from `rotationDegrees` 90 to 270, and the front from 270 to
+90, exactly half a turn each. An explicit reverse-portrait request turned the
+display to `ROTATION_180`, and both use cases followed it there and back.
+
+**Tests.**
+- `LiveOrientationTest` (JVM, 9 tests) pins the tilt bands, the separation
+  between them, the supported rotations, and the transform's geometry: quarter
+  turns, the upside-down relation, and left-to-right mirroring.
+- `LiveRotationOnDeviceTest` (phone, 3 tests) pins:
+  - the production bitmap transform against that specification at all 8
+    rotation and mirror combinations;
+  - both real cameras' 180° shift;
+  - the whole path, with a real display turned upside down and back under a
+    bound `LiveCamera`.
+
+**Mutations, all caught, with files restored byte for byte:**
+- The analysis update dropped from `followDisplay`. Caught at the first check,
+  because the phone lay on its side, the bind ran while the display was still
+  landscape, and only the listener corrects that.
+- Mirroring before rotating: 90° mirrored landed at x = 0.75 against 0.25.
+- The display listener never registered.
+- Bands widened until they meet: 2 JVM tests fail.
+
+**Pending, for the camera session:** turn the phone over with the live screen
+open, on each camera. The screen, preview and skeleton must turn with it, the
+person must stay upright in the preview, and the set must carry on.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

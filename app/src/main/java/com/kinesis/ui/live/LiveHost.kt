@@ -3,8 +3,8 @@ package com.kinesis.ui.live
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
-import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import android.view.OrientationEventListener
 import android.view.Surface
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.kinesis.camera.LiveCamera
+import com.kinesis.camera.LiveOrientation
 import com.kinesis.camera.PoseLandmarkerSource
 import com.kinesis.camera.PoseSourceOpening
 import com.kinesis.camera.PoseModelAsset
@@ -53,9 +54,9 @@ private val setWrites = CoroutineScope(SupervisorJob() + Dispatchers.Main.immedi
  *
  * Preconditions are checked in the order a failure should be reported, and each
  * unmet one is shown as itself rather than as a readout of zeroes. The screen is
- * locked to portrait while it is shown, because the camera area, the frame shape
- * and the overlay's geometry are all built for portrait and landscape has not
- * been handled deliberately.
+ * held in portrait while it is shown - either way up, following the phone
+ * (P3-19) - because the camera area, the frame shape and the overlay's geometry
+ * are all built for portrait and landscape has not been handled deliberately.
  */
 @Composable
 fun LiveDestination(
@@ -359,7 +360,8 @@ private fun LiveCameraSession(
 }
 
 /**
- * Portrait while the live screen is shown, restored when it leaves.
+ * Portrait while the live screen is shown - either way up, following the phone
+ * (DECISIONS.md P3-19) - and the previous orientation restored when it leaves.
  *
  * The activity declares that it handles orientation changes itself, so this
  * does not recreate it - which would lose the navigation state and drop the
@@ -370,8 +372,21 @@ private fun LockToPortrait() {
     val activity = LocalContext.current.findActivity() ?: return
     DisposableEffect(activity) {
         val previous = activity.requestedOrientation
-        activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-        onDispose { activity.requestedOrientation = previous }
+        activity.requestedOrientation = LiveOrientation.INITIAL
+        // The phone's tilt, read here rather than left to the system, which will
+        // not turn the owner's phone upside down for a sensor orientation - see
+        // LiveOrientation. Called on the main thread.
+        val tilt = object : OrientationEventListener(activity) {
+            override fun onOrientationChanged(tiltDegrees: Int) {
+                val wanted = LiveOrientation.requestFor(tiltDegrees) ?: return
+                if (activity.requestedOrientation != wanted) activity.requestedOrientation = wanted
+            }
+        }
+        if (tilt.canDetectOrientation()) tilt.enable()
+        onDispose {
+            tilt.disable()
+            activity.requestedOrientation = previous
+        }
     }
 }
 
