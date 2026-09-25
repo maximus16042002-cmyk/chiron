@@ -1,5 +1,6 @@
 package com.kinesis.sync
 
+import android.util.Log
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
@@ -95,8 +96,13 @@ class FirestoreSessionStore(
             .collection(SESSIONS).document(session.sessionId)
             .set(SessionDocument.toMap(session))
             .await()
+        Log.i(SYNC_LOG_TAG, "pushed session " + session.sessionId)
         SyncResult.Pushed
     } catch (error: FirebaseFirestoreException) {
+        // Logged, not swallowed: the merge that calls this ignores the result, and
+        // P3-19 found the published rules refusing every upload with no trace but
+        // this. The session id only - never the contents.
+        Log.w(SYNC_LOG_TAG, "push of session " + session.sessionId + " failed: " + error.code + " " + error.message)
         SyncResult.Failed(
             when (error.code) {
                 FirebaseFirestoreException.Code.UNAVAILABLE,
@@ -111,6 +117,7 @@ class FirestoreSessionStore(
             },
         )
     } catch (error: Exception) {
+        Log.w(SYNC_LOG_TAG, "push of session " + session.sessionId + " failed", error)
         SyncResult.Failed(SyncFailure.UNKNOWN)
     }
 
@@ -120,9 +127,11 @@ class FirestoreSessionStore(
             .await()
             .documents
             .mapNotNull { document -> document.data?.let(SessionDocument::fromMap) }
+            .also { Log.i(SYNC_LOG_TAG, "pulled " + it.size + " sessions from the account") }
     } catch (error: Exception) {
         // A failed pull is an empty pull. The merge is a union, so nothing is
         // lost by returning less than everything - it is retried next sign-in.
+        Log.w(SYNC_LOG_TAG, "pull failed", error)
         emptyList()
     }
 
@@ -131,3 +140,7 @@ class FirestoreSessionStore(
         const val SESSIONS = "sessions"
     }
 }
+
+/** Every sync outcome is logged under this tag: `adb logcat -s KinesisSync`. DECISIONS.md P3-19. */
+const val SYNC_LOG_TAG = "KinesisSync"
+

@@ -4727,10 +4727,31 @@ identical retry both failed. **Mutations**, with the file restored byte for
 byte: an update rule of `true` and a delete rule of `true` together failed three
 tests, "cannot edit", "cannot delete" and "differs in any way".
 
-**Not yet verified, needs the owner:**
-- that the console's published rules match this file, which now differs from
-  what P3-14 wrote, so it must be published again;
-- that the P3-18 session reached Firestore under the owner's account.
+**Checked with the owner and on the phone:**
+- **The console held the broken P3-14 rules.** They had been published since
+  2026-09-23 (the P3-14 follow-up), so every upload from the app had been
+  refused. The P3-18 session was not in Firestore. **The owner published the
+  fixed file** on 2026-09-26, accepting the identical-retry allowance.
+- **The P3-18 session then reached the owner's account.**
+  - Before the fix, the phone's Firestore cache held no documents and no
+    pending writes, and WorkManager held no sync job.
+  - After the fix, the cache holds the server's copy of
+    `users/<uid>/sessions/f6ec3996-7046-4343-bcbc-99380e9881a1`, the P3-18
+    session's id, with no pending write. The app logged `KinesisSync: pulled 1
+    sessions from the account`. **The owner confirmed the document in the
+    console.**
+  - The upload itself was not observed. It most likely happened when the owner
+    opened the app to grant Health Connect, minutes after publishing, through
+    the sign-in merge's `pushMissing`, on a build that did not yet log.
+- **Sync outcomes are now logged under `KinesisSync`**: a push succeeded, a push
+  failed with Firestore's code and message, a pull succeeded with its count, a
+  pull failed. Session ids and counts only, never contents. Until now,
+  `SessionMerge`'s caller discarded the result, and a refused upload left no
+  trace in the app. That is how every upload could fail for three days unseen.
+
+**Still owed:** a session recorded now, with the fixed rules, uploading on its
+own through `SessionSyncWorker`. That comes with the camera session's first
+new set.
 
 ### 8. The JVM/JavaScript parity suite, and what it found on its first run
 
