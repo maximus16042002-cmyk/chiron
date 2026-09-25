@@ -4525,6 +4525,117 @@ unmeasurable runs, so part 5's readout now logs each side's run lengths. The
 decision belongs to the owner, and it touches Level 1 measurements, so it gets
 its own entry when it is made.
 
+### 5. The frame rate: MediaPipe's inference is the ceiling
+
+Live analysis ran at 4 to 16 results a second against a target of about 30.
+Part 5 builds what one camera session needs to explain that. It measures what
+can be measured without the camera, and fixes the one clear waste on our side.
+
+**A non-debuggable build that keeps the readout.** Build type `profiling` is
+debug-signed and not debuggable. It shares the probe from `src/debug`, and its
+library modules fall back to their release variant. It is never shipped.
+`-Pkinesis.testBuildType=profiling` points the connected tests at it. `dumpsys
+package` confirmed the installed build had no `DEBUGGABLE` flag.
+
+**Benchmark: `FramePipelineBenchmark`, on the phone, opt-in with `-e
+kinesisBenchmark true`.**
+- **Conversion** is timed on a synthetic 640×480 RGBA frame. `toBitmap` is
+  CameraX's own default method, so its real native copy runs.
+- **MediaPipe** is timed with one frame in flight at a time and the production
+  options (`LIVE_STREAM`, one pose, the default CPU delegate). It records how
+  long `detectAsync` holds the analysis thread, and the hand-over-to-result
+  latency, which bounds results per second.
+- **Inputs.** A blank 480×640 frame, and a person: a crop of the owner's P3-18
+  front-camera screenshot, turned upright and scaled to 480×640. That image
+  stays in `local/bench/` and on the phone, and is never committed.
+- **Models.** The full model, `pose_landmarker_full.task` (9,398,198 bytes,
+  SHA-256 `4eaa5eb7…c4ad`), was downloaded from Google's model storage into
+  `local/models/`. It is not committed and the app is not switched to it.
+- **GPU.** The GPU delegate was measured for information only. It changes the
+  numerics, so it is the owner's decision, and the app is unchanged.
+
+**Medians, 150 frames for MediaPipe and 200 for conversion.** Both runs came
+before the thermal check below, so their thermal state is unknown:
+
+| Stage | Debug build | Profiling build |
+|---|---|---|
+| `toBitmap` | 0.47 ms | 0.43 ms |
+| `toBitmap` + upright, back camera | 3.96 ms | 3.77 ms |
+| `toBitmap` + upright, front camera (mirrored) | 3.88 ms | 3.76 ms |
+| `detectAsync` hand-over, lite, person | 2.48 ms | 1.45 ms |
+| **MediaPipe lite, person: hand-over to result** | **58.46 ms** | **56.94 ms** |
+| MediaPipe lite, empty frame | 59.21 ms | 56.41 ms |
+| MediaPipe full, person | 73.53 ms | 66.29 ms |
+| MediaPipe full, empty frame | 61.37 ms | 59.19 ms |
+| MediaPipe lite, person, GPU delegate (not adopted) | 51.85 ms | 45.33 ms |
+
+**Reading.**
+- At about 57 ms a frame, MediaPipe's CPU inference caps this phone at about
+  **17 results a second**. That is consistent with the 12–16 seen live.
+- The analysis thread's share, about 3.8 ms to convert and 1.5–2.5 ms to hand
+  over, fits well inside a 33 ms frame.
+- Debuggability is not the cause: the non-debuggable build is only a few
+  percent faster.
+- The full model is slower. The GPU delegate would reach about 22 a second.
+  Neither reaches 30 on this phone.
+- Unexplained: an empty frame, where only the detector runs, costs as much as
+  tracking a person.
+
+**The waste fixed, without changing what MediaPipe sees.** Each frame allocated
+two fresh 1.2 MB bitmaps, CameraX's `toBitmap` and the rotated copy: about
+72 MB a second of garbage at 30 frames a second. `UprightFrames` keeps one of
+each. It copies CameraX's tightly packed RGBA plane into the kept bitmap, and
+draws the same rotate-and-mirror matrix into a kept output with an unfiltered
+`SRC` paint, which is what `Bitmap.createBitmap(…, filter = false)` does. Any
+other frame layout falls back to CameraX's `toBitmap`. `PoseLandmarkerSource`
+reuses the `MPImage` wrapper while the bitmap is the same one. Two phone tests
+pin the change:
+- **Pixel-identical** to the allocating path at all 8 rotation and mirror
+  combinations, including the frame after, once the buffers hold the previous
+  frame.
+- **MediaPipe copies the pixels inside `detectAsync`.** That was read first from
+  its bytecode: a bitmap goes to the native `nativeCreateRgbaImage`. Then it was
+  measured: a person frame blacked out the instant `detectAsync` returned was
+  still found in **40 of 40** results, while a frame submitted already black
+  found nobody. That test needs the local person image and is skipped without
+  it.
+
+**Not yet measured cleanly: the kept buffers' speed.** Later runs drifted by
+more than a millisecond between identical cases. The phone then read thermal
+status 2 ("moderate", skin 43 °C, CPU 63.5 °C) while charging over USB, and it
+was in active use: another app at 158% CPU, memory nearly exhausted. The
+benchmark now interleaves the old and new converter frame by frame, counts
+ART's bytes allocated and collections for each, records the thermal status,
+and writes its results to a file on the phone, because a first run lost lines
+to this phone's fast-rolling Logcat. **Its clean run is owed, on an idle
+phone.** No speed claim is made for the kept buffers until then; the
+allocation saving holds by construction.
+
+**The readout now explains the frame rate in one session.** It shows three lines
+about once a second, also logged under `KinesisPhaseB`:
+- frames the camera delivered, frames handed to MediaPipe, and results back;
+- conversion time (mean and max), hand-over time, and MediaPipe's
+  hand-over-to-result latency (mean and max);
+- the angle change and visibility as before, plus **each side's runs of
+  unmeasurable frames**: how many, and the longest in frames and milliseconds.
+  Those runs are part 4's gap-tolerance input.
+
+The capture numbers are counted on the analysis thread and published through
+volatile fields, so the two threads share nothing mutable. Latency comes from a
+16-slot, lock-free, allocation-free ring of hand-over times keyed by frame
+timestamp, `HandOverTimes`. Release builds have no probe, and the timing hooks
+are no-ops there.
+
+**Tests.**
+- `PhaseBStatsTest`, 11: the new windows, gap runs and readout fields, and zero
+  allocation per frame.
+- `HandOverTimesTest`, 3.
+- `LiveRotationOnDeviceTest`'s live-camera test now also requires, on the real
+  camera, that frames reached the probe, were sent, and got a timed answer.
+
+**Not changed, per the owner:** the camera's auto-exposure frame-rate range.
+That waits for the camera session.
+
 ### 6. Firestore rules, tested on the emulator: they refused every upload
 
 `firestore.rules` had never been run. P3-14 wrote it, and the owner was to paste

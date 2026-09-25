@@ -21,6 +21,16 @@ android {
     }
 
     buildTypes {
+        // Debug-signed but not debuggable, and keeping the Phase B readout: frame
+        // rates and timings measured on a debuggable build are not the product's.
+        // Never shipped. DECISIONS.md P3-19.
+        create("profiling") {
+            initWith(getByName("debug"))
+            isDebuggable = false
+            isJniDebuggable = false
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -29,6 +39,13 @@ android {
             )
         }
     }
+    sourceSets {
+        // The Phase B probe lives in src/debug; the profiling build keeps it.
+        getByName("profiling").java.srcDir("src/debug/java")
+    }
+    // connectedAndroidTest runs against debug unless asked otherwise, e.g.
+    // -Pkinesis.testBuildType=profiling for the P3-19 benchmark.
+    testBuildType = (project.findProperty("kinesis.testBuildType") as String?) ?: "debug"
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

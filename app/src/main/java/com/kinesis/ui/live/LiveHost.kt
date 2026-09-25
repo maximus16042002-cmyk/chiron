@@ -30,6 +30,7 @@ import com.kinesis.camera.rememberCameraPermissionLauncher
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.domain.profile.ExerciseProfile
+import com.kinesis.diagnostics.PhaseBProbe
 import com.kinesis.diagnostics.phaseBProbeOrNull
 import com.kinesis.pose.CameraFacing
 import com.kinesis.storage.SessionRepository
@@ -163,14 +164,16 @@ private fun LiveRepetitionSession(
         LiveAnalysisBridge(profile.id) { state -> main.execute { published.value = state } }
     }
     val diagnostics = remember(profile, facing) { mutableStateOf<String?>(null) }
-    val engine = remember(profile, facing) {
-        val probe = phaseBProbeOrNull(profile.requiredLandmarks, facing) { line ->
+    // Debug and profiling builds' readout; null in release. Handed to the engine
+    // for per-result numbers and to the camera for capture timings. P3-19.
+    val probe = remember(profile, facing) {
+        phaseBProbeOrNull(profile.requiredLandmarks, facing) { line ->
             main.execute { diagnostics.value = line }
         }
-        LiveRepetitionEngine(profile, bridge, overlay, probe = probe)
     }
+    val engine = remember(profile, facing) { LiveRepetitionEngine(profile, bridge, overlay, probe = probe) }
 
-    LiveCameraSession(profile, engine, overlay, env, facing, onSwitchCamera) { preview, onEndSet ->
+    LiveCameraSession(profile, engine, probe, overlay, env, facing, onSwitchCamera) { preview, onEndSet ->
         LiveAnalysisScreen(
             published.value ?: bridge.state, preview, overlay, onEndSet, switchCameraLabel(facing), onSwitchCamera,
             diagnostics = diagnostics.value,
@@ -193,14 +196,16 @@ private fun LiveHoldSession(
         LiveHoldBridge(profile.id) { state -> main.execute { published.value = state } }
     }
     val diagnostics = remember(profile, facing) { mutableStateOf<String?>(null) }
-    val engine = remember(profile, facing) {
-        val probe = phaseBProbeOrNull(profile.requiredLandmarks, facing) { line ->
+    // Debug and profiling builds' readout; null in release. Handed to the engine
+    // for per-result numbers and to the camera for capture timings. P3-19.
+    val probe = remember(profile, facing) {
+        phaseBProbeOrNull(profile.requiredLandmarks, facing) { line ->
             main.execute { diagnostics.value = line }
         }
-        LiveHoldEngine(profile, bridge, overlay, probe = probe)
     }
+    val engine = remember(profile, facing) { LiveHoldEngine(profile, bridge, overlay, probe = probe) }
 
-    LiveCameraSession(profile, engine, overlay, env, facing, onSwitchCamera) { preview, onEndSet ->
+    LiveCameraSession(profile, engine, probe, overlay, env, facing, onSwitchCamera) { preview, onEndSet ->
         LiveHoldScreen(
             published.value ?: bridge.state, preview, overlay, onEndSet, switchCameraLabel(facing), onSwitchCamera,
             diagnostics = diagnostics.value,
@@ -237,6 +242,7 @@ private class LiveFailure(val headline: String, val detail: String, val offersCa
 private fun LiveCameraSession(
     profile: ExerciseProfile,
     engine: LiveEngine,
+    probe: PhaseBProbe?,
     overlay: SkeletonOverlayView,
     env: LiveEnvironment,
     facing: CameraFacing,
@@ -323,6 +329,7 @@ private fun LiveCameraSession(
                 // CameraX's thread - stop analysis and arrive here, once.
                 val opening = PoseLandmarkerSource.open(
                     context, env.modelAssetPath, facing, engine::onLandmarks, engine::onNoPose,
+                    probe = probe,
                     onFailure = { reason ->
                         main.execute {
                             failure = LiveFailure(
@@ -340,7 +347,7 @@ private fun LiveCameraSession(
                         null
                     }
 
-                    is PoseSourceOpening.Opened -> LiveCamera(context, opening.source) { reason ->
+                    is PoseSourceOpening.Opened -> LiveCamera(context, opening.source, probe) { reason ->
                         failure = LiveFailure(
                             "LIVE ANALYSIS UNAVAILABLE", reason + ". Nothing is being measured.", offersCameraSwitch = true,
                         )

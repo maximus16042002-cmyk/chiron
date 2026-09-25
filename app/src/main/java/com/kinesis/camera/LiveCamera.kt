@@ -18,6 +18,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.kinesis.diagnostics.PhaseBProbe
 import com.kinesis.pose.CameraFacing
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.ExecutorService
@@ -60,6 +61,8 @@ import kotlin.math.abs
 class LiveCamera(
     private val context: Context,
     private val source: PoseLandmarkerSource,
+    /** Debug and profiling builds' Phase B probe; `null` in release. DECISIONS.md P3-19. */
+    private val probe: PhaseBProbe? = null,
     private val onUnavailable: (String) -> Unit,
 ) : AutoCloseable {
 
@@ -75,6 +78,7 @@ class LiveCamera(
 
     // Analysis thread only.
     private var lastTimestampMs = Long.MIN_VALUE
+    private val frames = UprightFrames()
 
     /**
      * Binds to [owner]'s lifecycle, so backgrounding the app stops the camera.
@@ -185,9 +189,14 @@ class LiveCamera(
         try {
             if (source.hasFailed) return
             val timestampMs = image.imageInfo.timestamp / NANOS_PER_MILLI
+            probe?.onCameraFrame(timestampMs)
             if (timestampMs <= lastTimestampMs) return
             lastTimestampMs = timestampMs
-            source.analyse(upright(image), timestampMs)
+            val start = System.nanoTime()
+            val upright = upright(image)
+            val converted = System.nanoTime()
+            source.analyse(upright, timestampMs)
+            probe?.onSubmitted(timestampMs, converted - start, System.nanoTime() - converted)
         } catch (error: Exception) {
             source.fail("a camera frame could not be analysed", error)
         } catch (error: LinkageError) {
@@ -197,9 +206,14 @@ class LiveCamera(
         }
     }
 
-    /** Rotated upright, and mirrored left-to-right for the front camera only. See the class note. */
+    /**
+     * Rotated upright, and mirrored left-to-right for the front camera only. See
+     * the class note. Into kept buffers, so a frame allocates no bitmaps; the one
+     * returned is overwritten by the next frame, which is safe because MediaPipe
+     * copies it inside `detectAsync` - DECISIONS.md P3-19.
+     */
     private fun upright(image: ImageProxy): Bitmap =
-        FrameUpright.upright(image.toBitmap(), image.imageInfo.rotationDegrees, mirrorsAnalysisFrame(source.facing))
+        frames.upright(image, image.imageInfo.rotationDegrees, mirrorsAnalysisFrame(source.facing))
 
     /**
      * The target rotations CameraX was last given, preview then analysis; `null`
@@ -240,7 +254,10 @@ class LiveCamera(
         analysisUseCase?.clearAnalyzer()
         val bound = listOfNotNull(previewUseCase, analysisUseCase)
         if (bound.isNotEmpty()) provider?.unbind(*bound.toTypedArray())
-        analysisThread.execute { source.close() }
+        analysisThread.execute {
+            source.close()
+            frames.release()
+        }
         analysisThread.shutdown()
     }
 

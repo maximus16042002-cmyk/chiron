@@ -103,6 +103,104 @@ class PhaseBStatsTest {
         assertTrue("50,000 frames allocated $measured bytes", measured < 1024)
     }
 
+    // --- P3-19: the frame-rate investigation's readout ---------------------------
+
+    /**
+     * A side's run of unmeasurable results, counted in results and in the time a
+     * repetition in progress would have had to bridge: last measured to next.
+     */
+    @Test
+    fun a_run_of_unmeasurable_frames_is_counted_per_side_when_it_ends() {
+        val gaps = GapRuns()
+        var t = 0L
+        fun step(left: Boolean, right: Boolean) { gaps.onFrame(t, left, right); t += 33 }
+        step(false, false)
+        repeat(3) { step(true, false) } // left unseen for three results
+        step(false, false)
+        step(false, true) // right unseen once
+        step(false, false)
+
+        assertEquals(1, gaps.leftRuns)
+        assertEquals(3, gaps.leftLongestFrames)
+        assertEquals(4 * 33L, gaps.leftLongestMs)
+        assertEquals(1, gaps.rightRuns)
+        assertEquals(1, gaps.rightLongestFrames)
+        assertEquals(2 * 33L, gaps.rightLongestMs)
+
+        gaps.clear()
+        repeat(5) { step(true, true) } // still open: not counted yet
+        assertEquals(0, gaps.leftRuns)
+        assertEquals(0, gaps.rightRuns)
+    }
+
+    @Test
+    fun nobody_in_the_frame_is_a_gap_on_both_sides() {
+        val stats = PhaseBStats(required)
+        val seen = frame(0.9, 0.9)
+        stats.onFrame(0L, seen, 90.0, 90.0)
+        stats.onNoPose(33L)
+        stats.onNoPose(66L)
+        stats.onFrame(99L, seen, 90.0, 90.0)
+        assertEquals(1, stats.gaps.leftRuns)
+        assertEquals(2, stats.gaps.leftLongestFrames)
+        assertEquals(99L, stats.gaps.rightLongestMs)
+    }
+
+    /** Camera frames, frames sent and the per-frame costs, over a second of camera time. */
+    @Test
+    fun capture_rates_and_costs_are_measured_over_one_second_windows() {
+        val capture = CaptureStats()
+        var t = 0L
+        repeat(62) { i ->
+            capture.onCameraFrame(t)
+            if (i % 2 == 0) capture.onSubmitted(convertNanos = 4_000_000L + i, handOverNanos = 2_000_000L)
+            t += 33
+        }
+        // The window closes on frame 31 (t = 1,023 ms), having counted frames 0-30
+        // and the sixteen even ones sent.
+        assertEquals(31 * 1000.0 / 1023, capture.cameraFramesPerSecond, 1e-9)
+        assertEquals(16 * 1000.0 / 1023, capture.submittedPerSecond, 1e-9)
+        assertEquals(4.0, capture.meanConvertMs, 0.01)
+        assertEquals(2.0, capture.meanHandOverMs, 1e-9)
+        assertTrue(capture.maxConvertMs >= capture.meanConvertMs)
+    }
+
+    @Test
+    fun the_readout_names_every_stage_of_the_frame_path() {
+        val published = ArrayList<String>()
+        val probe = DebugPhaseBProbe(required, CameraFacing.FRONT) { published += it }
+        val still = frame(0.9, 0.9)
+        for (i in 0 until 90) {
+            probe.onCameraFrame(i * 33L)
+            probe.onSubmitted(i * 33L, 4_000_000L, 2_000_000L)
+            probe.onAnswered(57_000_000L)
+            probe.onFrame(i * 33L, still, 90.0, 90.0)
+        }
+        val line = published.last()
+        for (part in listOf("FRONT", "results", "camera", "sent", "convert", "hand-over", "mediapipe 57", "gaps L", "vis")) {
+            assertTrue("'$part' missing from: $line", line.contains(part))
+        }
+    }
+
+    /** CLAUDE.md section 6: the new per-frame paths allocate nothing either. */
+    @Test
+    fun capture_and_gap_counting_allocate_nothing() {
+        val capture = CaptureStats()
+        val gaps = GapRuns()
+        var t = 0L
+        val frames = {
+            for (i in 0 until 50_000) {
+                capture.onCameraFrame(t)
+                capture.onSubmitted(4_000_000L, 2_000_000L)
+                gaps.onFrame(t, i % 5 == 0, i % 7 == 0)
+                t += 33
+            }
+        }
+        frames()
+        val measured = allocatedDuring(frames) ?: return
+        assertTrue("50,000 frames allocated $measured bytes", measured < 1024)
+    }
+
     /**
      * Bytes this thread allocated while running [body], from the JVM's own
      * counter, or `null` where the JVM has none. Reached by reflection because

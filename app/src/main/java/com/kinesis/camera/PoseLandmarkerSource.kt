@@ -4,11 +4,13 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
 import com.google.mediapipe.framework.image.BitmapImageBuilder
+import com.google.mediapipe.framework.image.MPImage
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarker
 import com.google.mediapipe.tasks.vision.poselandmarker.PoseLandmarkerResult
 import com.kinesis.core.domain.landmark.Landmarks
+import com.kinesis.diagnostics.PhaseBProbe
 import com.kinesis.pose.CameraFacing
 import com.kinesis.pose.PoseAdapter
 import com.kinesis.pose.RawLandmarks
@@ -70,9 +72,19 @@ class PoseLandmarkerSource private constructor(
      * once, on whichever thread failed - post to the main thread before touching UI.
      */
     private val onFailure: (String) -> Unit,
+    /** Debug and profiling builds' Phase B probe; `null` in release. DECISIONS.md P3-19. */
+    private val probe: PhaseBProbe?,
 ) : AutoCloseable {
 
     private val adapter = PoseAdapter()
+
+    /** When recent frames were handed over, for the probe's latency. DECISIONS.md P3-19. */
+    private val handedOver = HandOverTimes()
+
+    // Analysis thread only: the wrapper for the kept bitmap LiveCamera passes
+    // every frame, rebuilt only if that bitmap changes.
+    private var wrappedBitmap: Bitmap? = null
+    private var wrapped: MPImage? = null
 
     /** Reused across frames. Allocating one per frame is what section 6 forbids. */
     private val packed = DoubleArray(Landmarks.PACKED_SIZE)
@@ -102,7 +114,13 @@ class PoseLandmarkerSource private constructor(
      */
     fun analyse(bitmap: Bitmap, timestampMs: Long) {
         if (hasFailed) return
-        landmarker.detectAsync(BitmapImageBuilder(bitmap).build(), timestampMs)
+        val image = wrapped?.takeIf { wrappedBitmap === bitmap }
+            ?: BitmapImageBuilder(bitmap).build().also {
+                wrappedBitmap = bitmap
+                wrapped = it
+            }
+        if (probe != null) handedOver.record(timestampMs, System.nanoTime())
+        landmarker.detectAsync(image, timestampMs)
     }
 
     /**
@@ -119,6 +137,10 @@ class PoseLandmarkerSource private constructor(
     private fun deliver(result: PoseLandmarkerResult, frameWidthPx: Int, frameHeightPx: Int) {
         if (hasFailed) return
         try {
+            if (probe != null) {
+                val at = handedOver.at(result.timestampMs())
+                if (at != HandOverTimes.UNKNOWN) probe.onAnswered(System.nanoTime() - at)
+            }
             onResult(result, frameWidthPx, frameHeightPx)
         } catch (error: Exception) {
             fail("analysing a pose result failed", error)
@@ -178,9 +200,10 @@ class PoseLandmarkerSource private constructor(
             onLandmarks: (Landmarks, Long) -> Unit,
             onNoPose: (Long) -> Unit,
             onFailure: (String) -> Unit,
+            probe: PhaseBProbe? = null,
         ): PoseSourceOpening = try {
             PoseSourceOpening.Opened(
-                PoseLandmarkerSource(context, modelAssetPath, facing, onLandmarks, onNoPose, onFailure),
+                PoseLandmarkerSource(context, modelAssetPath, facing, onLandmarks, onNoPose, onFailure, probe),
             )
         } catch (error: Exception) {
             Log.e(LIVE_LOG_TAG, "the pose landmarker could not be created from $modelAssetPath", error)

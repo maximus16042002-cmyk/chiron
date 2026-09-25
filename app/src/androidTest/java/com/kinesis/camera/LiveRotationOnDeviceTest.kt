@@ -16,6 +16,8 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kinesis.MainActivity
+import com.kinesis.core.domain.landmark.Landmarks
+import com.kinesis.diagnostics.PhaseBProbe
 import com.kinesis.pose.CameraFacing
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -124,6 +126,21 @@ class LiveRotationOnDeviceTest {
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->
             lateinit var camera: LiveCamera
             var failure: String? = null
+            // The P3-19 readout's hooks, counted: they must fire on a real camera.
+            val cameraFrames = AtomicInteger()
+            val submitted = AtomicInteger()
+            val answered = AtomicInteger()
+            val probe = object : PhaseBProbe {
+                override fun onFrame(timestampMs: Long, landmarks: Landmarks, leftAngle: Double, rightAngle: Double) = Unit
+                override fun onNoPose(timestampMs: Long) = Unit
+                override fun onCameraFrame(timestampMs: Long) { cameraFrames.incrementAndGet() }
+                override fun onSubmitted(timestampMs: Long, convertNanos: Long, handOverNanos: Long) {
+                    if (convertNanos > 0 && handOverNanos > 0) submitted.incrementAndGet()
+                }
+                override fun onAnswered(latencyNanos: Long) {
+                    if (latencyNanos > 0) answered.incrementAndGet()
+                }
+            }
             scenario.onActivity { activity ->
                 activity.setShowWhenLocked(true)
                 activity.setTurnScreenOn(true)
@@ -133,9 +150,9 @@ class LiveRotationOnDeviceTest {
                 val model = PoseModelAsset.locate(activity) as PoseModelState.Present
                 val opening = PoseLandmarkerSource.open(
                     activity, model.assetPath, CameraFacing.BACK,
-                    onLandmarks = { _, _ -> }, onNoPose = { }, onFailure = { failure = it },
+                    onLandmarks = { _, _ -> }, onNoPose = { }, onFailure = { failure = it }, probe = probe,
                 )
-                camera = LiveCamera(activity, (opening as PoseSourceOpening.Opened).source) { failure = it }
+                camera = LiveCamera(activity, (opening as PoseSourceOpening.Opened).source, probe) { failure = it }
                 camera.bind(activity, preview, activity.display!!.rotation)
             }
             try {
@@ -147,6 +164,12 @@ class LiveRotationOnDeviceTest {
                 scenario.onActivity { it.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT }
                 awaitOnMain(scenario, "both use cases turned back upright") { camera.targetRotations == UPRIGHT }
                 assertEquals("the live camera reported a failure", null, failure)
+                // Frames take a moment to start flowing after binding; wait for an answer.
+                awaitOnMain(scenario, "a camera frame answered by MediaPipe") { answered.get() > 0 }
+                assertTrue("no camera frame reached the probe", cameraFrames.get() > 0)
+                assertTrue("no frame was reported sent", submitted.get() > 0)
+                assertTrue("no MediaPipe answer was timed", answered.get() > 0)
+                Log.i(TAG, "live camera: ${cameraFrames.get()} camera frames, ${submitted.get()} sent, ${answered.get()} answered")
             } finally {
                 scenario.onActivity { camera.close() }
             }
