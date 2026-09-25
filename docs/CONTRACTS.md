@@ -152,10 +152,12 @@ Designed in P1, not retrofitted in P11 — see `DECISIONS.md` P0-2.
 ```kotlin
 @JsExport
 class KinesisEngine {
-    fun configure(profileJson: String)
+    fun configure(profileJson: String)             // {"id": "squat"}
     fun pushFrame(timestampMs: Double, landmarks: DoubleArray, visibility: DoubleArray): String?
-    fun analyzeRep(repJson: String, baselineJson: String): String
-    fun computeBaseline(repsJson: String): String
+    fun stateJson(): String                        // P3-19
+    fun finishSet(): String                        // P3-19
+    fun analyzeRep(repJson: String, baselineJson: String): String   // waits for P6
+    fun computeBaseline(repsJson: String): String                   // waits for P6
 }
 ```
 
@@ -163,11 +165,22 @@ class KinesisEngine {
 
 - The entire exported surface is primitives, `DoubleArray`, and JSON strings.
   No Kotlin collections, no sealed classes, no data classes, no nullable rich
-  types cross the boundary.
-- `pushFrame` returns `null` on the overwhelming majority of calls, and a JSON
-  `RepRecord` when a repetition completes.
+  types cross the boundary. A value that is `NaN` inside Kotlin - not measured -
+  is JSON `null`.
+- `pushFrame` returns `null` on the overwhelming majority of calls, and on a
+  frame that completes repetition records, a **JSON array** of them. Usually one,
+  but one frame can complete two - a half-seen repetition reported alone, then a
+  paired one (P3-19 amended this from "a JSON `RepRecord`"). A hold reports only
+  at `finishSet`.
+- `stateJson` is the discrete state after the last frame: rep count and each
+  side's phase, or the hold's state and time held.
+- `finishSet` ends the set: a JSON array of what that completes, possibly
+  empty; for a hold, its one `HoldRecord`.
+- `analyzeRep` and `computeBaseline` throw until P6 builds calibration and
+  `AnalysisResult`.
 - Everything rich stays inside Kotlin. The `.d.ts` is small and hand-checkable.
-- The facade is the *only* `@JsExport` surface in the project.
+- The facade is the *only* `@JsExport` surface in the project. It lives in
+  `commonMain` (P3-19), so the JVM runs the same facade JavaScript does.
 
 This shape also makes the parity suite trivial: identical JSON in, identical
 JSON out, on both targets.

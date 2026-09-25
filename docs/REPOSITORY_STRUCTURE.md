@@ -26,14 +26,16 @@ kinesis/
 │   ├── domain/                Domain types.    targets: androidTarget, jvm, js
 │   └── analysis/              THE ANALYSIS ENGINE — all analysis lives here
 │       └── src/
-│           ├── commonMain/kotlin/   Kinematics, FSM, profiles, rules, calibration
-│           ├── commonTest/kotlin/   Guard tests — run on every target
-│           └── jsMain/kotlin/       The @JsExport facade, and nothing else
+│           ├── commonMain/kotlin/   Kinematics, FSM, profiles, rules, calibration,
+│           │                        and the @JsExport facade (KinesisEngine.kt)
+│           ├── commonTest/kotlin/   Guard tests and the JVM/JS parity suite — every target
+│           └── jvmTest/kotlin/      JVM-only guards, and the parity golden-file writer
 │
 ├── desktop/                   JVM module; candidate home for the replay client
 │
 ├── tools/
-│   └── g1-spike/              Standalone G1 viability spike (see G1_SPIKE_RESULT.md)
+│   ├── g1-spike/              Standalone G1 viability spike (see G1_SPIKE_RESULT.md)
+│   └── firestore-rules/       firestore.rules unit tests on the Firebase emulator (P3-19)
 │
 └── Kinesis — *.docx           Original exports, kept for provenance
 ```
@@ -44,8 +46,11 @@ Everything analytical is in `core/analysis/src/commonMain`. Platform source sets
 hold camera acquisition, the pose adapter, mirroring correction, rendering and
 storage — nothing that decides anything about movement.
 
-`core/analysis/src/jsMain` contains the `@JsExport` facade and nothing else. If
-a second file appears there, something has gone wrong.
+The `@JsExport` facade, `KinesisEngine`, is the only exported surface in the
+project. It lives in `core/analysis/src/commonMain`, not `jsMain`, so that the
+JVM runs the very facade JavaScript runs and the parity suite can compare them
+(`DECISIONS.md` P3-19). `SharedCoreSourceGuardTest` fails if `@JsExport` appears
+anywhere else.
 
 All three modules carry `androidTarget`, `jvm` and `js` targets. The `js()`
 target is not optional — it carries the cross-platform parity study. See

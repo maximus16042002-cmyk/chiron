@@ -66,3 +66,25 @@ android {
 tasks.matching { it.name.startsWith("lint") }.configureEach {
     enabled = false
 }
+
+// The per-frame allocation guards measure what the JIT allocates, and what the
+// JIT eliminates depends on everything else that ran in the same JVM. Run after
+// the P3-19 parity suite, the growth guard sometimes caught a one-off
+// recompilation - flat before and after it, 1,952,000 bytes a window across 2.6
+// million frames - between its two windows, and failed. So the guards run in a
+// JVM of their own, where what they measure is the code under test. Nothing in
+// them is loosened. `jvmTest` is finalized by this task, so `allTests` always
+// runs it. DECISIONS.md P3-19.
+val allocationGuards = "com.kinesis.core.analysis.PerFrameAllocationTest"
+val jvmTestTask = tasks.named<Test>("jvmTest")
+val jvmAllocationTest = tasks.register<Test>("jvmAllocationTest") {
+    description = "Runs the per-frame allocation guards in a JVM of their own."
+    group = "verification"
+    testClassesDirs = jvmTestTask.get().testClassesDirs
+    classpath = jvmTestTask.get().classpath
+    filter { includeTestsMatching(allocationGuards) }
+}
+jvmTestTask.configure {
+    filter { excludeTestsMatching(allocationGuards) }
+    finalizedBy(jvmAllocationTest)
+}

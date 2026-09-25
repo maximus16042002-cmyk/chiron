@@ -75,6 +75,10 @@ class LiveRepetitionAnalysis(
 
     val repCount: Int get() = tracker.repetitionCount
 
+    /** Each side's phase, separately - the facade reports both. DECISIONS.md P3-19. */
+    val leftPhase: MovementPhase get() = tracker.leftPhase
+    val rightPhase: MovementPhase get() = tracker.rightPhase
+
     /** The last frame's unfiltered angle, per side. Diagnostic only - see the tracker. */
     val rawAngleLeft: Double get() = tracker.rawAngleLeft
     val rawAngleRight: Double get() = tracker.rawAngleRight

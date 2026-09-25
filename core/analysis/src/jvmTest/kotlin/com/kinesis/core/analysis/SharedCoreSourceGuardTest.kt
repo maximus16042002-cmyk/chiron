@@ -210,22 +210,26 @@ class SharedCoreSourceGuardTest {
         )
     }
 
-    // --- Sanity: the jsMain source set holds the facade and nothing else ------
+    // --- Sanity: the facade is the only exported surface -------------------------
 
     /**
-     * REPOSITORY_STRUCTURE.md: "core/analysis/src/jsMain contains the @JsExport
-     * facade and nothing else. If a second file appears there, something has
-     * gone wrong."
+     * CONTRACTS.md section 5: "The facade is the *only* `@JsExport` surface in
+     * the project." It moved from `jsMain` to `commonMain` in P3-19, so the JVM
+     * runs the same facade the parity suite compares. This used to check that
+     * `jsMain` held only the facade; it now checks the rule itself, across every
+     * production source set of every module.
      */
     @Test
-    fun the_js_source_set_contains_only_the_facade() {
-        val jsMain = File(repoRoot(), "core/analysis/src/jsMain")
-        if (!jsMain.isDirectory) return
-        val sources = jsMain.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
+    fun the_facade_is_the_only_js_export_in_the_project() {
+        val exporting = mutableSetOf<String>()
+        val scanned = forEachProductionSource(SCANNED_MODULES) { file, _, line ->
+            if (line.contains("@JsExport")) exporting += relativePath(file)
+        }
+        assertScannedSomething(scanned, SCANNED_MODULES)
         assertEquals(
-            listOf("KinesisEngine.kt"),
-            sources.map { it.name }.sorted(),
-            "jsMain must hold the @JsExport facade and nothing else",
+            setOf("core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/KinesisEngine.kt"),
+            exporting,
+            "@JsExport found outside the facade",
         )
     }
 
@@ -241,7 +245,11 @@ class SharedCoreSourceGuardTest {
             .filter { it.isDirectory }
             .flatMap { moduleSrc ->
                 moduleSrc.listFiles().orEmpty()
-                    .filter { it.isDirectory && it.name.endsWith("Main") }
+                    // Every production source set: `commonMain` and the other
+                    // KMP sets, and the app's `main` and build-type sets. Until
+                    // P3-19 this matched only names ending in "Main", so the app's
+                    // `main` - listed in SCANNED_MODULES - was never read.
+                    .filter { it.isDirectory && !it.name.contains("test", ignoreCase = true) }
                     .flatMap { sourceSet ->
                         sourceSet.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
                     }

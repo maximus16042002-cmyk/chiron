@@ -4586,6 +4586,84 @@ tests, "cannot edit", "cannot delete" and "differs in any way".
   what P3-14 wrote, so it must be published again;
 - that the P3-18 session reached Firestore under the owner's account.
 
+### 8. The JVM/JavaScript parity suite, and what it found on its first run
+
+CLAUDE.md §18 has always required golden-file parity on the JVM and JS targets.
+It did not exist until now: the facade was a P1 stub in `jsMain` that threw on
+every call, and the JVM could not run it at all.
+
+**The facade, finished as far as the engine allows.**
+- **It moved to `commonMain`.** `@JsExport` is allowed in common code and
+  ignored off JS, so the JVM, both Android variants and JS all run the same
+  facade. The generated `.d.ts` is unchanged in kind: strings, numbers and
+  `Float64Array` only.
+- **`configure({"id": …})` runs the app's own live analysers.** It uses
+  `LiveRepetitionAnalysis` for a repetition exercise and `LiveHoldAnalysis` for
+  a hold, and adds nothing analytical of its own.
+- **Two methods were added, `stateJson` and `finishSet`.** A hold only reports
+  when the set ends, and per-frame phases are what the parity contract names.
+  `stateJson` reports each side's phase separately (`LiveRepetitionAnalysis`
+  gained two getters for it), and the display phase as a named reduction beside
+  them.
+- `analyzeRep` and `computeBaseline` still throw; they wait for P6.
+- The JSON is written by hand, because the core takes no JSON library for one
+  field in and a few flat records out. A `NaN` value becomes `null`.
+- **Contract amended.** CONTRACTS.md §5 said `pushFrame` returns "a JSON
+  `RepRecord`". It returns a JSON **array**, because one frame can complete two
+  records: part 4's half-seen record, then a pair. The golden squat run does
+  exactly that at frame 408.
+
+**The suite is `EngineParityTest`**, in `commonTest`, so it runs on every target.
+- **Two scenarios of synthetic full-body frames** go through the facade.
+  - A squat set of 9 records: an aborted repetition, three valid ones, a
+    one-sided one, a one-frame dropout, a lagging right knee, a marginally
+    visible repetition (`DEGRADED` frames), and one under way when the set ends.
+  - A plank that reaches position, holds, sags, recovers, leaves the frame
+    briefly and holds again.
+- **Seeded jitter.** Kotlin's `Random(seed)` is the same generator on every
+  platform, so the outlier gate, smoother and resampler do real floating-point
+  work.
+- **The golden file.** `EngineParityGoldenWriter`, JVM-only, wrote
+  `EngineParityGolden.kt` once. It runs only with `KINESIS_WRITE_GOLDEN=1`, so
+  no run can quietly re-baseline it.
+- **What must match.** Every target is compared line by line against the golden
+  file:
+  - counts and indices exactly;
+  - every string exactly: phases, validities, hold states;
+  - every other number within 1e-9 relative, as CONTRACTS.md §6 sets it, with a
+    1e-12 absolute floor for values that should be zero.
+- **The comparison can fail.** A third test feeds it a changed index and a
+  1e-8 relative nudge to one angle, and requires both to be reported.
+
+**It found a real cross-platform bug on its first run.** On JS both scenarios
+failed. `configure`'s regex ended in a bare `}`. The JVM accepts that, but
+Kotlin/JS compiles regexes with JavaScript's `u` flag, under which a lone `}` is
+a syntax error. So on JS, `configure` threw before the first frame. The brace is
+escaped now. **After the fix: JS 225/225, JVM, Android debug and Android release
+all green**, both scenarios within tolerance on every target.
+
+**A guard turned order-dependent; it now runs in its own JVM.** With the parity
+suite in the same JVM, `live_repetition_analysis_allocation_does_not_grow_as_the_session_runs`
+failed in 2 of 2 full-suite runs, reading 1,952,000 bytes early and about
+3,350,000 late. It passed alone, and passed in the full suite without the parity
+test. A diagnostic run that sampled six more windows over 1.8 million further
+frames read **1,952,000 bytes in every window**. So there is no growth; the
+failures were a one-off JIT recompilation that other tests' activity made land
+between the guard's two windows. The allocation guards now run in a separate
+`jvmAllocationTest` task, in their own JVM, with the same classes and tolerances.
+`jvmTest` is finalised by it, so `allTests` always runs them. It was green in
+two forced reruns. **Nothing in the guards was loosened.**
+
+**A blind spot in the source guards, closed.** `SharedCoreSourceGuardTest` lists
+`app` among the modules it scans, but its walker only opened source sets whose
+names end in `Main`. The app's is `main`, so **no guard had ever read a line of
+the app.** It now reads every non-test source set, the app's build-type sets
+included. The widened scan found nothing. Mutation: a bilateral average and a
+stray `@JsExport` added to an app source file, then reverted, were both caught.
+`the_js_source_set_contains_only_the_facade` was replaced by the rule CONTRACTS
+states, `the_facade_is_the_only_js_export_in_the_project`: exactly one file in
+the whole project may contain `@JsExport`.
+
 ---
 
 ## P3-20 — The repository gets a remote: private GitHub, `google-services.json` included
