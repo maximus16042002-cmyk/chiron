@@ -35,8 +35,6 @@ class FakeHealthConnectClient(
     override suspend fun insertRecords(records: List<Record>): InsertRecordsResponse = TODO()
     override suspend fun <T : Record> readRecord(recordType: KClass<T>, recordId: String): ReadRecordResponse<T> = TODO()
     override suspend fun <T : Record> readRecords(request: ReadRecordsRequest<T>): ReadRecordsResponse<T> = TODO()
-    override suspend fun registerForDataNotifications(notificationIntentAction: String, recordTypes: Iterable<KClass<out Record>>) = TODO()
-    override suspend fun unregisterFromDataNotifications(notificationIntentAction: String) = TODO()
     override suspend fun updateRecords(records: List<Record>) = TODO()
     
     override val permissionController: PermissionController

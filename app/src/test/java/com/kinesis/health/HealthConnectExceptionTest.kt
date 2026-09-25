@@ -1,7 +1,5 @@
 package com.kinesis.health
 
-import android.content.ContextWrapper
-import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.time.TimeRangeFilter
 import kotlinx.coroutines.runBlocking
@@ -13,15 +11,12 @@ class HealthConnectExceptionTest {
     @Test
     fun internal_exceptions_are_not_swallowed() = runBlocking {
         try {
-            val source = HealthConnectActivityContextSource(
-                object : ContextWrapper(null) {}
-            )
-            
             val mockClient = FakeHealthConnectClient {
                 throw NullPointerException("Internal bug!")
             }
             
-            source.read<Long>(
+            // readMetric became top-level in P3-19; the rule it pins is unchanged.
+            readMetric<Long>(
                 client = mockClient,
                 range = TimeRangeFilter.between(Instant.EPOCH, Instant.EPOCH.plusMillis(1)),
                 granted = setOf("perm"),

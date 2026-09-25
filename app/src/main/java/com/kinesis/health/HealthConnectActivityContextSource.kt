@@ -2,6 +2,7 @@ package com.kinesis.health
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.aggregate.AggregateMetric
@@ -65,7 +66,7 @@ class HealthConnectActivityContextSource(
     @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun availabilityOnSupportedPlatform(): ContextAvailability {
         val status = try {
-            HealthConnectClient.sdkStatus(appContext)
+            HealthConnectClient.getSdkStatus(appContext)
         } catch (error: Exception) {
             when (error) {
                 is CancellationException,
@@ -138,18 +139,18 @@ class HealthConnectActivityContextSource(
             return ActivityContextResult.Unavailable(ContextUnavailable.READ_FAILED)
         }
 
-        val steps = read(
+        val steps = readMetric(
             client, range, granted,
             ActivityContextPermissions.READ_STEPS, StepsRecord.COUNT_TOTAL,
         ) { it.toDouble() }
 
-        val calories = read(
+        val calories = readMetric(
             client, range, granted,
             ActivityContextPermissions.READ_ACTIVE_CALORIES,
             ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL,
         ) { it.inKilocalories }
 
-        val heartRate = read(
+        val heartRate = readMetric(
             client, range, granted,
             ActivityContextPermissions.READ_HEART_RATE, HeartRateRecord.BPM_AVG,
         ) { it.toDouble() }
@@ -162,45 +163,6 @@ class HealthConnectActivityContextSource(
                 meanHeartRateBpm = heartRate,
             ),
         )
-    }
-
-    /**
-     * One metric, with every failure turned into a [DailyMetric] rather than an
-     * exception.
-     *
-     * A permission the user withheld is [DailyMetric.NotPermitted] without a call
-     * being made; a granted permission over an empty day is [DailyMetric.NoData];
-     * anything the provider throws is also [DailyMetric.NoData], because a
-     * supplementary panel must not take the screen down with it.
-     */
-    @RequiresApi(Build.VERSION_CODES.O)
-    internal suspend fun <T : Any> read(
-        client: HealthConnectClient,
-        range: TimeRangeFilter,
-        granted: Set<String>,
-        permission: String,
-        metric: AggregateMetric<T>,
-        toDouble: (T) -> Double,
-    ): DailyMetric {
-        if (permission !in granted) return DailyMetric.NotPermitted
-        
-        val value = try {
-            client.aggregate(AggregateRequest(setOf(metric), range))[metric]
-        } catch (error: Exception) {
-            when (error) {
-                is CancellationException,
-                is NullPointerException,
-                is IllegalArgumentException,
-                is ClassCastException -> throw error
-            }
-            return DailyMetric.NoData
-        }
-        
-        return if (value == null) {
-            DailyMetric.NoData
-        } else {
-            DailyMetric.Measured(toDouble(value))
-        }
     }
 
     private companion object {
@@ -218,3 +180,53 @@ class HealthConnectActivityContextSource(
         )
     }
 }
+
+/**
+ * One metric, with every failure turned into a [DailyMetric] rather than an
+ * exception.
+ *
+ * A permission the user withheld is [DailyMetric.NotPermitted] without a call
+ * being made; a granted permission over an empty day is [DailyMetric.NoData];
+ * anything the provider throws is [DailyMetric.ReadFailed], and reported -
+ * named, because a supplementary panel must not take the screen down with it,
+ * and must not pass a failure off as an empty day either (P3-19). Internal bugs
+ * - the four rethrown below - still propagate.
+ */
+@RequiresApi(Build.VERSION_CODES.O)
+internal suspend fun <T : Any> readMetric(
+    client: HealthConnectClient,
+    range: TimeRangeFilter,
+    granted: Set<String>,
+    permission: String,
+    metric: AggregateMetric<T>,
+    /** Where a failed read is reported: Logcat, unless a test says otherwise. */
+    reportFailure: (String, Throwable) -> Unit = { what, error -> Log.w(HEALTH_LOG_TAG, what, error) },
+    toDouble: (T) -> Double,
+): DailyMetric {
+    if (permission !in granted) return DailyMetric.NotPermitted
+    
+    val value = try {
+        client.aggregate(AggregateRequest(setOf(metric), range))[metric]
+    } catch (error: Exception) {
+        when (error) {
+            is CancellationException,
+            is NullPointerException,
+            is IllegalArgumentException,
+            is ClassCastException -> throw error
+        }
+        // Not NoData: that is an empty day, and the two used to look alike on
+        // screen. Named and logged, still without taking the screen down.
+        // DECISIONS.md P3-19.
+        reportFailure("reading $permission failed", error)
+        return DailyMetric.ReadFailed
+    }
+    
+    return if (value == null) {
+        DailyMetric.NoData
+    } else {
+        DailyMetric.Measured(toDouble(value))
+    }
+}
+
+/** Health Connect failures are logged under this tag: `adb logcat -s KinesisHealth`. DECISIONS.md P3-19. */
+const val HEALTH_LOG_TAG = "KinesisHealth"

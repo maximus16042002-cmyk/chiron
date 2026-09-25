@@ -48,6 +48,13 @@ sealed interface DailyMetric {
     /** Permission was granted, and the store held nothing for that day. */
     data object NoData : DailyMetric
 
+    /**
+     * Health Connect was asked and the read failed - DECISIONS.md P3-19. Kept apart
+     * from [NoData], which is a read that succeeded over a day with nothing in it:
+     * the two used to share one state, so "no data" on screen could hide a failure.
+     */
+    data object ReadFailed : DailyMetric
+
     val valueOrNull: Double? get() = (this as? Measured)?.value
 }
 

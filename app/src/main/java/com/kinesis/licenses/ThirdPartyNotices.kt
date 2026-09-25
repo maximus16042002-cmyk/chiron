@@ -32,7 +32,11 @@ object ThirdPartyNotices {
         ThirdPartyNotice("Kotlin standard library 2.1.21", "Apache License, Version 2.0"),
         ThirdPartyNotice("AndroidX Core, Lifecycle, Activity", "Apache License, Version 2.0"),
         ThirdPartyNotice("Jetpack Compose UI 1.7.6 and Material 3 1.3.1", "Apache License, Version 2.0"),
-        ThirdPartyNotice("AndroidX Health Connect client 1.0.0-alpha11", "Apache License, Version 2.0"),
+        ThirdPartyNotice(
+            "AndroidX Health Connect client 1.1.0-beta01",
+            "Apache License, Version 2.0",
+            "It includes a repackaged copy of Google's Protocol Buffers, under the BSD 3-Clause licence.",
+        ),
         ThirdPartyNotice("AndroidX Room 2.7.1", "Apache License, Version 2.0"),
         ThirdPartyNotice(
             "AndroidX CameraX 1.4.1",

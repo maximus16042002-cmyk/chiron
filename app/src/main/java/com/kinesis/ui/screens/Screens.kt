@@ -377,6 +377,7 @@ private fun Metric(label: String, metric: DailyMetric) {
                 is DailyMetric.Measured -> metric.value.toInt().toString()
                 DailyMetric.NotPermitted -> "not permitted"
                 DailyMetric.NoData -> "no data"
+                DailyMetric.ReadFailed -> "could not be read"
             },
             style = MaterialTheme.typography.bodySmall,
             color = if (metric is DailyMetric.Measured) PhosphorDim else PhosphorFaint,

@@ -4753,6 +4753,83 @@ tests, "cannot edit", "cannot delete" and "differs in any way".
 own through `SessionSyncWorker`. That comes with the camera session's first
 new set.
 
+### 7. Health Connect on the phone: the client was out of date, and a failure looked like an empty day
+
+**Found.** On the owner's Android 16 phone the History screen said "Health
+Connect needs updating". Nothing on the phone needed updating.
+- **The client library, 1.0.0-alpha11, predates Android 14**, where Health
+  Connect became part of the platform. Measured on the phone:
+  `HealthConnectActivityContextSource.availability()` returned
+  `Unavailable(PROVIDER_UPDATE_REQUIRED)`. The phone has both the old
+  `com.google.android.apps.healthdata` package and the platform module.
+- **The permission dialog could not have appeared anyway.** The manifest had no
+  permission rationale, which Health Connect requires before it shows its
+  dialog: the `VIEW_PERMISSION_USAGE` / `HEALTH_PERMISSIONS` activity-alias on
+  Android 14 and later, and `androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE`
+  before.
+
+**The client upgrade, to 1.1.0-beta01, with a §17 check.** The stable 1.1.0,
+and every release from beta02, requires compileSdk 36 and Android Gradle Plugin
+8.9.1. That was read from each release's AAR metadata; the project is on
+compileSdk 35 and AGP 8.7.3. **beta01 is the newest release that fits the
+current toolchain.** Moving to 1.1.0 waits for an AGP upgrade, which is the
+owner's decision; P1-1's lint and JDK 25 note is tied to the same AGP version.
+- **Licence:** Apache 2.0.
+- **Manifest:** the library adds only its own bound service, as before. It adds
+  no permission and no network capability; `OfflineManifestGuardTest` passes.
+- **Minimum SDK:** 26, covered by P3-11's `overrideLibrary`.
+- **New transitive artifacts.** `connect-client-proto` is Apache 2.0.
+  `connect-client-external-protobuf` is **BSD-3-Clause**, Google's Protocol
+  Buffers repackaged. It is permissive, and its notice is now in the in-app
+  licences list.
+- **API.** `sdkStatus` became `getSdkStatus`. The JVM test fake dropped two
+  interface methods that no longer exist.
+
+**The rationale.** `HealthPermissionsRationaleActivity` is declared for both
+routes. Every sentence of its text was checked against the code:
+- it reads three metrics, for one day;
+- it shows them on the History screen, and the analysis never uses them;
+- it never writes to Health Connect;
+- it never stores or uploads the values: no storage or sync code refers to
+  them.
+
+**A failed read looked like an empty day.** `read()` turned any exception from
+Health Connect into `DailyMetric.NoData`, so "no data" on screen could hide a
+refusal or a failure. That contradicts the owner's requirement that the panel
+name the real reason. `DailyMetric.ReadFailed` now exists. The panel shows it
+as "could not be read", and it is logged under `KinesisHealth`. Internal bugs
+(`NullPointerException` and the other three) still propagate, which
+`HealthConnectExceptionTest` pins. `read()` became the top-level `readMetric()`
+so the JVM can test it. Tests first: `HealthMetricReadTest` returned `NoData`
+where `ReadFailed` was required, before the fix.
+
+**On the phone, after the fix.**
+- `HealthConnectOnDeviceTest`, three tests:
+  - availability is `Available` on Android 14 and later;
+  - both rationale routes resolve;
+  - today reads without failure, with the app in the foreground, since Health
+    Connect refuses background reads.
+  The first two failed before the fix, measured.
+- **The owner granted all three permissions** through the app's own
+  `[ GRANT ACCESS ]`. `dumpsys package` shows `READ_STEPS`,
+  `READ_ACTIVE_CALORIES_BURNED` and `READ_HEART_RATE` granted.
+- **The panel shows STEPS, ACTIVE KCAL and MEAN BPM, each "no data"** (01:31,
+  the local day 90 minutes old). The reads succeeded and returned no records;
+  none failed.
+- **Why, measured with a one-off probe that was not kept.** Over the last 30
+  days Health Connect holds **135,728 steps**, from its own phone step source
+  and Google Fit. It holds **no active-calorie and no heart-rate records at
+  all**.
+  - Today's steps had simply not been recorded yet.
+  - Calories and heart rate will read "no data" on this phone until something
+    writes them, such as a wearable or an app that records them. That is the
+    true reason, and the panel states the state truthfully.
+
+**Pending, for the owner:**
+- a steps figure later in a day with walking;
+- opening the rationale screen from Health Connect's own settings;
+- the stable client, after an AGP upgrade.
+
 ### 8. The JVM/JavaScript parity suite, and what it found on its first run
 
 CLAUDE.md §18 has always required golden-file parity on the JVM and JS targets.
