@@ -4955,6 +4955,126 @@ The README states that the BSD components are named, not that their texts ship.
 libyuv (P3-17) and Health Connect's repackaged Protocol Buffers (part 7). Both
 are named in the app; neither text is shipped.
 
+### What "tested" means here
+
+`gradlew assemble allTests :app:testDebugUnitTest`: **BUILD SUCCESSFUL, 1,181
+test executions, 0 failures, 0 errors.** P3-18 stood at 1,133.
+
+| Module and target | P3-18 | Now | Added |
+|---|---|---|---|
+| `:core:analysis`, per shared target (JS, Android debug, Android release) | 218 | 225 | `RepRecordIntegrityTest` 4, `EngineParityTest` 3 |
+| `:core:analysis`, JVM | 232 | 235 + 5 | the same 7, and the golden writer (a no-op unless asked); the 5 allocation guards now run in `jvmAllocationTest` |
+| `:core:domain`, per target | 33 | 33 | — |
+| `:app`, debug unit tests | 115 | 134 | `LiveOrientationTest` 9, `HandOverTimesTest` 3, `PhaseBStatsTest` +5, `HealthMetricReadTest` 2 |
+
+Test tasks whose inputs had not changed since a passing run were up to date or
+restored from Gradle's cache.
+
+`gradlew connectedDebugAndroidTest` on the A142 (Android 16): **14 passed, 0
+failed.** The 6 `FramePipelineBenchmark` cases skip without their opt-in flag,
+by design. The device suite now covers:
+
+| Test class | Tests |
+|---|---|
+| `PoseLandmarkerOnDeviceTest` | 4 |
+| `LiveScreenClippingTest` | 2 |
+| `LiveRotationOnDeviceTest` | 3 |
+| `UprightFramesOnDeviceTest` | 2 |
+| `HealthConnectOnDeviceTest` | 3 |
+
+`tools/firestore-rules`: 14 of 14 on the emulator.
+
+**Mutations, all caught, with every file restored byte for byte:**
+- the clip removed (8,477 and 6,931 pixels outside the box);
+- four in rotation: the analysis update, mirror order, the listener, the bands;
+- the tracker's numbering and pairing (their tests failed first);
+- the rules' update and delete;
+- the widened source scan reading the app (a bilateral average and a stray
+  `@JsExport`);
+- a failed Health Connect read (`NoData` before the fix).
+
+The parity suite's first JS run found a real bug. It is kept as that suite's
+evidence.
+
+**Before pushing,** every blob reachable in history was checked, by path and by
+content signature for PNG, JPEG, GIF, WebP, BMP, MP4 and MOV: **none**. No file
+added since `origin/master` is larger than 376 KB.
+
+**Another session worked in parallel.** While this batch was under way, a
+separate session added the private remote, pushed `master` up to part 4 with the
+owner's direction, and recorded that as P3-20. That is why P3-20 sits after
+this entry although it was written during it. The owner had asked this batch not
+to push before part 10. The earlier push was that session's, and it checked
+first that no owner image was in history. This batch pushes parts 5 to 10.
+
+### Decisions for the owner
+
+1. **Gap tolerance (part 4).** Whether to bridge short runs of unmeasurable
+   frames inside a repetition, and the `maxGapMs` to use. It waits for the
+   camera session's measured run lengths. It touches Level 1 measurements.
+2. **AGP 8.9.1 and compileSdk 36.** They are needed for the stable Health
+   Connect client 1.1.0, and are probably the way out of P1-1's lint and JDK 25
+   exclusion too.
+3. **The GPU delegate.** One run measured it 11 ms faster than the CPU and one
+   3–4 ms slower. It changes the numerics. Not adopted.
+4. **A debug-only way to run the full model live**, if lite and full are to be
+   compared on a person in the camera session. The app has none today, and the
+   full model is not switched in.
+5. **The two BSD notice texts** (libyuv, Protocol Buffers), owed before any
+   build is distributed.
+
+### What is NOT verified — the camera session
+
+Everything below needs the owner in front of the phone. Everything in P3-15's to
+P3-18's lists stands, except what this entry and P3-18 closed.
+
+1. **Clipping (part 2).** With a person partly out of frame, the skeleton stops
+   at the camera box, on both screens.
+2. **Upside down (part 3).** Turn the phone over with the live screen open, on
+   each camera:
+   - the screen, preview and skeleton turn with it;
+   - the person stays upright in the preview;
+   - the set carries on.
+
+   The tilt listener's bands are also only tested in code, not by a hand
+   turning the phone.
+3. **Left and right, on each camera.** Curl with the left arm only. The saved
+   records, read with `run-as`, must be attributed `LEFT`. Then the right arm,
+   `RIGHT`. The front and back camera paths differ.
+4. **Rep counting.** Squat side-on, 10 repetitions, on each camera. The count
+   must match, `repIndex` must run 1 to N, and durations must be plausible.
+5. **Plank timing** against a stopwatch, for a clean hold and one with a sag.
+6. **Lite against full model tracking** on a person. This needs decision 4
+   first.
+7. **A 15-minute heat run.** Read the readout's rates and MediaPipe latency, and
+   the phone's thermal status, each minute.
+8. **Auto-exposure and frame rate in bright light.** Is the camera's delivered
+   rate, now on the readout, the limit in dim light? The auto-exposure range is
+   unchanged until this is measured.
+9. **Gap tolerance.** Collect the readout's per-side runs of unmeasurable frames
+   over real sets. That is decision 1's input.
+10. **Tuning.** `smoothingAlpha`, the `VisibilityPolicy` thresholds, the hold
+    tolerances and `outlierReadmitSamples`, against device data.
+11. **Kept buffers on real frames.** The readout's conversion time on the live
+    camera, and whether CameraX's rows arrive tightly packed. If not, the
+    fallback allocates.
+12. **A new set uploading on its own** through `SessionSyncWorker`, under the
+    fixed rules, with `KinesisSync` logging the push.
+
+Not needing the camera but still owed: the Health Connect rationale opened from
+Health Connect's own settings, and a steps figure later in a day with walking.
+
+**Scope of this entry.** It records the following, and makes no accuracy claim
+of any kind:
+- device work without the camera: a clipping fix, orientation support by the
+  owner's decision, two tracker bugs, and a frame-rate investigation with one
+  corrected claim;
+- a broken security rule set found and replaced;
+- Health Connect made to work on Android 16;
+- the parity suite the architecture required, and the cross-platform bug it
+  found;
+- guard-test repairs, a ratified cut, and housekeeping.
+
 ---
 
 ## P3-20 — The repository gets a remote: private GitHub, `google-services.json` included
