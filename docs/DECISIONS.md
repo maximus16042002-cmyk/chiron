@@ -4780,8 +4780,10 @@ owner's decision; P1-1's lint and JDK 25 note is tied to the same AGP version.
 - **Minimum SDK:** 26, covered by P3-11's `overrideLibrary`.
 - **New transitive artifacts.** `connect-client-proto` is Apache 2.0.
   `connect-client-external-protobuf` is **BSD-3-Clause**, Google's Protocol
-  Buffers repackaged. It is permissive, and its notice is now in the in-app
-  licences list.
+  Buffers repackaged. It is permissive. It is *named* in the in-app licences
+  list, but its BSD notice text is not shipped. Like libyuv's (P3-17), that
+  text is owed before any build is distributed; part 9 corrects this entry's
+  first wording.
 - **API.** `sdkStatus` became `getSdkStatus`. The JVM test fake dropped two
   interface methods that no longer exist.
 
@@ -4907,6 +4909,51 @@ stray `@JsExport` added to an app source file, then reverted, were both caught.
 `the_js_source_set_contains_only_the_facade` was replaced by the rule CONTRACTS
 states, `the_facade_is_the_only_js_export_in_the_project`: exactly one file in
 the whole project may contain `@JsExport`.
+
+### 9. Housekeeping
+
+**Front Raise: the reason was on record; only the entry was missing.** The P0
+audit's open item said Front Raise "was dropped implicitly by following the §5
+table" with no decision recorded. The reason is `FINAL_ARCHITECTURE.md` §5,
+present since the P0 commit `977994d`:
+
+> **Front Raise — no good view exists.** From the side, the two arms travel in
+> the same plane and occlude each other almost completely; you cannot separate
+> left from right, which kills the per-side analysis. From the front, the arm
+> moves toward the camera, so shoulder flexion is maximally foreshortened — the
+> angle you want to measure is the one 2D projection destroys. A 45° view is a
+> compromise that degrades both. **Cut it.**
+
+§5's cut list applies one criterion to Front Raise, Calf Raise and Overhead
+Triceps Extension alike. An exercise is supportable only if some single camera
+view can see its primary signal unambiguously through the whole range of
+motion. Checked in the history: **Front Raise was never in the code.** No
+profile, class or id ever existed in `core`, so PROJECT_STATUS's "removed from
+the library" was inaccurate. It was never added. **Decision, ratified: Front
+Raise stays out, for §5's reason.** The audit's open item and PROJECT_STATUS's
+loose end are closed by this entry. Bringing it back would need a view that
+sees shoulder flexion per side, which is a new decision.
+
+**README.md** said "P4 not started". It now gives:
+- the P4 status, as far as it has been verified on the phone;
+- how to build, how to test on the JVM and on a phone, how to run the
+  benchmark, the Firestore rules tests and the golden-file regeneration;
+- that the app shows its third-party notices on its LICENCES screen and ships
+  the Apache 2.0 text. The pose model is Apache 2.0 and bundled unmodified, and
+  its model card is in `docs/third_party/`.
+
+The README states that the BSD components are named, not that their texts ship.
+
+**Files.**
+- `docs/FEATURE_PLAN.md`, the owner's post-Phase-B plan, is committed as
+  written. It contained no credentials or personal data.
+- `docs/Kinesis_Project_Report.docx`, the old report, was deleted. It was never
+  tracked, so it is gone from this disk and was never in git.
+- `docs/Chiron_Project_Report.docx` stays untracked, as asked.
+
+**Owed before any build is distributed.** Two BSD notice texts: CameraX's
+libyuv (P3-17) and Health Connect's repackaged Protocol Buffers (part 7). Both
+are named in the app; neither text is shipped.
 
 ---
 
@@ -5047,6 +5094,7 @@ The audit is complete and the project remains structurally sound per its own con
 
 1. **Front Raise Resolution:** `FINAL_ARCHITECTURE.md` §4 flagged "front raise" and §5 explicitly cut it ("resolves the front raise (cut)"). However, reviewing `DECISIONS.md` (specifically around P0-5, which restored the 17-entry target list), there is **no recorded decision** formally acknowledging or ratifying the removal of Front Raise from the project scope. It was simply dropped implicitly by following the §5 table. 
    - **Open Item:** The omission of Front Raise from the library was executed without a recorded decision in `DECISIONS.md`. This is an open gap.
+   - **Closed by P3-19 §9:** the reason is `FINAL_ARCHITECTURE.md` §5 (no single camera view sees the primary signal), now ratified; Front Raise was never in the code.
 2. **Non-negotiables Sweep (Verified from Codebase):**
    - **Bilateral averaging:** Clean. No `BilateralSignal` is collapsed to a scalar without a named reducer (like `asymmetry()`, `meanExplicit()`). `BilateralRepTracker` keeps left and right independent.
    - **Analysis logic placement:** Clean. No scoring, rep counting, or analysis logic lives in the Android `app/` module.

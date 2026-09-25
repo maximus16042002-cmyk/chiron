@@ -255,10 +255,10 @@ emulator cannot load it.
 
 ### Loose ends
 
-- Golden-file JVM/JS parity tests (the facade exists; the parity suite does not).
+- ~~Golden-file JVM/JS parity tests~~ — built in P3-19 §8 (`EngineParityTest`).
 - Python ↔ Kotlin numeric parity, wherever ML is used.
-- Record a decision for dropping **Front Raise** — it was removed from the
-  library without a DECISIONS.md entry (flagged by the audit).
+- ~~Record a decision for dropping **Front Raise**~~ — recorded in P3-19 §9:
+  cut for FINAL_ARCHITECTURE §5's reason; it was never in the code.
 - A live session holds exactly one set, because saved sessions are append-only;
   the dashboard's "sessions" count therefore counts live sets (P3-16).
 - A set is lost if the app is killed while it is under way, and a save that
@@ -268,7 +268,8 @@ emulator cannot load it.
 - **The libyuv licence notice is owed before any build is distributed.**
   CameraX's `camera-core` bundles libyuv under a BSD licence, which requires its
   notice in a binary distribution; its text is not yet in the app (P3-17,
-  correcting P3-13).
+  correcting P3-13). **The same holds for Health Connect's repackaged Protocol
+  Buffers (BSD-3), added with the P3-19 client upgrade.**
 - The `:desktop` module is an empty placeholder (intended home for a replay-only
   client).
 - Optional: an `abiFilters` restriction to arm64 would cut roughly 29 MB from
