@@ -4582,9 +4582,8 @@ before the thermal check below, so their thermal state is unknown:
   tracking a person.
 
 **The waste fixed, without changing what MediaPipe sees.** Each frame allocated
-two fresh 1.2 MB bitmaps, CameraX's `toBitmap` and the rotated copy: about
-72 MB a second of garbage at 30 frames a second. `UprightFrames` keeps one of
-each. It copies CameraX's tightly packed RGBA plane into the kept bitmap, and
+two fresh 1.2 MB bitmaps, CameraX's `toBitmap` and the rotated copy.
+`UprightFrames` keeps one of each. It copies CameraX's tightly packed RGBA plane into the kept bitmap, and
 draws the same rotate-and-mirror matrix into a kept output with an unfiltered
 `SRC` paint, which is what `Bitmap.createBitmap(…, filter = false)` does. Any
 other frame layout falls back to CameraX's `toBitmap`. `PoseLandmarkerSource`
@@ -4600,16 +4599,52 @@ pin the change:
   found nobody. That test needs the local person image and is skipped without
   it.
 
-**Not yet measured cleanly: the kept buffers' speed.** Later runs drifted by
-more than a millisecond between identical cases. The phone then read thermal
-status 2 ("moderate", skin 43 °C, CPU 63.5 °C) while charging over USB, and it
-was in active use: another app at 158% CPU, memory nearly exhausted. The
-benchmark now interleaves the old and new converter frame by frame, counts
-ART's bytes allocated and collections for each, records the thermal status,
-and writes its results to a file on the phone, because a first run lost lines
-to this phone's fast-rolling Logcat. **Its clean run is owed, on an idle
-phone.** No speed claim is made for the kept buffers until then; the
-allocation saving holds by construction.
+**The kept buffers, measured, and one claim corrected.** Later separate runs
+drifted by more than a millisecond between identical cases. The phone then read
+thermal status 2 ("moderate", skin 43 °C, CPU 63.5 °C) while charging over USB,
+and it was in active use, with another app at 158% CPU. So the benchmark now
+interleaves the old and new converter frame by frame, so that both see the same
+conditions. It counts ART's bytes allocated and garbage collections for each,
+records the thermal status, and writes its results to a file on the phone,
+because a first run lost lines to this phone's fast-rolling Logcat.
+
+It was run once more with the owner leaving the phone alone. It was still at
+**thermal status 2** (skin 41 °C), with a background app at 120% CPU, so the
+absolute numbers read pessimistic. The interleaved comparison is fair: 300
+frames each, medians.
+
+| Converter | Debug, back camera | Debug, front | Profiling, back | Profiling, front |
+|---|---|---|---|---|
+| Allocating (`toBitmap` + upright) | 4.23 ms | 4.24 ms | 4.08 ms | 4.37 ms |
+| Kept buffers | 4.08 ms | 4.13 ms | 4.03 ms | 4.21 ms |
+| **Garbage collections per 300 frames**, allocating / kept | **6 / 0** | 6 / 0 | 6 / 0 | 6 / 0 |
+| Java-heap bytes per frame, allocating / kept | 3 KB / 0 | 3 KB / 0 | 3 KB / 0 | 3 KB / 0 |
+
+- **No meaningful speed gain**: 0.05 to 0.16 ms a frame.
+- **The gain is collections.** The allocating path forced a garbage collection
+  about every 50 frames, roughly every 1.7 s at 30 frames a second. The kept
+  buffers forced none.
+- **A claim of this part's first version was wrong and is corrected here.** It
+  said the old path made "about 72 MB a second of garbage". A bitmap's pixels
+  live in native memory on this Android, not the Java heap, so the Java heap saw
+  only 3 KB a frame. The 1.2 MB buffers were native allocations and frees. Their
+  cost showed up as the collections above, which native-allocation pressure
+  triggers.
+
+**MediaPipe in the same run** (thermal status 2, background load), medians of 150:
+
+| | Debug | Profiling |
+|---|---|---|
+| Lite, person | 57.15 ms | 54.99 ms |
+| Lite, empty frame | 60.73 ms | 58.86 ms |
+| Full, person | 75.38 ms | 69.96 ms |
+| Full, empty frame | 59.25 ms | 49.85 ms |
+| Lite, person, GPU delegate | 62.37 ms | 59.40 ms |
+
+The lite model's figure repeats: about 55–57 ms, a ceiling near 17–18 results a
+second. **The GPU delegate was slower here than the CPU**, where the first runs
+had it 11 ms faster. Its benefit on this phone is therefore not established,
+which is one more reason it is not adopted.
 
 **The readout now explains the frame rate in one session.** It shows three lines
 about once a second, also logged under `KinesisPhaseB`:

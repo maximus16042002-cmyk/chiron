@@ -65,9 +65,12 @@ object FrameUpright {
  * DECISIONS.md P3-19.
  *
  * The allocating path made two 1.2 MB bitmaps a frame, CameraX's `toBitmap` and
- * the turned copy: about 72 MB a second of garbage at 30 frames a second. This
- * keeps one bitmap of each and draws into them, with the output pinned
- * pixel-for-pixel to the allocating path by `UprightFramesOnDeviceTest`.
+ * the turned copy. Their pixels are native memory, so the Java heap barely
+ * notices, but the native-allocation pressure forced a garbage collection about
+ * every 50 frames on the owner's phone; this forced none (P3-19, measured). It
+ * is no faster. It keeps one bitmap of each and draws into them, with the
+ * output pinned pixel-for-pixel to the allocating path by
+ * `UprightFramesOnDeviceTest`.
  *
  * The bitmap returned is overwritten by the next call. That is safe for
  * MediaPipe, which copies a bitmap's pixels inside `detectAsync` - read from its
