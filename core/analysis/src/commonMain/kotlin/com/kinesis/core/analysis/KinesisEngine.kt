@@ -228,7 +228,25 @@ internal object EngineJson {
 
         fun field(name: String, value: String?) {
             key(name)
-            if (value == null) out.append("null") else out.append('"').append(value).append('"')
+            if (value == null) {
+                out.append("null")
+                return
+            }
+            // Quotes and backslashes escaped, so a string cannot break the document.
+            // Ids, enum names and session UUIDs never contain either, so every
+            // output written before P3-22 is unchanged.
+            out.append('"')
+            for (char in value) {
+                if (char == '"' || char == '\\') out.append('\\')
+                out.append(char)
+            }
+            out.append('"')
+        }
+
+        /** An already-written JSON value - an object or array from another writer. */
+        fun raw(name: String, json: String) {
+            key(name)
+            out.append(json)
         }
 
         fun field(name: String, value: Int) {

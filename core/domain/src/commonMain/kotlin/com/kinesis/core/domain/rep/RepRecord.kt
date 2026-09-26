@@ -116,6 +116,22 @@ class HoldRecord(
 
     /** Fraction of the attempt in which the subject was measurable, 0..1. */
     val coverage: Double,
+
+    /**
+     * Mean of the driving signal over the frames that held - where the body line
+     * actually was, signed, which [meanAbsDeviation] cannot say. `NaN` if nothing
+     * held. Added in DECISIONS.md P3-22 for the hold baseline's typical posture;
+     * holds recorded before it reload as `NaN`, unmeasured.
+     */
+    val meanHeldValue: Double,
+
+    /**
+     * Sample standard deviation of the driving signal over the frames that held:
+     * how much the position swayed while within tolerance. The steadiness a hold
+     * baseline is built from. `NaN` with fewer than two held frames, and for
+     * holds recorded before DECISIONS.md P3-22.
+     */
+    val heldValueSd: Double,
 ) {
 
     val attemptDurationMs: Double get() = endMs - startMs
