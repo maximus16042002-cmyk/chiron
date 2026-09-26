@@ -224,15 +224,18 @@ private fun KinesisApp(
 
             Destination.Licences -> {
                 val appContext = LocalContext.current.applicationContext
-                val licence = remember {
+                val readAsset = { path: String ->
                     try {
-                        appContext.assets.open(ThirdPartyNotices.APACHE_LICENSE_ASSET)
-                            .bufferedReader().use { it.readText() }
+                        appContext.assets.open(path).bufferedReader().use { it.readText() }
                     } catch (error: IOException) {
                         null
                     }
                 }
-                LicencesScreen(apacheLicenceText = licence)
+                val licence = remember { readAsset(ThirdPartyNotices.APACHE_LICENSE_ASSET) }
+                val bsd = remember {
+                    ThirdPartyNotices.bsdNotices.map { it to it.textAsset?.let(readAsset) }
+                }
+                LicencesScreen(apacheLicenceText = licence, bsdTexts = bsd)
             }
 
             Destination.Select -> ExerciseSelectionScreen(

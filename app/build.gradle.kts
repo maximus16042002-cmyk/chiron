@@ -40,8 +40,11 @@ android {
         }
     }
     sourceSets {
-        // The Phase B probe lives in src/debug; the profiling build keeps it.
+        // The Phase B probe lives in src/debug; the profiling build keeps it,
+        // and the full model the debug-only model switch offers (P3-21), so the
+        // two can be timed live on a non-debuggable build too.
         getByName("profiling").java.srcDir("src/debug/java")
+        getByName("profiling").assets.srcDir("src/debug/assets")
     }
     // connectedAndroidTest runs against debug unless asked otherwise, e.g.
     // -Pkinesis.testBuildType=profiling for the P3-19 benchmark.

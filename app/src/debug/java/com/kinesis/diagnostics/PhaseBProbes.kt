@@ -17,8 +17,9 @@ const val PHASE_B_LOG_TAG = "KinesisPhaseB"
 fun phaseBProbeOrNull(
     required: RequiredLandmarks,
     camera: CameraFacing,
+    model: String,
     show: (String) -> Unit,
-): PhaseBProbe? = DebugPhaseBProbe(required, camera) { line ->
+): PhaseBProbe? = DebugPhaseBProbe(required, camera, model) { line ->
     Log.i(PHASE_B_LOG_TAG, line)
     show(line)
 }
@@ -30,8 +31,16 @@ fun phaseBProbeOrNull(
 class DebugPhaseBProbe(
     required: RequiredLandmarks,
     private val camera: CameraFacing,
+    /**
+     * The pose model asset running, e.g. `pose_landmarker_full.task`. Named on
+     * every line, so lite and full can be told apart in Logcat when they are
+     * compared in the camera session. DECISIONS.md P3-21.
+     */
+    model: String,
     private val publish: (String) -> Unit,
 ) : PhaseBProbe {
+
+    private val modelName = model.removePrefix("pose_landmarker_").removeSuffix(".task")
 
     /** MediaPipe's thread. */
     val stats = PhaseBStats(required)
@@ -85,10 +94,11 @@ class DebugPhaseBProbe(
         publish(
             String.format(
                 Locale.ROOT,
-                "PHASE B  %s camera  results %.1f fps  camera %.1f fps  sent %.1f fps\n" +
+                "PHASE B  %s camera  %s model  results %.1f fps  camera %.1f fps  sent %.1f fps\n" +
                     "convert %.1f ms (max %.1f)  hand-over %.1f ms  mediapipe %.0f ms (max %.0f)\n" +
                     "max d-angle %.1f deg  vis %.2f-%.2f  gaps L %d (max %d f, %d ms)  R %d (max %d f, %d ms)",
                 camera.name,
+                modelName,
                 stats.framesPerSecond,
                 capture.cameraFramesPerSecond,
                 capture.submittedPerSecond,

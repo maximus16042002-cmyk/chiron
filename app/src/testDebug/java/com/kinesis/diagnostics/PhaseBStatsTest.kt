@@ -1,5 +1,6 @@
 package com.kinesis.diagnostics
 
+import com.kinesis.camera.PoseModelAsset
 import com.kinesis.core.domain.landmark.LandmarkId
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.RequiredLandmarks
@@ -72,12 +73,15 @@ class PhaseBStatsTest {
     @Test
     fun the_readout_is_published_about_once_a_second_and_names_the_camera() {
         val published = ArrayList<String>()
-        val probe = DebugPhaseBProbe(required, CameraFacing.BACK) { published += it }
+        val probe = DebugPhaseBProbe(required, CameraFacing.BACK, PoseModelAsset.FULL) { published += it }
         val still = frame(0.9, 0.9)
         for (i in 0 until 300) probe.onFrame(i * 33L, still, 90.0, 90.0) // ~10 s
 
         assertTrue("published " + published.size + " times in 10 s", published.size in 9..11)
         assertTrue(published.last(), published.last().contains("BACK"))
+        // Lite and full are compared in the camera session from these lines, so
+        // every line says which model produced it. DECISIONS.md P3-21.
+        assertTrue(published.last(), published.last().contains("full model"))
         assertTrue(published.last(), published.last().contains("fps"))
     }
 
@@ -168,7 +172,7 @@ class PhaseBStatsTest {
     @Test
     fun the_readout_names_every_stage_of_the_frame_path() {
         val published = ArrayList<String>()
-        val probe = DebugPhaseBProbe(required, CameraFacing.FRONT) { published += it }
+        val probe = DebugPhaseBProbe(required, CameraFacing.FRONT, PoseModelAsset.LITE) { published += it }
         val still = frame(0.9, 0.9)
         for (i in 0 until 90) {
             probe.onCameraFrame(i * 33L)
@@ -177,7 +181,7 @@ class PhaseBStatsTest {
             probe.onFrame(i * 33L, still, 90.0, 90.0)
         }
         val line = published.last()
-        for (part in listOf("FRONT", "results", "camera", "sent", "convert", "hand-over", "mediapipe 57", "gaps L", "vis")) {
+        for (part in listOf("FRONT", "lite model", "results", "camera", "sent", "convert", "hand-over", "mediapipe 57", "gaps L", "vis")) {
             assertTrue("'$part' missing from: $line", line.contains(part))
         }
     }

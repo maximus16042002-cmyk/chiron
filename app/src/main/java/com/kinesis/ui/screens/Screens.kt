@@ -249,12 +249,17 @@ fun DashboardScreen(
 /**
  * The terms the app's third-party components ship under - DECISIONS.md P3-17.
  *
- * Static text from [ThirdPartyNotices] plus the full Apache License 2.0, read
- * from the APK's assets by the caller. [apacheLicenceText] is `null` only if
- * that asset could not be read, which is said rather than hidden.
+ * Static text from [ThirdPartyNotices] plus the full Apache License 2.0 and the
+ * BSD 3-Clause texts (P3-21), read from the APK's assets by the caller. A text
+ * is `null` only if its asset could not be read, which is said rather than
+ * hidden.
  */
 @Composable
-fun LicencesScreen(apacheLicenceText: String?, modifier: Modifier = Modifier) {
+fun LicencesScreen(
+    apacheLicenceText: String?,
+    bsdTexts: List<Pair<ThirdPartyNotice, String?>>,
+    modifier: Modifier = Modifier,
+) {
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -273,16 +278,27 @@ fun LicencesScreen(apacheLicenceText: String?, modifier: Modifier = Modifier) {
         item { NoticeRow(ThirdPartyNotices.poseModel) }
         item { Text("SOFTWARE", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint) }
         items(ThirdPartyNotices.software) { NoticeRow(it) }
-        item { Text("APACHE LICENSE, VERSION 2.0", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint) }
-        item {
-            Text(
-                apacheLicenceText ?: "The licence text could not be read from the app's assets.",
-                style = MaterialTheme.typography.bodySmall,
-                color = if (apacheLicenceText == null) Amber else PhosphorDim,
-            )
+        item { Text("BSD 3-CLAUSE", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint) }
+        items(bsdTexts) { (notice, text) ->
+            Column {
+                NoticeRow(notice)
+                Spacer(Modifier.height(6.dp))
+                LicenceText(text)
+            }
         }
+        item { Text("APACHE LICENSE, VERSION 2.0", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint) }
+        item { LicenceText(apacheLicenceText) }
         item { Spacer(Modifier.height(24.dp)) }
     }
+}
+
+@Composable
+private fun LicenceText(text: String?) {
+    Text(
+        text ?: "The licence text could not be read from the app's assets.",
+        style = MaterialTheme.typography.bodySmall,
+        color = if (text == null) Amber else PhosphorDim,
+    )
 }
 
 @Composable
@@ -416,9 +432,12 @@ fun LiveAnalysisScreen(
     onSwitchCamera: () -> Unit,
     modifier: Modifier = Modifier,
     diagnostics: String? = null,
+    switchModelLabel: String? = null,
+    onSwitchModel: (() -> Unit)? = null,
 ) {
     LiveCameraLayout(
         state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
+        switchModelLabel, onSwitchModel,
     ) {
         Text(
             state.repCount.toString(),
@@ -454,9 +473,12 @@ fun LiveHoldScreen(
     onSwitchCamera: () -> Unit,
     modifier: Modifier = Modifier,
     diagnostics: String? = null,
+    switchModelLabel: String? = null,
+    onSwitchModel: (() -> Unit)? = null,
 ) {
     LiveCameraLayout(
         state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
+        switchModelLabel, onSwitchModel,
     ) {
         Text(
             (state.heldSeconds / 60).toString() + ":" + (state.heldSeconds % 60).toString().padStart(2, '0'),
@@ -502,6 +524,9 @@ private fun LiveCameraLayout(
     /** Debug builds' Phase B readout, about once a second; always `null` in release. */
     diagnostics: String?,
     modifier: Modifier,
+    /** Debug builds' pose model switch (DECISIONS.md P3-21); always `null` in release. */
+    switchModelLabel: String?,
+    onSwitchModel: (() -> Unit)?,
     readout: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
@@ -528,15 +553,26 @@ private fun LiveCameraLayout(
                 color = PhosphorFaint,
                 modifier = Modifier.align(Alignment.TopStart).padding(16.dp),
             )
-            Text(
-                "[ $switchCameraLabel ]",
-                style = MaterialTheme.typography.labelSmall,
-                color = PhosphorGreen,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .clickable(onClick = onSwitchCamera)
-                    .padding(16.dp),
-            )
+            Column(Modifier.align(Alignment.TopEnd), horizontalAlignment = Alignment.End) {
+                Text(
+                    "[ $switchCameraLabel ]",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PhosphorGreen,
+                    modifier = Modifier
+                        .clickable(onClick = onSwitchCamera)
+                        .padding(16.dp),
+                )
+                if (switchModelLabel != null && onSwitchModel != null) {
+                    Text(
+                        "[ $switchModelLabel ]",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PhosphorFaint,
+                        modifier = Modifier
+                            .clickable(onClick = onSwitchModel)
+                            .padding(horizontal = 16.dp),
+                    )
+                }
+            }
             if (diagnostics != null) {
                 Text(
                     diagnostics,

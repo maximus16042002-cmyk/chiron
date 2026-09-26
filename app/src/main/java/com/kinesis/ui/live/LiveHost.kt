@@ -32,6 +32,7 @@ import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.diagnostics.PhaseBProbe
 import com.kinesis.diagnostics.phaseBProbeOrNull
+import com.kinesis.diagnostics.switchablePoseModels
 import com.kinesis.pose.CameraFacing
 import com.kinesis.storage.SessionRepository
 import com.kinesis.storage.utcOffsetMinutesAt
@@ -41,6 +42,7 @@ import com.kinesis.ui.screens.LiveUnavailableScreen
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import java.io.IOException
 import java.util.UUID
 
 /**
@@ -93,18 +95,47 @@ fun LiveDestination(
             detail = model.reason + ". Nothing is being measured.",
         )
 
-        is PoseModelState.Present -> LiveCameraGate(
-            profile,
-            LiveEnvironment(model.assetPath, repository, onSessionSaved, onSetEnded),
-        )
+        is PoseModelState.Present -> {
+            // Debug builds: lite and, if this build carries it, full. Release
+            // builds: nothing to switch to. DECISIONS.md P3-21.
+            val switchable = remember {
+                try {
+                    switchablePoseModels(PoseModelAsset.presentAssets(context))
+                } catch (error: IOException) {
+                    emptyList()
+                }
+            }
+            LiveCameraGate(
+                profile,
+                LiveEnvironment(model.assetPath, switchable, repository, onSessionSaved, onSetEnded),
+            )
+        }
     }
 }
 
 private class LiveEnvironment(
+    /** The model a set starts on: lite, in every build. */
     val modelAssetPath: String,
+    /** The models the debug-only switch cycles through; empty in release. */
+    val switchableModels: List<String>,
     val repository: SessionRepository,
     val onSessionSaved: () -> Unit,
     val onSetEnded: () -> Unit,
+)
+
+/**
+ * What the running pipeline is keyed on. Changing either is a new set: the camera
+ * for the reasons [LiveCameraSession] gives, and the model because a set measured
+ * partly by one model and partly by another is not one measurement.
+ */
+private data class LiveSource(val facing: CameraFacing, val modelAssetPath: String)
+
+/** The controls in the camera area's corner. The model switch exists in debug builds only. */
+private class LiveSwitches(
+    val cameraLabel: String,
+    val onSwitchCamera: () -> Unit,
+    val modelLabel: String?,
+    val onSwitchModel: (() -> Unit)?,
 )
 
 /** Asks once when the screen opens; after that, only when the user taps. */
@@ -125,6 +156,23 @@ private fun LiveCameraGate(profile: ExerciseProfile, env: LiveEnvironment) {
     }
     LaunchedEffect(Unit) { if (!permitted) request() }
 
+    // The debug-only model switch - DECISIONS.md P3-21. Offered only when there
+    // is another model to switch to, so never in a release build.
+    var modelAssetPath by remember { mutableStateOf(env.modelAssetPath) }
+    val models = env.switchableModels
+    val switchModel: (() -> Unit)? = if (models.size < 2) {
+        null
+    } else {
+        { modelAssetPath = models[(models.indexOf(modelAssetPath) + 1) % models.size] }
+    }
+    val source = LiveSource(facing, modelAssetPath)
+    val switches = LiveSwitches(
+        cameraLabel = switchCameraLabel(facing),
+        onSwitchCamera = switchCamera,
+        modelLabel = switchModel?.let { switchModelLabel(models[(models.indexOf(modelAssetPath) + 1) % models.size]) },
+        onSwitchModel = switchModel,
+    )
+
     if (!permitted) {
         LiveUnavailableScreen(
             exerciseId = profile.id,
@@ -139,44 +187,46 @@ private fun LiveCameraGate(profile: ExerciseProfile, env: LiveEnvironment) {
     }
 
     when (profile) {
-        is RepetitionExercise -> LiveRepetitionSession(profile, env, facing, switchCamera)
-        is IsometricExercise -> LiveHoldSession(profile, env, facing, switchCamera)
+        is RepetitionExercise -> LiveRepetitionSession(profile, env, source, switches)
+        is IsometricExercise -> LiveHoldSession(profile, env, source, switches)
     }
 }
 
 /*
- * Both sessions key their engine on the facing as well as the profile, so
- * switching camera is a new set - see LiveCameraSession for why.
+ * Both sessions key their engine on the source - the camera and the model - as
+ * well as the profile, so switching either is a new set. See LiveCameraSession.
  */
 
 @Composable
 private fun LiveRepetitionSession(
     profile: RepetitionExercise,
     env: LiveEnvironment,
-    facing: CameraFacing,
-    onSwitchCamera: () -> Unit,
+    source: LiveSource,
+    switches: LiveSwitches,
 ) {
     val overlay = rememberOverlay()
     val main = rememberMainExecutor()
     // The bridge publishes on MediaPipe's thread; Compose state is set on main.
-    val published = remember(profile, facing) { mutableStateOf<LiveUiState?>(null) }
-    val bridge = remember(profile, facing) {
+    val published = remember(profile, source) { mutableStateOf<LiveUiState?>(null) }
+    val bridge = remember(profile, source) {
         LiveAnalysisBridge(profile.id) { state -> main.execute { published.value = state } }
     }
-    val diagnostics = remember(profile, facing) { mutableStateOf<String?>(null) }
+    val diagnostics = remember(profile, source) { mutableStateOf<String?>(null) }
     // Debug and profiling builds' readout; null in release. Handed to the engine
     // for per-result numbers and to the camera for capture timings. P3-19.
-    val probe = remember(profile, facing) {
-        phaseBProbeOrNull(profile.requiredLandmarks, facing) { line ->
+    val probe = remember(profile, source) {
+        phaseBProbeOrNull(profile.requiredLandmarks, source.facing, source.modelAssetPath) { line ->
             main.execute { diagnostics.value = line }
         }
     }
-    val engine = remember(profile, facing) { LiveRepetitionEngine(profile, bridge, overlay, probe = probe) }
+    val engine = remember(profile, source) { LiveRepetitionEngine(profile, bridge, overlay, probe = probe) }
 
-    LiveCameraSession(profile, engine, probe, overlay, env, facing, onSwitchCamera) { preview, onEndSet ->
+    LiveCameraSession(profile, engine, probe, overlay, env, source, switches.onSwitchCamera) { preview, onEndSet ->
         LiveAnalysisScreen(
-            published.value ?: bridge.state, preview, overlay, onEndSet, switchCameraLabel(facing), onSwitchCamera,
+            published.value ?: bridge.state, preview, overlay, onEndSet, switches.cameraLabel, switches.onSwitchCamera,
             diagnostics = diagnostics.value,
+            switchModelLabel = switches.modelLabel,
+            onSwitchModel = switches.onSwitchModel,
         )
     }
 }
@@ -186,29 +236,31 @@ private fun LiveRepetitionSession(
 private fun LiveHoldSession(
     profile: IsometricExercise,
     env: LiveEnvironment,
-    facing: CameraFacing,
-    onSwitchCamera: () -> Unit,
+    source: LiveSource,
+    switches: LiveSwitches,
 ) {
     val overlay = rememberOverlay()
     val main = rememberMainExecutor()
-    val published = remember(profile, facing) { mutableStateOf<LiveHoldUiState?>(null) }
-    val bridge = remember(profile, facing) {
+    val published = remember(profile, source) { mutableStateOf<LiveHoldUiState?>(null) }
+    val bridge = remember(profile, source) {
         LiveHoldBridge(profile.id) { state -> main.execute { published.value = state } }
     }
-    val diagnostics = remember(profile, facing) { mutableStateOf<String?>(null) }
+    val diagnostics = remember(profile, source) { mutableStateOf<String?>(null) }
     // Debug and profiling builds' readout; null in release. Handed to the engine
     // for per-result numbers and to the camera for capture timings. P3-19.
-    val probe = remember(profile, facing) {
-        phaseBProbeOrNull(profile.requiredLandmarks, facing) { line ->
+    val probe = remember(profile, source) {
+        phaseBProbeOrNull(profile.requiredLandmarks, source.facing, source.modelAssetPath) { line ->
             main.execute { diagnostics.value = line }
         }
     }
-    val engine = remember(profile, facing) { LiveHoldEngine(profile, bridge, overlay, probe = probe) }
+    val engine = remember(profile, source) { LiveHoldEngine(profile, bridge, overlay, probe = probe) }
 
-    LiveCameraSession(profile, engine, probe, overlay, env, facing, onSwitchCamera) { preview, onEndSet ->
+    LiveCameraSession(profile, engine, probe, overlay, env, source, switches.onSwitchCamera) { preview, onEndSet ->
         LiveHoldScreen(
-            published.value ?: bridge.state, preview, overlay, onEndSet, switchCameraLabel(facing), onSwitchCamera,
+            published.value ?: bridge.state, preview, overlay, onEndSet, switches.cameraLabel, switches.onSwitchCamera,
             diagnostics = diagnostics.value,
+            switchModelLabel = switches.modelLabel,
+            onSwitchModel = switches.onSwitchModel,
         )
     }
 }
@@ -218,6 +270,10 @@ private fun switchCameraLabel(facing: CameraFacing): String = when (facing) {
     CameraFacing.FRONT -> "BACK CAMERA"
     CameraFacing.BACK -> "FRONT CAMERA"
 }
+
+/** Likewise the action: the model tapping it switches to. */
+private fun switchModelLabel(next: String): String =
+    "USE " + next.removePrefix("pose_landmarker_").removeSuffix(".task").uppercase() + " MODEL"
 
 private class LiveFailure(val headline: String, val detail: String, val offersCameraSwitch: Boolean)
 
@@ -230,13 +286,17 @@ private class LiveFailure(val headline: String, val detail: String, val offersCa
  *
  * ### Switching camera is a new set - DECISIONS.md P3-17
  *
- * [engine] is keyed on [facing], so switching replaces it: the set in progress
+ * [engine] is keyed on [source], so switching replaces it: the set in progress
  * ends exactly as it does on leaving the screen - saved if anyone was seen, an
  * unfinished repetition recorded as incomplete - and a new one starts. Two
  * reasons. A set seen from two viewpoints with a gap between is not one
  * measurement. And Camera2 does not promise that two camera devices' frame
  * timestamps share a clock (where it reports the timestamp source as unknown,
  * they cannot be compared), so one set's timing cannot safely span both.
+ *
+ * Switching the pose model, which only debug builds offer, is a new set for the
+ * same first reason: one set measured by two models is not one measurement.
+ * DECISIONS.md P3-21.
  */
 @Composable
 private fun LiveCameraSession(
@@ -245,10 +305,11 @@ private fun LiveCameraSession(
     probe: PhaseBProbe?,
     overlay: SkeletonOverlayView,
     env: LiveEnvironment,
-    facing: CameraFacing,
+    source: LiveSource,
     onSwitchCamera: () -> Unit,
     screen: @Composable (preview: PreviewView, onEndSet: () -> Unit) -> Unit,
 ) {
+    val facing = source.facing
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val view = LocalView.current
@@ -317,7 +378,7 @@ private fun LiveCameraSession(
         )
 
         else -> {
-            DisposableEffect(engine, facing, env.modelAssetPath, lifecycleOwner) {
+            DisposableEffect(engine, facing, source.modelAssetPath, lifecycleOwner) {
                 // The skeleton follows the preview: mirrored for the front camera,
                 // as-is for the back. The last camera's figure is cleared.
                 overlay.displayMirrored = LiveCamera.previewIsMirrored(facing)
@@ -328,7 +389,7 @@ private fun LiveCameraSession(
                 // back as a value, and analysis failures - on MediaPipe's or
                 // CameraX's thread - stop analysis and arrive here, once.
                 val opening = PoseLandmarkerSource.open(
-                    context, env.modelAssetPath, facing, engine::onLandmarks, engine::onNoPose,
+                    context, source.modelAssetPath, facing, engine::onLandmarks, engine::onNoPose,
                     probe = probe,
                     onFailure = { reason ->
                         main.execute {
