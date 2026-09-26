@@ -5129,6 +5129,47 @@ history.
 
 ---
 
+## P3-21 — Owner decisions: the camera session waits, P6 goes first, and P3-19's list
+
+*2026-09-26*
+
+Decided by the project owner at the start of this session, and recorded here
+before any work on them, as they asked.
+
+### The camera session is deferred, and P6 goes ahead of P5 and P7
+
+- **The Phase B camera tests wait.** The owner and their teammate will do the
+  camera session together later. P3-19's list "What is NOT verified — the camera
+  session" still stands in full, and nothing below closes any of it.
+- **Work continues before it.** FEATURE_PLAN.md said its batches start "after
+  Phase B", once its findings were fixed. That no longer holds, and its order
+  line now says so.
+- **P6, calibration and personal baselines, goes first, ahead of P5 and P7,**
+  so there is something to demonstrate to the project's guide. P5 and P7 follow
+  at the owner's direction.
+- **Anything tuned to real movement stays provisional until the camera
+  session.** That covers every threshold already marked provisional, and every
+  number P6 introduces. P6's calibration counts have a second, later authority
+  as well: the MM-Fit convergence study (ZERO_DATASET_BUILD_PLAN.md, Study 3).
+
+This is the same trade P3-4 accepted: work built before the device check may
+need rework if the camera session finds something fundamental. The owner
+accepts it again here.
+
+### P3-19's five decisions for the owner
+
+| P3-19 item | Decision |
+|---|---|
+| 1. Gap tolerance (`maxGapMs`) | **Waits for the camera session.** It needs the measured lengths of the runs of unmeasurable frames, which only the camera session can collect. |
+| 2. AGP 8.9.1 and compileSdk 36 | **Its own small batch, later.** Not part of P6. The stable Health Connect client 1.1.0 and P1-1's lint exclusion wait with it. |
+| 3. The GPU delegate | **Not adopted.** It changes the numerics, and its measured benefit on this phone was inconsistent: 11 ms faster in one run, 3–4 ms slower in another. The CPU delegate stays. |
+| 4. The full pose model live | **A debug-only switch is added.** Release builds keep the lite model only. |
+| 5. The two BSD notice texts | **Added now** to the licences screen: libyuv (CameraX) and Protocol Buffers (Health Connect, MediaPipe, Firestore). |
+
+Items 4 and 5 are built in this session. How is recorded below as each lands.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
