@@ -157,6 +157,9 @@ object SessionMapping {
         meanAbsDeviation = nanIfNull(entity.meanAbsDeviation),
         maxAbsDeviation = nanIfNull(entity.maxAbsDeviation),
         coverage = entity.coverage,
+        // Not stored until the P3-22 migration adds the columns: unmeasured.
+        meanHeldValue = Double.NaN,
+        heldValueSd = Double.NaN,
     )
 
     // --- The two conversions that carry the risk ---------------------------------------

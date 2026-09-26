@@ -321,5 +321,7 @@ class SessionMappingTest {
         meanAbsDeviation = 4.0,
         maxAbsDeviation = 11.0,
         coverage = 1.0,
+        meanHeldValue = 176.0,
+        heldValueSd = 2.0,
     )
 }
