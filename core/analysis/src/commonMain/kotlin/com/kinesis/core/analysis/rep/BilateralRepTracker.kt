@@ -59,8 +59,9 @@ class BilateralRepTracker(
     private val leftPipeline = RealTimeSignalPipeline(temporalConfig, bufferCapacity)
     private val rightPipeline = RealTimeSignalPipeline(temporalConfig, bufferCapacity)
 
-    private val leftFsm = RepFsm(profile.repSignal, bufferCapacity, temporalConfig.resampleLength)
-    private val rightFsm = RepFsm(profile.repSignal, bufferCapacity, temporalConfig.resampleLength)
+    // DECISIONS.md P3-23: each side carries a repetition across a short gap.
+    private val leftFsm = RepFsm(profile.repSignal, bufferCapacity, temporalConfig.resampleLength, temporalConfig.maxBridgedGapMs)
+    private val rightFsm = RepFsm(profile.repSignal, bufferCapacity, temporalConfig.resampleLength, temporalConfig.maxBridgedGapMs)
 
     /** Repetitions counted so far, by this profile's own definition. */
     var repetitionCount: Int = 0

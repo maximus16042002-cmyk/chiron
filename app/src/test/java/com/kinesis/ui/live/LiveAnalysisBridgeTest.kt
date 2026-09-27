@@ -203,14 +203,52 @@ class LiveAnalysisBridgeTest {
     fun an_abandoned_repetition_is_what_turns_the_overlay_amber() {
         val (bridge, seen) = bridge()
 
-        bridge.onFrame(MovementPhase.TOP, 1, FrameValidity.VALID, RepValidity.VALID)
+        bridge.onFrame(MovementPhase.TOP, 1, FrameValidity.VALID, RepValidity.VALID, recordsReported = 1, timestampMs = 0.0)
         assertEquals(OverlayState.TRACKED, seen.last().overlayState)
 
-        bridge.onFrame(MovementPhase.TOP, 1, FrameValidity.VALID, RepValidity.ABORTED)
+        bridge.onFrame(MovementPhase.TOP, 1, FrameValidity.VALID, RepValidity.ABORTED, recordsReported = 2, timestampMs = 100.0)
         assertEquals(
             "an abandoned repetition did not surface on the overlay",
             OverlayState.ATTENTION,
             seen.last().overlayState,
         )
+    }
+
+    /**
+     * DECISIONS.md P3-23. The amber used to stay until a repetition counted,
+     * which on the phone was almost never, so the figure stopped saying anything
+     * about tracking. It now flashes for ATTENTION_MS and goes back.
+     */
+    @Test
+    fun the_amber_lasts_a_moment_then_the_figure_shows_tracking_again() {
+        val (bridge, seen) = bridge()
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.INSUFFICIENT_DATA, recordsReported = 1, timestampMs = 1_000.0)
+        assertEquals(OverlayState.ATTENTION, seen.last().overlayState)
+
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.INSUFFICIENT_DATA, recordsReported = 1, timestampMs = 2_400.0)
+        assertEquals(OverlayState.ATTENTION, seen.last().overlayState)
+
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.INSUFFICIENT_DATA, recordsReported = 1, timestampMs = 2_600.0)
+        assertEquals("the amber stuck", OverlayState.TRACKED, seen.last().overlayState)
+    }
+
+    /** Two failures in a row have the same validity; the second must still flash. */
+    @Test
+    fun every_repetition_that_does_not_count_flashes_again() {
+        val (bridge, seen) = bridge()
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.ABORTED, recordsReported = 1, timestampMs = 0.0)
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.ABORTED, recordsReported = 1, timestampMs = 2_000.0)
+        assertEquals(OverlayState.TRACKED, seen.last().overlayState)
+
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.ABORTED, recordsReported = 2, timestampMs = 3_000.0)
+        assertEquals(OverlayState.ATTENTION, seen.last().overlayState)
+    }
+
+    @Test
+    fun a_repetition_that_counts_clears_the_amber_at_once() {
+        val (bridge, seen) = bridge()
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.ABORTED, recordsReported = 1, timestampMs = 0.0)
+        bridge.onFrame(MovementPhase.TOP, 1, FrameValidity.VALID, RepValidity.VALID, recordsReported = 2, timestampMs = 300.0)
+        assertEquals(OverlayState.TRACKED, seen.last().overlayState)
     }
 }

@@ -29,7 +29,10 @@ object SkeletonColouring {
         policy: VisibilityPolicy,
         overall: OverlayState,
     ): OverlayState {
-        if (overall == OverlayState.ATTENTION) return OverlayState.ATTENTION
+        // Amber covers every joint the camera saw, never one it did not: side-on,
+        // MediaPipe guesses the hidden arm, and in amber the guess looked like a
+        // real arm lifting. DECISIONS.md P3-23.
+        if (overall == OverlayState.ATTENTION && policy.isMeasurable(visibility)) return OverlayState.ATTENTION
         // The policy's own predicates, which the validity gate and the
         // kinematics also use - one definition, NaN included (P3-16).
         return when {
@@ -70,6 +73,9 @@ object SkeletonColouring {
      * tracked colour would claim a measurement for a joint that was never seen.
      */
     fun segmentState(from: OverlayState, to: OverlayState): OverlayState = when {
+        // A line to a joint that was not seen is not a limb anyone measured, amber
+        // or not - DECISIONS.md P3-23.
+        from == OverlayState.UNTRACKED || to == OverlayState.UNTRACKED -> OverlayState.UNTRACKED
         from == OverlayState.ATTENTION || to == OverlayState.ATTENTION -> OverlayState.ATTENTION
         from.ordinal > to.ordinal -> from
         else -> to

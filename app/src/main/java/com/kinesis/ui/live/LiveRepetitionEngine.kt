@@ -76,5 +76,7 @@ class LiveRepetitionEngine(
         repCount = analysis.repCount,
         frameValidity = analysis.frameValidity,
         lastRepValidity = analysis.lastRepValidity,
+        recordsReported = analysis.recordsReported,
+        timestampMs = lastTimestampMs,
     )
 }

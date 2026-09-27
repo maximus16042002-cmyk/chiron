@@ -76,6 +76,12 @@ class RepFsm(
     val spec: RepSignalSpec,
     bufferCapacity: Int,
     private val resampleLength: Int = DEFAULT_RESAMPLE_LENGTH,
+    /**
+     * How long a repetition in progress may go unmeasured and carry on -
+     * DECISIONS.md P3-23. Zero abandons it on the first unmeasurable frame, as
+     * before.
+     */
+    private val maxBridgedGapMs: Double = 0.0,
 ) {
 
     init {
@@ -109,6 +115,9 @@ class RepFsm(
     private var peakValue: Double = Double.NaN
     private var troughValue: Double = Double.NaN
 
+    /** When this repetition was last measured. A bridged gap is measured from here. */
+    private var lastMeasuredMs: Double = Double.NaN
+
     /**
      * Feeds one frame to the machine.
      *
@@ -119,6 +128,7 @@ class RepFsm(
      */
     fun step(timestampMs: Double, value: Double): RepCycle? {
         if (value.isNaN()) return onUnmeasurableFrame(timestampMs)
+        lastMeasuredMs = timestampMs
 
         if (phase != MovementPhase.IDLE) {
             cycle.push(timestampMs, value)
@@ -208,6 +218,7 @@ class RepFsm(
         descentMs = Double.NaN
         peakValue = Double.NaN
         troughValue = Double.NaN
+        lastMeasuredMs = Double.NaN
     }
 
     /**
@@ -224,17 +235,27 @@ class RepFsm(
     // --- Internals ---------------------------------------------------------------
 
     /**
-     * Tracking was lost. A repetition in progress becomes INSUFFICIENT_DATA
-     * rather than being completed on guesswork or dropped without trace - the
-     * movement may well have been fine, and the record says only that it was not
-     * seen.
+     * Tracking was lost for a frame.
+     *
+     * A repetition in progress carries on across a short gap - up to
+     * [maxBridgedGapMs] since it was last measured - and continues from the next
+     * measured frame. Nothing is filled in: the phase changes only on measured
+     * values, so a gap can never count a repetition by itself, and the resampled
+     * curve interpolates between the samples either side as it always has.
+     * DECISIONS.md P3-23: on the phone one unmeasurable frame, or one sample the
+     * outlier gate rejected, threw away almost every repetition.
+     *
+     * Past the limit the repetition becomes INSUFFICIENT_DATA rather than being
+     * completed on guesswork or dropped without trace, ending at the last frame
+     * that was actually measured.
      */
     private fun onUnmeasurableFrame(timestampMs: Double): RepCycle? {
         if (phase == MovementPhase.IDLE || phase == MovementPhase.TOP) {
             phase = MovementPhase.IDLE
             return null
         }
-        return abandon(timestampMs, RepValidity.INSUFFICIENT_DATA)
+        if (!lastMeasuredMs.isNaN() && timestampMs - lastMeasuredMs <= maxBridgedGapMs) return null
+        return abandon(if (lastMeasuredMs.isNaN()) timestampMs else lastMeasuredMs, RepValidity.INSUFFICIENT_DATA)
     }
 
     private fun abandon(timestampMs: Double, validity: RepValidity): RepCycle {

@@ -2,6 +2,7 @@ package com.kinesis.core.analysis
 
 import com.kinesis.core.analysis.live.LiveRepetitionAnalysis
 import com.kinesis.core.analysis.profile.ArchetypeProfiles
+import com.kinesis.core.analysis.temporal.TemporalConfig
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.landmark.LandmarkId
 import com.kinesis.core.domain.landmark.Landmarks
@@ -116,7 +117,11 @@ class LiveRepetitionAnalysisTest {
         for (step in 1..15) analysis.feed(body(knees = 170.0 - 100.0 * step / 30.0))
         assertEquals(MovementPhase.DESCENDING, analysis.displayPhase)
 
-        repeat(5) {
+        // Out of shot for longer than a repetition may be bridged (DECISIONS.md
+        // P3-23). It was five frames, which the bridge now crosses; leaving the
+        // shot is still what ends a repetition.
+        val framesAway = (TemporalConfig.PROVISIONAL.maxBridgedGapMs / FRAME_MS).toInt() + 2
+        repeat(framesAway) {
             analysis.onNothingSeen(clock)
             clock += FRAME_MS
         }

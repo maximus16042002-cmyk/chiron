@@ -18,6 +18,13 @@ data class LiveUiState(
     val phase: MovementPhase,
     val frameValidity: FrameValidity,
     val lastRepValidity: RepValidity?,
+    /**
+     * Whether a repetition that did not count ended in the last
+     * [LiveAnalysisBridge.ATTENTION_MS]. DECISIONS.md P3-23: the amber used to
+     * stay until a repetition did count, which on the phone was almost always,
+     * and while amber the figure said nothing about tracking.
+     */
+    val showingAttention: Boolean = false,
 ) {
     /**
      * How the skeleton should be drawn, derived rather than stored so the
@@ -25,7 +32,7 @@ data class LiveUiState(
      */
     val overlayState: OverlayState
         get() = when {
-            lastRepValidity != null && lastRepValidity != RepValidity.VALID -> OverlayState.ATTENTION
+            showingAttention -> OverlayState.ATTENTION
             frameValidity == FrameValidity.INVALID -> OverlayState.UNTRACKED
             frameValidity == FrameValidity.DEGRADED -> OverlayState.DEGRADED
             else -> OverlayState.TRACKED
@@ -104,8 +111,24 @@ class LiveAnalysisBridge(
         repCount: Int,
         frameValidity: FrameValidity,
         lastRepValidity: RepValidity?,
+        /** Records the analysis has reported so far, valid or not. */
+        recordsReported: Int = 0,
+        /** This frame's time, which the attention flash is measured against. */
+        timestampMs: Double = 0.0,
     ) {
         frameCount++
+
+        // A new record: one that did not count flashes amber for ATTENTION_MS;
+        // one that did clears it at once.
+        if (recordsReported != recordsSeen) {
+            recordsSeen = recordsReported
+            attentionUntilMs = if (lastRepValidity != null && lastRepValidity != RepValidity.VALID) {
+                timestampMs + ATTENTION_MS
+            } else {
+                Double.NaN
+            }
+        }
+        val attention = !attentionUntilMs.isNaN() && timestampMs < attentionUntilMs
 
         // Compared field by field against the live values rather than by building
         // a candidate and comparing that - constructing one per frame is exactly
@@ -113,7 +136,8 @@ class LiveAnalysisBridge(
         val unchanged = phase == current.phase &&
             repCount == current.repCount &&
             frameValidity == current.frameValidity &&
-            lastRepValidity == current.lastRepValidity
+            lastRepValidity == current.lastRepValidity &&
+            attention == current.showingAttention
         if (unchanged) return
 
         publish(
@@ -123,9 +147,13 @@ class LiveAnalysisBridge(
                 phase = phase,
                 frameValidity = frameValidity,
                 lastRepValidity = lastRepValidity,
+                showingAttention = attention,
             ),
         )
     }
+
+    private var recordsSeen = 0
+    private var attentionUntilMs = Double.NaN
 
     private fun publish(state: LiveUiState) {
         current = state
@@ -134,4 +162,9 @@ class LiveAnalysisBridge(
     }
 
     val state: LiveUiState get() = current
+
+    companion object {
+        /** How long a repetition that did not count shows amber. DECISIONS.md P3-23. */
+        const val ATTENTION_MS: Double = 1_500.0
+    }
 }

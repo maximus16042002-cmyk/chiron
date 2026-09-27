@@ -76,11 +76,29 @@ class SkeletonColouringTest {
      * not be possible to miss it because the joints happened to track well.
      */
     @Test
-    fun attention_overrides_every_joint_however_well_it_is_tracked() {
-        for (visibility in listOf(1.0, 0.7, 0.5, 0.1, Double.NaN)) {
+    fun attention_overrides_every_joint_the_camera_saw_however_well_it_is_tracked() {
+        for (visibility in listOf(1.0, 0.7, 0.5, 0.4)) {
             assertEquals(
                 "visibility " + visibility + " escaped the attention state",
                 OverlayState.ATTENTION,
+                SkeletonColouring.jointState(visibility, policy, OverlayState.ATTENTION),
+            )
+        }
+    }
+
+    /**
+     * A joint the camera did not see stays drawn as not seen, amber or not -
+     * DECISIONS.md P3-23. Side-on, MediaPipe guesses the hidden arm, usually as
+     * a mirror of the visible one; drawn in bold pulsing amber it looked exactly
+     * like a real arm lifting. The counting never used it (its visibility is
+     * below the floor); now the drawing says so too.
+     */
+    @Test
+    fun an_unseen_joint_stays_untracked_even_when_the_figure_is_amber() {
+        for (visibility in listOf(0.39, 0.1, 0.0, Double.NaN)) {
+            assertEquals(
+                "visibility " + visibility + " was drawn as if seen",
+                OverlayState.UNTRACKED,
                 SkeletonColouring.jointState(visibility, policy, OverlayState.ATTENTION),
             )
         }
@@ -113,13 +131,22 @@ class SkeletonColouringTest {
     }
 
     @Test
-    fun attention_wins_over_a_worse_tracking_state_on_a_segment() {
+    fun attention_wins_over_a_tracked_or_degraded_end_on_a_segment() {
+        for (other in listOf(OverlayState.TRACKED, OverlayState.DEGRADED, OverlayState.ATTENTION)) {
+            assertEquals(OverlayState.ATTENTION, SkeletonColouring.segmentState(OverlayState.ATTENTION, other))
+            assertEquals(OverlayState.ATTENTION, SkeletonColouring.segmentState(other, OverlayState.ATTENTION))
+        }
+    }
+
+    /** A line to a joint that was not seen is not a limb anyone measured - DECISIONS.md P3-23. */
+    @Test
+    fun a_segment_to_an_unseen_joint_is_untracked_even_when_the_figure_is_amber() {
         assertEquals(
-            OverlayState.ATTENTION,
+            OverlayState.UNTRACKED,
             SkeletonColouring.segmentState(OverlayState.ATTENTION, OverlayState.UNTRACKED),
         )
         assertEquals(
-            OverlayState.ATTENTION,
+            OverlayState.UNTRACKED,
             SkeletonColouring.segmentState(OverlayState.UNTRACKED, OverlayState.ATTENTION),
         )
     }

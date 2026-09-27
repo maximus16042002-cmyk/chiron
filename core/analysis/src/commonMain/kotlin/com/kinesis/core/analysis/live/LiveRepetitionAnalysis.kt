@@ -68,8 +68,17 @@ class LiveRepetitionAnalysis(
     var lastRepValidity: RepValidity? = null
         private set
 
+    /**
+     * Records reported so far, valid or not. Lets a display tell a new record
+     * from the last one repeated - two failures in a row have the same validity.
+     * DECISIONS.md P3-23.
+     */
+    var recordsReported: Int = 0
+        private set
+
     private val sink = RepSink { record ->
         lastRepValidity = record.validity
+        recordsReported++
         onRepetition.onRepetition(record)
     }
 

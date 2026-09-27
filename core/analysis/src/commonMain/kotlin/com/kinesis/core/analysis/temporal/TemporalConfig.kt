@@ -43,6 +43,14 @@ data class TemporalConfig(
     val maxInterpolationGapMs: Double,
 
     /**
+     * The longest run of unmeasurable frames a repetition in progress may cross
+     * and carry on, in milliseconds - DECISIONS.md P3-23. Longer, and the
+     * repetition is abandoned as INSUFFICIENT_DATA, as every gap was before.
+     * Zero bridges nothing.
+     */
+    val maxBridgedGapMs: Double,
+
+    /**
      * How many samples a completed repetition is resampled to.
      *
      * CLAUDE.md section 15 requires fixed-length resampled signals for completed
@@ -62,6 +70,7 @@ data class TemporalConfig(
         require(outlierReadmitSamples in 2..outlierWindowSamples) {
             "outlierReadmitSamples must be in 2.." + outlierWindowSamples + ", got " + outlierReadmitSamples
         }
+        require(maxBridgedGapMs >= 0.0) { "maxBridgedGapMs must be non-negative, got " + maxBridgedGapMs }
         require(smoothingAlpha > 0.0 && smoothingAlpha <= 1.0) {
             "smoothingAlpha must be in (0, 1], got " + smoothingAlpha
         }
@@ -89,8 +98,13 @@ data class TemporalConfig(
          * - `outlierWindowSamples = 5` — about 165 ms at 30 fps, long enough to
          *   contain a single-frame spike and short enough not to smear a fast
          *   movement.
-         * - `outlierThreshold = 20.0` — degrees, the prototype's figure, itself
-         *   unvalidated.
+         * - `outlierThreshold = 35.0` — degrees. It was the prototype's 20, which
+         *   assumed 30 fps. The gate compares a sample with the median of the
+         *   last five, which trails a moving joint by about three frames, and at
+         *   the 12-16 results a second measured on the phone a lowering arm
+         *   trails by more than 20 and was thrown away. The phone readouts of
+         *   2026-09-27 put smooth movement at 2-20 degrees a frame and glitches at
+         *   50-174. Provisional - DECISIONS.md P3-23.
          * - `outlierReadmitSamples = 3` — about 100 ms at 30 fps: long enough
          *   that a one- or two-frame estimator failure is still rejected whole,
          *   short enough that a real sudden change is seen within a tenth of a
@@ -108,11 +122,14 @@ data class TemporalConfig(
          */
         val PROVISIONAL: TemporalConfig = TemporalConfig(
             outlierWindowSamples = 5,
-            outlierThreshold = 20.0,
+            outlierThreshold = 35.0,
             outlierReadmitSamples = 3,
             smoothingAlpha = 0.3,
             maxInterpolationGapMs = 300.0,
             resampleLength = 64,
+            // DECISIONS.md P3-23: bridges 45% of the gaps under 3 s the phone
+            // readouts of 2026-09-27 recorded. Provisional.
+            maxBridgedGapMs = 500.0,
         )
     }
 }
