@@ -16,7 +16,7 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 /**
- * The band a Layer 1 rule compares against - DECISIONS.md P3-23.
+ * The band a Layer 1 rule compares against - DECISIONS.md P3-24.
  *
  * A value is flagged when it lies further from the user's own median than
  * [SPREAD_MULTIPLIER] times their own rep-to-rep spread (the interquartile range
@@ -52,7 +52,7 @@ object DeviationPolicy {
 
 /**
  * Layer 1 - the deviation rules, P8.1-8.3 (FINAL_ARCHITECTURE section 2,
- * DECISIONS.md P3-23).
+ * DECISIONS.md P3-24).
  *
  * Each rule compares one measured quantity with the same quantity in the user's
  * own calibration and, when it falls outside the user's usual band

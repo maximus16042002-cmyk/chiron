@@ -75,7 +75,7 @@ class FacadeCalibrationTest {
         assertEquals(103.5, left["baseline"])
         assertNull(comparison["timingSide"])
         // 95 against a usual 103.5 (spread 3.5) is outside the band: one Level 2 finding,
-        // carried across the boundary with its level, metric and rule version (P3-23).
+        // carried across the boundary with its level, metric and rule version (P3-24).
         val finding = (result["findings"] as List<*>).single() as Map<*, *>
         assertEquals("L2_DEVIATION", finding["level"])
         assertEquals("rom_left", finding["metric"])

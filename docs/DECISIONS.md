@@ -5604,7 +5604,7 @@ kind, and every number in it is a provisional setting, not a measured result.
 
 ---
 
-## P3-23 — P8 Layer 1: the deviation rules
+## P3-24 — P8 Layer 1: the deviation rules
 
 *2026-09-27. The owner said "do whatever you want"; this is the next item on
 the plan after P6, and needs no phone and no labels.*

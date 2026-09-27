@@ -118,5 +118,5 @@ class PostRepAnalysisTest {
     }
 
     // P6's `p6_makes_no_claim_beyond_numbers_for_any_exercise` was replaced, as it said
-    // it would be, by DeviationRulesTest's library-wide guard - DECISIONS.md P3-23.
+    // it would be, by DeviationRulesTest's library-wide guard - DECISIONS.md P3-24.
 }

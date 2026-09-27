@@ -18,13 +18,13 @@ import com.kinesis.core.domain.rep.HoldRecord
 import com.kinesis.core.domain.rep.RepRecord
 
 /**
- * The post-rep analysis - CONTRACTS.md section 7, DECISIONS.md P3-22 and P3-23.
+ * The post-rep analysis - CONTRACTS.md section 7, DECISIONS.md P3-22 and P3-24.
  *
  * Takes a completed record and, if there is one, the user's baseline, and
  * returns an `AnalysisResult`: the record's values beside the baseline's, per
  * side, as numbers, and the Layer 1 deviation findings ([DeviationRules]) those
  * numbers support - Level 2, each with its rule version. Holds get the
- * comparison only; P3-23 says why.
+ * comparison only; P3-24 says why.
  *
  * Because the result is computed from the record and the baseline rather than
  * stored with the record, analysing an old repetition again after the baseline

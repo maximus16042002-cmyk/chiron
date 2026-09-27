@@ -29,7 +29,7 @@ import com.kinesis.core.domain.finding.Finding
  *   `TechniqueFault` findings go in, each carrying its own claim level and rule
  *   version (FINAL_ARCHITECTURE section 8: "AnalysisResult carries claimLevel
  *   and ruleVersion per finding"). P8 Layer 1 fills it with Level 2 deviations
- *   for completed repetitions - DECISIONS.md P3-23.
+ *   for completed repetitions - DECISIONS.md P3-24.
  */
 sealed interface AnalysisResult {
 

@@ -33,7 +33,7 @@ class EngineParityGoldenWriter {
             "squatCalibration" to EngineParity.squatCalibration(),
             "curlCalibration" to EngineParity.curlCalibration(),
             "plankCalibration" to EngineParity.plankCalibration(),
-            // DECISIONS.md P3-23.
+            // DECISIONS.md P3-24.
             "squatDeviation" to EngineParity.squatDeviation(),
         )
         for ((name, lines) in scenarios) {

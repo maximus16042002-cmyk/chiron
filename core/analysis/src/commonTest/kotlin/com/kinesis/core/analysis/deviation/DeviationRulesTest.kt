@@ -26,7 +26,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
- * P8 Layer 1 - the deviation rules, DECISIONS.md P3-23.
+ * P8 Layer 1 - the deviation rules, DECISIONS.md P3-24.
  *
  * Every finding here is Level 2: a departure from this user's own calibration,
  * never a statement about correct movement. What each test pins is a way the

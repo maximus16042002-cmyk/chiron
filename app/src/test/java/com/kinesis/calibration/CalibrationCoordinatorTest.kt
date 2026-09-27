@@ -157,7 +157,7 @@ class CalibrationCoordinatorTest {
         val first = withBaseline[0] as RepetitionAnalysisResult
         assertEquals(92.0, first.comparison!!.rangeOfMotionLeft.measured, 0.0)
         assertEquals(100.0, first.comparison!!.rangeOfMotionLeft.baseline, 0.0)
-        // P8 Layer 1 (DECISIONS.md P3-23): 92 against a flat usual of 100 is outside the
+        // P8 Layer 1 (DECISIONS.md P3-24): 92 against a flat usual of 100 is outside the
         // 5% floor, so the completed repetition gets Level 2 findings; the aborted one gets none.
         val metrics = first.findings.map { (it as Deviation).metric }
         assertTrue(metrics.toString(), "rom_left" in metrics && "rom_right" in metrics)

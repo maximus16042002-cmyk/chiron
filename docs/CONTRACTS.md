@@ -185,7 +185,7 @@ class KinesisEngine {
 - `analyzeRep` takes one record and a baseline (or `null`) and returns a JSON
   `AnalysisResult`: the record's values beside the baseline's, and a `findings`
   array of P8's Layer 1 deviations, each with `level`, `metric`, `direction`,
-  `displayText` and `ruleVersion` (DECISIONS.md P3-23).
+  `displayText` and `ruleVersion` (DECISIONS.md P3-24).
 - Everything rich stays inside Kotlin. The `.d.ts` is small and hand-checkable.
 - The facade is the *only* `@JsExport` surface in the project. It lives in
   `commonMain` (P3-19), so the JVM runs the same facade JavaScript does.

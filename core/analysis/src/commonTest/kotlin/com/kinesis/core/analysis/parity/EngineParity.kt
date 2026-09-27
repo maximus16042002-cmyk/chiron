@@ -88,7 +88,7 @@ object EngineParity {
     }
 
     /**
-     * The deviation rules through the facade - DECISIONS.md P3-23. A baseline from
+     * The deviation rules through the facade - DECISIONS.md P3-24. A baseline from
      * eight ordinary squats, then a new set against it: one shallow squat, one
      * ordinary, one with a lagging right knee. Pins the findings' JSON, and so
      * their wording and numbers, on every target.
