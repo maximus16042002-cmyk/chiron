@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The only files Kinesis can share: P5's export, written to the cache's
+    exports/ folder when the user asks - DECISIONS.md P3-25.
+-->
+<paths>
+    <cache-path name="exports" path="exports/" />
+</paths>

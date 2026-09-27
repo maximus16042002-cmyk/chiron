@@ -171,6 +171,10 @@ fun DashboardScreen(
     onOpenLicences: () -> Unit,
     /** Each calibrated exercise's display name and baseline. DECISIONS.md P3-22. */
     baselines: List<Pair<String, CalibrationBaseline>> = emptyList(),
+    /** Writes P5's export and opens the share sheet. DECISIONS.md P3-25. */
+    onExport: (() -> Unit)? = null,
+    /** An export is being written; taps are ignored until the share sheet opens. */
+    exporting: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -250,6 +254,27 @@ fun DashboardScreen(
 
         item { BaselinesPanel(baselines) }
         item { HealthContextPanel(context, onRequestHealthAccess) }
+        if (onExport != null) {
+            item {
+                Column(Modifier.padding(top = 8.dp)) {
+                    Text(
+                        if (exporting) "[ EXPORTING... ]" else "[ EXPORT DATA ]",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PhosphorDim,
+                        modifier = Modifier
+                            .clickable(onClick = onExport)
+                            .padding(vertical = 12.dp),
+                    )
+                    // CLAUDE.md section 16: say plainly where the data goes.
+                    Text(
+                        "Every session on this phone, and your baselines, as JSON and CSV " +
+                            "files. They leave the phone only if you choose where to send them.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = PhosphorFaint,
+                    )
+                }
+            }
+        }
         item {
             Text(
                 "[ LICENCES ]",

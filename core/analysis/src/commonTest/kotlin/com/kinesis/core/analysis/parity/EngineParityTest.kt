@@ -39,6 +39,12 @@ class EngineParityTest {
     fun a_plank_calibration_matches_the_golden_file_on_this_target() =
         check("plankCalibration", EngineParityGolden.plankCalibration, EngineParity.plankCalibration())
 
+    // DECISIONS.md P3-25: P5's export, over records the facade produced on this target.
+
+    @Test
+    fun an_exported_session_matches_the_golden_file_on_this_target() =
+        check("sessionExport", EngineParityGolden.sessionExport, EngineParity.sessionExport())
+
     /** The comparison must be able to fail, or a passing run proves nothing. */
     @Test
     fun the_comparison_sees_a_discrete_and_a_continuous_difference() {
@@ -58,7 +64,10 @@ class EngineParityTest {
     }
 
     private fun check(scenario: String, golden: List<String>, actual: List<String>) {
-        assertTrue(golden.any { it.startsWith("records|") || it.startsWith("finish|[{") }, "the golden $scenario file records nothing")
+        assertTrue(
+            golden.any { it.startsWith("records|") || it.startsWith("finish|[{") || (it.startsWith("export|") && "\"reps\":[{" in it) },
+            "the golden $scenario file records nothing",
+        )
         val differences = EngineParity.differences(scenario, golden, actual)
         if (differences.isNotEmpty()) {
             fail(

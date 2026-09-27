@@ -1,7 +1,13 @@
 package com.kinesis.core.analysis.parity
 
+import com.kinesis.core.analysis.EngineJson
+import com.kinesis.core.analysis.JsonText
 import com.kinesis.core.analysis.KinesisEngine
+import com.kinesis.core.analysis.export.SessionExport
 import com.kinesis.core.domain.landmark.LandmarkId
+import com.kinesis.core.domain.session.HoldSetRecord
+import com.kinesis.core.domain.session.RepetitionSetRecord
+import com.kinesis.core.domain.session.SessionRecord
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
@@ -116,6 +122,61 @@ object EngineParity {
         repeat(60) { run.body(hipDegrees = 177.0) } // held again
         return shortLines + run.calibrate()
     }
+
+    // --- Export - DECISIONS.md P3-25 ---------------------------------------------------
+
+    /**
+     * P5's export over records the facade produced on this target: a squat set -
+     * three valid, one turned back, one with a knee unseen - and a plank hold, in
+     * one session, as the JSON document and as every CSV row.
+     */
+    fun sessionExport(): List<String> {
+        val squats = Run("""{"id": "squat"}""", seed = 23)
+        squats.stand(20)
+        repeat(3) {
+            squats.squatTo(70.0)
+            squats.stand(12)
+        }
+        squats.squatTo(125.0) // turns back above depth: ABORTED
+        squats.stand(12)
+        squats.squatTo(72.0, rightSeen = false) // the right knee unseen: one-sided
+        squats.stand(12)
+        val reps = squats.allRecords().map { EngineJson.readRep(JsonText.parse(it)) }
+
+        val plank = Run("""{"id": "plank"}""", seed = 29)
+        repeat(30) { plank.body(hipDegrees = 140.0 + it) }
+        repeat(200) { plank.body(hipDegrees = 177.0) }
+        val holds = plank.allRecords().map { EngineJson.readHold(JsonText.parse(it)) }
+
+        val session = SessionRecord(
+            sessionId = "parity-export",
+            startedAtEpochMs = 1_790_537_401_000.0,
+            utcOffsetMinutes = 330,
+            sets = listOf(
+                RepetitionSetRecord("squat", 1_790_537_445_250.0, reps),
+                HoldSetRecord("plank", 1_790_537_800_000.0, holds),
+            ),
+        )
+        val csv = SessionExport.csv(listOf(session))
+        return listOf("export|" + SessionExport.json(listOf(session), emptyList(), 1_790_600_000_000.0)) +
+            csvLines("csv-sets", csv.sets) + csvLines("csv-reps", csv.reps) + csvLines("csv-holds", csv.holds)
+    }
+
+    /**
+     * Each CSV row as a JSON array, so the comparison holds its numbers to the
+     * same tolerance as the JSON's. The export quotes nothing here: no id in
+     * this scenario has a comma or a quote.
+     */
+    private fun csvLines(kind: String, table: String): List<String> =
+        table.removeSuffix("\r\n").split("\r\n").withIndex().map { (i, row) ->
+            "$kind|$i|" + row.split(',').joinToString(",", "[", "]") { cell ->
+                when {
+                    cell.isEmpty() -> "null"
+                    cell.toDoubleOrNull() != null -> cell
+                    else -> "\"" + cell + "\""
+                }
+            }
+        }
 
     /** One scenario in flight: the facade, the jitter and the event lines. */
     private class Run(profile: String, seed: Int) {
@@ -277,6 +338,12 @@ object EngineParity {
             lines += "finish|" + engine.finishSet()
             return lines
         }
+
+        /** Ends the set and returns every record it produced, one JSON object each. */
+        fun allRecords(): List<String> {
+            records += topLevelElements(engine.finishSet())
+            return records
+        }
     }
 
     /**
@@ -330,6 +397,8 @@ object EngineParity {
         "repIndex", "repCount", "breakCount",
         // DECISIONS.md P3-22: calibration counts are discrete too.
         "count", "validLeft", "validRight", "requiredPerSide",
+        // DECISIONS.md P3-25: the export's counts and positions.
+        "formatVersion", "utcOffsetMinutes", "setIndex", "recordCount", "validCount",
     )
 
     /**

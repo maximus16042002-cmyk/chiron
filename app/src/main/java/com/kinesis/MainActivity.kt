@@ -1,5 +1,9 @@
 package com.kinesis
 
+import android.app.Activity
+import android.content.ClipData
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import com.kinesis.core.analysis.history.Dashboard
 import com.kinesis.core.analysis.history.DashboardSummary
 import com.kinesis.core.domain.profile.ExerciseProfile
@@ -70,8 +75,15 @@ import com.kinesis.storage.RoomBaselineRepository
 import com.kinesis.ui.theme.KinesisTheme
 import com.kinesis.ui.theme.PhosphorFaint
 import com.kinesis.ui.theme.PhosphorGreen
+import com.kinesis.export.ExportFiles
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * The app shell - DECISIONS.md P3-12.
@@ -236,6 +248,34 @@ private fun KinesisApp(
 
     val requestPermissions = rememberHealthPermissionLauncher { reloadToken++ }
 
+    // P5's export - DECISIONS.md P3-25. Every local session and this user's
+    // baselines, written off the main thread, then handed to the share sheet.
+    // One at a time: on the phone an export took about 14 s (P3-25), and a
+    // second tap would empty the folder the first is still writing into.
+    val exportScope = rememberCoroutineScope()
+    val activityContext = LocalContext.current
+    var exporting by remember { mutableStateOf(false) }
+    val export: () -> Unit = export@{
+        if (exporting) return@export
+        exporting = true
+        exportScope.launch {
+            try {
+                val files = withContext(Dispatchers.IO) {
+                    ExportFiles.write(
+                        directory = File(activityContext.cacheDir, EXPORT_DIRECTORY),
+                        sessions = repository.allSessions(),
+                        baselines = calibration.baselines(uid).values.toList(),
+                        exportedAtEpochMs = System.currentTimeMillis().toDouble(),
+                        day = SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(Date()),
+                    )
+                }
+                shareExport(activityContext, files)
+            } finally {
+                exporting = false
+            }
+        }
+    }
+
     Column(Modifier.fillMaxSize()) {
         NavBar(
             destination = destination,
@@ -254,6 +294,8 @@ private fun KinesisApp(
                 },
                 onOpenLicences = { destination = Destination.Licences },
                 baselines = baselines.values.map { displayNameOf(it.calibrationId) to it },
+                onExport = export,
+                exporting = exporting,
             )
 
             Destination.Licences -> {
@@ -347,6 +389,31 @@ private fun KinesisApp(
             }
         }
     }
+}
+
+/** The cache folder the export is written to; `res/xml/export_paths.xml` shares only this. */
+private const val EXPORT_DIRECTORY = "exports"
+
+/**
+ * Hands the export's files to the share sheet - DECISIONS.md P3-25. The user
+ * picks where they go, if anywhere; each receiving app gets read access to these
+ * files alone, through the FileProvider, for as long as it holds the share.
+ */
+private fun shareExport(context: Context, files: List<File>) {
+    val authority = context.packageName + ".exports"
+    val uris = ArrayList(files.map { FileProvider.getUriForFile(context, authority, it) })
+    val send = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
+        type = "*/*"
+        putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
+        // The grant flag applies to the clip's URIs, so every file is on it.
+        clipData = ClipData.newRawUri("Kinesis export", uris.first()).also { clip ->
+            uris.drop(1).forEach { clip.addItem(ClipData.Item(it)) }
+        }
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    val chooser = Intent.createChooser(send, "Export Kinesis data")
+    if (context !is Activity) chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    context.startActivity(chooser)
 }
 
 @Composable

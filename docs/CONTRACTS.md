@@ -262,3 +262,76 @@ two, presenting as a tuning problem rather than a definitional one.
 
 Resolve by inspecting MM-Fit's label file once downloaded, record the decision in
 `DECISIONS.md`, and pin it with a test.
+
+---
+
+## 10. The export format
+
+*Added by `DECISIONS.md` P3-25 (P5).*
+
+Guards: a file format that P7's harness and any other reader rely on, changing
+silently.
+
+`SessionExport`, in `commonMain`, turns a list of `SessionRecord`s into one JSON
+document and three CSV tables. The app writes them to files and hands them to
+the share sheet; P7's harness can call it directly on the JVM.
+
+**JSON:**
+
+```
+{ "format": "kinesis-export", "formatVersion": 1, "exportedAtEpochMs": <number>,
+  "sessions": [ { "sessionId", "startedAtEpochMs", "utcOffsetMinutes",
+                  "sets": [ { "setIndex", "exerciseId", "mode", "startedAtEpochMs",
+                              "recordCount", "validCount",
+                              "reps": [ <record> ] | "holds": [ <hold> ] } ] } ],
+  "baselines": [ <baseline> ] }
+```
+
+- **Sets.** `mode` is `repetition` or `hold`. `setIndex` counts from 1, in the
+  order performed.
+- **Counts.** `recordCount` counts every record, `validCount` only the `VALID`
+  ones: the set's rep count, or its held count. A set with no records is still
+  exported, with both counts 0.
+- **Records.** Each `<record>` and `<hold>` is exactly what the facade returns
+  (section 5). Each `<baseline>` is exactly `computeBaseline`'s `baseline`. An
+  exported set's `reps` can go straight back into `computeBaseline`.
+- **Section 11 of CLAUDE.md.** A repetition set carries `reps` and never
+  `holds`, and a hold set the reverse.
+
+**CSV:** three tables, RFC 4180, with CRLF line ends and a header row even when
+there are no rows.
+
+| Table | One row per | Columns |
+|---|---|---|
+| sets | set, including sets with no records | `sessionId, sessionStartedAtEpochMs, utcOffsetMinutes, setIndex, exerciseId, mode, setStartedAtEpochMs, recordCount, validCount` |
+| reps | repetition | `sessionId, setIndex, exerciseId, repIndex, attributedSide, validity, startMs, endMs, rangeOfMotionLeft, rangeOfMotionRight, peakValueLeft, peakValueRight, troughValueLeft, troughValueRight, descentMs, ascentMs` |
+| holds | hold | `sessionId, setIndex, exerciseId, holdIndex, validity, startMs, endMs, totalHoldMs, longestUnbrokenMs, breakCount, meanAbsDeviation, maxAbsDeviation, coverage, meanHeldValue, heldValueSd` |
+
+The 64-point resampled curves are in the JSON only.
+
+**Rules:**
+
+- **Left and right** are a `{"left", "right"}` pair in JSON and two columns in
+  CSV. They are never one value.
+- **Not measured** is JSON `null` and an empty CSV cell, never `0`.
+- **Numbers** are laid out by ECMAScript's Number::toString rules on every
+  target (`JsonNumber`), so JVM and JS write the same bytes. On Android's
+  runtime the digits may be longer, but they read back to the same double.
+- **Times.**
+  - `...EpochMs` fields are UTC epoch milliseconds.
+  - A record's `startMs` and `endMs` are milliseconds on the clock that stamped
+    the frames: the camera's on a phone, the harness's own in P7. The export
+    does not relate that clock to the epoch, so compare these times only within
+    one set.
+- **Versioning.** `formatVersion` rises whenever a field is added, removed,
+  renamed or changes meaning, and the golden file (`SessionExportGolden`,
+  exact on every target) is regenerated with it.
+
+**Not carried:**
+
+- **`AnalysisResult`.** It is not stored; it is recomputed from a record and a
+  baseline, and both are exported.
+- **When a set ended.** Nothing records that today.
+- **Which account a session belongs to.** Local sessions are not partitioned by
+  account (P3-22). An export is every session on the phone, plus the signed-in
+  user's baselines.

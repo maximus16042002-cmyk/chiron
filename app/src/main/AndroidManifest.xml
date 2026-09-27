@@ -88,6 +88,22 @@
                 <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
             </intent-filter>
         </activity-alias>
+
+        <!--
+            P5's export - DECISIONS.md P3-25. Lets the share sheet read the export
+            files the user asked for, from the cache's exports/ folder only
+            (res/xml/export_paths.xml). Not exported: no other app can reach it
+            except through a grant the user's own share gives. No network.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.exports"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/export_paths" />
+        </provider>
     </application>
 
 </manifest>

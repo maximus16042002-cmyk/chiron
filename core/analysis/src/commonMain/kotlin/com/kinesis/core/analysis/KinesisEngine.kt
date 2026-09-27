@@ -486,8 +486,14 @@ internal object EngineJson {
             out.append(']')
         }
 
+        /**
+         * One text per number on every target, `null` for `NaN` and the
+         * infinities - DECISIONS.md P3-25. It used to be `toString()`, which the
+         * JVM and JavaScript write differently; the parity suite compared the
+         * values, so both passed, but the P5 export needs the same bytes.
+         */
         private fun number(value: Double) {
-            if (value.isNaN() || value.isInfinite()) out.append("null") else out.append(value.toString())
+            out.append(JsonNumber.format(value))
         }
 
         fun close(): String = out.append('}').toString()

@@ -411,6 +411,9 @@ class SharedCoreSourceGuardTest {
             "RobustStatistics.kt",
             "PostRepAnalysis.kt",
             "BaselineJson.kt",
+            // P3-25: the export runs over stored history when the user asks for
+            // it, never while a set is being recorded.
+            "SessionExport.kt",
         )
 
         /**
@@ -426,6 +429,7 @@ class SharedCoreSourceGuardTest {
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/history",
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/live",
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/calibration",
+            "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/export",
         )
 
         /**

@@ -56,7 +56,7 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P2 Kinematics & Temporal | Geometry, joint angles, velocity, ring buffers, filter chain, resampling, ablation harness | ✅ Done |
 | P3 Profiles & Rep Engine | Rep FSM, bilateral rep tracker, hold analyser, 15 profiles + 2 variants | ✅ Done |
 | P4 Device Reality Check | Frame rate, thermal, mirroring, landmark reliability on a real phone | ⛔ Not started — no longer blocked; needs a physical phone (MediaPipe ships no x86_64 library, so standard emulators cannot run it) |
-| P5 RepRecord & Export | Record types, persistence, JSON/CSV export | 🟡 Partial — records and Room storage done; JSON/CSV export not built |
+| P5 RepRecord & Export | Record types, persistence, JSON/CSV export | ✅ Done (DECISIONS.md P3-25) — records and Room storage; the export in the shared core (CONTRACTS.md §10), golden-tested byte for byte on JVM and JS, and run once on the phone: all 59 sessions, 134 repetitions and 4 holds matched the database exactly |
 | P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Built, not yet run on the phone (DECISIONS.md P3-22) — per-side baselines from 5–8 valid reps (provisional), hold baselines, `AnalysisResult` as numbers beside the baseline, Room storage with a tested migration, the calibration flow. Personal *thresholds* are P8's rules; the counts wait for the MM-Fit convergence study |
 | P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | 🟡 Partial — MM-Fit downloaded and its labels read (P3-1); MediaPipe-over-video pipeline and harness not built. It must apply the same aspect-ratio correction as the phone, with MM-Fit's own frame size (P3-16) |
 | P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | ⛔ Not started |
@@ -68,9 +68,9 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 ### Rough overall figure
 
 Counting a done phase as 1 and a partial phase as ½, across the 12 phases still
-in scope: **4 done + 3 × ½ = 5.5 of 12, roughly 45%.** Unchanged by P3-15 and
-P3-16: wiring the camera advances P10 within its partial status and unblocks P4,
-but completes neither.
+in scope: **5 done + 3 × ½ = 6.5 of 12, roughly 54%** (P3-25). The figure had
+last been written before P6 became partial in P3-22 and still said 4 + 3 × ½;
+P5 is now done, and P6, P7 and P10 are the three partial phases.
 
 Treat that as an estimate, not a measurement. Phases are not equal in size, and
 the unfinished half contains the heaviest academic work — the form engine, the
@@ -79,12 +79,13 @@ past half; the thesis is well short of it.
 
 ### Test suite
 
-Last full run (DECISIONS.md P3-17): **1,128 test executions, 0 failures, 0
-errors, 0 compiler warnings**, via `gradlew assemble allTests
-:app:testDebugUnitTest` — core tests count once per target (JVM, JS, both
-Android variants), so this is executions, not distinct tests. `:app` holds 110
-of them. Everything is synthetic: no test has seen a camera frame, a model or a
-device.
+Last full run (DECISIONS.md P3-25): **1,818 test executions, 0 failures, 0
+errors, 0 skipped**, via `gradlew assemble allTests :app:testDebugUnitTest
+:app:testReleaseUnitTest` — core tests count once per target (JVM, JS, both
+Android variants), so this is executions, not distinct tests. `:app` holds 181
+of them in the debug variant and 169 in release. Every test is synthetic: none
+has seen a camera frame or a model. What has run on the phone is recorded in
+DECISIONS.md, entry by entry, and is not a test count.
 
 ---
 
@@ -226,7 +227,7 @@ emulator cannot load it.
 
 ### Then — the research core
 
-10. **P5 export** — JSON and CSV export of sessions (required by CLAUDE.md §15).
+10. ~~**P5 export**~~ — done in P3-25 (CONTRACTS.md §10).
 11. **P6 calibration** — build `CalibrationBaseline` and `AnalysisResult`,
     personal baselines from calibration reps, personal thresholds. This also
     unlocks "deviation from your normal" on the dashboard, which is deliberately
