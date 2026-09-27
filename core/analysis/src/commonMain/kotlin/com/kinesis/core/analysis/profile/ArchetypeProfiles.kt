@@ -144,11 +144,17 @@ class BicepCurlProfile : TierAProfile(), RepetitionExercise {
         plane = MeasurementPlane.IMAGE_2D,
         // Arm hanging is a nearly straight elbow; the top of the curl is deep
         // flexion. Provisional.
-        topThreshold = 155.0,
+        //
+        // DECISIONS.md P3-23, from the 2026-09-27 side-on set on the phone: the
+        // resting arm read 148-170 degrees, so the old top of 155 (at rest from
+        // 147) sat on it and every wobble made a junk record; 145 puts the edge
+        // at 137, below it. Nine deep curls timed out at the old 10 s with the
+        // arm still on its way down, so a slow curl with a pause now has 20 s.
+        topThreshold = 145.0,
         bottomThreshold = 60.0,
         hysteresis = 8.0,
         minRepDurationMs = 500.0,
-        maxRepDurationMs = 10_000.0,
+        maxRepDurationMs = 20_000.0,
     )
 
     override val requiredLandmarks: RequiredLandmarks = RequiredLandmarks.of(
