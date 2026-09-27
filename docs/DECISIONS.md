@@ -5129,48 +5129,6 @@ history.
 
 ---
 
-## P3-21 — A debug-only switch to run the full pose model live
-
-*2026-09-27*
-
-P3-19's decision 4 asked for a debug-only way to run the full model on the live
-screen, so camera check 6 (lite against full tracking on a person) could be done.
-The owner said go ahead. **This is that switch. It does not choose a model.** The
-bundled model stays lite, and which model the product uses remains P3-13's P4
-question.
-
-**How it switches.** In debug and profiling builds, if
-`bench/pose_landmarker_full.task` is in the app's external files, the live screen
-loads it. That is the same place and file `FramePipelineBenchmark` already reads.
-Otherwise it loads the bundled lite model, as before. Pushing or deleting the
-file switches between them without a reinstall:
-
-```
-adb push pose_landmarker_full.task /sdcard/Android/data/com.kinesis/files/bench/
-adb shell rm /sdcard/Android/data/com.kinesis/files/bench/pose_landmarker_full.task
-```
-
-The model opened is logged under `KinesisLive` as `pose model: …`, so a log
-shows which one a set ran on.
-
-**The pieces.**
-- `debugPoseModelOverride` is a debug/release twin, like `phaseBProbeOrNull`. The
-  release twin returns `null`, so a release build can only load from `assets/`.
-- `PoseLandmarkerSource` treats an absolute path as a file. It reads it once into
-  a direct buffer when the landmarker is created, never per frame. An asset name
-  loads exactly as before.
-- **Licence:** the full model is never committed, bundled or distributed. It is
-  only placed on the owner's own phone. No notice is owed for it, and none is
-  added.
-
-**Tests.** `DebugPoseModelTest` has 4 JVM tests: no directory, no file and an
-empty file all keep lite, and a pushed file is used by its absolute path. **This
-change was written without an Android SDK, so it has not been compiled or run.**
-The owner's next debug build is its first compile. Check 6 is its first device
-test.
-
----
-
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.res.Configuration
-import android.util.Log
 import android.view.OrientationEventListener
 import android.view.Surface
 import androidx.camera.view.PreviewView
@@ -20,7 +19,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.kinesis.camera.LIVE_LOG_TAG
 import com.kinesis.camera.LiveCamera
 import com.kinesis.camera.LiveOrientation
 import com.kinesis.camera.PoseLandmarkerSource
@@ -33,7 +31,6 @@ import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.diagnostics.PhaseBProbe
-import com.kinesis.diagnostics.debugPoseModelOverride
 import com.kinesis.diagnostics.phaseBProbeOrNull
 import com.kinesis.pose.CameraFacing
 import com.kinesis.storage.SessionRepository
@@ -82,14 +79,7 @@ fun LiveDestination(
     }
 
     val context = LocalContext.current
-    // Debug builds may run the full model instead - DECISIONS.md P3-21.
-    val located = remember {
-        val found = debugPoseModelOverride(context.getExternalFilesDir(null))
-            ?.let { PoseModelState.Present(it) }
-            ?: PoseModelAsset.locate(context)
-        found.also { if (it is PoseModelState.Present) Log.i(LIVE_LOG_TAG, "pose model: " + it.assetPath) }
-    }
-    when (val model = located) {
+    when (val model = remember { PoseModelAsset.locate(context) }) {
         PoseModelState.Absent -> LiveUnavailableScreen(
             exerciseId = profile.id,
             headline = "NO POSE MODEL",
