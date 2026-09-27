@@ -6001,6 +6001,280 @@ one set; "4 of 4" is the owner's own count against one set.
 
 ---
 
+## P3-25 — P5: the export, one format on every platform
+
+*2026-09-28*
+
+The owner asked for P5 after P3-24. The brief:
+- read P5's specification fresh;
+- export every session, set and repetition from what Room holds, as JSON and/or
+  CSV;
+- make sure it carries what P7's rep-count and timing comparison needs;
+- keep it in the shared core if it is pure transformation, with left and right
+  never merged;
+- pin it with a golden file, and add it to the JVM/JS parity suite;
+- say plainly whether P7 can consume it.
+
+### What P5 says, and where
+
+**There is no written P5 specification in the repository.**
+ZERO_DATASET_BUILD_PLAN's phase table says P5 is "unchanged" from
+FINAL_ARCHITECTURE. FINAL_ARCHITECTURE's table says "unchanged" from the Master
+Development Plan, which is not in the repository in any form: the two `.docx`
+originals at the root are the other two documents.
+
+What the markdown does say:
+- **CLAUDE.md §15:** the hierarchy, fixed-length resampled signals, export as
+  JSON and CSV, persistence local only.
+- **FINAL_ARCHITECTURE:** "JSON and CSV export". Its fallback web client
+  "ingests exported session JSON".
+- **FEATURE_PLAN:** "JSON and CSV export of sessions from Profile, via the
+  Android share sheet; nothing uploaded".
+- **PROJECT_STATUS:** records and Room storage done, export not built.
+
+So the specification used here is **both formats, of the whole hierarchy, out
+through the share sheet**. It is recorded as assembled, not read. There is no
+Profile screen yet, so the entry sits on HISTORY beside the licences.
+
+### What was built
+
+**Shared core (`commonMain`):**
+- **`SessionExport`** (package `export`):
+  - `json(sessions, baselines, exportedAtEpochMs)` writes one document;
+  - `csv(sessions)` writes three tables: sets, reps and holds.
+  - The format is CONTRACTS.md §10, new in this entry.
+- **`JsonNumber`**: one text for each number on every target (decision 2).
+  The facade's JSON writer now uses it too.
+
+**App:**
+- **`ExportFiles`** writes the four files to the cache's `exports/` folder,
+  replacing the last export.
+- **`[ EXPORT DATA ]`** on HISTORY, with the line "They leave the phone only if
+  you choose where to send them" (CLAUDE.md §16).
+- **`MainActivity`** writes the files off the main thread and opens the share
+  sheet through a `FileProvider`:
+  - `exports/` in the cache only (`res/xml/export_paths.xml`);
+  - not exported;
+  - one export at a time.
+- **No new dependency (the §17 check).** `FileProvider` is in `androidx.core`,
+  already a direct dependency. It needs no network and no permission.
+
+### Decisions the owner should know about
+
+1. **The specification was assembled**, as described above.
+2. **Every number the core writes now has one text on every target.**
+   - **The problem.** The facade wrote numbers with `Double.toString()`, which
+     the JVM and JavaScript write differently: `100.0` against `100`, and
+     `1.7905376974852E12` against `1790537697485.2`. The parity suite compared
+     values, so both passed; an exact golden file cannot.
+   - **The fix.** `JsonNumber` takes the platform's digits and lays them out by
+     ECMAScript's Number::toString rules. On JavaScript that changes nothing.
+     On a JVM from JDK 19 on, whose digits are JavaScript's (the build uses JDK
+     25), the text is now identical.
+   - **Checked.** The parity golden file was regenerated. 71 of its 212 existing
+     lines changed text, and parsed back, **none changed a value**: every line
+     was compared, number by number.
+   - **Baselines already stored** on a phone keep their old text and read the
+     same.
+3. **An exported repetition is the facade's own record, and a baseline is
+   `BaselineJson`'s.** No second shape for either: an exported set's `reps` can
+   go straight into `computeBaseline`.
+4. **What the export does not carry:**
+   - `AnalysisResult`, which is not stored and is recomputed from a record and
+     a baseline, both of which are exported;
+   - when a set ended, which nothing records;
+   - which account a session belongs to: local sessions are not partitioned by
+     account (P3-22), so an export is every session on the phone plus the
+     signed-in user's baselines;
+   - the 64-point curves in CSV: they are in the JSON only.
+5. **Times.**
+   - `...EpochMs` fields are UTC epoch milliseconds.
+   - A record's `startMs` and `endMs` are on the clock that stamped the frames,
+     and the export does not relate that clock to the epoch, so they are
+     compared only within one set.
+   - On this phone that clock is elapsed-since-boot (P3-24). The format does
+     not depend on it.
+6. **`formatVersion` 1.** It is raised whenever a field is added, removed,
+   renamed or changes meaning, and the golden file is regenerated with it.
+
+### Tests
+
+**`JsonNumberTest` (8).** JavaScript's layout for:
+- whole numbers, fractions and epoch milliseconds;
+- where it switches to an exponent, for small and large numbers;
+- negative zero, and `null` for `NaN` and the infinities;
+- 2,004 values reading back exactly.
+
+Against a stub that used `toString()`, it passed 8 of 8 on JavaScript and failed
+5 of 8 on the JVM: the difference it exists to remove.
+
+**`SessionExportTest` (17).** It runs against `SessionExportFixture`:
+- two sessions and five sets;
+- an alternating set whose idle arm is unmeasured;
+- a half-seen simultaneous repetition;
+- a set that recorded nothing;
+- both hold kinds, and a hold from before P3-22;
+- a negative UTC offset;
+- one baseline of each kind.
+
+What it checks:
+- **The golden file, byte for byte** (the JSON and all three CSVs), on the JVM,
+  JavaScript and both Android variants.
+- **Counts and sets:**
+  - record and valid counts;
+  - a set with no records exported with a count of 0;
+  - set numbering.
+- **Values:**
+  - left and right in their own JSON fields and CSV columns;
+  - "not measured" as `null` and an empty cell, never 0.
+- **Records:**
+  - each repetition is the facade's record, and reads back whole;
+  - a hold set carries no repetition list;
+  - baselines are in `BaselineJson`'s form.
+- **CSV mechanics:** a cell for every column, CRLF endings, RFC 4180 quoting.
+- **Edges:** an export of nothing, and epoch times in plain digits.
+
+Against the stub, 16 of 17 failed. The one that passed compared an empty golden
+file with an empty export, which is why one test checks that the golden file
+holds every kind of record.
+
+**Parity: `sessionExport`.** A squat set (three valid, one turned back, one
+with a knee unseen) and a plank hold, produced by the facade on each target,
+exported, and compared with the golden lines: counts exactly, continuous values
+within 1e-9 relative (CONTRACTS.md §6). It adds 12 lines.
+
+**App tests:**
+- **`ExportFilesTest` (3):**
+  - the four files hold exactly the core's export;
+  - the names;
+  - a new export replaces the last.
+- **`ExportProviderGuardTest` (2):**
+  - the provider is the app's only one, not exported, and grants per share;
+  - its paths reach the cache's `exports/` and nothing else.
+
+**`SharedCoreSourceGuardTest`:** the `export` package is now classified, with
+`SessionExport.kt` on the post-rep side and the reason given.
+
+**Mutations, all caught, every file restored byte for byte (11):**
+- CSV left and right swapped;
+- `validCount` counting every record;
+- "not measured" written as 0;
+- an empty set dropped from `sets.csv`;
+- CSV quoting skipped;
+- the exponent switch one place early;
+- whole numbers keeping `.0`;
+- the last export left in the cache;
+- the reps table written into the sets file;
+- the provider exported;
+- the provider sharing the whole cache.
+
+**Two harness runs that didn't test anything.** The two provider mutations first
+came back "not caught", because Gradle skipped the unit-test task as up to date:
+the manifest and paths file are read from disk and are not task inputs. With
+`--rerun`, the first was caught. The second was then applied by hand: it failed
+at the paths assertion, and the file was restored with a clean diff.
+
+**Totals: 1,818 test executions, none failed, none skipped** (`assemble
+allTests :app:testDebugUnitTest :app:testReleaseUnitTest`):
+
+| Module | JVM | JS | Android debug | Android release | Allocation |
+|---|---|---|---|---|---|
+| `:core:analysis` | 341 | 330 | 330 | 330 | 5 |
+| `:core:domain` | 33 | 33 | 33 | 33 | — |
+| `:app` | — | — | 181 | 169 | — |
+
+P3-23 had 1,703. The "one export at a time" guard came after this run. Both
+`:app` test tasks and `assembleDebug` were rerun after it and passed, with the
+counts unchanged.
+
+### On the phone
+
+- **The install.** The database was backed up first: 59 sessions, 59 sets, 134
+  repetitions, 4 holds, no baselines, integrity check "ok". The build was
+  installed with `installDebug`; the first-install time was unchanged and the
+  data kept.
+- **The first export.** At 02:33:10.8 a tap on `[ EXPORT DATA ]`. At 02:33:24.6
+  the four files were written, and the share sheet opened carrying four
+  `content://` links.
+- **About 14 s from tap to share sheet, with nothing on screen meanwhile.**
+  - Measured once: on a warm, loaded phone, on a debug build just installed.
+    Not investigated.
+  - A second tap would have emptied the folder the first export was writing,
+    so an export now shows `[ EXPORTING... ]` and ignores taps until it
+    finishes.
+  - That guard was built after the phone run and is not yet on the phone.
+- **The share, end to end, by the owner's own choice.** The owner, holding the
+  phone, picked WhatsApp in the share sheet and a chat; a CSV from WhatsApp
+  was then opened in two spreadsheet apps.
+  - I first read the spreadsheet on screen as my own doing, and said so. The
+    phone's activity log shows the owner's taps, and I corrected it.
+- **The files, pulled from the app's cache and checked against the database
+  backup, field by field:**
+  - 59 of 59 sessions and 59 of 59 sets;
+  - all 134 repetitions, and their 17,152 curve points;
+  - 4 of 4 holds;
+  - **no difference.**
+  - 36 valid repetitions, as the dashboard shows.
+  - No number in E notation: epoch times, which Java's `toString` writes in E
+    notation, came out as plain digits on Android's runtime too.
+  - Sizes: JSON 284,194 bytes; sets.csv 5,689; reps.csv 21,436; holds.csv 571.
+
+### Is it ready for P7?
+
+**Yes for the rep-count study, with two things P7 must supply itself.**
+
+**Ready.**
+- Every set's record and valid counts, including sets that counted nothing, so
+  "counted against labelled, per set" can be computed directly.
+- Each repetition's:
+  - validity, start and end;
+  - side;
+  - per-side range, peak and trough;
+  - descent and ascent times;
+  - 64-point curves.
+
+  Those are the inputs of Studies 1–3.
+- One format, exact across platforms, that P7's harness can call directly on
+  the JVM: records from `KinesisEngine`, read by `EngineJson.readRep` into
+  `SessionRecord`s, then `SessionExport.json`.
+
+**P7 must bring its own set identity and window.**
+- MM-Fit's labels give each set's start and end frame. The export has no field
+  for an analysed window or for a source's set id.
+- Version 1 carries both through `sessionId` (the workout) and `setIndex` (the
+  label's order), with the harness stamping frames in video time so that
+  `startMs` and `endMs` are video milliseconds.
+- Whether the window belongs in the file is `formatVersion` 2, decided in P7
+  and not guessed here.
+
+**Two of Study 1's metrics are not in a record.**
+- **Trunk angle range** needs a second signal the engine does not record.
+- **A left–right symmetry index** is a named reducer over two exported columns,
+  computed in the analysis and never stored as one value (CLAUDE.md §3).
+
+Rep-to-rep consistency comes from the curves.
+
+**And the squat's view is due before P7 reports squats:** MM-Fit films them
+face-on (P3-24).
+
+### What is NOT verified
+
+- The `[ EXPORTING... ]` guard, on the phone.
+- An export carrying baselines, on the phone: this phone has none. The fixture
+  and golden file cover both kinds.
+- The export's speed: one measurement, not investigated.
+- Android's `Double.toString` digit for digit against the JVM's: the phone's
+  export read back value for value, but its text was not compared with a JVM
+  export of the same data.
+- Any reader other than Python's `json` and `csv` modules and the two
+  spreadsheet apps the owner opened.
+
+**Scope of this entry.** It builds P5's export and runs it once on the phone.
+It makes no accuracy claim: "59 of 59" is a fidelity check of one export against
+one database.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
