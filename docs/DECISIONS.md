@@ -5079,6 +5079,21 @@ P3-18's lists stands, except what this entry and P3-18 closed.
     phone's real frame rate and validity, since only VALID repetitions count:
     how many squats it takes to get 5 valid ones is itself a camera-session
     finding.
+17. **The book test for short interruptions** *(added by P3-24)*. Curl
+    side-on and, mid-curl, sweep a book or towel between the camera and the
+    curling arm, some quickly and some slowly. A hand was not big enough to hide
+    the arm. The readout gives each gap's length: at 500 ms or less the
+    repetition must still count, and longer must end it as INSUFFICIENT_DATA.
+18. **"NOT VISIBLE" during side-on curls** *(P3-24)*. The line under the counter
+    reads NOT VISIBLE while the near arm is tracked and counted, because the
+    hidden far arm makes every frame `INVALID`. Decide with the curl's view what
+    it should say, then check it on the phone.
+19. **Squats face-on against side-on** *(P3-24)*. Face-on tracked both knees
+    and counted the owner's 4 correct squats, but its knee angles are
+    projections (one read 40.9°); side-on loses the far knee (P3-23). The
+    profile's view is the owner's decision, and it decides whether MM-Fit's
+    face-on squats stand for it. Then 10 squats in the chosen view, counted by
+    hand.
 
 Not needing the camera but still owed: the Health Connect rationale opened from
 Health Connect's own settings, and a steps figure later in a day with walking.
@@ -5790,6 +5805,199 @@ the run described above.
 recordings, a mistake and its repair, and provisional settings changed at the
 owner's direction. It makes no accuracy claim: "5 of about 15" is one set, not
 a rate.
+
+---
+
+## P3-24 — A solo check on the phone: curls, face-on squats, amber, and a pause test that did not happen
+
+*2026-09-28*
+
+Before the next camera session, the owner checked P3-23's changes alone: (1)
+15–20 curls with the new settings, (2) squats facing the camera, (3) the amber
+flash and short interruptions. Everything read is in
+`local/solo-check-2026-09-28/` (gitignored):
+- database copies from before (01:05) and after;
+- the Phase B readout, recorded throughout;
+- a three-minute screen recording of part 3, and frames taken from it.
+
+The recording and frames show the owner and stay local, as P3-19's screenshots
+do. The recording was deleted from the phone once the local copy was checked.
+
+### Conditions
+
+- **The build** on the phone was the one built for 3efcd86: the installed APK and
+  the local one have the same SHA-256.
+- **The phone, before the first set:**
+  - thermal status 2, CPU 65 °C, skin 41 °C;
+  - 207–271 MB free, load average 17–18;
+  - a system AI widget using a third of a core.
+  - It was not restarted.
+- **Camera and rates.** Front camera, lite model. Results a second, as median
+  (lowest–highest) per set: first curl set 15.5 (4.6–25.7), squats 17.1
+  (10.3–21.4), second curl set 14.4 (7.1–16.6). MediaPipe's slowest single
+  result per set: 485, 295 and 342 ms.
+- **One clock for records and readout.** The camera stamps frames with the
+  phone's elapsed-since-boot clock (`timestampSource` REALTIME). Boot time,
+  from `date` minus `/proc/uptime`, read twice 35 minutes apart, agreed to 0.01
+  s, so repetition records and readout lines sit on one clock.
+
+### 1. Curls: 15 of 15
+
+| | P3-23's set (2026-09-27) | Set 57 (tonight) |
+|---|---|---|
+| Curls, by the owner's count | about 15 | 15 |
+| VALID | 5 | **15** |
+| INCOMPLETE (time limit) | 9 | 0 |
+| ABORTED records from the resting arm | 20 | **0** |
+| INSUFFICIENT_DATA | 1 | 0 |
+
+- **What each curl measured.** Each took 4.4–8.0 s. At rest the elbow read
+  153–169°, at the far end 27–57°. Bending took 1.1–2.2 s and straightening
+  1.4–2.9 s. The far arm was unmeasured in every record, as in P3-23.
+- **What it does not show:**
+  - The longest curl was 8.0 s, so the new 20 s limit was never needed.
+  - The records cannot separate whether the lower at-rest edge (137°) is why
+    no junk records appeared, or the owner's steadier pace.
+  - It is one set and one arm. P3-23's "10 per arm" item is done for the right
+    arm only.
+
+### 2. Squats facing the camera
+
+The owner did 4 squats they judged correct and some they judged wrong; their
+legs were tired. Set 58 has 13 records:
+
+- **#1–#4:** 0.1–0.4 s each, INSUFFICIENT_DATA, left knee only, made at
+  01:34:07–09 while the owner got into position. The readout shows a 2.5 s
+  left-knee gap and a 5.7 s right-knee gap closing then.
+- **From 01:34:17,** 8 of the 9 records measured both knees throughout, and the
+  readout shows no gap on either knee during any of them.
+- **4 VALID, the first four.** Lowest readings: left 93.7°, 86.8°, 83.1°,
+  40.9°; right 78.1°, 80.6°, 85.8°, 60.7°.
+- **4 ABORTED, the next four.** The left knee's lowest reading was 95.6°,
+  100.0°, 96.5° and 115.2°, against the 95° needed; the right knee reached
+  81–94° each time.
+- **#9:** 0.2 s, INSUFFICIENT_DATA, the right knee only, overlapping #10. The
+  readout shows no gap then; **its cause is not established.**
+- **Against the owner's count.** The 4 counted match the owner's 4 correct
+  squats in number and in order. Which squats the owner judged wrong was not
+  noted, so pairing them with the four ABORTED is only consistent, not shown.
+
+**Face-on, the knee angle is a projection, not the knee's bend.** One reading
+was 40.9°, and within a single squat left and right differed by up to 20° (#8:
+40.9° against 60.7°). Counting worked from this view; range, tempo baselines
+and asymmetry measured from it are not knee flexion. The profile declares
+`SIDE_ON`, and nothing enforces either view.
+
+**This now bears on P7.** Three frames of MM-Fit's `w01_rgb.mp4` show the squat
+filmed face-on and the push-up side-on; the curls were not checked. If the
+squat profile stays `SIDE_ON`, an MM-Fit squat result does not stand for it
+(CLAUDE.md §22). The view is the owner's decision, and it is now due before P7
+reports squats.
+
+### 3. Amber: a flash that clears, and nothing stuck
+
+**The recording.** The three-minute recording (180.1 s, 6,526 frames, about 36
+a second) covers the second curl set, set 59, from 01:37:08 to 01:40:09. The
+set ran 01:37:27–01:40:23; its last record, VALID, fell outside the recording.
+
+**The method.** Each frame was scored for amber and for green: pixels of
+`#FFB000`'s hue, and of `#39FF14`'s, at high saturation and brightness, in a
+quarter-size frame.
+
+**The results:**
+- **Three flashes, lasting 1.68, 1.61 and 1.54 s.**
+- **Each matches a record that did not count:**
+  - #5 and #6, ABORTED: the half curls, whose far end was 73.7° and 79.9°
+    against the 68° needed;
+  - #13, INCOMPLETE: 20.0 s, the limit.
+- **Lining the video up.** The first flash fixed the video's start, 0.61 s after
+  the `date` read taken before `screenrecord` began. The other two flashes then
+  start 0.00 s and 0.05 s after their records' ends.
+- **Green comes back.** Within 0.5 s after each flash there is no amber, and
+  green is back at 1,396 pixels or more, against 1,412–1,484 just before it.
+- **No amber in any other frame,** across 11 counted curls.
+- **The overrun.** A flash lasts 1.5 s plus 0.04–0.18 s: the timer runs 1.5 s of
+  camera time from the failed record, and the colour changes on the next result
+  after that.
+
+### 3b. The short-interruption test did not happen
+
+**The bridge was not exercised by a tracking loss.** Across both curl sets, the
+readout shows no run of unmeasurable frames on the curling arm during any
+repetition. The arm's only gaps fell between repetitions:
+- 7.4 s between #12 and #13, when the owner walked up to the phone (the frames
+  show them close to the lens);
+- short ones before the first repetition;
+- after the last repetition.
+
+By the owner's account, the "interrupted" curls #7–#12 were curls done fast on
+purpose. A hand is too small to hide the arm; the checklist item below uses a
+book.
+
+**One route the readout cannot see.** It counts gaps on the unfiltered angle,
+so a frame the outlier gate rejects does not show as a gap, yet it reaches the
+repetition machine as unmeasurable and the bridge carries it. Whether the
+bridge carried any of the fast curls across gate rejections is not recorded.
+
+### Lifting and lowering fast
+
+**Tonight's times.** The owner lowered fast on purpose in #4, #7–#10 and #14,
+and did #9 and #12 fast throughout. **All counted.**
+- **Straightening:** 0.07 s in #7–#10, then 0.10, 0.23 and 0.33 s. 0.07 s is one
+  result interval at about 14 a second: the arm was bent in one result and
+  straight in the next. A movement faster than that is measured as one
+  interval.
+- **Bending:** 0.20–1.17 s in the fast curls.
+- **Part 1, for comparison:** bending 1.1–2.2 s, straightening 1.4–2.9 s.
+
+**The counter does not judge speed, by design.** It checks range, and a 0.5 s
+minimum, as MM-Fit's rep counts do. Tempo is a Level 1 measurement stored with
+every repetition. For a curl, `descentMs` is the elbow angle falling, which is
+bending the arm, and `ascentMs` is straightening it.
+
+**A "too fast" signal would be one of two things, and neither exists:**
+- **Level 2:** faster than the owner's own calibration, a Layer 1 deviation rule;
+- **Level 3:** a cited technique rule, P8.
+
+Which, and whether amber should carry it, is the owner's decision. Amber today
+means only "this repetition did not count".
+
+### "NOT VISIBLE" during side-on curls
+
+**Why it shows.** The line under the counter shows the overlay state's meaning.
+The overall state is `UNTRACKED` whenever frame validity is `INVALID`, and
+`ValidityGate` makes a frame `INVALID` if any one of the profile's required
+landmarks is unmeasurable. The curl requires both arms. Side-on, the far arm is
+hidden, so the line reads NOT VISIBLE throughout a set in which the near arm is
+tracked, drawn green and counted.
+
+**What it is.** Not a counting fault, but a display that contradicts itself.
+It is not changed here: what the line should say depends on the curl's view
+decision (P3-23, item 2).
+
+### Two first readings of mine, corrected
+
+- In conversation, from three frames seeked out of order, I said the free hand
+  had taken over the wrist landmark and produced false counts. Frames decoded in
+  order, and the owner's account, show real fast curls. Retracted.
+- I first reported both knees measured in "all 9" face-on squat records. It is 8
+  of 9: #9 carries one knee.
+
+### Added to the camera-session list
+
+Items 17–19 in P3-19's list.
+
+### What is NOT verified
+
+- The gap bridge, on a real tracking loss.
+- The 20 s limit and the 137° at-rest edge, each on its own.
+- The left arm with the new curl settings.
+- The back camera, other light, other people: this is one person, one phone,
+  one night.
+
+**Scope of this entry.** It records a solo check, read from saved records, the
+readout and a screen recording, and it makes no accuracy claim. "15 of 15" is
+one set; "4 of 4" is the owner's own count against one set.
 
 ---
 
