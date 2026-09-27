@@ -13,8 +13,12 @@ decisions in DECISIONS.md (next `P3-` number) before it is considered done.*
   one bright accent colour, a normal (non-monospace) font, big numbers. This
   **replaces the P3-12 phosphor-green terminal theme** and must be recorded as a
   new owner decision that supersedes it.
-- **Order:** these batches start **after Phase B** (first real-device testing).
-  Do not start Batch 1 until the Phase B findings have been fixed.
+- **Order (changed 2026-09-26, DECISIONS.md P3-21):** these batches no longer
+  wait for Phase B. The camera session is deferred, and work continues before
+  it. **P6 calibration (the first half of Batch 2) goes first**, ahead of P5 and
+  P7, so there is a demo for the project's guide; P5, P7 and the other batches
+  follow at the owner's direction. Anything tuned to real movement stays
+  provisional until the camera session.
 - **Streaks:** missing a day does not reset the streak if a **streak freeze** is
   available (Duolingo-style).
 - **Cameras:** front and back camera support is already being built in P3-17 and

@@ -11,6 +11,6 @@ class ReleaseHasNoPhaseBProbeTest {
 
     @Test
     fun a_release_build_gets_no_probe() {
-        assertNull(phaseBProbeOrNull(RequiredLandmarks.of(LandmarkId.LEFT_KNEE), CameraFacing.FRONT) { })
+        assertNull(phaseBProbeOrNull(RequiredLandmarks.of(LandmarkId.LEFT_KNEE), CameraFacing.FRONT, "pose_landmarker_lite.task") { })
     }
 }

@@ -138,7 +138,7 @@ object SessionDocument {
         "meanAbsDeviation" to nullIfNaN(hold.meanAbsDeviation),
         "maxAbsDeviation" to nullIfNaN(hold.maxAbsDeviation),
         "coverage" to hold.coverage,
-    )
+    ) + measuredOnly("meanHeldValue", hold.meanHeldValue) + measuredOnly("heldValueSd", hold.heldValueSd)
 
     private fun holdFromMap(data: Map<String, Any?>): HoldRecord? {
         val validity = (data["validity"] as? String)?.let {
@@ -154,8 +154,24 @@ object SessionDocument {
             meanAbsDeviation = number(data["meanAbsDeviation"]),
             maxAbsDeviation = number(data["maxAbsDeviation"]),
             coverage = number(data["coverage"]),
+            // Absent from holds recorded before DECISIONS.md P3-22: unmeasured.
+            meanHeldValue = number(data["meanHeldValue"]),
+            heldValueSd = number(data["heldValueSd"]),
         )
     }
+
+    /**
+     * A key written only when its value was measured - DECISIONS.md P3-22.
+     *
+     * The two hold fields P3-22 added are left out when unmeasured, rather than
+     * written as `null` like every older field. A hold recorded before P3-22 has
+     * neither, so its document stays byte for byte what an older client
+     * uploaded. That matters for one path: the rules accept a re-upload only if
+     * it is identical to the stored document (P3-19), and a retry arriving after
+     * an upgrade must not differ by two `null` keys and be refused forever.
+     */
+    private fun measuredOnly(key: String, value: Double): Map<String, Any?> =
+        if (value.isNaN()) emptyMap() else mapOf(key to value)
 
     // --- The conversion that carries the risk -------------------------------------------
 

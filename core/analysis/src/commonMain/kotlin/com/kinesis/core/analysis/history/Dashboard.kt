@@ -75,11 +75,10 @@ data class DashboardSummary(
  * ### What is missing, and why
  *
  * **Deviation is not here.** It is a Level 2 claim measured against a
- * `CalibrationBaseline`, which does not exist yet - P6 builds it. Reporting
- * "below your normal" without a baseline would be inventing the comparison, so
- * the dashboard reports what the records measure on their own until there is
- * something honest to compare them against. P3-10 records this as blocked rather
- * than dropped.
+ * `CalibrationBaseline`. P6 built baselines (DECISIONS.md P3-22), and the app
+ * shows them beside this summary as values; judging a set against one - "below
+ * your normal" - is a rule, and the rules are P8's. P3-10 recorded this as
+ * blocked rather than dropped, and it now waits on P8 alone.
  *
  * ### Where this runs
  *

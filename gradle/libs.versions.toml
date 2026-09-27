@@ -37,6 +37,8 @@ androidx-health-connect = { group = "androidx.health.connect", name = "connect-c
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+# DECISIONS.md P3-22: androidTest only, for the migration test.
+androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
 # DECISIONS.md P3-13: camera capture and on-device pose. :app-only.
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraX" }
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "cameraX" }

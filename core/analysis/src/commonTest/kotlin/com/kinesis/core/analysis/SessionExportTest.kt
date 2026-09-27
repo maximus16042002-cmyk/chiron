@@ -130,6 +130,8 @@ class SessionExportTest {
         assertEquals("plank", row.getValue("exercise_id"))
         assertEquals("2", row.getValue("break_count"))
         assertEquals(number(30_000.0), row.getValue("total_hold_ms"))
+        assertEquals(number(178.5), row.getValue("mean_held_value"))
+        assertEquals(number(1.25), row.getValue("held_value_sd"))
     }
 
     @Test
@@ -227,6 +229,8 @@ class SessionExportTest {
                         meanAbsDeviation = 3.5,
                         maxAbsDeviation = 9.0,
                         coverage = 0.97,
+                        meanHeldValue = 178.5,
+                        heldValueSd = 1.25,
                     ),
                 ),
             ),

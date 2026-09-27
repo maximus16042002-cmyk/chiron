@@ -67,6 +67,56 @@ object EngineParity {
         return run.finish()
     }
 
+    // --- Calibration - DECISIONS.md P3-22 -----------------------------------------------
+
+    /**
+     * A calibration squat set through the facade: nine squats of varying depth,
+     * one turned back early and one with a lagging knee. Then `computeBaseline`
+     * over every record it produced, and `analyzeRep` over each record against
+     * that baseline and once against none.
+     */
+    fun squatCalibration(): List<String> {
+        val run = Run("""{"id": "squat"}""", seed = 13)
+        run.stand(20)
+        run.squatTo(128.0) // ABORTED: not used
+        run.stand(12)
+        for ((i, bottom) in listOf(72.0, 68.0, 75.0, 70.0, 66.0, 73.0, 69.0, 71.0, 74.0).withIndex()) {
+            run.squatTo(bottom, rightLag = if (i == 4) 3 else 0)
+            run.stand(12)
+        }
+        return run.calibrate()
+    }
+
+    /** Alternating curls, six on each arm: a baseline per arm, from each arm's own repetitions. */
+    fun curlCalibration(): List<String> {
+        val run = Run("""{"id": "bicep_curl"}""", seed = 19)
+        run.arms(160.0, 160.0, frames = 20)
+        for (i in 0 until 6) {
+            run.curl(left = true, top = 158.0, bottom = 50.0 + i)
+            run.arms(160.0, 160.0, frames = 8)
+            run.curl(left = false, top = 162.0, bottom = 56.0 - i)
+            run.arms(160.0, 160.0, frames = 8)
+        }
+        return run.calibrate()
+    }
+
+    /**
+     * A plank held long enough to calibrate - about fourteen seconds with a
+     * little sway - and, first, the short plank scenario's hold, which is not.
+     */
+    fun plankCalibration(): List<String> {
+        val short = Run("""{"id": "plank"}""", seed = 11)
+        repeat(150) { short.body(hipDegrees = 178.0) }
+        val shortLines = short.calibrate().map { "short-" + it }
+
+        val run = Run("""{"id": "plank"}""", seed = 17)
+        repeat(30) { run.body(hipDegrees = 140.0 + it) } // coming up into position
+        repeat(420) { run.body(hipDegrees = 176.0 + 1.5 * sin(it / 9.0)) } // held, swaying
+        repeat(20) { run.body(hipDegrees = 150.0) } // a sag
+        repeat(60) { run.body(hipDegrees = 177.0) } // held again
+        return shortLines + run.calibrate()
+    }
+
     /** One scenario in flight: the facade, the jitter and the event lines. */
     private class Run(profile: String, seed: Int) {
         private val engine = KinesisEngine().also { it.configure(profile) }
@@ -162,7 +212,10 @@ object EngineParity {
 
         private fun push() {
             val completed = engine.pushFrame(frame * FRAME_MS, xyz, visibility)
-            if (completed != null) lines += "records|$frame|$completed"
+            if (completed != null) {
+                lines += "records|$frame|$completed"
+                records += topLevelElements(completed)
+            }
             val state = engine.stateJson()
             val signature = state.replace(HELD_MS, "")
             if (signature != lastSignature) {
@@ -172,10 +225,95 @@ object EngineParity {
             frame++
         }
 
+        /** Every record the facade has returned, one JSON object each, for calibration. */
+        private val records = ArrayList<String>()
+
+        /** An upright body whose elbows bend to exactly these angles, for a front-on curl. */
+        fun arms(leftElbow: Double, rightElbow: Double, frames: Int = 1) = repeat(frames) {
+            clear(0.9)
+            put(LandmarkId.NOSE, 0.50, 0.12, 0.9)
+            arm(LandmarkId.LEFT_SHOULDER, LandmarkId.LEFT_ELBOW, LandmarkId.LEFT_WRIST, 0.42, -1.0, leftElbow)
+            arm(LandmarkId.RIGHT_SHOULDER, LandmarkId.RIGHT_ELBOW, LandmarkId.RIGHT_WRIST, 0.58, 1.0, rightElbow)
+            put(LandmarkId.LEFT_HIP, 0.44, 0.55, 0.95)
+            put(LandmarkId.RIGHT_HIP, 0.56, 0.55, 0.95)
+            push()
+        }
+
+        private fun arm(shoulder: LandmarkId, elbow: LandmarkId, wrist: LandmarkId, x: Double, outward: Double, degrees: Double) {
+            val radians = degrees * PI / 180.0
+            put(shoulder, x, 0.28, 0.95)
+            put(elbow, x, 0.45, 0.95)
+            // The forearm at [degrees] from the upper arm, which hangs straight down.
+            put(wrist, x + outward * 0.17 * sin(radians), 0.45 - 0.17 * cos(radians), 0.95)
+        }
+
+        /** One arm curls from [top] to [bottom] and back while the other rests at [top]. */
+        fun curl(left: Boolean, top: Double, bottom: Double) {
+            for (step in 0 until 50) {
+                val angle = if (step < 25) top - (top - bottom) * (step + 1) / 25.0 else bottom + (top - bottom) * (step - 24) / 25.0
+                if (left) arms(angle, 160.0) else arms(160.0, angle)
+            }
+        }
+
+        /**
+         * Ends the set, then fits a baseline to everything the set produced and
+         * analyses each record against it, and one against no baseline.
+         */
+        fun calibrate(): List<String> {
+            val finished = engine.finishSet()
+            lines += "finish|$finished"
+            records += topLevelElements(finished)
+            val outcome = engine.computeBaseline(records.joinToString(",", "[", "]"))
+            lines += "baseline|$outcome"
+            val baseline = member(outcome, "baseline")
+            if (baseline != null) {
+                records.forEachIndexed { i, record -> lines += "analysis|$i|" + engine.analyzeRep(record, baseline) }
+            }
+            if (records.isNotEmpty()) lines += "analysis|none|" + engine.analyzeRep(records.first(), "null")
+            return lines
+        }
+
         fun finish(): List<String> {
             lines += "finish|" + engine.finishSet()
             return lines
         }
+    }
+
+    /**
+     * The top-level elements of a JSON array, as text. Test-only and independent
+     * of the facade's own reader: it counts brackets, which is enough for records
+     * whose strings never contain one.
+     */
+    fun topLevelElements(array: String): List<String> {
+        val elements = ArrayList<String>()
+        var depth = 0
+        var start = -1
+        for (i in array.indices) {
+            when (array[i]) {
+                '{', '[' -> {
+                    depth++
+                    if (depth == 2 && start < 0) start = i
+                }
+                '}', ']' -> {
+                    depth--
+                    if (depth == 1 && start >= 0) {
+                        elements += array.substring(start, i + 1)
+                        start = -1
+                    }
+                }
+            }
+        }
+        return elements
+    }
+
+    /** The value of [key] in a JSON object, as text, or `null` if absent or null. */
+    fun member(json: String, key: String): String? {
+        val marker = "\"" + key + "\":"
+        val at = json.indexOf(marker)
+        if (at < 0) return null
+        val start = at + marker.length
+        if (json.startsWith("null", start)) return null
+        return topLevelElements("[" + json.substring(start) + "]").firstOrNull()
     }
 
     private const val JITTER = 0.002
@@ -188,7 +326,11 @@ object EngineParity {
      * section 6. Every other number is continuous and compared within
      * [RELATIVE_TOLERANCE].
      */
-    private val DISCRETE_NUMBERS = setOf("repIndex", "repCount", "breakCount")
+    private val DISCRETE_NUMBERS = setOf(
+        "repIndex", "repCount", "breakCount",
+        // DECISIONS.md P3-22: calibration counts are discrete too.
+        "count", "validLeft", "validRight", "requiredPerSide",
+    )
 
     /**
      * CONTRACTS.md section 6: 1e-9 relative. Values that should be zero get an
@@ -220,7 +362,9 @@ object EngineParity {
     private fun split(line: String): Triple<String, String, String> {
         val kind = line.substringBefore('|')
         val rest = line.substringAfter('|')
-        return if (kind == "finish") Triple(kind, "", rest) else Triple(kind, rest.substringBefore('|'), rest.substringAfter('|'))
+        // `finish|` and `baseline|` lines carry no frame number; the others do.
+        // No JSON the facade writes contains a '|'.
+        return if ('|' !in rest) Triple(kind, "", rest) else Triple(kind, rest.substringBefore('|'), rest.substringAfter('|'))
     }
 
     private fun compare(where: String, key: String?, expected: Any?, actual: Any?, found: MutableList<String>) {

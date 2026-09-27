@@ -155,6 +155,8 @@ object SessionExport {
         number(hold.meanAbsDeviation),
         number(hold.maxAbsDeviation),
         number(hold.coverage),
+        number(hold.meanHeldValue),
+        number(hold.heldValueSd),
     )
 
     /** Not measured is an empty cell. Never `0`, and never the text `NaN`. */
@@ -213,5 +215,7 @@ object SessionExport {
         "mean_abs_deviation",
         "max_abs_deviation",
         "coverage",
+        "mean_held_value",
+        "held_value_sd",
     )
 }

@@ -216,6 +216,23 @@ class SessionMappingTest {
      * earned.
      */
     @Test
+    fun a_holds_position_and_sway_survive_and_an_older_hold_reloads_them_unmeasured() {
+        // DECISIONS.md P3-22: two measurements every hold now carries.
+        val restored = roundTrip(session(HoldSetRecord("plank", 0.0, listOf(hold(20_000.0)))))
+        val held = (restored.sets.single() as HoldSetRecord).holds.single()
+        assertEquals(176.0, held.meanHeldValue, 0.0)
+        assertEquals(2.0, held.heldValueSd, 0.0)
+
+        // A hold recorded before them has neither column filled: NULL, and back as NaN.
+        val older = HoldRecord(0.0, 5_000.0, HoldValidity.VALID, 4_000.0, 4_000.0, 0, 3.0, 9.0, 1.0, Double.NaN, Double.NaN)
+        val stored = SessionMapping.toEntities(session(HoldSetRecord("plank", 0.0, listOf(older))))
+        assertEquals(null, stored.sets.single().holds.single().meanHeldValue)
+        assertEquals(null, stored.sets.single().holds.single().heldValueSd)
+        val reloaded = (roundTrip(session(HoldSetRecord("plank", 0.0, listOf(older)))).sets.single() as HoldSetRecord).holds.single()
+        org.junit.Assert.assertTrue(reloaded.meanHeldValue.isNaN() && reloaded.heldValueSd.isNaN())
+    }
+
+    @Test
     fun a_hold_set_reloads_as_a_hold_set_and_not_as_an_empty_repetition_set() {
         val restored = roundTrip(session(HoldSetRecord("plank", 0.0, listOf(hold(28_000.0)))))
 
@@ -321,5 +338,7 @@ class SessionMappingTest {
         meanAbsDeviation = 4.0,
         maxAbsDeviation = 11.0,
         coverage = 1.0,
+        meanHeldValue = 176.0,
+        heldValueSd = 2.0,
     )
 }

@@ -80,5 +80,7 @@ class ExportFilesTest {
         meanAbsDeviation = 2.0,
         maxAbsDeviation = 4.0,
         coverage = 1.0,
+        meanHeldValue = 175.0,
+        heldValueSd = 0.5,
     )
 }

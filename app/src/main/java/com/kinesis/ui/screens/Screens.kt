@@ -27,9 +27,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.kinesis.core.analysis.history.DashboardSummary
+import com.kinesis.core.analysis.calibration.CalibrationKey
 import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.analysis.profile.ExerciseVariant
 import com.kinesis.core.analysis.profile.IsometricExercise
+import com.kinesis.core.domain.calibration.CalibrationBaseline
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.health.ActivityContextResult
 import com.kinesis.health.ContextUnavailable
@@ -71,6 +73,8 @@ import com.kinesis.ui.theme.color
  */
 @Composable
 fun ExerciseSelectionScreen(
+    /** The user's calibrated exercises' calibration ids. DECISIONS.md P3-22. */
+    calibratedIds: Set<String>,
     onSelect: (ExerciseProfile) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -95,7 +99,7 @@ fun ExerciseSelectionScreen(
         }
 
         items(ExerciseLibrary.all, key = { it.id }) { profile ->
-            ExerciseRow(profile, onClick = { onSelect(profile) })
+            ExerciseRow(profile, CalibrationKey.of(profile) in calibratedIds, onClick = { onSelect(profile) })
         }
 
         item { Spacer(Modifier.height(24.dp)) }
@@ -103,7 +107,7 @@ fun ExerciseSelectionScreen(
 }
 
 @Composable
-private fun ExerciseRow(profile: ExerciseProfile, onClick: () -> Unit) {
+private fun ExerciseRow(profile: ExerciseProfile, calibrated: Boolean, onClick: () -> Unit) {
     val isVariant = profile is ExerciseVariant
     Row(
         modifier = Modifier
@@ -129,11 +133,24 @@ private fun ExerciseRow(profile: ExerciseProfile, onClick: () -> Unit) {
                 color = PhosphorFaint,
             )
         }
-        Text(
-            "TIER " + profile.tier.name,
-            style = MaterialTheme.typography.labelSmall,
-            color = PhosphorDim,
-        )
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                "TIER " + profile.tier.name,
+                style = MaterialTheme.typography.labelSmall,
+                color = PhosphorDim,
+            )
+            // Whether the user has a baseline for it - a variant's being its
+            // parent's (CONTRACTS.md section 3). DECISIONS.md P3-22.
+            Text(
+                when {
+                    !calibrated -> "NOT CALIBRATED"
+                    profile is ExerciseVariant -> "CALIBRATED VIA " + profile.parent.displayName.uppercase()
+                    else -> "CALIBRATED"
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = if (calibrated) PhosphorGreen else PhosphorFaint,
+            )
+        }
     }
 }
 
@@ -142,10 +159,10 @@ private fun ExerciseRow(profile: ExerciseProfile, onClick: () -> Unit) {
 /**
  * History, read from stored sessions through `Dashboard.summarise`.
  *
- * The aggregation is the core's; this only lays it out. Note what is *not*
- * here: no deviation, because deviation is measured against a
- * `CalibrationBaseline` that P6 has not built yet, and a dashboard that showed
- * "below your normal" without one would be inventing the comparison.
+ * The aggregation is the core's; this only lays it out. Baselines are shown
+ * per side for each calibrated exercise (P3-22), as values. Deviation from them
+ * - "below your normal" - is not shown: it is a Level 2 judgement whose rules
+ * are P8's.
  */
 @Composable
 fun DashboardScreen(
@@ -155,6 +172,8 @@ fun DashboardScreen(
     onOpenLicences: () -> Unit,
     onExport: (ExportFormat) -> Unit,
     exportNote: String?,
+    /** Each calibrated exercise's display name and baseline. DECISIONS.md P3-22. */
+    baselines: List<Pair<String, CalibrationBaseline>> = emptyList(),
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -232,6 +251,7 @@ fun DashboardScreen(
             }
         }
 
+        item { BaselinesPanel(baselines) }
         item { HealthContextPanel(context, onRequestHealthAccess) }
         item { ExportPanel(onExport, exportNote) }
         item {
@@ -292,12 +312,17 @@ private fun ExportPanel(onExport: (ExportFormat) -> Unit, note: String?) {
 /**
  * The terms the app's third-party components ship under - DECISIONS.md P3-17.
  *
- * Static text from [ThirdPartyNotices] plus the full Apache License 2.0, read
- * from the APK's assets by the caller. [apacheLicenceText] is `null` only if
- * that asset could not be read, which is said rather than hidden.
+ * Static text from [ThirdPartyNotices] plus the full Apache License 2.0 and the
+ * BSD 3-Clause texts (P3-21), read from the APK's assets by the caller. A text
+ * is `null` only if its asset could not be read, which is said rather than
+ * hidden.
  */
 @Composable
-fun LicencesScreen(apacheLicenceText: String?, modifier: Modifier = Modifier) {
+fun LicencesScreen(
+    apacheLicenceText: String?,
+    bsdTexts: List<Pair<ThirdPartyNotice, String?>>,
+    modifier: Modifier = Modifier,
+) {
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -316,16 +341,27 @@ fun LicencesScreen(apacheLicenceText: String?, modifier: Modifier = Modifier) {
         item { NoticeRow(ThirdPartyNotices.poseModel) }
         item { Text("SOFTWARE", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint) }
         items(ThirdPartyNotices.software) { NoticeRow(it) }
-        item { Text("APACHE LICENSE, VERSION 2.0", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint) }
-        item {
-            Text(
-                apacheLicenceText ?: "The licence text could not be read from the app's assets.",
-                style = MaterialTheme.typography.bodySmall,
-                color = if (apacheLicenceText == null) Amber else PhosphorDim,
-            )
+        item { Text("BSD 3-CLAUSE", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint) }
+        items(bsdTexts) { (notice, text) ->
+            Column {
+                NoticeRow(notice)
+                Spacer(Modifier.height(6.dp))
+                LicenceText(text)
+            }
         }
+        item { Text("APACHE LICENSE, VERSION 2.0", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint) }
+        item { LicenceText(apacheLicenceText) }
         item { Spacer(Modifier.height(24.dp)) }
     }
+}
+
+@Composable
+private fun LicenceText(text: String?) {
+    Text(
+        text ?: "The licence text could not be read from the app's assets.",
+        style = MaterialTheme.typography.bodySmall,
+        color = if (text == null) Amber else PhosphorDim,
+    )
 }
 
 @Composable
@@ -459,9 +495,13 @@ fun LiveAnalysisScreen(
     onSwitchCamera: () -> Unit,
     modifier: Modifier = Modifier,
     diagnostics: String? = null,
+    switchModelLabel: String? = null,
+    onSwitchModel: (() -> Unit)? = null,
+    modeLabel: String? = null,
 ) {
     LiveCameraLayout(
         state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
+        switchModelLabel, onSwitchModel, modeLabel,
     ) {
         Text(
             state.repCount.toString(),
@@ -497,9 +537,13 @@ fun LiveHoldScreen(
     onSwitchCamera: () -> Unit,
     modifier: Modifier = Modifier,
     diagnostics: String? = null,
+    switchModelLabel: String? = null,
+    onSwitchModel: (() -> Unit)? = null,
+    modeLabel: String? = null,
 ) {
     LiveCameraLayout(
         state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
+        switchModelLabel, onSwitchModel, modeLabel,
     ) {
         Text(
             (state.heldSeconds / 60).toString() + ":" + (state.heldSeconds % 60).toString().padStart(2, '0'),
@@ -545,6 +589,11 @@ private fun LiveCameraLayout(
     /** Debug builds' Phase B readout, about once a second; always `null` in release. */
     diagnostics: String?,
     modifier: Modifier,
+    /** Debug builds' pose model switch (DECISIONS.md P3-21); always `null` in release. */
+    switchModelLabel: String?,
+    onSwitchModel: (() -> Unit)?,
+    /** A calibration set says so on screen (DECISIONS.md P3-22); `null` otherwise. */
+    modeLabel: String?,
     readout: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
@@ -565,21 +614,32 @@ private fun LiveCameraLayout(
                 AndroidView(factory = { preview }, modifier = Modifier.fillMaxSize())
                 AndroidView(factory = { overlay }, modifier = Modifier.fillMaxSize())
             }
-            Text(
-                exerciseId,
-                style = MaterialTheme.typography.labelSmall,
-                color = PhosphorFaint,
-                modifier = Modifier.align(Alignment.TopStart).padding(16.dp),
-            )
-            Text(
-                "[ $switchCameraLabel ]",
-                style = MaterialTheme.typography.labelSmall,
-                color = PhosphorGreen,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .clickable(onClick = onSwitchCamera)
-                    .padding(16.dp),
-            )
+            Column(Modifier.align(Alignment.TopStart).padding(16.dp)) {
+                Text(exerciseId, style = MaterialTheme.typography.labelSmall, color = PhosphorFaint)
+                if (modeLabel != null) {
+                    Text(modeLabel, style = MaterialTheme.typography.labelSmall, color = PhosphorGreen)
+                }
+            }
+            Column(Modifier.align(Alignment.TopEnd), horizontalAlignment = Alignment.End) {
+                Text(
+                    "[ $switchCameraLabel ]",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = PhosphorGreen,
+                    modifier = Modifier
+                        .clickable(onClick = onSwitchCamera)
+                        .padding(16.dp),
+                )
+                if (switchModelLabel != null && onSwitchModel != null) {
+                    Text(
+                        "[ $switchModelLabel ]",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = PhosphorFaint,
+                        modifier = Modifier
+                            .clickable(onClick = onSwitchModel)
+                            .padding(horizontal = 16.dp),
+                    )
+                }
+            }
             if (diagnostics != null) {
                 Text(
                     diagnostics,

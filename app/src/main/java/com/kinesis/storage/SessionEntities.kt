@@ -135,6 +135,14 @@ data class HoldEntity(
     val meanAbsDeviation: Double?,
     val maxAbsDeviation: Double?,
     val coverage: Double,
+
+    /**
+     * Where the hold was held and how steadily - DECISIONS.md P3-22, added by
+     * the version 2 migration. `NULL` for every hold recorded before it, which
+     * reloads as `NaN`: not measured, never zero.
+     */
+    val meanHeldValue: Double?,
+    val heldValueSd: Double?,
 )
 
 /** A set with whichever children it has. Exactly one list is ever populated. */
