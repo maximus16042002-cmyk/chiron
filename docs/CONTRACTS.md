@@ -156,8 +156,8 @@ class KinesisEngine {
     fun pushFrame(timestampMs: Double, landmarks: DoubleArray, visibility: DoubleArray): String?
     fun stateJson(): String                        // P3-19
     fun finishSet(): String                        // P3-19
-    fun analyzeRep(repJson: String, baselineJson: String): String   // waits for P6
-    fun computeBaseline(repsJson: String): String                   // waits for P6
+    fun computeBaseline(repsJson: String): String                   // P3-22
+    fun analyzeRep(repJson: String, baselineJson: String): String   // P3-22
 }
 ```
 
@@ -176,8 +176,15 @@ class KinesisEngine {
   side's phase, or the hold's state and time held.
 - `finishSet` ends the set: a JSON array of what that completes, possibly
   empty; for a hold, its one `HoldRecord`.
-- `analyzeRep` and `computeBaseline` throw until P6 builds calibration and
-  `AnalysisResult`.
+- `computeBaseline` takes a JSON array of the configured exercise's records,
+  exactly as `pushFrame` and `finishSet` return them, and returns a JSON
+  outcome: `calibrated` with the `baseline`, or `tooFewRepetitions` /
+  `holdNotUsable` with the counts and a plain reason. No baseline is an answer,
+  not an exception. The facade has no clock or session, so the baseline's
+  `createdAtEpochMs` and `sourceSessionId` are `null` (DECISIONS.md P3-22).
+- `analyzeRep` takes one record and a baseline (or `null`) and returns a JSON
+  `AnalysisResult`: the record's values beside the baseline's, and a `findings`
+  array that stays empty until P8's rules exist.
 - Everything rich stays inside Kotlin. The `.d.ts` is small and hand-checkable.
 - The facade is the *only* `@JsExport` surface in the project. It lives in
   `commonMain` (P3-19), so the JVM runs the same facade JavaScript does.

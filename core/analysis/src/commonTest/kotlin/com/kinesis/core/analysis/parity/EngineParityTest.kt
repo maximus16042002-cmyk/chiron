@@ -25,6 +25,20 @@ class EngineParityTest {
     fun a_plank_hold_matches_the_golden_file_on_this_target() =
         check("plank", EngineParityGolden.plank, EngineParity.plank())
 
+    // DECISIONS.md P3-22: calibration and the post-rep comparison, through the facade.
+
+    @Test
+    fun a_squat_calibration_matches_the_golden_file_on_this_target() =
+        check("squatCalibration", EngineParityGolden.squatCalibration, EngineParity.squatCalibration())
+
+    @Test
+    fun a_curl_calibration_matches_the_golden_file_on_this_target() =
+        check("curlCalibration", EngineParityGolden.curlCalibration, EngineParity.curlCalibration())
+
+    @Test
+    fun a_plank_calibration_matches_the_golden_file_on_this_target() =
+        check("plankCalibration", EngineParityGolden.plankCalibration, EngineParity.plankCalibration())
+
     /** The comparison must be able to fail, or a passing run proves nothing. */
     @Test
     fun the_comparison_sees_a_discrete_and_a_continuous_difference() {
