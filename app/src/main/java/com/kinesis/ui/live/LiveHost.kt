@@ -30,6 +30,7 @@ import com.kinesis.camera.rememberCameraPermissionLauncher
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.domain.profile.ExerciseProfile
+import com.kinesis.core.domain.session.SessionRecord
 import com.kinesis.diagnostics.PhaseBProbe
 import com.kinesis.diagnostics.phaseBProbeOrNull
 import com.kinesis.diagnostics.switchablePoseModels
@@ -66,7 +67,14 @@ fun LiveDestination(
     profile: ExerciseProfile,
     repository: SessionRepository,
     onSessionSaved: () -> Unit,
-    onSetEnded: () -> Unit,
+    /**
+     * END SET has saved the set: the session written, or `null` if nobody was
+     * ever seen. Leaving the screen any other way saves the set without calling
+     * this. DECISIONS.md P3-22.
+     */
+    onSetEnded: (SessionRecord?) -> Unit,
+    /** Shown under the exercise id, e.g. `CALIBRATION SET`; `null` for an ordinary set. */
+    modeLabel: String? = null,
 ) {
     LockToPortrait()
 
@@ -107,7 +115,7 @@ fun LiveDestination(
             }
             LiveCameraGate(
                 profile,
-                LiveEnvironment(model.assetPath, switchable, repository, onSessionSaved, onSetEnded),
+                LiveEnvironment(model.assetPath, switchable, repository, onSessionSaved, onSetEnded, modeLabel),
             )
         }
     }
@@ -120,7 +128,8 @@ private class LiveEnvironment(
     val switchableModels: List<String>,
     val repository: SessionRepository,
     val onSessionSaved: () -> Unit,
-    val onSetEnded: () -> Unit,
+    val onSetEnded: (SessionRecord?) -> Unit,
+    val modeLabel: String?,
 )
 
 /**
@@ -227,6 +236,7 @@ private fun LiveRepetitionSession(
             diagnostics = diagnostics.value,
             switchModelLabel = switches.modelLabel,
             onSwitchModel = switches.onSwitchModel,
+            modeLabel = env.modeLabel,
         )
     }
 }
@@ -261,6 +271,7 @@ private fun LiveHoldSession(
             diagnostics = diagnostics.value,
             switchModelLabel = switches.modelLabel,
             onSwitchModel = switches.onSwitchModel,
+            modeLabel = env.modeLabel,
         )
     }
 }
@@ -348,7 +359,8 @@ private fun LiveCameraSession(
     if (ending) {
         LaunchedEffect(saver) {
             when (val outcome = saver.endSet().await()) {
-                SetSaveOutcome.Saved, SetSaveOutcome.NothingToSave -> env.onSetEnded()
+                is SetSaveOutcome.Saved -> env.onSetEnded(outcome.session)
+                SetSaveOutcome.NothingToSave -> env.onSetEnded(null)
                 is SetSaveOutcome.Failed -> failure = LiveFailure("SET NOT SAVED", outcome.reason, false)
             }
         }

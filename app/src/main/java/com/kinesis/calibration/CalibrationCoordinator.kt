@@ -47,6 +47,9 @@ class CalibrationCoordinator(private val baselines: BaselineRepository) {
         return outcome
     }
 
+    /** All the user's baselines, by calibration id. */
+    suspend fun baselines(ownerUid: String): Map<String, CalibrationBaseline> = baselines.baselinesFor(ownerUid)
+
     /** The user's baseline for [profile], a variant's being its parent's. */
     suspend fun baselineFor(ownerUid: String, profile: ExerciseProfile): CalibrationBaseline? =
         baselines.baselinesFor(ownerUid)[CalibrationKey.of(profile)]
@@ -66,4 +69,17 @@ class CalibrationCoordinator(private val baselines: BaselineRepository) {
                 else -> emptyList()
             }
         }
+
+    companion object {
+        /**
+         * The outcome of a calibration set in which nobody was ever seen, so no
+         * set was saved: the core's own "no baseline" answer for an empty set,
+         * with its numbers, rather than a sentence written here. Saves nothing.
+         */
+        fun withNobodySeen(profile: ExerciseProfile): CalibrationOutcome = when (profile) {
+            is RepetitionExercise -> Calibration.fromRepetitions(profile, emptyList(), Double.NaN, null)
+            is IsometricExercise -> Calibration.fromHold(profile, null, Double.NaN, null)
+            else -> throw IllegalArgumentException("${profile.id} has no calibration")
+        }
+    }
 }

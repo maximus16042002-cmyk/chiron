@@ -130,6 +130,18 @@ class CalibrationCoordinatorTest {
         assertEquals(1.8, saved.sway, 0.0)
     }
 
+    /** END SET with nobody ever in frame saves no set; the answer is still the core's, in numbers. */
+    @Test
+    fun a_calibration_set_nobody_was_seen_in_gets_the_cores_plain_answer() {
+        val reps = CalibrationCoordinator.withNobodySeen(ExerciseLibrary.squat)
+        assertTrue(reps is CalibrationOutcome.TooFewRepetitions)
+        assertEquals(0, (reps as CalibrationOutcome.TooFewRepetitions).validLeft)
+        assertTrue(reps.displayText.startsWith("No baseline yet."))
+        val hold = CalibrationCoordinator.withNobodySeen(ExerciseLibrary.wallSit)
+        assertTrue(hold is CalibrationOutcome.HoldNotUsable)
+        assertTrue(hold.displayText.contains("this set had none"))
+    }
+
     @Test
     fun the_set_summary_puts_every_record_beside_the_baseline_or_beside_nothing() = runBlocking {
         val baselines = FakeBaselines()
