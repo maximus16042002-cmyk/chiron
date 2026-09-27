@@ -5604,6 +5604,90 @@ kind, and every number in it is a provisional setting, not a measured result.
 
 ---
 
+## P3-23 — P8 Layer 1: the deviation rules
+
+*2026-09-27. The owner said "do whatever you want"; this is the next item on
+the plan after P6, and needs no phone and no labels.*
+
+### What was built
+
+`DeviationRules` and `DeviationPolicy` in `core/analysis/.../deviation/`, no new
+dependency. `PostRepAnalysis` now fills `AnalysisResult.findings` for a
+completed repetition with a baseline; `analysisVersion` is `p8-deviation-1`,
+each finding's `ruleVersion` is `p8-l1-1`. FINAL_ARCHITECTURE §2's Layer 1:
+
+| Rule | Compares | Metric |
+|---|---|---|
+| Range of motion | each side with that side's median | `rom_left`, `rom_right` |
+| Tempo | each phase with the timing baseline the repetition belongs to (per arm when alternating) | `descent_ms`, `ascent_ms` |
+| Asymmetry | `signedDifference()` with the habitual paired offset | `rom_asymmetry` |
+| Consistency (movement path) | RMS distance of the resampled curve from the mean calibration curve, against the calibration's own curve spread | `path_left`, `path_right` |
+| Within-set drift | least-squares change of each side's range across a completed set | `rom_drift_left`, `rom_drift_right` |
+
+Drift is a set-level call, `DeviationRules.drift(reps, baseline)`; nothing calls
+it yet. Every finding is a `Deviation`, so Level 2 by type. The sentence is
+composed in the core ("Left range of motion 80° is below your usual 93° (-14%).").
+
+### The band, and why every number in it is provisional
+
+A value is flagged when it is further from the user's median than **2 × their
+IQR** — with symmetric quartiles, Tukey's 1.5 IQR fence. Each band has a floor
+so a calibration with identical repetitions (spread zero) does not flag every
+later one: **5%** of the median for range, **10%** for phase times (which also
+covers frame quantisation), **3°** for asymmetry, **5%** of the median range for
+the movement path. Drift needs **4** completed repetitions on a side.
+
+None of these was measured on this system. They are the parameters of the
+"personal baseline" arm of the P12 personal-versus-population study, and the
+camera session and that study are what tune them. Changing any of them changes
+`RULE_VERSION`. No accuracy is claimed for any rule.
+
+### Deliberate limits
+
+- **Only completed repetitions are judged.** An aborted repetition is shallow
+  by definition; saying so again as a finding would restate its validity.
+- **No finding for an unmeasured side** — the idle arm of an alternating curl.
+- **Asymmetry only where both sides were measured together** and the baseline
+  has a paired offset. Alternating and near-side-only exercises get none.
+- **Holds get no findings yet.** A hold baseline is one calibration hold, so it
+  has no spread to set a band from. That needs either several calibration holds
+  or a fixed band, and is the owner's call.
+- **Layer 2 is not started.** Each technique rule needs a published source
+  (P0-6), which the owner should choose.
+- **The app does not show the findings yet.** `CalibrationCoordinator` gets them
+  through `PostRepAnalysis`, but no screen renders `findings`.
+
+### Tests
+
+`DeviationRulesTest`, 15 tests, JVM and JS. It replaces P6's
+`p6_makes_no_claim_beyond_numbers_for_any_exercise`, as that test said P8 would,
+with a library-wide guard: no baseline, no finding; holds, none; nothing above
+Level 2. A new parity scenario, `squatDeviation`, puts real findings through the
+facade on both targets. The regenerated golden file changes only
+`analysisVersion` in the existing scenarios: their repetitions are all inside
+their own bands.
+
+**Mutations, all caught, file restored byte for byte:** side labels swapped; the
+completed-only guard removed; band floors removed; asymmetry measured against
+zero instead of the habitual offset; drift zeroed.
+
+**What was run.** This cloud container cannot reach Google's Maven, so `gradlew`
+does not configure. The core was built by a throwaway Kotlin 2.1.21
+Multiplatform build that compiles `core/domain` and `core/analysis` unchanged
+for `jvm()` and `js(IR)`:
+
+| Target | Tests | Failures |
+|---|---|---|
+| `core/analysis` JVM | 325 | 0 |
+| `core/analysis` JS (Node) | 310 | 0 |
+| `core/domain` JVM, JS | 33 each | 0 |
+
+**Not run:** the Android targets and `:app`. `CalibrationCoordinatorTest` was
+edited to expect the new findings, but was not compiled. The owner should run
+`gradlew assemble allTests :app:testDebugUnitTest` before merging.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

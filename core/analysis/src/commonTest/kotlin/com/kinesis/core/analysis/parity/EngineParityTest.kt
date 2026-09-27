@@ -39,6 +39,10 @@ class EngineParityTest {
     fun a_plank_calibration_matches_the_golden_file_on_this_target() =
         check("plankCalibration", EngineParityGolden.plankCalibration, EngineParity.plankCalibration())
 
+    @Test
+    fun squat_deviation_findings_match_the_golden_file_on_this_target() =
+        check("squatDeviation", EngineParityGolden.squatDeviation, EngineParity.squatDeviation())
+
     /** The comparison must be able to fail, or a passing run proves nothing. */
     @Test
     fun the_comparison_sees_a_discrete_and_a_continuous_difference() {

@@ -33,6 +33,8 @@ class EngineParityGoldenWriter {
             "squatCalibration" to EngineParity.squatCalibration(),
             "curlCalibration" to EngineParity.curlCalibration(),
             "plankCalibration" to EngineParity.plankCalibration(),
+            // DECISIONS.md P3-23.
+            "squatDeviation" to EngineParity.squatDeviation(),
         )
         for ((name, lines) in scenarios) {
             out.append("\n    val ").append(name).append(": List<String> = listOf(\n")

@@ -59,7 +59,7 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P5 RepRecord & Export | Record types, persistence, JSON/CSV export | 🟡 Partial — records and Room storage done; JSON/CSV export not built |
 | P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Built, not yet run on the phone (DECISIONS.md P3-22) — per-side baselines from 5–8 valid reps (provisional), hold baselines, `AnalysisResult` as numbers beside the baseline, Room storage with a tested migration, the calibration flow. Personal *thresholds* are P8's rules; the counts wait for the MM-Fit convergence study |
 | P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | 🟡 Partial — MM-Fit downloaded and its labels read (P3-1); MediaPipe-over-video pipeline and harness not built. It must apply the same aspect-ratio correction as the phone, with MM-Fit's own frame size (P3-16) |
-| P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | ⛔ Not started |
+| P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | 🟡 Partial — Layer 1 rules for repetitions built (P3-23), not yet shown in the app; holds and Layer 2 not started |
 | P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | ⛔ Not started (may be trimmed) |
 | P10 Visualisation & Android | App UI, live screen, dashboard | 🟡 Partial — shell, dashboard, streaks, Health Connect, sync, theme and the live camera screen (reps and holds, sets saved) done but never run on a device; visualisations not built |
 | P11 Windows PWA | React web app | ✂️ Cut (DECISIONS.md P0-2). The JS *target* survives; the web *app* does not |

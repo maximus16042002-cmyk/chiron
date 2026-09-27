@@ -7,6 +7,8 @@ import com.kinesis.core.domain.bilateral.BilateralSignal
 import com.kinesis.core.domain.calibration.CalibrationBaseline
 import com.kinesis.core.domain.calibration.HoldBaseline
 import com.kinesis.core.domain.calibration.RepetitionBaseline
+import com.kinesis.core.domain.finding.ClaimLevel
+import com.kinesis.core.domain.finding.Deviation
 import com.kinesis.core.domain.rep.HoldRecord
 import com.kinesis.core.domain.rep.HoldValidity
 import com.kinesis.core.domain.rep.RepRecord
@@ -155,7 +157,12 @@ class CalibrationCoordinatorTest {
         val first = withBaseline[0] as RepetitionAnalysisResult
         assertEquals(92.0, first.comparison!!.rangeOfMotionLeft.measured, 0.0)
         assertEquals(100.0, first.comparison!!.rangeOfMotionLeft.baseline, 0.0)
-        assertTrue(withBaseline.all { it.findings.isEmpty() })
+        // P8 Layer 1 (DECISIONS.md P3-23): 92 against a flat usual of 100 is outside the
+        // 5% floor, so the completed repetition gets Level 2 findings; the aborted one gets none.
+        val metrics = first.findings.map { (it as Deviation).metric }
+        assertTrue(metrics.toString(), "rom_left" in metrics && "rom_right" in metrics)
+        assertTrue(first.findings.all { it.level == ClaimLevel.L2_DEVIATION })
+        assertTrue(withBaseline[1].findings.isEmpty())
 
         val without = coordinator.analyseSet(ExerciseLibrary.squat, set, null)
         assertTrue(without.all { (it as RepetitionAnalysisResult).comparison == null })

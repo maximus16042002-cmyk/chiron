@@ -5,6 +5,7 @@ import com.kinesis.core.analysis.KinesisEngine
 import com.kinesis.core.analysis.calibration.CalibrationFixtures.hold
 import com.kinesis.core.analysis.calibration.CalibrationFixtures.oneSided
 import com.kinesis.core.analysis.calibration.CalibrationFixtures.paired
+import com.kinesis.core.analysis.deviation.DeviationRules
 import com.kinesis.core.analysis.parity.MiniJson
 import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.domain.bilateral.Side
@@ -73,7 +74,14 @@ class FacadeCalibrationTest {
         assertEquals(95.0, left["measured"])
         assertEquals(103.5, left["baseline"])
         assertNull(comparison["timingSide"])
-        assertEquals(emptyList<Any?>(), result["findings"])
+        // 95 against a usual 103.5 (spread 3.5) is outside the band: one Level 2 finding,
+        // carried across the boundary with its level, metric and rule version (P3-23).
+        val finding = (result["findings"] as List<*>).single() as Map<*, *>
+        assertEquals("L2_DEVIATION", finding["level"])
+        assertEquals("rom_left", finding["metric"])
+        assertEquals("BELOW_BASELINE", finding["direction"])
+        assertEquals(DeviationRules.RULE_VERSION, finding["ruleVersion"])
+        assertTrue((finding["displayText"] as String).startsWith("Left range of motion"))
     }
 
     @Test

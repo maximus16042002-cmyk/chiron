@@ -117,27 +117,6 @@ class PostRepAnalysisTest {
         assertEquals(20_000.0, comparison.heldMs.baseline)
     }
 
-    /**
-     * The guard for this phase's boundary. P6 compares numbers; judgement - "shallower
-     * than your usual" - and the rules behind it are P8, each with a `ruleVersion`
-     * and, for Level 3, a `sourceRef`. Until those rules exist, no finding of any
-     * level may come out of the post-rep analysis, for any exercise in the library.
-     * When P8 adds findings, this test is the one it replaces, deliberately.
-     */
-    @Test
-    fun p6_makes_no_claim_beyond_numbers_for_any_exercise() {
-        for (entry in ExerciseLibrary.all) {
-            when (entry) {
-                is RepetitionExercise -> {
-                    val rep = paired(1, 100.0, 90.0)
-                    assertTrue(PostRepAnalysis.analyse(entry, rep, null).findings.isEmpty(), entry.id)
-                    if (CalibrationKey.of(entry) == "squat") {
-                        assertTrue(PostRepAnalysis.analyse(entry, rep, squatBaseline).findings.isEmpty(), entry.id)
-                    }
-                }
-                is IsometricExercise ->
-                    assertTrue(PostRepAnalysis.analyse(entry, hold(), null).findings.isEmpty(), entry.id)
-            }
-        }
-    }
+    // P6's `p6_makes_no_claim_beyond_numbers_for_any_exercise` was replaced, as it said
+    // it would be, by DeviationRulesTest's library-wide guard - DECISIONS.md P3-23.
 }

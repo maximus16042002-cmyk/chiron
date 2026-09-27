@@ -87,6 +87,29 @@ object EngineParity {
         return run.calibrate()
     }
 
+    /**
+     * The deviation rules through the facade - DECISIONS.md P3-23. A baseline from
+     * eight ordinary squats, then a new set against it: one shallow squat, one
+     * ordinary, one with a lagging right knee. Pins the findings' JSON, and so
+     * their wording and numbers, on every target.
+     */
+    fun squatDeviation(): List<String> {
+        val calibration = Run("""{"id": "squat"}""", seed = 23)
+        calibration.stand(20)
+        for (bottom in listOf(72.0, 68.0, 75.0, 70.0, 66.0, 73.0, 69.0, 71.0)) {
+            calibration.squatTo(bottom)
+            calibration.stand(12)
+        }
+        val baseline = checkNotNull(calibration.baselineOnly()) { "the deviation scenario did not calibrate" }
+        val set = Run("""{"id": "squat"}""", seed = 29)
+        set.stand(20)
+        for ((i, bottom) in listOf(84.0, 70.0, 71.0).withIndex()) {
+            set.squatTo(bottom, rightLag = if (i == 2) 8 else 0)
+            set.stand(12)
+        }
+        return set.analyseAgainst(baseline)
+    }
+
     /** Alternating curls, six on each arm: a baseline per arm, from each arm's own repetitions. */
     fun curlCalibration(): List<String> {
         val run = Run("""{"id": "bicep_curl"}""", seed = 19)
@@ -253,6 +276,21 @@ object EngineParity {
                 val angle = if (step < 25) top - (top - bottom) * (step + 1) / 25.0 else bottom + (top - bottom) * (step - 24) / 25.0
                 if (left) arms(angle, 160.0) else arms(160.0, angle)
             }
+        }
+
+        /** Ends the set and returns only the fitted baseline's JSON, or `null`. */
+        fun baselineOnly(): String? {
+            records += topLevelElements(engine.finishSet())
+            return member(engine.computeBaseline(records.joinToString(",", "[", "]")), "baseline")
+        }
+
+        /** Ends the set, then analyses each record against [baseline]. */
+        fun analyseAgainst(baseline: String): List<String> {
+            val finished = engine.finishSet()
+            lines += "finish|$finished"
+            records += topLevelElements(finished)
+            records.forEachIndexed { i, record -> lines += "analysis|$i|" + engine.analyzeRep(record, baseline) }
+            return lines
         }
 
         /**

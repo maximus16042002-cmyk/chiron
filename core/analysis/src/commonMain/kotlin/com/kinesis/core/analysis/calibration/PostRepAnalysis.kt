@@ -1,5 +1,6 @@
 package com.kinesis.core.analysis.calibration
 
+import com.kinesis.core.analysis.deviation.DeviationRules
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.domain.analysis.BaselineReference
@@ -17,13 +18,13 @@ import com.kinesis.core.domain.rep.HoldRecord
 import com.kinesis.core.domain.rep.RepRecord
 
 /**
- * The post-rep analysis as far as P6 takes it - CONTRACTS.md section 7,
- * DECISIONS.md P3-22.
+ * The post-rep analysis - CONTRACTS.md section 7, DECISIONS.md P3-22 and P3-23.
  *
  * Takes a completed record and, if there is one, the user's baseline, and
  * returns an `AnalysisResult`: the record's values beside the baseline's, per
- * side, as numbers. No rule runs and no finding is produced - judgement and its
- * wording are P8's, composed in the core with their own rule versions.
+ * side, as numbers, and the Layer 1 deviation findings ([DeviationRules]) those
+ * numbers support - Level 2, each with its rule version. Holds get the
+ * comparison only; P3-23 says why.
  *
  * Because the result is computed from the record and the baseline rather than
  * stored with the record, analysing an old repetition again after the baseline
@@ -34,7 +35,7 @@ import com.kinesis.core.domain.rep.RepRecord
  */
 object PostRepAnalysis {
 
-    const val VERSION: String = "p6-comparison-1"
+    const val VERSION: String = "p8-deviation-1"
 
     fun analyse(profile: RepetitionExercise, rep: RepRecord, baseline: RepetitionBaseline?): RepetitionAnalysisResult {
         requireOwnBaseline(profile, baseline)
@@ -56,7 +57,8 @@ object PostRepAnalysis {
             analysisVersion = VERSION,
             baseline = baseline?.let(BaselineReference::of),
             comparison = comparison,
-            findings = emptyList(),
+            findings = if (baseline == null || comparison == null) emptyList()
+            else DeviationRules.forRepetition(rep, baseline, comparison),
         )
     }
 
