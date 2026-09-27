@@ -39,6 +39,7 @@ class ExportFilesTest {
         assertEquals("application/json", files[0].mimeType)
         assertTrue(files[0].contents.contains("\"exerciseId\":\"squat\""))
         assertTrue(files[0].contents.contains("\"exerciseId\":\"plank\""))
+        assertTrue(files[0].contents.endsWith(",\"baselines\":[]}"))
     }
 
     @Test

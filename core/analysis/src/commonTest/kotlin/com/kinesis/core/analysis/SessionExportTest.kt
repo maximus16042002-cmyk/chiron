@@ -1,6 +1,11 @@
 package com.kinesis.core.analysis
 
+import com.kinesis.core.analysis.calibration.BaselineJson
+import com.kinesis.core.analysis.calibration.Calibration
+import com.kinesis.core.analysis.calibration.CalibrationFixtures
+import com.kinesis.core.analysis.calibration.CalibrationOutcome
 import com.kinesis.core.analysis.export.SessionExport
+import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.domain.bilateral.BilateralSignal
 import com.kinesis.core.domain.bilateral.Side
 import com.kinesis.core.domain.rep.HoldRecord
@@ -14,6 +19,7 @@ import com.kinesis.core.domain.session.SessionRecord
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
@@ -32,7 +38,7 @@ class SessionExportTest {
         assertTrue(json.startsWith("{\"format\":\"kinesis-session-export\",\"schema\":1,"), json)
         assertTrue("\"sessionId\":\"s-squat\"" in json)
         assertTrue("\"sessionId\":\"s-plank\"" in json)
-        assertTrue(json.endsWith("}]}"), json)
+        assertTrue(json.endsWith("}],\"baselines\":[]}"), json)
     }
 
     @Test
@@ -80,9 +86,25 @@ class SessionExportTest {
     fun json_of_no_sessions_is_still_a_valid_document() {
         assertEquals(
             "{\"format\":\"kinesis-session-export\",\"schema\":1," +
-                "\"exportedAtEpochMs\":" + number(0.0) + ",\"sessions\":[]}",
+                "\"exportedAtEpochMs\":" + number(0.0) + ",\"sessions\":[],\"baselines\":[]}",
             SessionExport.toJson(emptyList(), 0.0),
         )
+    }
+
+    @Test
+    fun json_carries_each_baseline_exactly_as_storage_writes_it() {
+        val baseline = assertIs<CalibrationOutcome.Calibrated>(
+            Calibration.fromRepetitions(
+                ExerciseLibrary.squat,
+                (0 until 8).map { CalibrationFixtures.paired(it + 1, 100.0 + it, 90.0 + it) },
+                1_234.5,
+                "s-squat",
+            ),
+        ).baseline
+
+        val json = SessionExport.toJson(listOf(squatSession()), 0.0, listOf(baseline))
+
+        assertTrue(json.endsWith(",\"baselines\":[" + BaselineJson.write(baseline) + "]}"), json)
     }
 
     // --- CSV ---------------------------------------------------------------------------

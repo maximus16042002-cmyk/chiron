@@ -247,7 +247,7 @@ private fun KinesisApp(
     val export: (ExportFormat) -> Unit = { format ->
         scope.launch {
             exportNote = try {
-                val chooser = exporter.shareIntent(format, System.currentTimeMillis())
+                val chooser = exporter.shareIntent(format, System.currentTimeMillis(), baselines.values.toList())
                 if (chooser == null) {
                     "No sessions recorded yet, so there is nothing to export."
                 } else {

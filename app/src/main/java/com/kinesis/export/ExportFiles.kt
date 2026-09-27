@@ -1,6 +1,7 @@
 package com.kinesis.export
 
 import com.kinesis.core.analysis.export.SessionExport
+import com.kinesis.core.domain.calibration.CalibrationBaseline
 import com.kinesis.core.domain.session.SessionRecord
 
 /** What the user asked to export. */
@@ -14,7 +15,7 @@ class ExportFile(val name: String, val mimeType: String, val contents: String)
  *
  * Pure, so the naming and the split between files are testable on the JVM; the
  * formats themselves are the shared core's [SessionExport], tested on JVM and
- * JS. JSON is one complete file. CSV is two, repetitions and holds, because a
+ * JS. JSON is one complete file, with the calibration baselines. CSV is two, repetitions and holds, because a
  * hold has no repetition columns - CLAUDE.md section 11.
  */
 object ExportFiles {
@@ -24,12 +25,13 @@ object ExportFiles {
         sessions: List<SessionRecord>,
         exportedAtEpochMs: Double,
         stamp: String,
+        baselines: List<CalibrationBaseline> = emptyList(),
     ): List<ExportFile> = when (format) {
         ExportFormat.JSON -> listOf(
             ExportFile(
                 "kinesis-sessions-$stamp.json",
                 MIME_JSON,
-                SessionExport.toJson(sessions, exportedAtEpochMs),
+                SessionExport.toJson(sessions, exportedAtEpochMs, baselines),
             ),
         )
 

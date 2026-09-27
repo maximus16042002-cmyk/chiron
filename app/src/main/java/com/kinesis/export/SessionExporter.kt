@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.core.content.FileProvider
+import com.kinesis.core.domain.calibration.CalibrationBaseline
 import com.kinesis.storage.SessionRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -26,11 +27,17 @@ class SessionExporter(
 ) {
 
     /** Builds the export and returns the chooser to start, or `null` when there is nothing to export. */
-    suspend fun shareIntent(format: ExportFormat, nowEpochMs: Long): Intent? {
+    suspend fun shareIntent(
+        format: ExportFormat,
+        nowEpochMs: Long,
+        baselines: List<CalibrationBaseline>,
+    ): Intent? {
         val sessions = repository.allSessions()
         if (sessions.isEmpty()) return null
 
-        val files = ExportFiles.build(format, sessions, nowEpochMs.toDouble(), stamp = nowEpochMs.toString())
+        val files = ExportFiles.build(
+            format, sessions, nowEpochMs.toDouble(), stamp = nowEpochMs.toString(), baselines = baselines,
+        )
         val uris = withContext(Dispatchers.IO) { write(files) }
         val mime = files.first().mimeType
 

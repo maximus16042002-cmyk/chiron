@@ -5628,9 +5628,13 @@ behind the Android share sheet with nothing uploaded. Built as follows.
 - **CSV is two files**, `kinesis-reps-*.csv` and `kinesis-holds-*.csv`, one row
   per rep or hold, with the session and set repeated on each row. A single table
   would give holds a rep column (§11). The resampled signals are JSON-only.
-- **Calibration baselines and `AnalysisResult`s (P3-22) are not exported.**
-  This export is the measured sessions only. Adding the baselines is a separate
-  choice for the owner.
+- **The JSON also carries the calibration baselines (P3-22)**, as a
+  `baselines` array, each written by `BaselineJson.write`, the form storage and
+  the facade already use. `BaselineJson.read` therefore takes each one back
+  unchanged. A baseline is stored statistics of the user's own reps, not
+  interpretation. The owner left the choice to this session. CSV leaves them out,
+  because a baseline is nested per-side statistics and a mean curve, not a row.
+  `AnalysisResult`s are not exported: they are not stored.
 - **Local date.** Both formats carry the session's local date as `YYYY-MM-DD`,
   from the offset stored with the session (P3-10). `LocalDay.toIsoDate()` does
   this with integer arithmetic, so the core gets no calendar dependency.
@@ -5646,8 +5650,8 @@ behind the Android share sheet with nothing uploaded. Built as follows.
 **What was verified, and what was not.** The session had no Android SDK, and
 the build's daemon toolchain (JBR 25) could not be downloaded. The core sources
 were therefore compiled in a scratch Kotlin Multiplatform project outside the
-repository, after master's P3-22 was merged in. There, `SessionExportTest` (15
-tests) passed on JVM and on JS, and so did every existing `commonTest`: 698
+repository, after master's P3-22 was merged in. There, `SessionExportTest` (16
+tests) passed on JVM and on JS, and so did every existing `commonTest`: 700
 tests in all, none failing. On the JVM, `SharedCoreSourceGuardTest`,
 `EngineParityTest` and the app's `ExportFilesTest` also passed. **`:app` was not
 compiled.** The manifest provider, `SessionExporter` and the dashboard change

@@ -1,6 +1,8 @@
 package com.kinesis.core.analysis.export
 
 import com.kinesis.core.analysis.EngineJson
+import com.kinesis.core.analysis.calibration.BaselineJson
+import com.kinesis.core.domain.calibration.CalibrationBaseline
 import com.kinesis.core.domain.rep.HoldRecord
 import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.core.domain.session.HoldSetRecord
@@ -12,7 +14,8 @@ import com.kinesis.core.domain.session.SetRecord
  * JSON and CSV export of recorded sessions - CLAUDE.md section 15, P5.
  *
  * Measurement only, exactly as stored: no `AnalysisResult`, no derived tempo
- * ratio, no reducer. The same two rules Room's mapping (P3-12) and the
+ * ratio, no reducer. The JSON also carries the calibration baselines, which are
+ * stored statistics of the user's own reps, not interpretation. The same two rules Room's mapping (P3-12) and the
  * Firestore document (P3-14) keep hold here too.
  *
  * **Left and right never share a field.** Every bilateral value is a
@@ -47,14 +50,25 @@ object SessionExport {
     /**
      * Every session, complete, including the resampled signals.
      *
+     * [baselines] are the user's calibration baselines (P3-22), exported beside
+     * the sessions they were built from.
+     *
      * [exportedAtEpochMs] is a parameter rather than read from a clock, so the
      * same history always exports to the same text.
      */
-    fun toJson(sessions: List<SessionRecord>, exportedAtEpochMs: Double): String = EngineJson.obj {
+    fun toJson(
+        sessions: List<SessionRecord>,
+        exportedAtEpochMs: Double,
+        baselines: List<CalibrationBaseline> = emptyList(),
+    ): String = EngineJson.obj {
         field("format", FORMAT)
         field("schema", SCHEMA_VERSION)
         field("exportedAtEpochMs", exportedAtEpochMs)
         raw("sessions", sessions.joinToString(",", "[", "]", transform = ::session))
+        // P3-22's baselines, in the form storage and the facade already use, so
+        // BaselineJson.read takes each one back unchanged. JSON only: a baseline
+        // is nested statistics and a mean curve per side, not a table row.
+        raw("baselines", baselines.joinToString(",", "[", "]") { BaselineJson.write(it) })
     }
 
     private fun session(session: SessionRecord): String = EngineJson.obj {
