@@ -6275,6 +6275,94 @@ one database.
 
 ---
 
+## P3-26 — Owner decisions: telling the user a repetition was fast, after P7
+
+*2026-09-28*
+
+The owner: "when a user is doing an exercise fast or incorrect we have to tell
+them... at least using a trusted source". Asked when, what and how, the owner
+decided the three points below.
+
+### 1. After P7
+
+The plan's order stands: P7, the MM-Fit evaluation, comes first. Then P8, the
+form engine, where this feedback lives.
+
+### 2. Two messages, both about speed
+
+- **"Faster than your usual."**
+  - Claim Level 2, against the user's own calibration baseline: P6's per-side
+    descent and ascent timings.
+  - Every exercise, once it is calibrated.
+  - No outside source is needed: the user's own repetitions are the reference.
+- **"Faster than the beginner tempo ACSM recommends."**
+  - Claim Level 3, Tier A only. Tier B and C profiles cannot construct a
+    Level 3 finding at all (CLAUDE.md §8).
+  - The source was read in full and is quoted below.
+- **Not chosen now: cited form rules** ("incorrect form"). None has a verified
+  source yet, and each needs one quoted before it ships (CLAUDE.md §12a).
+  Candidates noted but not checked:
+  - FitnessGram's 90° push-up criteria, seen only second-hand;
+  - the NSCA technique guides;
+  - Schoenfeld (2010) on squat depth, which classifies depth rather than naming
+    a fault.
+
+### 3. Amber carries it too
+
+Amber has meant only "this repetition did not count" (P3-23, P3-24). It will
+also mean "look at this", with the message saying which of the two it is.
+
+The overlay's `ATTENTION` state already anticipated this: "When P8's technique
+rules exist, a Level 3 finding lands here too" (`SkeletonPalette.kt`).
+
+### The source, read in full
+
+**ACSM position stand, "Progression Models in Resistance Training for Healthy
+Adults"** (Ratamess et al.), *Medicine & Science in Sports & Exercise*
+41(3):687–708, 2009.
+
+The quotes below were read from the full text, a copy of the PDF whose text was
+extracted, not from a summary:
+- From the summary: "...performed at a moderate contraction velocity (1–2 s
+  CON; 1–2 s ECC)."
+- "Evidence category A. For untrained individuals, it is recommended that slow
+  and moderate velocities be used."
+- "Evidence category B. For intermediate training, it is recommended that
+  moderate velocity be used for RT."
+- And, against a stronger claim: "Over 6 wk of RT in untrained individuals, it
+  was shown that training at a faster velocity (1:1) led to [approximately]
+  11% greater strength increases than training at a slower velocity (3:3)."
+  The bracketed word stands for a symbol the text extraction could not read.
+
+**So the message may say a repetition was faster than the recommended beginner
+tempo. It may not say the repetition was wrong, unsafe or ineffective**, and
+the source's own evidence is why.
+
+### What P8 must solve before either message ships
+
+- **The timer measures less than the phase.**
+  - `descentMs` and `ascentMs` run between the repetition machine's thresholds,
+    not over the whole movement: for the curl, from 137° to 68°. They therefore
+    read shorter than the phase ACSM means.
+  - A plain "under 1 s" rule would flag controlled repetitions.
+  - The threshold has to allow for this, and be checked on the phone against
+    repetitions timed by hand.
+- **Direction differs by exercise.**
+  - For a curl, `descentMs` (the elbow angle falling) is the lift; for a squat
+    it is the lowering.
+  - So ACSM's CON and ECC map onto the two fields differently for each
+    exercise.
+- **One frame is the resolution:** about 70 ms, at 14 results a second (P3-24).
+- **Level 2 needs a baseline.** Without a calibration, only the Tier A cited
+  message can speak.
+- **Wording.** Every Level 3 message names its source. The report states the
+  limitation in CLAUDE.md §12a's words.
+
+**Scope of this entry.** It records decisions and one verified source. It
+builds nothing.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
