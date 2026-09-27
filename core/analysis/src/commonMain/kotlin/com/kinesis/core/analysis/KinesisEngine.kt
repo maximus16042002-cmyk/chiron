@@ -431,19 +431,7 @@ internal object EngineJson {
 
         fun field(name: String, value: String?) {
             key(name)
-            if (value == null) {
-                out.append("null")
-                return
-            }
-            // Quotes and backslashes escaped, so a string cannot break the document.
-            // Ids, enum names and session UUIDs never contain either, so every
-            // output written before P3-22 is unchanged.
-            out.append('"')
-            for (char in value) {
-                if (char == '"' || char == '\\') out.append('\\')
-                out.append(char)
-            }
-            out.append('"')
+            if (value == null) out.append("null") else string(value)
         }
 
         /** An already-written JSON value - an object or array from another writer. */
@@ -455,6 +443,25 @@ internal object EngineJson {
         fun field(name: String, value: Boolean) {
             key(name)
             out.append(if (value) "true" else "false")
+        }
+
+        /**
+         * Quotes and backslashes escaped, so a string cannot break the document,
+         * and control characters as `\u00XX` (P3-23 export). Ids, enum names and
+         * session UUIDs contain none of these, so every output written before
+         * either change is unchanged.
+         */
+        private fun string(value: String) {
+            out.append('"')
+            for (c in value) {
+                when {
+                    c == '"' -> out.append("\\\"")
+                    c == '\\' -> out.append("\\\\")
+                    c < ' ' -> out.append("\\u").append(c.code.toString(16).padStart(4, '0'))
+                    else -> out.append(c)
+                }
+            }
+            out.append('"')
         }
 
         fun field(name: String, value: Int) {

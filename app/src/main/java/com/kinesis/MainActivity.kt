@@ -30,6 +30,8 @@ import com.kinesis.core.analysis.history.Dashboard
 import com.kinesis.core.analysis.history.DashboardSummary
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.core.domain.session.LocalDay
+import com.kinesis.export.ExportFormat
+import com.kinesis.export.SessionExporter
 import com.kinesis.health.ActivityContextPermissions
 import com.kinesis.health.ActivityContextResult
 import com.kinesis.health.ActivityContextSource
@@ -236,6 +238,28 @@ private fun KinesisApp(
 
     val requestPermissions = rememberHealthPermissionLauncher { reloadToken++ }
 
+    // P5 export. Reads the same stored history the dashboard does; the chooser
+    // is started from here because only the UI has an activity to start it on.
+    val activityContext = LocalContext.current
+    val exporter = remember(repository) { SessionExporter(activityContext.applicationContext, repository) }
+    val scope = rememberCoroutineScope()
+    var exportNote: String? by remember { mutableStateOf(null) }
+    val export: (ExportFormat) -> Unit = { format ->
+        scope.launch {
+            exportNote = try {
+                val chooser = exporter.shareIntent(format, System.currentTimeMillis(), baselines.values.toList())
+                if (chooser == null) {
+                    "No sessions recorded yet, so there is nothing to export."
+                } else {
+                    activityContext.startActivity(chooser)
+                    null
+                }
+            } catch (error: IOException) {
+                "The export could not be written: " + error.message
+            }
+        }
+    }
+
     Column(Modifier.fillMaxSize()) {
         NavBar(
             destination = destination,
@@ -253,6 +277,8 @@ private fun KinesisApp(
                     { it(ActivityContextPermissions.ALL) }
                 },
                 onOpenLicences = { destination = Destination.Licences },
+                onExport = export,
+                exportNote = exportNote,
                 baselines = baselines.values.map { displayNameOf(it.calibrationId) to it },
             )
 

@@ -56,7 +56,7 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P2 Kinematics & Temporal | Geometry, joint angles, velocity, ring buffers, filter chain, resampling, ablation harness | ✅ Done |
 | P3 Profiles & Rep Engine | Rep FSM, bilateral rep tracker, hold analyser, 15 profiles + 2 variants | ✅ Done |
 | P4 Device Reality Check | Frame rate, thermal, mirroring, landmark reliability on a real phone | ⛔ Not started — no longer blocked; needs a physical phone (MediaPipe ships no x86_64 library, so standard emulators cannot run it) |
-| P5 RepRecord & Export | Record types, persistence, JSON/CSV export | 🟡 Partial — records and Room storage done; JSON/CSV export not built |
+| P5 RepRecord & Export | Record types, persistence, JSON/CSV export | 🟡 Built, not yet run on a phone — records, Room storage, and JSON/CSV export via the share sheet (DECISIONS.md P3-23). The Android half has not been compiled or tried on a device |
 | P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Built, not yet run on the phone (DECISIONS.md P3-22) — per-side baselines from 5–8 valid reps (provisional), hold baselines, `AnalysisResult` as numbers beside the baseline, Room storage with a tested migration, the calibration flow. Personal *thresholds* are P8's rules; the counts wait for the MM-Fit convergence study |
 | P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | 🟡 Partial — MM-Fit downloaded and its labels read (P3-1); MediaPipe-over-video pipeline and harness not built. It must apply the same aspect-ratio correction as the phone, with MM-Fit's own frame size (P3-16) |
 | P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | ⛔ Not started |
@@ -226,7 +226,8 @@ emulator cannot load it.
 
 ### Then — the research core
 
-10. **P5 export** — JSON and CSV export of sessions (required by CLAUDE.md §15).
+10. **P5 export** — built (P3-23). Remaining: compile `:app`, then export once on a
+    phone and open both formats, which no session has done yet.
 11. **P6 calibration** — build `CalibrationBaseline` and `AnalysisResult`,
     personal baselines from calibration reps, personal thresholds. This also
     unlocks "deviation from your normal" on the dashboard, which is deliberately

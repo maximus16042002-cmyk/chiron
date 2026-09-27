@@ -88,6 +88,24 @@
                 <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
             </intent-filter>
         </activity-alias>
+
+        <!--
+            Session export - P5, CLAUDE.md section 15. Lets the share sheet read
+            the files the user just asked to export, and nothing else: its only
+            path is cache/exports/ (res/xml/export_paths.xml). Not exported, so
+            no other app can reach it except through a one-off read grant on a
+            file the user chose to share. It declares no permission and gives
+            the app no network capability.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.exports"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/export_paths" />
+        </provider>
     </application>
 
 </manifest>
