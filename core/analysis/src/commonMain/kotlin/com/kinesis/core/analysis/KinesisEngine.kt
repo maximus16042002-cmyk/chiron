@@ -20,6 +20,10 @@ import com.kinesis.core.domain.bilateral.BilateralSignal
 import com.kinesis.core.domain.bilateral.Side
 import com.kinesis.core.domain.calibration.HoldBaseline
 import com.kinesis.core.domain.calibration.RepetitionBaseline
+import com.kinesis.core.domain.finding.Deviation
+import com.kinesis.core.domain.finding.Finding
+import com.kinesis.core.domain.finding.Measurement
+import com.kinesis.core.domain.finding.TechniqueFault
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.rep.HoldRecord
 import com.kinesis.core.domain.rep.HoldValidity
@@ -192,7 +196,8 @@ class KinesisEngine {
      * @param baselineJson a baseline, as the `baseline` member of
      *   [computeBaseline]'s outcome, or `null` for none.
      * @return a JSON `AnalysisResult`: the record's values beside the baseline's,
-     *   and a `findings` array that is empty until P8's rules exist.
+     *   and a `findings` array: P8's Layer 1 deviations, each with its level and
+     *   rule version (DECISIONS.md P3-24).
      */
     fun analyzeRep(repJson: String, baselineJson: String): String {
         val profile = configuredProfile()
@@ -390,9 +395,26 @@ internal object EngineJson {
                 }
             }
         }
-        // Empty until P8: findings arrive with their rules. Each will carry its
-        // claim level and rule version (FINAL_ARCHITECTURE section 8).
-        raw("findings", "[]")
+        // Each finding carries its claim level and rule version (FINAL_ARCHITECTURE
+        // section 8). Layer 1 produces only Level 2 deviations - DECISIONS.md P3-24.
+        raw("findings", result.findings.joinToString(",", "[", "]") { finding(it) })
+    }
+
+    private fun finding(finding: Finding): String = obj {
+        field("level", finding.level.name)
+        when (finding) {
+            is Measurement -> field("metric", finding.metric)
+            is Deviation -> {
+                field("metric", finding.metric)
+                field("direction", finding.direction.name)
+            }
+            is TechniqueFault -> {
+                field("faultId", finding.faultId)
+                field("sourceRef", finding.sourceRef)
+            }
+        }
+        field("displayText", finding.displayText)
+        field("ruleVersion", finding.ruleVersion)
     }
 
     private fun beside(value: BesideBaseline): String = obj {

@@ -25,17 +25,18 @@ import com.kinesis.core.domain.finding.Finding
  *   baseline's, per side. No difference, no percentage, no direction, no
  *   wording. Judgement - "shallower than your usual" - and the rules that
  *   produce it are P8, composed in the core with their own `ruleVersion`.
- * - [findings] is therefore always empty in P6. It is the list P8's `Deviation`
- *   and `TechniqueFault` findings go in, each carrying its own claim level and
- *   rule version (FINAL_ARCHITECTURE section 8: "AnalysisResult carries
- *   claimLevel and ruleVersion per finding"). A test pins it empty until then.
+ * - [findings] was always empty in P6. It is the list P8's `Deviation` and
+ *   `TechniqueFault` findings go in, each carrying its own claim level and rule
+ *   version (FINAL_ARCHITECTURE section 8: "AnalysisResult carries claimLevel
+ *   and ruleVersion per finding"). P8 Layer 1 fills it with Level 2 deviations
+ *   for completed repetitions - DECISIONS.md P3-24.
  */
 sealed interface AnalysisResult {
 
     /** The library entry analysed. For a variant, the variant's own id. */
     val exerciseId: String
 
-    /** Which version of the post-rep analysis produced this, e.g. `p6-comparison-1`. */
+    /** Which version of the post-rep analysis produced this, e.g. `p8-deviation-1`. */
     val analysisVersion: String
 
     /** The baseline compared against, or `null` if there is none. */
