@@ -35,6 +35,28 @@ data class LocalDay(val dayNumber: Int) : Comparable<LocalDay> {
     /** Days from this one to [other]. Negative when [other] is earlier. */
     fun daysUntil(other: LocalDay): Int = other.dayNumber - dayNumber
 
+    /**
+     * This day in the proleptic Gregorian calendar, as `YYYY-MM-DD`.
+     *
+     * Integer arithmetic only, for the same reason this class exists: no
+     * calendar library in the core. Howard Hinnant's `civil_from_days`, whose
+     * divisions are floored so days before 1970 come out right too.
+     */
+    fun toIsoDate(): String {
+        val z = dayNumber + 719_468
+        val era = z.floorDiv(146_097)
+        val dayOfEra = z - era * 146_097
+        val yearOfEra = (dayOfEra - dayOfEra / 1_460 + dayOfEra / 36_524 - dayOfEra / 146_096) / 365
+        val dayOfYear = dayOfEra - (365 * yearOfEra + yearOfEra / 4 - yearOfEra / 100)
+        val shiftedMonth = (5 * dayOfYear + 2) / 153
+        val day = dayOfYear - (153 * shiftedMonth + 2) / 5 + 1
+        val month = if (shiftedMonth < 10) shiftedMonth + 3 else shiftedMonth - 9
+        val year = yearOfEra + era * 400 + if (month <= 2) 1 else 0
+        return year.toString().padStart(4, '0') + "-" +
+            month.toString().padStart(2, '0') + "-" +
+            day.toString().padStart(2, '0')
+    }
+
     override fun toString(): String = "LocalDay(" + dayNumber + ")"
 
     companion object {

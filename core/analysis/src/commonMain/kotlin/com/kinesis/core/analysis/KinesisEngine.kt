@@ -228,7 +228,31 @@ internal object EngineJson {
 
         fun field(name: String, value: String?) {
             key(name)
-            if (value == null) out.append("null") else out.append('"').append(value).append('"')
+            if (value == null) out.append("null") else string(value)
+        }
+
+        /** A value that is already JSON - a nested object or array. */
+        fun raw(name: String, json: String) {
+            key(name)
+            out.append(json)
+        }
+
+        /**
+         * Quotes and backslashes escaped, control characters as `\u00XX`.
+         * Exercise ids never need it; session ids and anything a user can
+         * type into an export eventually will.
+         */
+        private fun string(value: String) {
+            out.append('"')
+            for (c in value) {
+                when {
+                    c == '"' -> out.append("\\\"")
+                    c == '\\' -> out.append("\\\\")
+                    c < ' ' -> out.append("\\u").append(c.code.toString(16).padStart(4, '0'))
+                    else -> out.append(c)
+                }
+            }
+            out.append('"')
         }
 
         fun field(name: String, value: Int) {

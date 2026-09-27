@@ -35,6 +35,7 @@ import com.kinesis.health.ActivityContextResult
 import com.kinesis.health.ContextUnavailable
 import com.kinesis.health.DailyMetric
 import com.kinesis.camera.LiveCamera
+import com.kinesis.export.ExportFormat
 import com.kinesis.licenses.ThirdPartyNotice
 import com.kinesis.licenses.ThirdPartyNotices
 import com.kinesis.ui.live.LiveHoldUiState
@@ -152,6 +153,8 @@ fun DashboardScreen(
     context: ActivityContextResult?,
     onRequestHealthAccess: (() -> Unit)?,
     onOpenLicences: () -> Unit,
+    onExport: (ExportFormat) -> Unit,
+    exportNote: String?,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -230,6 +233,7 @@ fun DashboardScreen(
         }
 
         item { HealthContextPanel(context, onRequestHealthAccess) }
+        item { ExportPanel(onExport, exportNote) }
         item {
             Text(
                 "[ LICENCES ]",
@@ -241,6 +245,45 @@ fun DashboardScreen(
             )
         }
         item { Spacer(Modifier.height(24.dp)) }
+    }
+}
+
+// --- Export ----------------------------------------------------------------------------
+
+/**
+ * P5 export, from the dashboard until Batch 3's Profile screen exists to hold it.
+ *
+ * The line under the buttons says where the data goes, because CLAUDE.md
+ * section 16 does not let this app move data silently: nothing is uploaded, and
+ * the file goes only where the user sends it from the share sheet.
+ */
+@Composable
+private fun ExportPanel(onExport: (ExportFormat) -> Unit, note: String?) {
+    Column(Modifier.padding(top = 8.dp)) {
+        Text("EXPORT", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint)
+        Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
+            Text(
+                "[ JSON ]",
+                style = MaterialTheme.typography.labelSmall,
+                color = PhosphorGreen,
+                modifier = Modifier
+                    .clickable { onExport(ExportFormat.JSON) }
+                    .padding(vertical = 12.dp),
+            )
+            Text(
+                "[ CSV ]",
+                style = MaterialTheme.typography.labelSmall,
+                color = PhosphorGreen,
+                modifier = Modifier
+                    .clickable { onExport(ExportFormat.CSV) }
+                    .padding(vertical = 12.dp),
+            )
+        }
+        Text(
+            note ?: "Every recorded session, shared from this phone through the share sheet. Nothing is uploaded.",
+            style = MaterialTheme.typography.bodySmall,
+            color = PhosphorDim,
+        )
     }
 }
 

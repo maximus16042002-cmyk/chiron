@@ -5129,6 +5129,52 @@ history.
 
 ---
 
+## P3-21 — P5 export: JSON and CSV, formatted in the core, shared from the dashboard
+
+*2026-09-27*
+
+CLAUDE.md §15 requires JSON and CSV export, and FEATURE_PLAN Batch 3 puts it
+behind the Android share sheet with nothing uploaded. Built as follows.
+
+- **The format is in the shared core**, `core/analysis/.../export/SessionExport.kt`.
+  It is pure string building with no I/O, so it spends none of the core's
+  promises, and it is the input §1's fallback names: a replay-only web client
+  reads exported JSON. Repetitions and holds are written by the same
+  `EngineJson` the facade uses, so there is one JSON shape per record type.
+  `EngineJson.Writer` gained string escaping and a `raw` field for nested
+  values. Exercise ids never need escaping, so the facade's output and the
+  parity goldens are unchanged. `EngineParityTest` passes.
+- **What is exported is measurement only**, every stored field and nothing
+  derived: no tempo ratio, no `AnalysisResult`, no reducer. Left and right are a
+  `{left, right}` object in JSON and two columns in CSV. `NaN` is `null` in JSON
+  and an empty cell in CSV, never `0`, the same rule as P3-12 and P3-14.
+- **CSV is two files**, `kinesis-reps-*.csv` and `kinesis-holds-*.csv`, one row
+  per rep or hold, with the session and set repeated on each row. A single table
+  would give holds a rep column (§11). The resampled signals are JSON-only.
+- **Local date.** Both formats carry the session's local date as `YYYY-MM-DD`,
+  from the offset stored with the session (P3-10). `LocalDay.toIsoDate()` does
+  this with integer arithmetic, so the core gets no calendar dependency.
+- **Android.** `SessionExporter` writes to `cache/exports/`, replacing the last
+  export, and starts a chooser. A non-exported `FileProvider` gets read access
+  to that one directory. It declares no permission and adds no network
+  capability. The entry point is on the dashboard, next to Licences, until
+  Batch 3's Profile screen exists. A line under the buttons says that nothing is
+  uploaded (§16).
+- **No dependency added.** `FileProvider` is in `androidx.core`, which the app
+  already declares.
+
+**What was verified, and what was not.** The session had no Android SDK, and
+the build's daemon toolchain (JBR 25) could not be downloaded. The core sources
+were therefore compiled in a scratch Kotlin Multiplatform project outside the
+repository. There, `SessionExportTest` (15 tests) passed on JVM and on JS, and
+so did every existing `commonTest`. On the JVM, `SharedCoreSourceGuardTest`,
+`EngineParityTest` and the app's `ExportFilesTest` also passed. **`:app` was not
+compiled.** The manifest provider, `SessionExporter` and the dashboard change
+have not been built or run. The first build on the owner's machine, and one
+export on a phone, are the remaining checks.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The one directory the export FileProvider may hand out - P5 export.
+    Only cache/exports/, which holds nothing but files the user just asked to
+    export. The database, and everything else in the app's storage, stays
+    unreachable through it.
+-->
+<paths>
+    <cache-path name="exports" path="exports/" />
+</paths>
