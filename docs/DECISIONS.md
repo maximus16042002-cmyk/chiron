@@ -5127,6 +5127,61 @@ an APK. At that point, at minimum, confirm the key's restrictions and the
 rules' behaviour. Also consider rotating the key and dropping the file from
 history.
 
+## P3-21 — P5 export: session history as JSON and two CSV files
+
+*2026-09-27. The owner asked for the next useful step without naming one; this
+is the smallest phase-completing piece that needs no phone.*
+
+### What was built
+
+`SessionExport` in `core/analysis/.../export/`, shared core, no new dependency:
+
+- **`json(sessions)`** — the complete record: sessions, sets (tagged
+  `"mode":"repetition"` or `"hold"`), every repetition and hold including the
+  resampled signals. Each repetition and hold is written by the facade's own
+  `EngineJson`, so an exported record and one returned by `KinesisEngine` have
+  one shape. Top level: `{"format":"kinesis-sessions","version":1,...}`.
+- **`repsCsv(sessions)`** and **`holdsCsv(sessions)`** — two tables, not one. A
+  single table would give every hold a repetition column, which is what
+  CLAUDE.md §11 forbids of the records themselves. Resampled signals are left
+  out of CSV (64 numbers a side); the JSON has them.
+
+Rules it keeps, each pinned by `SessionExportTest` (9 tests, JVM and JS):
+- left and right are separate `_left`/`_right` columns, the right way round,
+  and no bilateral column is combined — CLAUDE.md §3;
+- an unmeasured side is an empty cell or JSON `null`, never 0;
+- ids are escaped (RFC 4180 quoting in CSV, JSON string escapes), because they
+  come from the platform.
+
+**Mutations, all caught, file restored byte for byte:** left and right swapped;
+`NaN` written as `0.0`; CSV quoting removed.
+
+### How it was tested, and what was not
+
+This session ran in a cloud container that cannot reach Google's Maven, so the
+Android Gradle Plugin does not resolve and `gradlew` cannot configure the
+project. The core was built instead by a throwaway Kotlin Multiplatform build
+outside the repository, compiling `core/domain` and `core/analysis` sources
+unchanged for `jvm()` and `js(IR)` with Kotlin 2.1.21, tests run from the
+repository root:
+
+| Target | Tests | Failures |
+|---|---|---|
+| `core/analysis` JVM | 249 (240 + 9) | 0 |
+| `core/analysis` JS (Node) | 234 (225 + 9) | 0 |
+| `core/domain` JVM, JS | 33 each | 0 |
+
+**Not run:** the Android targets, `:app`, and `gradlew assemble allTests
+:app:testDebugUnitTest`. The owner's machine should run that before relying on
+this entry. No app code changed.
+
+### Not done — P5's remaining piece
+
+Nothing in the app calls the export yet. That needs a button (history screen),
+a platform file write or share intent, and a DECISIONS note that the file
+leaves the app only when the user sends it. It is left for a session that can
+build `:app`.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics
