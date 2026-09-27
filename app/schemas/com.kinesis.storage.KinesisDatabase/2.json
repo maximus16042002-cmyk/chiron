@@ -1,0 +1,408 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "cf2fe6a4e1ede234a0c09d17abe03b94",
+    "entities": [
+      {
+        "tableName": "sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sessionId` TEXT NOT NULL, `startedAtEpochMs` REAL NOT NULL, `utcOffsetMinutes` INTEGER NOT NULL, PRIMARY KEY(`sessionId`))",
+        "fields": [
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAtEpochMs",
+            "columnName": "startedAtEpochMs",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "utcOffsetMinutes",
+            "columnName": "utcOffsetMinutes",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "sessionId"
+          ]
+        }
+      },
+      {
+        "tableName": "sets",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`setId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sessionId` TEXT NOT NULL, `exerciseId` TEXT NOT NULL, `startedAtEpochMs` REAL NOT NULL, `kind` TEXT NOT NULL, `orderInSession` INTEGER NOT NULL, FOREIGN KEY(`sessionId`) REFERENCES `sessions`(`sessionId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "setId",
+            "columnName": "setId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "exerciseId",
+            "columnName": "exerciseId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAtEpochMs",
+            "columnName": "startedAtEpochMs",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "orderInSession",
+            "columnName": "orderInSession",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "setId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sets_sessionId",
+            "unique": false,
+            "columnNames": [
+              "sessionId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sets_sessionId` ON `${TABLE_NAME}` (`sessionId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "sessions",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "sessionId"
+            ],
+            "referencedColumns": [
+              "sessionId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "reps",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`repId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `setId` INTEGER NOT NULL, `repIndex` INTEGER NOT NULL, `attributedSide` TEXT, `startMs` REAL NOT NULL, `endMs` REAL NOT NULL, `validity` TEXT NOT NULL, `descentMs` REAL, `ascentMs` REAL, `resampledLeft` BLOB NOT NULL, `resampledRight` BLOB NOT NULL, `rom_left` REAL, `rom_right` REAL, `peak_left` REAL, `peak_right` REAL, `trough_left` REAL, `trough_right` REAL, FOREIGN KEY(`setId`) REFERENCES `sets`(`setId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "repId",
+            "columnName": "repId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "setId",
+            "columnName": "setId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "repIndex",
+            "columnName": "repIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attributedSide",
+            "columnName": "attributedSide",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "startMs",
+            "columnName": "startMs",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endMs",
+            "columnName": "endMs",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "validity",
+            "columnName": "validity",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "descentMs",
+            "columnName": "descentMs",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "ascentMs",
+            "columnName": "ascentMs",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "resampledLeft",
+            "columnName": "resampledLeft",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "resampledRight",
+            "columnName": "resampledRight",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rangeOfMotion.left",
+            "columnName": "rom_left",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "rangeOfMotion.right",
+            "columnName": "rom_right",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "peakValue.left",
+            "columnName": "peak_left",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "peakValue.right",
+            "columnName": "peak_right",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "troughValue.left",
+            "columnName": "trough_left",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "troughValue.right",
+            "columnName": "trough_right",
+            "affinity": "REAL"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "repId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_reps_setId",
+            "unique": false,
+            "columnNames": [
+              "setId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_reps_setId` ON `${TABLE_NAME}` (`setId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "sets",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "setId"
+            ],
+            "referencedColumns": [
+              "setId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "holds",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`holdId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `setId` INTEGER NOT NULL, `startMs` REAL NOT NULL, `endMs` REAL NOT NULL, `validity` TEXT NOT NULL, `totalHoldMs` REAL NOT NULL, `longestUnbrokenMs` REAL NOT NULL, `breakCount` INTEGER NOT NULL, `meanAbsDeviation` REAL, `maxAbsDeviation` REAL, `coverage` REAL NOT NULL, `meanHeldValue` REAL, `heldValueSd` REAL, FOREIGN KEY(`setId`) REFERENCES `sets`(`setId`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "holdId",
+            "columnName": "holdId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "setId",
+            "columnName": "setId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startMs",
+            "columnName": "startMs",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endMs",
+            "columnName": "endMs",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "validity",
+            "columnName": "validity",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalHoldMs",
+            "columnName": "totalHoldMs",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longestUnbrokenMs",
+            "columnName": "longestUnbrokenMs",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "breakCount",
+            "columnName": "breakCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "meanAbsDeviation",
+            "columnName": "meanAbsDeviation",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "maxAbsDeviation",
+            "columnName": "maxAbsDeviation",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "coverage",
+            "columnName": "coverage",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "meanHeldValue",
+            "columnName": "meanHeldValue",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "heldValueSd",
+            "columnName": "heldValueSd",
+            "affinity": "REAL"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "holdId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_holds_setId",
+            "unique": false,
+            "columnNames": [
+              "setId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_holds_setId` ON `${TABLE_NAME}` (`setId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "sets",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "setId"
+            ],
+            "referencedColumns": [
+              "setId"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "baselines",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`ownerUid` TEXT NOT NULL, `calibrationId` TEXT NOT NULL, `kind` TEXT NOT NULL, `estimatorVersion` TEXT NOT NULL, `createdAtEpochMs` REAL NOT NULL, `sourceSessionId` TEXT, `payloadJson` TEXT NOT NULL, PRIMARY KEY(`ownerUid`, `calibrationId`))",
+        "fields": [
+          {
+            "fieldPath": "ownerUid",
+            "columnName": "ownerUid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calibrationId",
+            "columnName": "calibrationId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estimatorVersion",
+            "columnName": "estimatorVersion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtEpochMs",
+            "columnName": "createdAtEpochMs",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sourceSessionId",
+            "columnName": "sourceSessionId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "payloadJson",
+            "columnName": "payloadJson",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "ownerUid",
+            "calibrationId"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cf2fe6a4e1ede234a0c09d17abe03b94')"
+    ]
+  }
+}

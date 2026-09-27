@@ -45,6 +45,9 @@ android {
         // two can be timed live on a non-debuggable build too.
         getByName("profiling").java.srcDir("src/debug/java")
         getByName("profiling").assets.srcDir("src/debug/assets")
+        // Room's exported schemas, which the migration test builds old
+        // databases from. DECISIONS.md P3-22.
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
     }
     // connectedAndroidTest runs against debug unless asked otherwise, e.g.
     // -Pkinesis.testBuildType=profiling for the P3-19 benchmark.
@@ -63,6 +66,12 @@ android {
         checkReleaseBuilds = false
         abortOnError = false
     }
+}
+
+// Every Room schema version is exported and committed, so each migration can be
+// tested from the real old schema. DECISIONS.md P3-22.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
@@ -112,4 +121,7 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
+    // Test-only: builds a version 1 database from its exported schema and checks
+    // the migration. Not in the APK. DECISIONS.md P3-22.
+    androidTestImplementation(libs.androidx.room.testing)
 }

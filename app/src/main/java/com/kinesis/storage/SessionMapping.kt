@@ -105,6 +105,8 @@ object SessionMapping {
         meanAbsDeviation = nullIfNaN(hold.meanAbsDeviation),
         maxAbsDeviation = nullIfNaN(hold.maxAbsDeviation),
         coverage = hold.coverage,
+        meanHeldValue = nullIfNaN(hold.meanHeldValue),
+        heldValueSd = nullIfNaN(hold.heldValueSd),
     )
 
     // --- Rows -> domain ------------------------------------------------------------
@@ -157,9 +159,8 @@ object SessionMapping {
         meanAbsDeviation = nanIfNull(entity.meanAbsDeviation),
         maxAbsDeviation = nanIfNull(entity.maxAbsDeviation),
         coverage = entity.coverage,
-        // Not stored until the P3-22 migration adds the columns: unmeasured.
-        meanHeldValue = Double.NaN,
-        heldValueSd = Double.NaN,
+        meanHeldValue = nanIfNull(entity.meanHeldValue),
+        heldValueSd = nanIfNull(entity.heldValueSd),
     )
 
     // --- The two conversions that carry the risk ---------------------------------------
