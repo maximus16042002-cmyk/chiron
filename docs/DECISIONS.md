@@ -5604,6 +5604,195 @@ kind, and every number in it is a provisional setting, not a measured result.
 
 ---
 
+## P3-23 — The guide demo, diagnosed from the phone, and what it changed
+
+*2026-09-27 and 2026-09-28*
+
+The owner ran Kinesis in front of the project guide and it counted nothing.
+They asked for the failure to be diagnosed as P3-18 was: from saved data, not
+from theory. This entry records that diagnosis, an evening of rehearsals on the
+phone recorded live, one serious mistake of mine and its repair, and the changes
+the owner then directed. **The gap tolerance P3-21 deferred to the camera session
+is built here**, at the owner's explicit direction, using the rehearsal
+recordings as its measured input; that reverses P3-21 on this one point.
+
+### Where the data was, and was not
+
+- **No per-frame data is stored, by design.** Room keeps one record per
+  repetition: validity, the angle at the top and far position, range per side,
+  timing, and a 64-point curve per side. The per-second Phase B readout goes to
+  Logcat only, and the phone's buffer had rolled over.
+- The phone's usage statistics and process-exit log showed Kinesis last ran on
+  2026-09-26. The owner confirmed the demo ran on this phone, so the attempt on
+  record is the one of **2026-09-26, 10:51 to 11:21: 42 sets** (32 squat, 3
+  push-up, 3 curl, 2 plank, 2 wall sit), **none counted**, and 26 of the 38
+  repetition sets with no record at all.
+- Everything read is kept in `local/guide-demo-2026-09-27/` (gitignored): the
+  database copies, the Logcat and rehearsal recordings, the exit reasons and the
+  usage statistics.
+
+### The 2026-09-26 attempt: mostly (a), partly (b), not (c)
+
+The owner asked which happened: (a) the pose not detected reliably, (b) the
+thresholds never crossed, (c) a crash or silent stop.
+
+- **(a), and it is the main cause: one leg was never tracked.** Standing, the
+  knees mostly read 175–180°, so the pose was found. In the three repetitions where the
+  right knee went past the 95° a squat needs (to 40°, 74° and 77°), the left knee
+  was unmeasured in two and never below 131° in the third. Across all 21 squat records the
+  left knee never went below 118.6°, and was unmeasured throughout 7 of them. A
+  person's knees bend together; a 50–100° disagreement means the far leg,
+  hidden in the side-on view, was not really tracked. A squat is `SIMULTANEOUS`
+  and counts only when both knees complete, so it could not count.
+- 17 of the 21 squat records ended within 3 s, part-way down: one unmeasurable frame
+  abandoned the repetition, the behaviour P3-19 part 4 found. The two planks and
+  two wall sits had coverage 0.00.
+- **(b), for some repetitions.** The two ABORTED squats bottomed at 116° and
+  105° on the right knee, short of 95°. Push-ups reached only 131–154° at the
+  elbow.
+- **(c), no.** No crash or ANR was recorded. The process exits were the user
+  removing the task, a force-stop at 11:12 and low-memory kills in the
+  background.
+
+### The rehearsals, recorded live
+
+The owner rehearsed bicep curls with the phone attached and the Phase B readout
+recorded. Four findings, each read from the recordings and the saved sets:
+
+1. **The phone was overloaded.** Thermal status 2, then 3 ("severe") after a
+   restart; CPU 63–65 °C; 72–189 MB of 7.6 GB free, the kernel swap daemon at
+   80–97% of a core; background apps (Myntra, Play Store updates, and after the
+   restart a wallet app, Prime Video, Faasos, Duolingo, Duo Mobile) and, after
+   the restart, `dex2oat` at 450%. In the first readout MediaPipe took up to
+   427 ms a frame, results dipped to 2 a second, and for 41 of 85 seconds nobody
+   was found. After the `dex2oat` job finished and the apps were stopped:
+   thermal status 2, MediaPipe at most 246 ms, the person seen for 240 of 267
+   seconds. The median rate was about 14 results a second in every readout; the
+   load showed as the dips and the lost seconds, not as a lower median.
+2. **Front-on, a curl cannot be measured in 2D.** Every front-on curl was lost
+   at 124–146°, while the arm was seen at visibility 0.9 and the phone kept up,
+   with single-frame angle jumps of 70–134°. Facing the camera, a curl swings the
+   forearm towards the lens and the projected elbow angle is undefined through
+   that part of the movement — the reason FINAL_ARCHITECTURE §5 cut the front
+   raise, and why its final list gave the curl "Side / 45°". The profile declares
+   `FRONT_ON` (P3-9 kept it so both arms are visible); no setup gate enforces
+   the view, so side-on was used. **Side-on, the near arm's curls reached 66°,
+   33° and 69°; the 33° one, at 22:23, was the first repetition this phone ever
+   counted.**
+3. **The glitch filter was stricter than I told the owner.** I said a frame is
+   dropped if the angle moves more than 20° from the previous frame. The gate
+   compares each sample with the **median of the last five**, which trails a
+   moving joint by about three frames; at 15 results a second a curl faster than
+   about 100° a second was dropped, and one dropped frame lost the repetition.
+4. **The display misled.** Amber stayed until a repetition counted, so almost
+   always; and in amber every joint was drawn amber, including MediaPipe's guess
+   at the hidden arm, which then looked like a real arm lifting. The counting
+   never used that arm: its visibility was 0.05–0.15, below the 0.40 floor, and
+   it is unmeasured in every side-on record.
+
+### A mistake of mine, and its repair
+
+To prove the Room migration on the phone before installing, I ran
+`connectedDebugAndroidTest` for `KinesisDatabaseMigrationTest`. Its three tests
+passed on the A142 — **but the run uninstalled the app afterwards**, removing
+its local database. I had not checked whether it would. Why P3-19's connected
+runs left the app installed is not established.
+
+- A full copy of the database, taken at 22:07, held all 53 sessions including
+  the last set (22:05), and passed SQLite's integrity check. Every set had also
+  been uploaded to the account.
+- The app was reinstalled with the new build and the three database files put
+  back **before it was opened**, byte for byte (SHA-256 matched), with Android's
+  original permissions restored. On opening, Room migrated them to version 2 —
+  the migration's first real run on the owner's data — and all 53 sessions were
+  there. Sign-in, camera and Health Connect permissions had to be granted again.
+- From then on the app was updated only with `installDebug`, which keeps data.
+  **Rule:** before any on-phone test run against a phone holding real data,
+  back up its database, and expect the app to be removed.
+
+### What was changed, at the owner's direction
+
+All values are provisional, set from the recordings of 2026-09-27, and belong to
+the camera session to confirm.
+
+| Change | Where | Value, and why |
+|---|---|---|
+| The drawn skeleton is smoothed | `SkeletonSmoothing`, the overlay | A One Euro filter (Casiez, Roussel and Vogel, CHI 2012), display only: the analysis still receives MediaPipe's frame untouched. 0.3 Hz / 12 / 1 Hz, chosen by simulation: still jitter at most 47% of raw, a moving wrist within 0.012 frame widths, a sudden move caught in 4 frames |
+| A repetition crosses short gaps | `RepFsm`, `TemporalConfig.maxBridgedGapMs` | **500 ms.** It bridges 45% of the 106 gaps under 3 s in the readouts recorded before the change (300 ms would bridge 27%). Past it, INSUFFICIENT_DATA as before, now ending at the last measured frame. The phase changes only on measured values, so a gap never counts anything |
+| The glitch filter is looser | `TemporalConfig.outlierThreshold` | **20° → 35°.** Smooth movement read 2–20° a frame, glitches 50–174°; the injected 150° spikes of the ablation are still rejected |
+| Amber is a flash | `LiveAnalysisBridge` | **1.5 s** after a repetition that did not count, then the figure shows tracking again; each failure flashes, and a counted one clears it at once |
+| Unseen joints stay grey | `SkeletonColouring` | A joint below the visibility floor, and a segment to one, is drawn as not seen even when the figure is amber |
+| The curl's at-rest edge | `BicepCurlProfile.topThreshold` | **155° → 145°** (at rest from 137°). Side-on the resting arm read 148–170°, so the old edge of 147° made a junk record, and an amber flash, on every wobble — about twenty in one set |
+| The curl's time limit | `BicepCurlProfile.maxRepDurationMs` | **10 s → 20 s.** Nine deep curls timed out at 10 s with the arm still 50–121° bent on the way down |
+
+**Tests changed on purpose, recorded rather than quietly edited:**
+- `stepping_out_of_shot_mid_repetition_ends_it_as_insufficient_data` stepped out
+  for five frames, which the bridge now crosses; it now stays out for longer
+  than the limit, which is what leaving the shot means.
+- `attention_overrides_every_joint_however_well_it_is_tracked` and
+  `attention_wins_over_a_worse_tracking_state_on_a_segment` pinned the old
+  colouring; they now pin amber over every joint that was seen and never over
+  one that was not.
+- The parity golden file was regenerated twice and each diff reviewed. The
+  bridge: the squat scenario's one-frame-dropout repetition goes from
+  INSUFFICIENT_DATA to VALID, and the plank holds gain 99 ms (the 26° recovery
+  from the sag is accepted three frames sooner). The curl settings: 49 lines of
+  the curl calibration's timings and curves, with no validity changed anywhere.
+
+**Tests first.** The smoothing's jitter test failed against a pass-through stub.
+The gap, amber and colouring tests failed first — the gap and amber ones to a
+compile error, as their parameters did not exist yet. Both curl-settings tests
+failed against the old values. **Mutations, all caught:** the smoothing
+restarting a lost joint; no gap bridged; an abandoned repetition ending at the
+unmeasured frame; amber that never expires; a second identical failure not
+flashing; unseen joints drawn amber.
+
+### What happened after the changes
+
+With every change except the curl settings installed, one side-on set of the
+owner's: **5 curls counted of about 15 real ones**, against 1 in every earlier
+attempt put together. The others were the nine timeouts and one lost to
+tracking, plus about twenty junk records from the resting arm. The curl
+settings answer both, and **have not yet been tried on the phone**.
+
+**Tests.** 1,703 pass, none fail and none are skipped: every unit test of
+`:core:domain`, `:core:analysis` (JVM, JS, allocation, and Android debug and
+release) and `:app` (debug and release), run on 2026-09-28 before this entry
+was committed. On the phone, `KinesisDatabaseMigrationTest` passed 3 of 3, in
+the run described above.
+
+### For the owner
+
+1. **Squats cannot count side-on** while the far knee is untracked: they need
+   both knees. Options — count the near knee only, as the row does; an angled
+   camera; or accept squats as untested. Each is a decision.
+2. **The curl's declared view.** The profile says `FRONT_ON`, and front-on
+   cannot measure the elbow in 2D; side-on counts the near arm only. No setup
+   gate enforces either. A view decision, and the setup assistant (§10) is where
+   it would be enforced.
+3. **A demo phone needs preparing:** restarted, left to finish its background
+   optimisation, cooled, other apps stopped, airplane mode on once signed in.
+4. The earlier items stand: P3-22's four, and the RepFsm edit from another
+   session in `local/foreign-edits/`. That session had announced P3-23 for gap
+   tolerance; it committed nothing, and the owner directed the work here, so
+   this entry takes the number.
+
+### What is NOT verified
+
+- The curl settings, and the skeleton smoothing's look, on the phone.
+- Whether any of this holds on the back camera, in other light, or for another
+  person; everything above is one person, one phone, one evening.
+- Everything in P3-19's and P3-22's camera-session lists that this entry does
+  not name. Added to it: **curls side-on with the new settings, 10 per arm**,
+  counted by hand against the app.
+
+**Scope of this entry.** It records a diagnosis read from saved data and live
+recordings, a mistake and its repair, and provisional settings changed at the
+owner's direction. It makes no accuracy claim: "5 of about 15" is one set, not
+a rate.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
