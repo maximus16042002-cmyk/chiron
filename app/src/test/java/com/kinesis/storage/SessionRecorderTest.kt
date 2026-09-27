@@ -206,5 +206,7 @@ class SessionRecorderTest {
         meanAbsDeviation = 5.0,
         maxAbsDeviation = 12.0,
         coverage = 1.0,
+        meanHeldValue = 175.0,
+        heldValueSd = 2.0,
     )
 }

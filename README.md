@@ -84,9 +84,10 @@ as that licence asks. The notices cover:
   under Apache 2.0. Its model card is in `docs/third_party/`.
 - every direct dependency, with the licence its POM declares, naming the ones
   that are not plain Apache 2.0: Firebase Authentication (Google's Android SDK
-  licence), and the BSD-licensed components that CameraX and the Health Connect
-  client bundle. **Those BSD notice texts are not yet shipped**, and they must
-  be before any build is distributed (`DECISIONS.md` P3-19 §9).
+  licence), and the BSD-licensed components: libyuv (in CameraX) and Protocol
+  Buffers (through MediaPipe, Firestore and the Health Connect client). Their
+  full BSD 3-Clause texts ship in `app/src/main/assets/licenses/`, taken from
+  each project's own repository (`DECISIONS.md` P3-21).
 
 ## The three things that matter most
 

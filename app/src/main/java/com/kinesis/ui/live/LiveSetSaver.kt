@@ -1,6 +1,7 @@
 package com.kinesis.ui.live
 
 import android.database.sqlite.SQLiteException
+import com.kinesis.core.domain.session.SessionRecord
 import com.kinesis.storage.SessionRecorder
 import com.kinesis.storage.SessionRepository
 import kotlinx.coroutines.CoroutineScope
@@ -10,8 +11,12 @@ import kotlinx.coroutines.async
 /** What became of a set when it ended. */
 sealed interface SetSaveOutcome {
 
-    /** Written locally. Sync, if signed in, was scheduled after. */
-    data object Saved : SetSaveOutcome
+    /**
+     * Written locally. Sync, if signed in, was scheduled after. Carries the
+     * session as written, for the set summary or the calibration that follows
+     * END SET - DECISIONS.md P3-22.
+     */
+    data class Saved(val session: SessionRecord) : SetSaveOutcome
 
     /** Nobody was ever seen, so there was no set to write. */
     data object NothingToSave : SetSaveOutcome
@@ -63,13 +68,13 @@ class LiveSetSaver(
         val closed = engine.closeSetInto(recorder, startedAtEpochMs)
         val write = scope.async {
             if (!closed) return@async SetSaveOutcome.NothingToSave
-            try {
+            val session = try {
                 recorder.finish()
             } catch (error: SQLiteException) {
                 return@async SetSaveOutcome.Failed(error.message ?: "the local database refused the write")
-            }
+            } ?: return@async SetSaveOutcome.NothingToSave
             onSaved()
-            SetSaveOutcome.Saved
+            SetSaveOutcome.Saved(session)
         }
         outcome = write
         return write

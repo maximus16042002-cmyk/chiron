@@ -5060,9 +5060,31 @@ P3-18's lists stands, except what this entry and P3-18 closed.
     fallback allocates.
 12. **A new set uploading on its own** through `SessionSyncWorker`, under the
     fixed rules, with `KinesisSync` logging the push.
+13. **The calibration flow, on the phone** *(added by P3-22)*. Calibrate Squat
+    side-on with 8–10 ordinary squats; the card must show per-side values, the
+    library must mark Squat calibrated, and the dashboard must list the
+    baseline. Then an ordinary squat set: the set summary must show each
+    repetition's range of motion and tempo beside the baseline. Recalibrate and
+    check the card's date and values replace the old ones. Calibrate with too
+    few valid repetitions (end after 3) and check the plain "No baseline yet"
+    reason, and that the earlier baseline is untouched.
+14. **An alternating and a one-sided calibration** *(P3-22)*. Bicep Curl
+    front-on, at least 5 curls per arm: two sides, each from its own arm, tempo
+    per arm. Row side-on: one side measured, the other shown as a dash, and
+    "L minus R" not measurable.
+15. **A hold calibration** *(P3-22)*. Plank side-on for 15 s or more: held-at
+    angle, offset from 180°, sway and time. A second plank's set summary shows
+    them beside the baseline. A plank under 10 s must not calibrate.
+16. **Whether 5–8 repetitions and 10 s are reachable** *(P3-22)* at the
+    phone's real frame rate and validity, since only VALID repetitions count:
+    how many squats it takes to get 5 valid ones is itself a camera-session
+    finding.
 
 Not needing the camera but still owed: the Health Connect rationale opened from
 Health Connect's own settings, and a steps figure later in a day with walking.
+And, needing only the phone attached *(P3-22)*: `KinesisDatabaseMigrationTest`
+under `connectedDebugAndroidTest`, and the first install of this build over
+the existing one, which migrates the owner's real version 1 database.
 
 **Scope of this entry.** It records the following, and makes no accuracy claim
 of any kind:
@@ -5126,6 +5148,459 @@ A public repository puts the key in front of automated scanners that never see
 an APK. At that point, at minimum, confirm the key's restrictions and the
 rules' behaviour. Also consider rotating the key and dropping the file from
 history.
+
+---
+
+## P3-21 — Owner decisions: the camera session waits, P6 goes first, and P3-19's list
+
+*2026-09-26*
+
+Decided by the project owner at the start of this session, and recorded here
+before any work on them, as they asked.
+
+### The camera session is deferred, and P6 goes ahead of P5 and P7
+
+- **The Phase B camera tests wait.** The owner and their teammate will do the
+  camera session together later. P3-19's list "What is NOT verified — the camera
+  session" still stands in full, and nothing below closes any of it.
+- **Work continues before it.** FEATURE_PLAN.md said its batches start "after
+  Phase B", once its findings were fixed. That no longer holds, and its order
+  line now says so.
+- **P6, calibration and personal baselines, goes first, ahead of P5 and P7,**
+  so there is something to demonstrate to the project's guide. P5 and P7 follow
+  at the owner's direction.
+- **Anything tuned to real movement stays provisional until the camera
+  session.** That covers every threshold already marked provisional, and every
+  number P6 introduces. P6's calibration counts have a second, later authority
+  as well: the MM-Fit convergence study (ZERO_DATASET_BUILD_PLAN.md, Study 3).
+
+This is the same trade P3-4 accepted: work built before the device check may
+need rework if the camera session finds something fundamental. The owner
+accepts it again here.
+
+### P3-19's five decisions for the owner
+
+| P3-19 item | Decision |
+|---|---|
+| 1. Gap tolerance (`maxGapMs`) | **Waits for the camera session.** It needs the measured lengths of the runs of unmeasurable frames, which only the camera session can collect. |
+| 2. AGP 8.9.1 and compileSdk 36 | **Its own small batch, later.** Not part of P6. The stable Health Connect client 1.1.0 and P1-1's lint exclusion wait with it. |
+| 3. The GPU delegate | **Not adopted.** It changes the numerics, and its measured benefit on this phone was inconsistent: 11 ms faster in one run, 3–4 ms slower in another. The CPU delegate stays. |
+| 4. The full pose model live | **A debug-only switch is added.** Release builds keep the lite model only. |
+| 5. The two BSD notice texts | **Added now** to the licences screen: libyuv (CameraX) and Protocol Buffers (Health Connect, MediaPipe, Firestore). |
+
+Items 4 and 5 are built in this session. How is recorded below as each lands.
+
+### Item 5, built: the two BSD texts ship
+
+The licences screen now carries the full BSD 3-Clause text of both components,
+under their own heading, above the Apache text.
+
+- **Neither artifact carries a usable copy.** CameraX's AAR has no libyuv text
+  at all (P3-17). Health Connect's `connect-client-external-protobuf` jar has a
+  `LICENSE.txt`, but without the copyright line, and a BSD licence's first two
+  conditions are to reproduce "the above copyright notice".
+- **So both came from the projects' own repositories, fetched raw and copied
+  byte for byte**, not typed and not summarised:
+  - libyuv: `LICENSE` from chromium.googlesource.com/libyuv/libyuv, `main`.
+    camera-core's POM names that repository's `README.chromium`, which names
+    `LICENSE` as the licence file. "Copyright 2011 The LibYuv Project Authors."
+    The repository also has a `PATENTS` file, an additional patent grant to
+    the recipient that asks nothing of a redistributor; it is not shipped.
+  - Protocol Buffers: `LICENSE` from github.com/protocolbuffers/protobuf at
+    tag `v26.1`, the release of `protobuf-javalite` 4.26.1, which is the
+    version the release APK resolves (through MediaPipe and Firestore). The
+    same terms cover Health Connect's repackaged copy. "Copyright 2008 Google
+    Inc."
+- `ThirdPartyNoticesTest` checks each text for its copyright line, grant, both
+  conditions, endorsement clause and disclaimer. Its first version failed on a
+  correct file: libyuv breaks one clause across a line. The clauses are now
+  compared with whitespace collapsed.
+
+**P3-17's and P3-19's "owed before any build is distributed" is closed** for
+these two texts.
+
+### Item 4, built: a debug-only lite/full switch
+
+- **Debug builds** show `[ USE FULL MODEL ]` under the camera switch when the
+  build carries the full model, and `[ USE LITE MODEL ]` to go back.
+  Switching is a new set, like switching camera: the set in progress is saved
+  and a new one starts, because one set measured by two models is not one
+  measurement. The Phase B readout names the model on every line
+  (`lite model` / `full model`), so the two can be told apart in Logcat.
+- **Release builds cannot switch.** The switch function lives in `src/debug`;
+  its `src/release` twin returns nothing to switch to, and release assets hold
+  the lite model only. Checked in the built APKs: the debug APK carries
+  `pose_landmarker_full.task` (9,398,198 bytes), the release APK only
+  `pose_landmarker_lite.task`.
+- **The full model is not committed.** It sits in `app/src/debug/assets/`,
+  which `.gitignore` excludes; its SHA-256 matches P3-19's download
+  (`4eaa5eb7…c4ad`). A build from a fresh clone has no full model and offers no
+  switch. To enable it, copy `local/models/pose_landmarker_full.task` there.
+  The profiling build shares the debug assets, so lite and full can be timed
+  live without a debugger attached.
+- The licences screen's model notice now says debug builds may carry the Full
+  model under the same card and licence; `ThirdPartyNoticesTest` checks both
+  asset folders.
+
+**Five mutations, all caught, files restored byte for byte:** the full model
+in `src/main/assets`; the release twin offering the switch; the readout
+dropping the model name; the protobuf text without its copyright line; the
+libyuv text cut short.
+
+---
+
+## P3-22 — P6: calibration and personal baselines
+
+*2026-09-27*
+
+P6, at the owner's direction and ahead of P5 and P7 (P3-21). A user calibrates
+an exercise with an ordinary set; the shared core turns its valid repetitions
+into a personal baseline, per side; the app stores it on the phone only; and
+every later set of that exercise is shown beside it, as numbers. **No
+judgement is made anywhere**: "shallower than your usual" and the rules behind
+it are P8's. Nothing here has run on the phone, which was not attached at any
+point in this session. **Every number in this entry is provisional**, per
+P3-21, until the camera session and the MM-Fit convergence study.
+
+### What was built
+
+| Part | Where | What |
+|---|---|---|
+| Baseline | `:core:domain` `calibration/` | `CalibrationBaseline`: `RepetitionBaseline` and `HoldBaseline` |
+| Calibrator | `:core:analysis` `calibration/` | `Calibration`, `CalibrationPolicy`, `RobustStatistics`, `CalibrationKey`, `CalibrationGuide` |
+| Analysis | `:core:domain` `analysis/`, `:core:analysis` | `AnalysisResult`, computed by `PostRepAnalysis` |
+| Serialised form | `:core:analysis` | `BaselineJson`, and a small `JsonText` reader |
+| Facade | `KinesisEngine` | `computeBaseline` and `analyzeRep`, the two methods CONTRACTS.md §5 said wait for P6 |
+| Hold steadiness | `HoldAnalyser`, `HoldRecord` | `meanHeldValue` and `heldValueSd` over the frames that held |
+| Storage | `:app` | Room version 2: a `baselines` table, two hold columns, one migration |
+| Flow | `:app` | exercise screen, CALIBRATE, calibration result, set summary, dashboard baselines |
+
+### The provisional numbers, and why each
+
+All three live in `CalibrationPolicy.PROVISIONAL` (version `p6-1`, stored on
+every baseline) and are pinned by a test, so changing one is a visible change.
+
+| Number | Value | Why this value |
+|---|---|---|
+| Fewest valid repetitions per side | **5** | The smallest sample in which the quartiles (below) fall exactly on the second-smallest and second-largest values, so one extreme repetition at either end moves neither the median nor the IQR. With 4 it moves the IQR. `RobustStatisticsTest` shows both. It is also the low end of ZERO_DATASET's "5-10 reps". |
+| Most valid repetitions used per side | **8** | ZERO_DATASET Study 2 builds each subject's personal baseline from "their first 8 repetitions". Using the same number makes the app's baseline and the study's the same estimator. Taking the first 8 also keeps the tired end of a long set out. |
+| Shortest calibration hold | **10 s** | At the 12–16 results a second measured on the phone (P3-18, P3-19), about 120–160 held frames behind the sway figure, and short enough to ask of someone new to a plank. MM-Fit has no holds, so only the camera session can revisit it. |
+
+"Per side" means: a squat's 5–8 repetitions measure both knees at once; a bicep
+curl needs 5–8 curls with each arm (10–16 in all); a row needs them on the side
+nearer the camera only.
+
+**The quartile definition is fixed too**: NumPy's default (linear, Hyndman and
+Fan type 7). The convergence study is Python; if it used a different quartile
+it would be answering a question about a different estimator. A mutation to
+nearest-rank quartiles fails 12 tests, the parity suite among them.
+
+**Who sets them for real.** The repetition counts: the MM-Fit convergence study
+(Study 3: baselines from the first N for N from 3 to 20, with bootstrap
+intervals). The hold duration: the camera session. Whether the counts are even
+reachable, given that only VALID repetitions count and P3-18's phone set was 11
+of 12 `INSUFFICIENT_DATA`: the camera session (checklist item 16).
+
+### What a baseline holds
+
+**Repetition exercises**, each per side as a median and interquartile range, the
+IQR being the rep-to-rep variability:
+
+- range of motion; the angle at the starting position (peak) and at the far
+  position (trough);
+- descent and ascent time — see *Tempo* below;
+- the habitual left-minus-right range of motion — see *Asymmetry* below;
+- the pointwise mean of the used repetitions' 64-point curves, and each
+  repetition's root-mean-square distance from it (the curve's spread).
+
+**One rule decides which repetitions a side is built from, with no branch on the
+exercise's shape**: a repetition counts towards a side exactly when it is VALID
+and measured that side. A squat's repetitions measure both knees, an
+alternating curl's one arm each, a near-side-only row's the side facing the
+camera. The same rule gives each of them the right answer. Pinned for all three.
+
+**Tempo, as the records attribute it — a limit stated, not hidden.** A
+`RepRecord` carries one descent and one ascent time. For a one-sided repetition
+(an alternating curl, a row) that time is that side's, and the baseline files it
+per side. For a repetition both sides made together, the tracker takes the time
+from the side it measured for longer (P3-2): it describes the repetition, not
+either side. The baseline files it once, "both sides together", rather than
+under both sides, which would claim two per-side measurements that were never
+made (a mutation doing exactly that is caught). **Per-side tempo for squats,
+push-ups and the other simultaneous exercises would need `RepRecord` to keep
+each side's phase times** — a change to the measurement record, Room, the sync
+document and the parity golden file. That is a decision for the owner, and was
+not made here.
+
+**Asymmetry comes in three kinds, because how the sides were seen decides what
+can be known:** *paired* (both sides in the same repetitions: a median and IQR
+of each repetition's left minus right); *between side medians* (alternating
+limbs: the difference of the two sides' medians, with no spread of its own);
+*not measurable* (the near-side-only row — FINAL_ARCHITECTURE §5's "no symmetry
+claim"). This is the "habitual offset" FINAL_ARCHITECTURE §2's asymmetry rule
+subtracts; the rule itself is P8.
+
+**The mean curve is a mean, as the brief asked, and so it is not robust.** One
+odd repetition among eight moves it. P8's reference repetition — "min median
+DTW", FINAL_ARCHITECTURE §7 — is the robust curve, and nothing here anticipates
+it.
+
+**Holds get a hold baseline** from one valid calibration hold of at least 10 s:
+where the body line was held (and its signed offset from the profile's target),
+the mean distance from the target, **the sway (steadiness)**, time held and
+breaks. Not per side, on purpose: a hold is analysed on the body line, which
+both sides' landmarks describe together (P3-9), reduced to one signal by the
+named `HoldReading` rule before the analyser sees it (P3-16). Nothing measured
+per side reaches the hold record, so nothing per side can reach its baseline.
+
+**Steadiness had to be measured first.** `HoldRecord` held a mean absolute
+deviation from the target, which says how far but not which way, and nothing
+about sway. `HoldAnalyser` now keeps a running mean and sample standard
+deviation of the signal over the frames that held — Welford's method, constant
+space, allocation-free, and accurate for a sway of a millionth of a degree
+around 179° (tested). `HoldRecord` gains `meanHeldValue` and `heldValueSd`; a
+hold recorded before this reloads both as `NaN`, not measured. A hold without
+them cannot calibrate.
+
+**Too few, and the app says so plainly.** No baseline is ever built from fewer
+than the minimum. The core composes the reason, in numbers — for example "No
+baseline yet. Calibration needs at least 5 valid repetitions on each side; this
+set had 4 on the left and 3 on the right. Only repetitions counted as valid are
+used." — and the app shows it as given. A set that does not calibrate leaves the
+earlier baseline untouched.
+
+**Variants share their parent's baseline** (CONTRACTS §3). CALIBRATE is offered
+on parents only; a Goblet Squat's screen shows the Squat baseline and says so.
+P3-6's open assumption — a loaded squat measured against unloaded ones — stands,
+unmeasured.
+
+### `AnalysisResult`: separate, computed, and making no claim
+
+- **Separate from `RepRecord`** (CLAUDE.md §15). The record is what the camera
+  saw; an `AnalysisResult` is what one version of the analysis made of it
+  against one baseline, and it names both (`analysisVersion`
+  `p6-comparison-1`, and a `BaselineReference`).
+- **Computed, not stored.** Every set summary recomputes it from the stored
+  records and the current baseline, so re-analysing old repetitions when rules
+  change is simply computing it again — the property §15 asks for, by
+  construction. Whether P8 should also keep what was shown at the time is P8's
+  decision.
+- **Numbers only.** A comparison is `BesideBaseline(measured, baseline,
+  baselineSpread)`: no difference, no percentage, no direction.
+- **`findings` is always empty in P6**, and
+  `p6_makes_no_claim_beyond_numbers_for_any_exercise` pins it across the whole
+  library. P8 replaces that test deliberately when its rules — each with a
+  `ruleVersion`, and for Level 3 a `sourceRef` — exist.
+
+### The facade
+
+`computeBaseline(repsJson)` takes the records exactly as `pushFrame` and
+`finishSet` return them and returns an outcome: `calibrated` with the baseline,
+or `tooFewRepetitions` / `holdNotUsable` with the counts and the reason. Not
+having a baseline is an answer, not an exception. `analyzeRep(repJson,
+baselineJson)` returns the `AnalysisResult` as JSON. The facade has no clock or
+session, so its baselines carry `null` for both; a platform stamps its own.
+CONTRACTS.md §5 is updated.
+
+**Parity.** Three new golden scenarios through the facade — a squat calibration,
+alternating curls, and a plank (with a first plank too short to calibrate) —
+each fitting a baseline and analysing every record against it. The golden file
+was regenerated deliberately and its diff reviewed: every existing line is
+unchanged except the plank's hold record, which gains exactly its two new
+fields. JVM, JS and both Android variants match within CONTRACTS §6's 1e-9;
+counts are compared exactly.
+
+### Storage: Room version 2, never destructive
+
+- A `baselines` table keyed by **(user, exercise)**: one baseline per user per
+  exercise, and recalibrating replaces it. The baseline itself is one column,
+  the core's `BaselineJson` — left and right as separate fields throughout, and
+  "not measured" as `null` — because nothing queries inside a baseline and that
+  format already round-trips exactly on every platform. A row that cannot be
+  read is logged under `KinesisStorage` and treated as not calibrated.
+- Two nullable hold columns for the new measurements.
+- **The migration only adds**: one `CREATE TABLE`, two `ALTER TABLE … ADD
+  COLUMN`. Nothing is dropped, rewritten or copied. The builder has no
+  destructive fallback, so a missing migration would stop the app opening its
+  database rather than empty it; the app and the migration test use the same
+  builder.
+- **Schemas are exported and committed.** `1.json` could not be produced by this
+  build once the entities changed, so it was generated from a throwaway git
+  worktree at `HEAD` with only schema export switched on; the entity file has
+  not changed since P3-12, so it is the schema on the owner's phone. `2.json` is
+  this build's. The migration's `CREATE TABLE` is Room's own for version 2,
+  character for character.
+- **Tests.** `KinesisDatabaseMigrationTest` (on the phone, three tests) builds a
+  filled version 1 database from `1.json` — a squat set with a half-seen
+  repetition and a plank — migrates it, and reads every row back through the
+  app's own DAO and mapping; then stores, replaces and separates baselines by
+  user. **It has not run: no phone was attached.** It compiles into the test
+  APK. On the JVM, `DatabaseVersionGuardTest` fails if the version moves without
+  a gapless migration chain and an exported schema, or if a destructive
+  fallback appears.
+
+**§17 check: `androidx.room:room-testing` 2.7.1.** *Why:* a migration test from
+the real old schema, which Room itself provides for. *Existing capability:* Room
+validates a migrated schema on open, but cannot build an old database from its
+exported schema. *Licence:* Apache 2.0, read from its POM; its transitives
+(`room-testing-android`, `room-migration`, `room-common`, AndroidX arch-core,
+okio) are Apache 2.0. *Platform:* `androidTestImplementation` only — **not in
+the APK**; the release runtime classpath has no `room-testing`. *Offline,
+bundle:* unaffected. *Maintenance:* AndroidX, the Room version already pinned.
+
+### Baselines stay on the phone, and the disclosure stays true
+
+The sign-in disclosure (P3-14) says completed sessions leave the phone. A
+baseline is not a session, and nothing uploads one. `BaselinesStayOnThePhoneTest`
+checks three independent things: nothing in the sync package refers to a
+baseline type; sync wraps the session repository and nothing else; and the
+Firestore rules accept writes under a user's `sessions` only, so an upload that
+somehow got written would be refused. The disclosure needs no change and gets
+none. Two consequences, stated to the user on the calibration screen:
+
+- **The calibration set itself is an ordinary session.** It is saved, counts
+  towards the streak, and syncs like any other — the disclosure already covers
+  it. What stays on the phone is the baseline derived from it.
+- **A reinstall or a new phone keeps the history and loses the baselines.** The
+  user calibrates again.
+
+**Found, not changed: local sessions are not partitioned by account.** The Room
+session tables have no user column, and `SessionMerge.pushMissing` pushes every
+local session to whoever signs in. On a phone shared by two accounts, one
+account's sessions would be uploaded to the other's. Baselines are keyed by user
+and do not have this problem; sessions predate this batch and it is not changed
+here. **For the owner.**
+
+**One sync detail.** A synced hold writes the two new fields only when measured.
+A hold recorded before this batch therefore uploads byte for byte what an older
+client wrote — which matters because the rules accept a re-upload only if it is
+identical to the stored document (P3-19), and a retry differing by two `null`
+keys would be refused forever. `SessionDocumentHoldFieldsTest` pins it.
+
+### The flow in the app
+
+TRAIN lists every entry with **CALIBRATED** / **NOT CALIBRATED** (a variant:
+"CALIBRATED VIA SQUAT"). An entry opens its own screen — START SET, CALIBRATE
+(RECALIBRATE once calibrated), and its baseline card. CALIBRATE shows the core's
+instructions (usual repetitions, whole body in frame, the required view and
+posture, the provisional counts) and a line that the baseline stays on this
+phone; START CALIBRATION SET runs an ordinary live set labelled CALIBRATION SET.
+END SET saves the set as usual, then the core builds the baseline and the app
+saves it, replacing any earlier one, and shows the card: per side, median with
+its IQR, and the estimator version marked provisional. After an ordinary set, a
+**set summary** lists every record — validity, and range of motion per side,
+descent and ascent — and, with a baseline, each value beside the baseline's.
+HISTORY now lists every calibrated exercise's baseline card.
+
+Calibration completes only through END SET. Leaving a calibration set by the nav
+bar saves the set, like any set, and builds no baseline.
+
+### A change to this folder that was not this session's
+
+On resuming, `core/analysis/.../rep/RepFsm.kt` was modified in this working
+tree, and this session had not touched it: `isAtTop` and `isAtBottom` gave the
+full hysteresis band only while already at the top or bottom — a change to how
+repetitions are detected, with no decision entry. Its timestamp (2026-09-26
+11:09) matches another Claude session that announced gap-tolerance work in a
+separate worktree (`E:\kinesis-repcount`, branch `repcount-gap-tolerance`,
+proposing P3-23); that worktree was clean. The owner had said only this session
+works in this folder. **It was not committed and not discarded:** an exact copy
+and a patch are in `local/foreign-edits/` (gitignored), and the committed
+`RepFsm.kt` was restored so this batch's tests measure the committed engine. The
+parity golden file was regenerated before that edit was made, so it reflects
+the committed FSM. The other session was no longer running and could not be
+told. **P3-21 records that gap tolerance waits for the camera session**; whether
+that work proceeds is the owner's call.
+
+### What "tested" means here
+
+`gradlew clean`, then `gradlew assemble allTests :app:testDebugUnitTest`:
+**BUILD SUCCESSFUL, 1,492 test executions, 0 failures, 0 errors**, and no
+compiler warnings from the project's sources. P3-19 stood at 1,181, so this
+batch adds 311. `:app:testReleaseUnitTest` runs 153 more, all passing. The test
+APK for the phone (`assembleDebugAndroidTest`) builds.
+
+| Module and target | P3-19 | Now | Added |
+|---|---|---|---|
+| `:core:analysis`, per shared target (JS, Android debug, Android release) | 225 | 295 | calibration 54, steadiness 6, facade 7, parity 3 (the 3 new scenarios) |
+| `:core:analysis`, JVM | 235 + 5 | 305 + 5 | the same 70 |
+| `:core:domain`, per target | 33 | 33 | — |
+| `:app`, debug unit tests | 134 | 165 | coordinator 8, baseline mapping 6, stays-on-phone 4, version guard 3, hold fields 3 + 1, model switch 3, release assets 1, notices 2 |
+
+`connectedDebugAndroidTest`: **not run** — no phone was attached at any point
+in this session. It now includes `KinesisDatabaseMigrationTest` (3 tests).
+
+**Tests first, as it happened.** The core was written as a skeleton of
+signatures whose bodies threw, and the 60 core tests were run against it: **58
+failed**, and the 2 that passed were already right (the policy pin, and a hold
+that never held). All 60 then passed on JVM and JS. The facade tests were
+written before the facade methods but not run against the stub separately. The
+app's storage and coordinator tests were written alongside their code, and are
+backed by mutation instead. One test was wrong at first and one of mine had a
+regex bug, both caught before they could pass for the wrong reason: the libyuv
+clause test (above), and a rules-path pattern that would have stopped at the
+first `{`.
+
+**Mutations: 24, all caught, every file restored byte for byte** (plus the five
+under P3-21).
+
+| Mutation | Caught by |
+|---|---|
+| Baseline built from the two sides averaged | 11 tests, incl. `each_side_keeps_its_own_median_range_of_motion` |
+| Invalid repetitions counted | `only_valid_repetitions_count` and the too-few test |
+| One side enough for a both-sided profile | `an_alternating_exercise_needs_five_on_each_arm` |
+| No cap of 8 per side | `only_the_first_eight_valid_repetitions_on_a_side_are_used` |
+| A shared repetition's timing filed under both sides | 2 tests |
+| Mean curve takes unmeasured points | `the_mean_curve_is_pointwise_and_skips_unmeasured_points` |
+| Quartiles by nearest rank | 12 tests, incl. two parity scenarios |
+| Sway as a population SD | 2 steadiness tests |
+| A finding produced before P8 | `p6_makes_no_claim_beyond_numbers_for_any_exercise` |
+| Another exercise's baseline accepted | 2 tests |
+| Not measured reloads as zero | 3 JSON and facade tests |
+| A variant given its own baseline | `every_variant_uses_its_parents_baseline_and_every_profile_its_own` |
+| An unclassified file in the calibration package | the source guard's coverage test |
+| Timing never attributed to a side | the alternating-curl calibration test |
+| A field dropped from the baseline JSON | 8 tests, incl. two parity scenarios |
+| Sync code refers to a baseline | `nothing_in_the_sync_package_touches_a_baseline` |
+| The rules open a baselines collection | `the_firestore_rules_accept_writes_only_under_a_users_sessions` |
+| Destructive fallback in place of the migration | `the_builder_never_falls_back_to_a_destructive_migration` |
+| The migration left out of the list | the gapless-chain test |
+| A row whose payload is another exercise's accepted | `a_row_whose_columns_disagree_with_its_payload_is_refused` |
+| Baselines shared across users | 7 coordinator tests |
+| Room drops the sway | the hold-fields mapping test |
+| Sync writes unmeasured hold fields as `null` keys | `an_unmeasured_hold_writes_exactly_the_document_an_older_client_wrote` |
+| A failed calibration replaces the baseline anyway | `a_set_that_does_not_calibrate_leaves_the_earlier_baseline_alone` |
+
+One mutation first did not run: its pattern ended in a line feed and that file
+has CRLF endings. The harness left the source untouched (checked against `HEAD`)
+and it was rerun with a line-ending-free pattern.
+
+### What is NOT verified
+
+- **Anything on the phone.** No device was attached at any point. Not run:
+  `connectedDebugAndroidTest`, including `KinesisDatabaseMigrationTest`; the
+  migration of the owner's real database on first install of this build; and
+  every screen of the flow. The camera-session checklist in P3-19 gains items
+  13–16, and the no-camera list the migration run.
+- **Every provisional number** — 5, 8, 10 s — against the MM-Fit convergence
+  study and against real frame rates and validity.
+- **Whether a squat-shaped baseline is a good baseline at all** for any real
+  person: nothing here has seen one.
+
+### Decisions for the owner
+
+1. **Per-side tempo for simultaneous exercises** needs `RepRecord` to keep each
+   side's phase times: a measurement-record change touching Room, sync and the
+   golden file.
+2. **Local sessions are not partitioned by account** (above).
+3. **The RepFsm edit found in this folder** and the gap-tolerance work it
+   belongs to, against P3-21.
+4. **Whether a calibration hold should be one hold or several.** One is what a
+   hold set is today; several would give the sway a spread of its own.
+
+**Scope of this entry.** It records a calibrator, a data model, a migration and
+an app flow, built and tested off the phone. It makes no accuracy claim of any
+kind, and every number in it is a provisional setting, not a measured result.
 
 ---
 

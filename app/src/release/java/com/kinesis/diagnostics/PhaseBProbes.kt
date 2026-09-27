@@ -12,5 +12,6 @@ import com.kinesis.pose.CameraFacing
 fun phaseBProbeOrNull(
     required: RequiredLandmarks,
     camera: CameraFacing,
+    model: String,
     show: (String) -> Unit,
 ): PhaseBProbe? = null

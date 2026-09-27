@@ -8,6 +8,8 @@ import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Transaction
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.kinesis.core.domain.session.SessionRecord
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -63,27 +65,84 @@ interface SessionDao {
     }
 }
 
+/**
+ * ### Versions and migrations - DECISIONS.md P3-22
+ *
+ * **Never destructive.** A schema change ships with a [Migration] that carries
+ * every existing session across, and the builder has no destructive fallback:
+ * were a migration ever missing, Room would refuse to open the database rather
+ * than empty it. Losing a user's training to a schema change is the one outcome
+ * this storage may not have.
+ *
+ * Every version's schema is exported to `app/schemas/`, and
+ * `KinesisDatabaseMigrationTest` builds a real version 1 database from the
+ * exported schema, fills it, migrates it with [build] - the configuration the
+ * app itself uses - and reads every session back. `DatabaseVersionGuardTest`
+ * fails if [VERSION] moves without a migration and an exported schema.
+ *
+ * | Version | What |
+ * |---|---|
+ * | 1 | Sessions, sets, repetitions, holds (P3-12) |
+ * | 2 | `baselines` (P3-22); two hold columns, `meanHeldValue` and `heldValueSd` |
+ */
 @Database(
-    entities = [SessionEntity::class, SetEntity::class, RepEntity::class, HoldEntity::class],
-    version = 1,
-    exportSchema = false,
+    entities = [SessionEntity::class, SetEntity::class, RepEntity::class, HoldEntity::class, BaselineEntity::class],
+    version = KinesisDatabase.VERSION,
+    exportSchema = true,
 )
 abstract class KinesisDatabase : RoomDatabase() {
 
     abstract fun sessionDao(): SessionDao
 
+    abstract fun baselineDao(): BaselineDao
+
     companion object {
+
+        const val VERSION: Int = 2
+
+        const val NAME: String = "kinesis.db"
+
+        /**
+         * Adds the baselines table and the two hold columns. Nothing is dropped,
+         * rewritten or copied: every existing row stays as it was, and existing
+         * holds read `NULL` - not measured - in the new columns. The statements
+         * are the ones Room exports for version 2 (`app/schemas/.../2.json`), so
+         * the migrated schema is the schema a fresh install gets; Room checks
+         * that on every open after migrating.
+         */
+        val MIGRATION_1_2: Migration = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `baselines` (`ownerUid` TEXT NOT NULL, " +
+                        "`calibrationId` TEXT NOT NULL, `kind` TEXT NOT NULL, `estimatorVersion` TEXT NOT NULL, " +
+                        "`createdAtEpochMs` REAL NOT NULL, `sourceSessionId` TEXT, `payloadJson` TEXT NOT NULL, " +
+                        "PRIMARY KEY(`ownerUid`, `calibrationId`))",
+                )
+                db.execSQL("ALTER TABLE `holds` ADD COLUMN `meanHeldValue` REAL")
+                db.execSQL("ALTER TABLE `holds` ADD COLUMN `heldValueSd` REAL")
+            }
+        }
+
+        /** Every migration, oldest first. A version bump adds one here. */
+        val MIGRATIONS: List<Migration> = listOf(MIGRATION_1_2)
 
         @Volatile
         private var instance: KinesisDatabase? = null
 
         fun get(context: Context): KinesisDatabase = instance ?: synchronized(this) {
-            instance ?: Room.databaseBuilder(
-                context.applicationContext,
-                KinesisDatabase::class.java,
-                "kinesis.db",
-            ).build().also { instance = it }
+            instance ?: build(context, NAME).also { instance = it }
         }
+
+        /**
+         * The app's configuration: every migration, and no destructive fallback.
+         * The migration test opens its database through this, so what it proves
+         * is what the phone runs.
+         */
+        fun build(context: Context, name: String): KinesisDatabase = Room.databaseBuilder(
+            context.applicationContext,
+            KinesisDatabase::class.java,
+            name,
+        ).addMigrations(*MIGRATIONS.toTypedArray()).build()
     }
 }
 

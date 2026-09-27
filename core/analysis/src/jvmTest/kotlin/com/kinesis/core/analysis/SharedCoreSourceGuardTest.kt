@@ -402,6 +402,15 @@ class SharedCoreSourceGuardTest {
             // purpose, which is what this path is for.
             "Streaks.kt",
             "Dashboard.kt",
+            // P3-22: calibration runs once, after the calibration set has ended,
+            // and the comparison once per completed record. Both take records,
+            // which exist only once a movement has finished.
+            "Calibration.kt",
+            "CalibrationPolicy.kt",
+            "CalibrationGuide.kt",
+            "RobustStatistics.kt",
+            "PostRepAnalysis.kt",
+            "BaselineJson.kt",
         )
 
         /**
@@ -416,6 +425,7 @@ class SharedCoreSourceGuardTest {
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/hold",
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/history",
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/live",
+            "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/calibration",
         )
 
         /**

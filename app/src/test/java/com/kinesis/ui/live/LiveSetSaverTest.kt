@@ -96,7 +96,9 @@ class LiveSetSaverTest {
 
         val outcome = saver(engine).endSet().await()
 
-        assertSame(SetSaveOutcome.Saved, outcome)
+        // The saved session is handed back, for the set summary or the calibration
+        // that follows END SET - DECISIONS.md P3-22.
+        assertSame(local.saved.singleOrNull(), (outcome as SetSaveOutcome.Saved).session)
         assertEquals("the set never reached local storage", 1, local.saved.size)
         val set = local.saved.single().sets.single() as RepetitionSetRecord
         assertEquals("squat", set.exerciseId)
@@ -169,7 +171,8 @@ class LiveSetSaverTest {
             clockMs += 33
         }
 
-        assertSame(SetSaveOutcome.Saved, saver(engine).endSet().await())
+        val outcome = saver(engine).endSet().await()
+        assertSame(local.saved.single(), (outcome as SetSaveOutcome.Saved).session)
         val set = local.saved.single().sets.single() as HoldSetRecord
         assertEquals("plank", set.exerciseId)
         assertEquals(HoldValidity.VALID, set.holds.single().validity)

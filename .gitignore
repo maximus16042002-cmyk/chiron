@@ -21,3 +21,7 @@ kotlin-js-store/
 # Signing keys. Never committed.
 *.jks
 *.keystore
+
+# The full pose model, for the debug-only lite/full switch. Not committed:
+# copy local/models/pose_landmarker_full.task here. DECISIONS.md P3-21.
+/app/src/debug/assets/*.task

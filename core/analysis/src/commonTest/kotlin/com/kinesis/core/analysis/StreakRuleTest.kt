@@ -305,5 +305,7 @@ class StreakRuleTest {
         meanAbsDeviation = 3.0,
         maxAbsDeviation = 8.0,
         coverage = 1.0,
+        meanHeldValue = Double.NaN,
+        heldValueSd = Double.NaN,
     )
 }

@@ -46,22 +46,34 @@ sealed interface PoseModelState {
  */
 object PoseModelAsset {
 
-    /** Preferred first. Lite is the cheapest and the most likely to hold 30fps. */
-    val CANDIDATES: List<String> = listOf(
-        "pose_landmarker_lite.task",
-        "pose_landmarker_full.task",
-        "pose_landmarker_heavy.task",
-    )
+    const val LITE: String = "pose_landmarker_lite.task"
+    const val FULL: String = "pose_landmarker_full.task"
+    const val HEAVY: String = "pose_landmarker_heavy.task"
+
+    /**
+     * Preferred first. Lite is the cheapest and the most likely to hold 30fps,
+     * and it is the only one a release build carries (DECISIONS.md P3-21,
+     * pinned by `ReleaseModelAssetsTest`). Debug builds may add the full model
+     * for the debug-only switch.
+     */
+    val CANDIDATES: List<String> = listOf(LITE, FULL, HEAVY)
 
     fun locate(context: Context): PoseModelState {
         val assets = try {
-            context.assets.list("")?.toSet().orEmpty()
+            presentAssets(context)
         } catch (error: IOException) {
             return PoseModelState.Unreadable("could not list assets: " + error.message)
         }
 
         val found = CANDIDATES.firstOrNull { it in assets } ?: return PoseModelState.Absent
+        return check(context, found)
+    }
 
+    /** The top-level asset names this build carries. */
+    fun presentAssets(context: Context): Set<String> = context.assets.list("")?.toSet().orEmpty()
+
+    /** Whether the named model asset can be opened and is not empty. */
+    fun check(context: Context, found: String): PoseModelState {
         return try {
             context.assets.open(found).use { stream ->
                 // A truncated download is the realistic failure, and it presents

@@ -54,6 +54,19 @@ import com.kinesis.ui.screens.LicencesScreen
 import com.kinesis.ui.screens.AuthScreen
 import com.kinesis.ui.screens.DashboardScreen
 import com.kinesis.ui.screens.ExerciseSelectionScreen
+import com.kinesis.ui.screens.CalibrationIntroScreen
+import com.kinesis.ui.screens.CalibrationResultScreen
+import com.kinesis.ui.screens.ExerciseScreen
+import com.kinesis.ui.screens.SetSummaryScreen
+import com.kinesis.calibration.CalibrationCoordinator
+import com.kinesis.core.analysis.calibration.CalibrationGuide
+import com.kinesis.core.analysis.calibration.CalibrationKey
+import com.kinesis.core.analysis.calibration.CalibrationOutcome
+import com.kinesis.core.analysis.profile.ExerciseLibrary
+import com.kinesis.core.analysis.profile.ExerciseVariant
+import com.kinesis.core.domain.calibration.CalibrationBaseline
+import com.kinesis.core.domain.session.SessionRecord
+import com.kinesis.storage.RoomBaselineRepository
 import com.kinesis.ui.theme.KinesisTheme
 import com.kinesis.ui.theme.PhosphorFaint
 import com.kinesis.ui.theme.PhosphorGreen
@@ -71,7 +84,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val local = RoomSessionRepository(KinesisDatabase.get(applicationContext).sessionDao())
+        val database = KinesisDatabase.get(applicationContext)
+        val local = RoomSessionRepository(database.sessionDao())
+        // Baselines stay on this phone: nothing wraps this repository with sync.
+        // DECISIONS.md P3-22.
+        val calibration = CalibrationCoordinator(RoomBaselineRepository(database.baselineDao()))
         val auth: AuthGateway = FirebaseAuthGateway()
 
         // Room stays the source of truth; the decorator only schedules an
@@ -92,7 +109,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    KinesisRoot(auth, merge, repository, contextSource)
+                    KinesisRoot(auth, merge, repository, contextSource, calibration)
                 }
             }
         }
@@ -114,6 +131,7 @@ private fun KinesisRoot(
     merge: SessionMerge,
     repository: SessionRepository,
     contextSource: ActivityContextSource,
+    calibration: CalibrationCoordinator,
 ) {
     var state: AuthState by remember { mutableStateOf(auth.state) }
     var busy by remember { mutableStateOf(false) }
@@ -130,7 +148,7 @@ private fun KinesisRoot(
                     mergedFor = current.uid
                 }
             }
-            KinesisApp(repository, contextSource, current.email) {
+            KinesisApp(repository, contextSource, calibration, current.uid, current.email) {
                 scope.launch {
                     auth.signOut()
                     state = auth.state
@@ -171,19 +189,33 @@ private fun KinesisRoot(
 private sealed interface Destination {
     data object Dashboard : Destination
     data object Select : Destination
-    data class Live(val profile: ExerciseProfile) : Destination
     data object Licences : Destination
+
+    // DECISIONS.md P3-22: an exercise's own screen, calibration, and the set summary.
+    data class Exercise(val profile: ExerciseProfile) : Destination
+    data class CalibrationIntro(val profile: ExerciseProfile) : Destination
+    data class Live(val profile: ExerciseProfile, val calibrating: Boolean = false) : Destination
+    data class CalibrationResult(val profile: ExerciseProfile, val session: SessionRecord?) : Destination
+    data class SetSummary(val profile: ExerciseProfile, val session: SessionRecord) : Destination
 }
+
+/** The training side of the app: every destination reached from TRAIN. */
+private val Destination.isTraining: Boolean
+    get() = this !is Destination.Dashboard && this !is Destination.Licences
 
 @Composable
 private fun KinesisApp(
     repository: SessionRepository,
     contextSource: ActivityContextSource,
+    calibration: CalibrationCoordinator,
+    uid: String,
     email: String?,
     onSignOut: () -> Unit,
 ) {
     var destination: Destination by remember { mutableStateOf(Destination.Dashboard) }
     var summary: DashboardSummary? by remember { mutableStateOf(null) }
+    // The signed-in user's baselines, by calibration id. Re-read with the history.
+    var baselines: Map<String, CalibrationBaseline> by remember(uid) { mutableStateOf(emptyMap()) }
     var context: ActivityContextResult? by remember { mutableStateOf(null) }
     var reloadToken by remember { mutableStateOf(0) }
 
@@ -198,6 +230,7 @@ private fun KinesisApp(
     // Re-read whenever something could have changed it.
     LaunchedEffect(reloadToken) {
         summary = Dashboard.summarise(repository.allSessions(), today)
+        baselines = calibration.baselines(uid)
         context = contextSource.readDay(today, offsetMinutes)
     }
 
@@ -220,23 +253,46 @@ private fun KinesisApp(
                     { it(ActivityContextPermissions.ALL) }
                 },
                 onOpenLicences = { destination = Destination.Licences },
+                baselines = baselines.values.map { displayNameOf(it.calibrationId) to it },
             )
 
             Destination.Licences -> {
                 val appContext = LocalContext.current.applicationContext
-                val licence = remember {
+                val readAsset = { path: String ->
                     try {
-                        appContext.assets.open(ThirdPartyNotices.APACHE_LICENSE_ASSET)
-                            .bufferedReader().use { it.readText() }
+                        appContext.assets.open(path).bufferedReader().use { it.readText() }
                     } catch (error: IOException) {
                         null
                     }
                 }
-                LicencesScreen(apacheLicenceText = licence)
+                val licence = remember { readAsset(ThirdPartyNotices.APACHE_LICENSE_ASSET) }
+                val bsd = remember {
+                    ThirdPartyNotices.bsdNotices.map { it to it.textAsset?.let(readAsset) }
+                }
+                LicencesScreen(apacheLicenceText = licence, bsdTexts = bsd)
             }
 
             Destination.Select -> ExerciseSelectionScreen(
-                onSelect = { destination = Destination.Live(it) },
+                calibratedIds = baselines.keys,
+                onSelect = { destination = Destination.Exercise(it) },
+            )
+
+            is Destination.Exercise -> ExerciseScreen(
+                profile = current.profile,
+                baseline = baselines[CalibrationKey.of(current.profile)],
+                onStartSet = { destination = Destination.Live(current.profile) },
+                // A variant calibrates through its parent - CONTRACTS.md section 3.
+                onCalibrate = if (current.profile is ExerciseVariant) {
+                    null
+                } else {
+                    { destination = Destination.CalibrationIntro(current.profile) }
+                },
+            )
+
+            is Destination.CalibrationIntro -> CalibrationIntroScreen(
+                profile = current.profile,
+                instructions = CalibrationGuide.instructions(current.profile),
+                onStart = { destination = Destination.Live(current.profile, calibrating = true) },
             )
 
             is Destination.Live -> LiveDestination(
@@ -245,8 +301,50 @@ private fun KinesisApp(
                 // A set saved by leaving the screen lands after the dashboard
                 // has already been read, so the save itself asks for a re-read.
                 onSessionSaved = { reloadToken++ },
-                onSetEnded = { destination = Destination.Dashboard; reloadToken++ },
+                onSetEnded = { session ->
+                    reloadToken++
+                    destination = when {
+                        current.calibrating -> Destination.CalibrationResult(current.profile, session)
+                        session != null -> Destination.SetSummary(current.profile, session)
+                        else -> Destination.Exercise(current.profile)
+                    }
+                },
+                modeLabel = if (current.calibrating) "CALIBRATION SET" else null,
             )
+
+            is Destination.CalibrationResult -> {
+                // Computed and saved once per calibration set: keyed on the set's
+                // session, so recomposing never calibrates twice.
+                var outcome: CalibrationOutcome? by remember(current) { mutableStateOf(null) }
+                LaunchedEffect(current) {
+                    outcome = if (current.session == null) {
+                        CalibrationCoordinator.withNobodySeen(current.profile)
+                    } else {
+                        calibration.finishCalibration(uid, current.profile, current.session)
+                    }
+                    reloadToken++
+                }
+                CalibrationResultScreen(
+                    profile = current.profile,
+                    outcome = outcome,
+                    onDone = { destination = Destination.Exercise(current.profile) },
+                    onTryAgain = { destination = Destination.CalibrationIntro(current.profile) },
+                )
+            }
+
+            is Destination.SetSummary -> {
+                val baseline = baselines[CalibrationKey.of(current.profile)]
+                val results = remember(current, baseline) {
+                    calibration.analyseSet(current.profile, current.session, baseline)
+                }
+                SetSummaryScreen(
+                    profile = current.profile,
+                    session = current.session,
+                    baselineTitle = baseline?.let { displayNameOf(it.calibrationId).uppercase() },
+                    results = results,
+                    onDone = { destination = Destination.Exercise(current.profile) },
+                )
+            }
         }
     }
 }
@@ -273,7 +371,7 @@ private fun NavBar(
         horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         NavItem("HISTORY", destination is Destination.Dashboard, onDashboard)
-        NavItem("TRAIN", destination is Destination.Select || destination is Destination.Live, onSelect)
+        NavItem("TRAIN", destination.isTraining, onSelect)
         Spacer(Modifier.weight(1f))
         // The signed-in address stays visible. A user should never have to
         // wonder which account their training is going to.
@@ -295,3 +393,7 @@ private fun NavItem(label: String, selected: Boolean, onClick: () -> Unit) {
         modifier = Modifier.clickable(onClick = onClick),
     )
 }
+
+/** A calibration id's display name, from the library. */
+private fun displayNameOf(calibrationId: String): String =
+    ExerciseLibrary.all.firstOrNull { it.id == calibrationId }?.displayName ?: calibrationId

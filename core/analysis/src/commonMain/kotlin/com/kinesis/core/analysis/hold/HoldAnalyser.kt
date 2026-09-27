@@ -4,6 +4,7 @@ import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.domain.rep.HoldRecord
 import com.kinesis.core.domain.rep.HoldValidity
 import kotlin.math.abs
+import kotlin.math.sqrt
 
 /** Where an isometric attempt currently stands. */
 enum class HoldState {
@@ -40,7 +41,8 @@ enum class HoldState {
  *
  * ### Per frame
  *
- * [step] is O(1) and holds fixed state: four accumulators and two timestamps.
+ * [step] is O(1) and holds fixed state: a handful of accumulators and
+ * timestamps, the held-value mean and sway (P3-22) among them.
  * No history, nothing that grows with the length of the hold.
  */
 class HoldAnalyser(val profile: IsometricExercise) {
@@ -65,6 +67,14 @@ class HoldAnalyser(val profile: IsometricExercise) {
 
     private var deviationSum: Double = 0.0
     private var heldFrames: Int = 0
+
+    // Where the body line was while held, and how much it swayed - DECISIONS.md
+    // P3-22. Welford's running mean and sum of squared deviations: constant space,
+    // one update per held frame, and none of the cancellation a plain sum of
+    // squares suffers when the angle sits near 180 and moves by fractions of a
+    // degree.
+    private var heldMean: Double = 0.0
+    private var heldSquaredDeviations: Double = 0.0
     private var maxAbsDeviation: Double = 0.0
 
     private var totalFrames: Int = 0
@@ -104,6 +114,9 @@ class HoldAnalyser(val profile: IsometricExercise) {
 
             deviationSum += deviation
             heldFrames++
+            val fromMean = value - heldMean
+            heldMean += fromMean / heldFrames
+            heldSquaredDeviations += fromMean * (value - heldMean)
             if (deviation > maxAbsDeviation) maxAbsDeviation = deviation
         } else {
             // Only a position that was actually reached can be broken.
@@ -139,6 +152,10 @@ class HoldAnalyser(val profile: IsometricExercise) {
             meanAbsDeviation = if (heldFrames == 0) Double.NaN else deviationSum / heldFrames,
             maxAbsDeviation = if (heldFrames == 0) Double.NaN else maxAbsDeviation,
             coverage = coverage,
+            meanHeldValue = if (heldFrames == 0) Double.NaN else heldMean,
+            // Sample form, as SignalMetrics: with one held frame the spread is
+            // unknown, not zero.
+            heldValueSd = if (heldFrames < 2) Double.NaN else sqrt(heldSquaredDeviations / (heldFrames - 1)),
         )
     }
 
@@ -153,6 +170,8 @@ class HoldAnalyser(val profile: IsometricExercise) {
         breakCount = 0
         deviationSum = 0.0
         heldFrames = 0
+        heldMean = 0.0
+        heldSquaredDeviations = 0.0
         maxAbsDeviation = 0.0
         totalFrames = 0
         measuredFrames = 0
