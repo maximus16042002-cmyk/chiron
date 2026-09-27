@@ -87,24 +87,51 @@ class SkeletonOverlayView @JvmOverloads constructor(
     var framesSubmitted: Long = 0
         private set
 
+    /**
+     * The positions actually drawn: MediaPipe's, steadied for the eye. The frame
+     * itself - what the analysis measured - is never changed. See
+     * [SkeletonSmoothing].
+     */
+    private val smoothing = SkeletonSmoothing()
+
+    /**
+     * Held while positions are written (pose thread) and while they are drawn
+     * (main thread), so a draw never mixes two frames. Both are short and
+     * allocate nothing.
+     */
+    private val lock = Any()
+
     /** One frame, straight from the pose callback. */
     override fun submit(landmarks: Landmarks, state: OverlayState, policy: VisibilityPolicy) {
-        this.frame = landmarks
-        this.overallState = state
-        this.policy = policy
+        synchronized(lock) {
+            smoothing.update(landmarks, SystemClock.uptimeMillis(), policy)
+            this.frame = landmarks
+            this.overallState = state
+            this.policy = policy
+        }
         framesSubmitted++
         postInvalidateOnAnimation()
     }
 
     /** Clears the figure, for when tracking is lost entirely. */
     override fun clear() {
-        frame = null
+        synchronized(lock) {
+            frame = null
+            smoothing.reset()
+        }
         postInvalidateOnAnimation()
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         canvas.drawColor(Color.TRANSPARENT)
+        synchronized(lock) { drawFigure(canvas) }
+        // Keep animating while the figure pulses, so the pulse does not freeze if
+        // pose results stall. Stops by itself when the state changes.
+        if (overallState.pulses) postInvalidateOnAnimation()
+    }
+
+    private fun drawFigure(canvas: Canvas) {
         val landmarks = frame ?: return
 
         val w = width.toFloat()
@@ -140,17 +167,17 @@ class SkeletonOverlayView @JvmOverloads constructor(
                 jointPaints.getValue(state),
             )
         }
-
-        // Keep animating while the figure pulses, so the pulse does not freeze if
-        // pose results stall. Stops by itself when the state changes.
-        if (overallState.pulses) postInvalidateOnAnimation()
     }
 
+    // Drawn from the steadied positions; which state a joint is drawn in still
+    // comes from the raw frame's visibility.
+    @Suppress("UNUSED_PARAMETER")
     private fun screenX(landmarks: Landmarks, id: LandmarkId, width: Float): Float =
-        OverlayGeometry.screenX(landmarks.x(id), displayMirrored, width)
+        OverlayGeometry.screenX(smoothing.x[id.index], displayMirrored, width)
 
+    @Suppress("UNUSED_PARAMETER")
     private fun screenY(landmarks: Landmarks, id: LandmarkId, width: Float): Float =
-        OverlayGeometry.screenY(landmarks.y(id), width)
+        OverlayGeometry.screenY(smoothing.y[id.index], width)
 
     // --- Which state a joint is drawn in ------------------------------------------
 
