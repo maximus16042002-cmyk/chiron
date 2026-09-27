@@ -38,7 +38,7 @@ import kotlin.test.assertTrue
  * ### What is deliberately absent
  *
  * P3-3 names "deviation" among the trends. Deviation is a Level 2 claim measured
- * against a `CalibrationBaseline`, and no such type exists yet - P6 builds it.
+ * against a `CalibrationBaseline`, which P6 fits (P3-21) but nothing stores yet.
  * Nothing here reports deviation, and P3-10 records that as blocked rather than
  * dropped. What this summarises is what `RepRecord` and `HoldRecord` already
  * measure on their own.

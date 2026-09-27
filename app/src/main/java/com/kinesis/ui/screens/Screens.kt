@@ -143,7 +143,7 @@ private fun ExerciseRow(profile: ExerciseProfile, onClick: () -> Unit) {
  *
  * The aggregation is the core's; this only lays it out. Note what is *not*
  * here: no deviation, because deviation is measured against a
- * `CalibrationBaseline` that P6 has not built yet, and a dashboard that showed
+ * `CalibrationBaseline` the app does not store yet (P6's engine side is P3-21), and a dashboard that showed
  * "below your normal" without one would be inventing the comparison.
  */
 @Composable

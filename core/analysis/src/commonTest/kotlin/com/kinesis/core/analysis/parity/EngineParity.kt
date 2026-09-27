@@ -67,6 +67,43 @@ object EngineParity {
         return run.finish()
     }
 
+    /**
+     * Calibration through the facade - DECISIONS.md P3-21. A squat set of seven
+     * valid repetitions at slightly different depths, one turned back early and
+     * one half-seen; then the set's own records are fitted into a baseline and
+     * each record is placed against it. Adds `baseline|0|<json>` and
+     * `analysis|<record>|<json>` lines after the set's own.
+     */
+    fun calibration(): List<String> {
+        val run = Run("""{"id": "squat"}""", seed = 23)
+        run.stand(20)
+        for (bottom in listOf(70.0, 74.0, 68.0, 72.0, 76.0, 71.0, 69.0)) {
+            run.squatTo(bottom)
+            run.stand(12)
+        }
+        run.squatTo(125.0) // turns back above depth: ABORTED, left out of the fit
+        run.stand(15)
+        run.squatTo(72.0, rightSeen = false) // one-sided: left out of the fit
+        run.stand(15)
+        run.squatTo(40.0) // far deeper than the user's normal
+        run.stand(15)
+        return run.calibrate()
+    }
+
+    /** The elements of a JSON array of flat records, as text. Test-only. */
+    private fun elements(array: String): List<String> {
+        val out = ArrayList<String>()
+        var depth = 0
+        var start = -1
+        for (i in array.indices) {
+            when (array[i]) {
+                '{' -> { if (depth == 0) start = i; depth++ }
+                '}' -> { depth--; if (depth == 0) out += array.substring(start, i + 1) }
+            }
+        }
+        return out
+    }
+
     /** One scenario in flight: the facade, the jitter and the event lines. */
     private class Run(profile: String, seed: Int) {
         private val engine = KinesisEngine().also { it.configure(profile) }
@@ -176,6 +213,18 @@ object EngineParity {
             lines += "finish|" + engine.finishSet()
             return lines
         }
+
+        /** Ends the set, fits a baseline from all it recorded, and places each record. */
+        fun calibrate(): List<String> {
+            finish()
+            val records = lines.filter { it.startsWith("records|") || it.startsWith("finish|") }
+                .flatMap { elements(it.substringAfter('[').let { rest -> "[$rest" }) }
+            val fitted = engine.computeBaseline(records.joinToString(",", "[", "]"))
+            lines += "baseline|0|$fitted"
+            val baseline = fitted.substring(fitted.indexOf("\"baseline\":") + "\"baseline\":".length, fitted.length - 1)
+            records.forEachIndexed { i, record -> lines += "analysis|$i|" + engine.analyzeRep(record, baseline) }
+            return lines
+        }
     }
 
     private const val JITTER = 0.002
@@ -188,7 +237,11 @@ object EngineParity {
      * section 6. Every other number is continuous and compared within
      * [RELATIVE_TOLERANCE].
      */
-    private val DISCRETE_NUMBERS = setOf("repIndex", "repCount", "breakCount")
+    private val DISCRETE_NUMBERS = setOf(
+        "repIndex", "repCount", "breakCount",
+        // Calibration counts - DECISIONS.md P3-21.
+        "n", "minimumSamples", "recordsOffered", "recordsUsed", "bestSideSamples",
+    )
 
     /**
      * CONTRACTS.md section 6: 1e-9 relative. Values that should be zero get an

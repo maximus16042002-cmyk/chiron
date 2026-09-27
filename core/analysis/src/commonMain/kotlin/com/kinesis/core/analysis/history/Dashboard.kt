@@ -75,7 +75,8 @@ data class DashboardSummary(
  * ### What is missing, and why
  *
  * **Deviation is not here.** It is a Level 2 claim measured against a
- * `CalibrationBaseline`, which does not exist yet - P6 builds it. Reporting
+ * `CalibrationBaseline`. P6 now fits one (DECISIONS.md P3-21), but nothing
+ * stores one yet and P8's deviation rules do not exist. Reporting
  * "below your normal" without a baseline would be inventing the comparison, so
  * the dashboard reports what the records measure on their own until there is
  * something honest to compare them against. P3-10 records this as blocked rather

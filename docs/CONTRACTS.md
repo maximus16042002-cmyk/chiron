@@ -156,8 +156,8 @@ class KinesisEngine {
     fun pushFrame(timestampMs: Double, landmarks: DoubleArray, visibility: DoubleArray): String?
     fun stateJson(): String                        // P3-19
     fun finishSet(): String                        // P3-19
-    fun analyzeRep(repJson: String, baselineJson: String): String   // waits for P6
-    fun computeBaseline(repsJson: String): String                   // waits for P6
+    fun analyzeRep(repJson: String, baselineJson: String): String   // P6, P3-21
+    fun computeBaseline(repsJson: String): String                   // P6, P3-21
 }
 ```
 
@@ -176,8 +176,17 @@ class KinesisEngine {
   side's phase, or the hold's state and time held.
 - `finishSet` ends the set: a JSON array of what that completes, possibly
   empty; for a hold, its one `HoldRecord`.
-- `analyzeRep` and `computeBaseline` throw until P6 builds calibration and
-  `AnalysisResult`.
+- `computeBaseline` fits a personal baseline for the configured exercise from
+  a JSON array of records in the shape `pushFrame`/`finishSet` return them -
+  repetitions, or holds when a hold is configured. It returns
+  `{"status":"fitted","baseline":{...}}`, or `{"status":"insufficient",...}`
+  with the counts when no side has enough valid records (P3-21).
+- `analyzeRep` places one record - a hold record when a hold is configured -
+  against the `baseline` object `computeBaseline` returned, and returns a JSON
+  `AnalysisResult`: each metric's value, band and position, with the baseline's
+  and the rule's versions. It writes no sentences; `Deviation` findings are
+  P8's. A baseline for another exercise is refused; a variant's parent's is its
+  own.
 - Everything rich stays inside Kotlin. The `.d.ts` is small and hand-checkable.
 - The facade is the *only* `@JsExport` surface in the project. It lives in
   `commonMain` (P3-19), so the JVM runs the same facade JavaScript does.

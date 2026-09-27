@@ -2,6 +2,9 @@
 
 package com.kinesis.core.analysis
 
+import com.kinesis.core.analysis.calibration.Calibration
+import com.kinesis.core.analysis.calibration.CalibrationOutcome
+import com.kinesis.core.analysis.calibration.PersonalBands
 import com.kinesis.core.analysis.live.LiveHoldAnalysis
 import com.kinesis.core.analysis.live.LiveRepetitionAnalysis
 import com.kinesis.core.analysis.profile.ExerciseLibrary
@@ -9,6 +12,15 @@ import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.analysis.rep.RepSink
 import com.kinesis.core.domain.bilateral.BilateralSignal
+import com.kinesis.core.domain.calibration.AnalysisResult
+import com.kinesis.core.domain.calibration.CalibrationBaseline
+import com.kinesis.core.domain.calibration.HoldAnalysisResult
+import com.kinesis.core.domain.calibration.HoldBaseline
+import com.kinesis.core.domain.calibration.RepAnalysisResult
+import com.kinesis.core.domain.calibration.RepTiming
+import com.kinesis.core.domain.calibration.RepetitionBaseline
+import com.kinesis.core.domain.calibration.RobustSummary
+import com.kinesis.core.domain.calibration.TimingBaseline
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.rep.HoldRecord
 import com.kinesis.core.domain.rep.RepRecord
@@ -32,9 +44,8 @@ import kotlin.js.JsExport
  * `LiveRepetitionAnalysis` for a repetition exercise, `LiveHoldAnalysis` for a
  * hold. It adds nothing analytical of its own - CLAUDE.md section 2.
  *
- * **Finished as far as the engine goes.** [analyzeRep] and [computeBaseline]
- * wait for P6's calibration and `AnalysisResult`, and throw rather than return
- * plausible empty values, so a caller wiring them up early finds out at once.
+ * **Calibration (P6).** [computeBaseline] fits a personal baseline from
+ * records, and [analyzeRep] places one record against it - DECISIONS.md P3-21.
  */
 @JsExport
 class KinesisEngine {
@@ -140,16 +151,64 @@ class KinesisEngine {
     }
 
     /**
-     * Runs the post-rep path over one completed repetition. **Waits for P6**: its
-     * features, deviation rules and `AnalysisResult` do not exist yet.
+     * Fits a personal baseline from calibration records - DECISIONS.md P3-21.
+     *
+     * [repsJson] is a JSON array of records in the shape [pushFrame] and
+     * [finishSet] return them - repetitions for a repetition exercise, holds for
+     * a hold - for the exercise last passed to [configure]. Invalid records are
+     * accepted and left out of the fit, as `Calibration` does.
+     *
+     * @return `{"status":"fitted","baseline":{...}}`, or
+     *   `{"status":"insufficient", ...}` with the counts, when no side has enough
+     *   valid records. Never a weak baseline presented as an established one.
      */
-    fun analyzeRep(repJson: String, baselineJson: String): String {
-        throw NotImplementedError(waitsForP6("analyzeRep", repJson.length + baselineJson.length))
+    fun computeBaseline(repsJson: String): String {
+        val analysis = repetition
+        val outcome = if (analysis != null) {
+            Calibration.fitRepetitions(analysis.profile, EngineJsonReader.reps(repsJson))
+        } else {
+            val holding = hold ?: throw IllegalStateException("configure an exercise first")
+            Calibration.fitHolds(holding.profile, EngineJsonReader.holds(repsJson))
+        }
+        return when (outcome) {
+            is CalibrationOutcome.Fitted -> EngineJson.obj {
+                field("status", "fitted")
+                raw("baseline", EngineJson.baseline(outcome.baseline))
+            }
+            is CalibrationOutcome.Insufficient -> EngineJson.obj {
+                field("status", "insufficient")
+                field("recordsOffered", outcome.recordsOffered)
+                field("bestSideSamples", outcome.bestSideSamples)
+                field("minimumSamples", outcome.minimumSamples)
+            }
+        }
     }
 
-    /** Fits a personal baseline from calibration repetitions. **Waits for P6.** */
-    fun computeBaseline(repsJson: String): String {
-        throw NotImplementedError(waitsForP6("computeBaseline", repsJson.length))
+    /**
+     * Places one completed record against a personal baseline, as a JSON
+     * `AnalysisResult` - DECISIONS.md P3-21.
+     *
+     * [repJson] is one record as [pushFrame] returns it - or, for a hold, as
+     * [finishSet] does: the facade keeps CONTRACTS.md section 5's name for both.
+     * [baselineJson] is the `baseline` object [computeBaseline] returned. The
+     * result places each metric in, below or above the user's own band; it
+     * writes no sentences - that is P8's deviation rules.
+     *
+     * @throws IllegalArgumentException if the baseline is for another exercise
+     *   than the configured one. A variant's parent's baseline is its own.
+     */
+    fun analyzeRep(repJson: String, baselineJson: String): String {
+        val baseline = EngineJsonReader.baseline(baselineJson)
+        val analysis = repetition
+        if (analysis != null) {
+            val repBaseline = baseline as? RepetitionBaseline
+                ?: throw IllegalArgumentException("a repetition needs a repetition baseline")
+            return EngineJson.analysis(PersonalBands.analyseRep(analysis.profile, EngineJsonReader.rep(repJson), repBaseline))
+        }
+        val holding = hold ?: throw IllegalStateException("configure an exercise first")
+        val holdBaseline = baseline as? HoldBaseline
+            ?: throw IllegalArgumentException("a hold needs a hold baseline")
+        return EngineJson.analysis(PersonalBands.analyseHold(holding.profile, EngineJsonReader.hold(repJson), holdBaseline))
     }
 
     private fun drainRecords(): String? {
@@ -158,10 +217,6 @@ class KinesisEngine {
         completed.clear()
         return json
     }
-
-    private fun waitsForP6(method: String, inputSize: Int): String =
-        "KinesisEngine." + method + " waits for P6: calibration and AnalysisResult do not exist yet. " +
-            "Received input of size " + inputSize + "."
 }
 
 /**
@@ -196,6 +251,80 @@ internal object EngineJson {
         field("meanAbsDeviation", record.meanAbsDeviation)
         field("maxAbsDeviation", record.maxAbsDeviation)
         field("coverage", record.coverage)
+    }
+
+    fun baseline(baseline: CalibrationBaseline): String = obj {
+        field("kind", if (baseline is RepetitionBaseline) "repetition" else "hold")
+        field("exerciseId", baseline.exerciseId)
+        field("methodVersion", baseline.methodVersion)
+        field("minimumSamples", baseline.minimumSamples)
+        field("recordsOffered", baseline.recordsOffered)
+        field("recordsUsed", baseline.recordsUsed)
+        when (baseline) {
+            is RepetitionBaseline -> {
+                raw("rangeOfMotion", obj {
+                    raw("left", summary(baseline.rangeOfMotion.left))
+                    raw("right", summary(baseline.rangeOfMotion.right))
+                })
+                raw("timing", when (val timing = baseline.timing) {
+                    is TimingBaseline.Together -> obj {
+                        field("kind", "together")
+                        raw("both", timing(timing.both))
+                    }
+                    is TimingBaseline.PerSide -> obj {
+                        field("kind", "perSide")
+                        raw("left", timing(timing.left))
+                        raw("right", timing(timing.right))
+                    }
+                })
+                raw("habitualOffset", summary(baseline.habitualOffset))
+            }
+            is HoldBaseline -> {
+                raw("totalHoldMs", summary(baseline.totalHoldMs))
+                raw("longestUnbrokenMs", summary(baseline.longestUnbrokenMs))
+                raw("meanAbsDeviation", summary(baseline.meanAbsDeviation))
+            }
+        }
+    }
+
+    fun analysis(result: AnalysisResult): String = obj {
+        when (result) {
+            is RepAnalysisResult -> {
+                field("kind", "repetition")
+                field("repIndex", result.repIndex)
+            }
+            is HoldAnalysisResult -> {
+                field("kind", "hold")
+                field("startMs", result.startMs)
+            }
+        }
+        field("exerciseId", result.exerciseId)
+        field("baselineVersion", result.baselineVersion)
+        field("ruleVersion", result.ruleVersion)
+        raw("placements", result.placements.joinToString(",", "[", "]") { placement ->
+            obj {
+                field("metric", placement.metric)
+                field("side", placement.side?.name)
+                field("value", placement.value)
+                field("lower", placement.lower)
+                field("upper", placement.upper)
+                field("position", placement.position.name)
+            }
+        })
+    }
+
+    private fun summary(summary: RobustSummary): String = obj {
+        field("n", summary.n)
+        field("median", summary.median)
+        field("q1", summary.q1)
+        field("q3", summary.q3)
+    }
+
+    private fun timing(timing: RepTiming): String = obj {
+        raw("descentMs", summary(timing.descentMs))
+        raw("ascentMs", summary(timing.ascentMs))
+        raw("durationMs", summary(timing.durationMs))
+        raw("tempoRatio", summary(timing.tempoRatio))
     }
 
     /** The `id` of `{"id": "..."}`; nothing else is read, and nothing else is accepted. */
@@ -248,6 +377,12 @@ internal object EngineJson {
             out.append(",\"right\":")
             number(value.right)
             out.append('}')
+        }
+
+        /** [json] written as is: a nested object or array this writer produced. */
+        fun raw(name: String, json: String) {
+            key(name)
+            out.append(json)
         }
 
         fun array(name: String, values: DoubleArray) {

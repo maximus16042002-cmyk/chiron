@@ -57,7 +57,7 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P3 Profiles & Rep Engine | Rep FSM, bilateral rep tracker, hold analyser, 15 profiles + 2 variants | ✅ Done |
 | P4 Device Reality Check | Frame rate, thermal, mirroring, landmark reliability on a real phone | ⛔ Not started — no longer blocked; needs a physical phone (MediaPipe ships no x86_64 library, so standard emulators cannot run it) |
 | P5 RepRecord & Export | Record types, persistence, JSON/CSV export | 🟡 Partial — records and Room storage done; JSON/CSV export not built |
-| P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | ⛔ Not started |
+| P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Partial — engine side built (P3-21): baselines, personal bands, `AnalysisResult`, facade. No storage or calibration flow in the app yet; started before P4 by the owner's decision |
 | P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | 🟡 Partial — MM-Fit downloaded and its labels read (P3-1); MediaPipe-over-video pipeline and harness not built. It must apply the same aspect-ratio correction as the phone, with MM-Fit's own frame size (P3-16) |
 | P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | ⛔ Not started |
 | P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | ⛔ Not started (may be trimmed) |

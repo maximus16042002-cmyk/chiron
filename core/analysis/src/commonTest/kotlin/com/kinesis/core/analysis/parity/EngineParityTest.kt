@@ -25,6 +25,14 @@ class EngineParityTest {
     fun a_plank_hold_matches_the_golden_file_on_this_target() =
         check("plank", EngineParityGolden.plank, EngineParity.plank())
 
+    @Test
+    fun a_calibration_matches_the_golden_file_on_this_target() {
+        val golden = EngineParityGolden.calibration
+        assertTrue(golden.any { it.startsWith("baseline|0|{\"status\":\"fitted\"") }, "the golden calibration fitted nothing")
+        assertTrue(golden.any { it.startsWith("analysis|") && (it.contains("\"BELOW\"") || it.contains("\"ABOVE\"")) }, "the golden calibration placed nothing outside the band")
+        check("calibration", golden, EngineParity.calibration())
+    }
+
     /** The comparison must be able to fail, or a passing run proves nothing. */
     @Test
     fun the_comparison_sees_a_discrete_and_a_continuous_difference() {

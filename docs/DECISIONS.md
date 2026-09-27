@@ -5129,6 +5129,139 @@ history.
 
 ---
 
+## P3-21 — P6 calibration begins in the engine, before the camera session
+
+*2026-09-27*
+
+**Ordering, decided by the project owner.** P6 calibration starts now, while
+P4's camera session (P3-19's "What is NOT verified" list) is still owed. The
+owner approved this in the project thread after the tradeoff was stated: it is
+the same risk P3-4 accepted for the profiles. If device data moves the
+provisional constants (smoothing, visibility, hold tolerances, gap tolerance),
+then the records calibration is fitted from move too, and any baseline fitted
+before that is re-fitted. Nothing is lost by re-fitting, because
+`RepRecord` is stored and `AnalysisResult` is kept apart from it (CLAUDE.md
+§15). This entry covers the shared engine only. It adds no app screen, no
+storage and no calibration flow.
+
+### What was built
+
+**`CalibrationBaseline`** (`:core:domain`, `calibration/`). It is sealed per
+analysis mode, for the same reason `SetRecord` is.
+- `RepetitionBaseline` holds:
+  - range of motion as a `BilateralSummary`, each side fitted from its own
+    values;
+  - timing, which is `TimingBaseline.PerSide` for per-limb exercises and
+    `Together` for simultaneous ones. A simultaneous repetition has one timing,
+    and writing it into two fields would claim two measurements;
+  - the habitual left-minus-right offset, taken with the named reducer
+    `signedDifference()`. A per-limb exercise has no offset (`ABSENT`).
+- `HoldBaseline` holds time held, longest unbroken stretch and mean absolute
+  deviation.
+- Every metric is a `RobustSummary` (n, median, q1, q3). A side with no samples
+  is `ABSENT`: `n = 0` and `NaN`, never zero.
+- The baseline stores its `methodVersion`, `minimumSamples` and how many
+  records it was offered and used.
+
+**`Calibration`** (`:core:analysis`) fits a baseline from **valid records
+only**. An aborted, incomplete or half-seen repetition is not the user's
+normal. `exerciseId` is the parent's id for a variant, so a goblet squat is
+calibrated as a squat (P3-6; the open question recorded there stands). Fewer
+than the minimum valid samples on every side returns `Insufficient` with the
+counts, never a weak baseline. The fit is order-independent, so Study 3's
+first-N curve is `reps.take(n)`.
+
+**`RobustStatistics`** pins the quantile definition as Hyndman and Fan's type
+7, linear interpolation. It is numpy's and R's default, so the P7/P12 Python
+code computes the same quartiles without a flag. `RobustStatisticsTest` pins
+its values to numpy's. The definitions disagree most on small samples, and
+calibration is a small sample.
+
+**`PersonalBands`** is the personal threshold: Tukey's fences over the user's
+own calibration, `q1 − 1.5·IQR` to `q3 + 1.5·IQR`, with inclusive edges. The
+fences sit around the quartiles, not the median. The design posted in the
+thread said "median ± 1.5 × IQR". That was a misstatement of Tukey's rule, and
+the rule was built as Tukey defined it. The band is a statistical convention,
+not a measured threshold. `k = 1.5` stays provisional until Study 2. A
+perfectly repeatable calibration has an IQR of 0, and its band is exactly
+`q1..q3`. Adding a floor would be a threshold with no source.
+
+**`AnalysisResult`** (`RepAnalysisResult`, `HoldAnalysisResult`) is a list of
+`MetricPlacement`s. Each gives the metric, the side (or `null` for both
+together), the value, the band, and the position: `BELOW`, `WITHIN`, `ABOVE`,
+`NOT_MEASURED` or `NO_BASELINE`. It carries the baseline's `methodVersion` and
+the band's `ruleVersion`.
+
+**It writes no sentences, by the owner's choice of scope.** Turning a placement
+into "below your normal" is a `Deviation` finding, and that is P8's Layer 1
+deviation rules. P8 will read placements rather than re-derive them.
+
+**The facade.** `computeBaseline` and `analyzeRep` no longer throw.
+- Both act for the exercise last passed to `configure`, and both accept holds
+  when a hold is configured.
+- Records go in in the shape `pushFrame`/`finishSet` return them.
+- `computeBaseline` returns `{"status":"fitted","baseline":{…}}` or
+  `{"status":"insufficient",…}`.
+- `EngineJsonReader` is the core's first JSON reader. It is hand-written and
+  strict: a missing field is an error, never a default.
+- CONTRACTS.md §5 is updated to match.
+
+### Provisional numbers, as always
+
+| Constant | Value | Source |
+|---|---|---|
+| `Calibration.MIN_REPETITIONS` | 5 per side | Bottom of ZERO_DATASET_BUILD_PLAN's "5-10 reps". Study 3 replaces it. |
+| `Calibration.MIN_HOLDS` | 3 | None. Practical: five planks is a workout, not a calibration. |
+| `PersonalBands.FENCE_MULTIPLIER` | 1.5 | Tukey's convention. Study 2 measures its flag rate. |
+
+### Tests
+
+These were written with the code, not after it. There are 41 new tests across
+`CalibrationGuardTest` (permanent guard), `RobustStatisticsTest`,
+`PersonalBandsTest` and `FacadeCalibrationTest`. The golden parity suite gains
+a `calibration` scenario: a squat set fitted through the facade and each
+record placed, compared between JVM and JS.
+
+**Mutations, all caught, files restored byte for byte.** Each of these was
+introduced deliberately:
+- right side fitted from left values;
+- invalid repetitions let in;
+- the minimum removed;
+- a nearest-rank quantile;
+- a variant calibrated under its own id;
+- the curl's arms timed together;
+- fences around the median.
+
+**Where it ran, and where it did not.** The session's sandbox cannot reach
+Google's Maven repository, so the repository's own Gradle build (which needs
+the Android Gradle Plugin) could not configure. The shared core was built and
+tested instead by a scratch Gradle project outside the repository. It compiled
+`:core:domain` and `:core:analysis` sources unchanged for JVM and JS, with the
+same Kotlin 2.1.21. **All passed:**
+
+| Module | JVM | JS |
+|---|---|---|
+| `:core:analysis` | 277 | 267 |
+| `:core:domain` | 33 | 33 |
+
+The JVM count includes the source guards, whose bilateral-averaging scan read
+the new files. **Not run here:** the Android variants, `:app` (one comment
+changed in `Screens.kt`), and the per-frame allocation guards. The owner's
+`gradlew assemble allTests :app:testDebugUnitTest` is the check still owed.
+
+### Not done, and next
+
+- Storing baselines (Room), and a calibration flow in the app. This is the
+  first calibration set, with setup gating.
+- P8 Layer 1: `Deviation` findings from placements.
+- Re-fitting after P4's tuning.
+- Studies 2 and 3, which set `k` and the minimum.
+
+**Scope of this entry.** It makes no accuracy claim. A baseline says what this
+user usually does. It says nothing about whether that is correct.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
