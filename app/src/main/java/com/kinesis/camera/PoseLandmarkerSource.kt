@@ -14,6 +14,9 @@ import com.kinesis.diagnostics.PhaseBProbe
 import com.kinesis.pose.CameraFacing
 import com.kinesis.pose.PoseAdapter
 import com.kinesis.pose.RawLandmarks
+import java.io.File
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -97,7 +100,7 @@ class PoseLandmarkerSource private constructor(
     private val landmarker: PoseLandmarker = PoseLandmarker.createFromOptions(
         context,
         PoseLandmarker.PoseLandmarkerOptions.builder()
-            .setBaseOptions(BaseOptions.builder().setModelAssetPath(modelAssetPath).build())
+            .setBaseOptions(baseOptionsFor(modelAssetPath))
             .setRunningMode(RunningMode.LIVE_STREAM)
             .setNumPoses(1)
             .setResultListener { result, input -> deliver(result, input.width, input.height) }
@@ -225,3 +228,17 @@ sealed interface PoseSourceOpening {
 
 /** Every live-pipeline failure is logged under this tag: `adb logcat -s KinesisLive`. */
 const val LIVE_LOG_TAG = "KinesisLive"
+
+/**
+ * An asset name loads from `assets/`, as always. An absolute path is the debug
+ * builds' full-model override (`debugPoseModelOverride`, DECISIONS.md P3-21),
+ * read once into a direct buffer when the landmarker is created, the way
+ * `FramePipelineBenchmark` loads it. Release builds never pass one.
+ */
+private fun baseOptionsFor(modelPath: String): BaseOptions {
+    if (!modelPath.startsWith("/")) return BaseOptions.builder().setModelAssetPath(modelPath).build()
+    val bytes = File(modelPath).readBytes()
+    val buffer = ByteBuffer.allocateDirect(bytes.size).order(ByteOrder.nativeOrder()).put(bytes)
+    buffer.rewind()
+    return BaseOptions.builder().setModelAssetBuffer(buffer).build()
+}
