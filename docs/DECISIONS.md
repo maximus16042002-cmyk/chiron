@@ -6876,6 +6876,212 @@ No accuracy claim beyond MM-Fit and the protocol of P3-27.
 
 ---
 
+## P3-29 — Owner decisions on P3-28: the near-side rule, the lateral raise's start zone, and a proposal for the push-up and sit-up
+
+*2026-09-28*
+
+The owner's decisions on P3-28's four questions:
+- **Push the P3-28 commits** (done: `9279eda..0e0c47b`).
+- **Near-side counting:** "only an accepted VALID cycle blocks an overlapping one". Test
+  first; rerun the push-up, sit-up and row on all 21 workouts, development and held-out
+  apart. Report any set counted above its label, and stop if one appears.
+- **The lateral raise:** `topThreshold` 20 → 28, exactly as P3-28 reasoned. Then measure
+  the engine itself, not the ceiling, on the held-out workouts.
+- **The push-up and sit-up start zones:** the lateral raise's method on the development
+  workouts, with the far zones kept and a sensible minimum sweep. Check it once on
+  held-out; apply only if no set over-counts and the reasoning holds, otherwise stop at
+  a proposal. The push-up's start is arms extended, so loosening it too far would count
+  repetitions with unlocked arms.
+- **Then:** the suite, mutations, this entry, and an install for the owner's own curl
+  check. Do not push.
+
+### 1. Near-side counting: only a counted repetition blocks
+
+**The change.** `BilateralRepTracker.emitNearSide`:
+- a cycle overlapping a **counted** repetition is dropped, whatever its validity;
+- any other cycle is reported;
+- a failed attempt is reported but blocks nothing.
+
+The field is renamed `lastNearSideCountedEndMs` to say so. Between two VALID cycles
+nothing changes. What changes is that a failed attempt no longer claims its time.
+
+**Tests,** in `ViewAndSideContractTest`, on a new two-armed track:
+- **The far arm lost partway down,** for longer than a gap is bridged. It gives up with
+  INSUFFICIENT_DATA before the near arm completes. Against the old rule: ten
+  INSUFFICIENT_DATA records and **no row counted**, P3-28's finding exactly. Now all ten
+  count.
+- **Both arms completing the same ten rows, 0.67 s apart:** each arm alone counts ten,
+  and both together count ten, not twenty.
+- **The far arm turning back short of depth,** after the near arm's counted row: not
+  reported.
+
+The last two passed before the change; they pin what it must not break.
+
+**Why a double count cannot come from this change.** Two cycles of one repetition
+overlap: each runs from its side's last frame at the start to its return there. They
+separate only if one side leaves the start after the other has returned, a lag of more
+than a whole repetition. That was the same before, and a separated VALID cycle counted
+under both rules.
+
+**Result, all 21 workouts** (before = P3-28):
+
+| Exercise | Split | Counted before → after | Exact | Within ±1 | Sets up / down |
+|---|---|---|---|---|---|
+| Push-up | development | 23 → 41 of 238 | 4.2% → 4.2% | 4.2% → 12.5% | 5 / 0 |
+| | held-out | 129 → 160 of 411 | 12.2% → 14.6% | 24.4% → 31.7% | 6 / 0 |
+| Sit-up | development | 36 → 49 of 241 | 4.2% → 8.3% | 4.2% → 12.5% | 4 / 0 |
+| | held-out | 105 → 209 of 399 | 4.9% → 14.6% | 12.2% → 41.5% | 17 / 0 |
+| Row* | development | 60 → 171 of 252 | 0.0% → 32.0% | 4.0% → 48.0% | 21 / 0 |
+| | held-out | 116 → 228 of 392 | 10.3% → 23.1% | 17.9% → 41.0% | 21 / 0 |
+
+\* MM-Fit's view does not match the profile (P3-27), so this is not evidence.
+
+- **No set counted above its label**, in either split, under any of the three
+  protocols. Sets counted exactly, across the three exercises: PRIMARY 13 → 32,
+  WIDENED 15 → 42, UNSHIFTED 3 → 18.
+- **The engine counts what P3-28's diagnostic predicted,** set by set: 201 push-ups and
+  258 sit-ups. `NearSideDiagnostic` now checks the harness against this rule, and found
+  no mismatch.
+- **No set of any other exercise changed,** in its count or in any record's validity.
+- **Failed attempts reported, not counted,** rose, because one no longer hides the
+  next:
+  - push-up 131 → 143 (development) and 137 → 143 (held-out);
+  - sit-up 55 → 58 and 142 → 156;
+  - row 207 → 222 and 313 → 377.
+
+  On the phone that may mean more amber flashes from a flickering far side while the
+  count is right. Unmeasured.
+
+### 2. The lateral raise: start zone at or below 36°
+
+**The change.** `topThreshold` 20 → 28, with hysteresis 8: the start zone moves from 28°
+to 36°. It is P3-28's proposal unchanged, with its reasoning in the code:
+- the 95th percentile of the development workouts' resting angles (32.8°) plus a small
+  margin, not a searched-for score;
+- the far zone is unchanged, so a raise still sweeps at least 41°.
+
+**Tests,** in `TierAProfileTest`:
+- **Ten raises whose arms come down only to 32°.** Against the old zone: one INCOMPLETE
+  record and none counted, the merging at its worst. Now ten count.
+- **Arms coming down only to 42°** still count nothing: the loosening's limit.
+- **The two zone edges,** 36° and 77°, pinned.
+
+**The engine on the held-out workouts** (37 sets; before = part 1's run):
+
+| | Before | After |
+|---|---|---|
+| Counted (of 369) | 125 | **356** |
+| MAE | 6.59 | 0.35 |
+| Exact | 10.8% | **70.3%** |
+| Within ±1 | 16.2% | **94.6%** |
+| Sets up / down / same | | 33 / 0 / 4 |
+| Sets over their label | 0 | **0** |
+
+- **Below P3-28's ceiling of 360, as expected.** Smoothing blunts the lowest returns.
+- **Sets still short:** 11, nine by one and two by two.
+- **The development workouts,** for reference only: 83 → 177 of 190.
+- **No set over its label** in either split or any protocol, and no other exercise
+  changed.
+- **Records that were not counted fell from 237 to 13** held-out. One arm merging two
+  raises while the other did not left cycles with no partner, reported as
+  INSUFFICIENT_DATA.
+
+### 3. The push-up and sit-up start zones: a proposal, not applied
+
+**The measurement** (`start_zone_angles.py`) mirrors the raise's. The start is the larger
+angle here, so it takes the peaks between repetitions:
+- on the near side, the side measured in more frames;
+- between excursions into the far zone.
+
+It exposed a problem the raise did not have: **jitter at the depth edge.**
+- In 5 of the 8 development workouts with push-ups (w00, w01, w02, w05, w06), the elbow
+  angle crossed 95° repeatedly at the bottom.
+- One set shows 33 "excursions" for 10 labelled push-ups, and false "returns" at
+  95–125°.
+- The engine ignores them, because it waits for the start zone, but a percentile does
+  not.
+- The rule fixed before any percentile was taken: a return must climb more than twice
+  the profile's hysteresis above the depth edge.
+
+**The development workouts' returns, jitter removed:**
+
+| | Push-up | Sit-up |
+|---|---|---|
+| Returns | 195 | 223 |
+| 5th percentile | 107.4° | 109.5° |
+| Median | 143.8° | 119.8° |
+| Lowest set's typical return | 130.6° | 109.0° |
+| Start edge by the raise's method (5th percentile − 3) | about 104° | about 107° |
+| Sweep that leaves to the unchanged depth edge | **9°** (currently 60°) | **24°** (currently 49°) |
+
+**The reasoning does not hold for either:**
+- **The push-up.** 104° is a bent arm, and a 9° sweep would count a wobble at the
+  bottom. The lowest development subject's typical top reads 131° in 2D, which is not
+  "arms extended" either. This is the owner's unlocked-arm case.
+- **The sit-up.** The development workouts go from 110–150° lying back to about 45°
+  sitting up: the deepest near-side angle per set has a median of 45.5°, middle half
+  37–51°. That is a real sweep of about 65–100°. A 24° minimum would count a crunch.
+
+**The held-out check was not run.** Both values failed before it could matter, and
+leaving it unused keeps the held-out workouts clean for whatever is decided next.
+
+**Why the raise worked and these do not.** A raise's resting angle is much the same for
+everyone. These starts depend on the person:
+- the push-up's 2D elbow reading at the top runs from about 136° (w02) to 166° (w06,
+  w19) between development subjects;
+- the sit-up's lying-back angle runs from about 108° to 139° between them, most
+  plausibly with how bent the knees are, which was not measured.
+
+The per-set listing behind this also printed the held-out sets; no value was derived
+from them.
+
+One fixed number cannot hold both the tall-reading subject's lockout and the
+short-reading one's without admitting partial repetitions.
+
+**Proposal:** a personal start zone, from the user's own calibration repetitions. P6
+already computes per-side baselines. A floor would keep a real minimum sweep, so a
+shallow calibration cannot loosen it into counting partial repetitions. That is P8's
+"personal thresholds", and the owner's decision.
+
+### Checks
+
+- **Mutations, all caught, every file restored byte for byte (5):**
+  - any reported cycle blocks again (the old rule);
+  - nothing blocks;
+  - a counted repetition blocks only VALID cycles;
+  - the raise's start zone back to ≤ 28°;
+  - the raise's start zone loosened further, to ≤ 44°.
+- **Full suite: 1,873 test executions, none failed, none skipped.** The six new tests
+  run on each of the four targets (P3-28: 1,849).
+- **Tools:**
+  - `NearSideDiagnostic` checks the harness against the new rule;
+  - `start_zone_angles.py` is part 3's measurement.
+
+### On the phone
+
+**Not installed yet.** No device was attached when this was written. This build carries
+P3-28's fast-start fix, which is on the phone's own code path. The owner will run a curl
+check after it is installed.
+
+The plan, when the phone is connected:
+1. Back up the database first, as P3-25 did.
+2. Install with `installDebug`.
+3. The owner runs the curl check, recorded when run.
+
+### For the owner
+
+1. **The push-up and sit-up start zones:** a personal start zone from calibration, above,
+   or leave them as they are.
+2. **Failed attempts on near-side exercises:** they may show amber while the count is
+   right. To be judged on the phone before anything changes.
+3. **Squats:** the near-knee question, still deliberately untouched.
+
+**Scope of this entry.** Two changes, each judged on the held-out workouts without
+over-counting a set, and one method that did not transfer, stopped at a proposal. No
+accuracy claim beyond MM-Fit and the protocol of P3-27.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
