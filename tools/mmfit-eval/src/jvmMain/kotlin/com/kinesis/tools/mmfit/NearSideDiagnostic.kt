@@ -11,16 +11,18 @@ import java.io.File
 
 /**
  * A diagnostic, not a result: what near-side-only counting loses to the way it combines the two
- * sides' cycles - DECISIONS.md P3-28.
+ * sides' cycles - DECISIONS.md P3-28, P3-29.
  *
- * `BilateralRepTracker.emitNearSide` reports a cycle unless it starts before the last reported one
- * ended - from either side, whatever its validity. So a short ABORTED or INSUFFICIENT_DATA cycle from
- * a flickering far side, reported first, claims the time and the near side's VALID cycle is dropped as
- * a duplicate, leaving no record. This re-runs each side's own pipeline and state machine - the
- * engine's classes, the tracker's construction - on the engine's own raw angles, and counts three ways:
+ * Until P3-29 `BilateralRepTracker.emitNearSide` reported a cycle unless it started before the last
+ * reported one ended - from either side, whatever its validity. So a short ABORTED or INSUFFICIENT_DATA
+ * cycle from a flickering far side, reported first, claimed the time and the near side's VALID cycle
+ * was dropped as a duplicate, leaving no record. This re-runs each side's own pipeline and state
+ * machine - the engine's classes, the tracker's construction - on the engine's own raw angles, and
+ * counts three ways:
  *
- *  A. the engine's rule, re-created. It must equal the harness's count exactly, or this is not the engine;
- *  B. the same, except that only an accepted VALID cycle blocks an overlapping one;
+ *  A. the rule until P3-29, re-created;
+ *  B. only an accepted VALID cycle blocks an overlapping one - the engine's rule from P3-29, so it
+ *     must equal the harness's count exactly on a P3-29 run, or this is not the engine;
  *  C. only the side measured in more frames of the set counts.
  *
  * gradlew :mmfit-eval:nearSideDiagnostic
@@ -85,11 +87,11 @@ fun main(args: Array<String>) {
 
             val t = totals.getOrPut(profile.id) { IntArray(5) }
             t[0] += label.reps; t[1] += harnessCount; t[2] += a; t[3] += b; t[4] += c
-            if (a != harnessCount) println("MISMATCH $workout set ${label.setIndex}: engine rule re-created $a, harness $harnessCount")
+            if (b != harnessCount) println("MISMATCH $workout set ${label.setIndex}: engine rule re-created $b, harness $harnessCount")
         }
     }
-    println("exercise  labelled  harness  A:engine-rule  B:valid-blocks-only  C:near-side-alone")
-    for ((id, t) in totals) println(String.format("%-9s %8d %8d %14d %20d %18d", id, t[0], t[1], t[2], t[3], t[4]))
+    println("exercise  labelled  harness  A:until-P3-29  B:valid-blocks-only(engine)  C:near-side-alone")
+    for ((id, t) in totals) println(String.format("%-9s %8d %8d %13d %27d %18d", id, t[0], t[1], t[2], t[3], t[4]))
 }
 
 /** The `validCount` of the set at [exportSetIndex] (1-based) in a P5 export, read without a JSON library. */

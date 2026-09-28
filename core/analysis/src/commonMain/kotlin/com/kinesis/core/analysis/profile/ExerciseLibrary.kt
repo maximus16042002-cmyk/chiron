@@ -291,8 +291,14 @@ class LateralRaiseProfile : TierAProfile(), RepetitionExercise {
         // position is arms out to shoulder height, near ninety. The starting
         // value is therefore the numerically smaller one, which the FSM handles
         // through `topIsGreater` without any exercise knowing about it.
-        // Provisional.
-        topThreshold = 20.0,
+        // Provisional, with no cited source. DECISIONS.md P3-29 raised it from
+        // 20 (a start zone at or below 28) to 28 (at or below 36): seated, the
+        // upper arm clears the thighs, and on MM-Fit's development workouts 95%
+        // of returns between raises came down to 32.8 degrees or less, but about
+        // one in five stopped at 28-33, merging two raises into one. 36 is that
+        // 95th percentile plus a small margin, not a searched-for best score; the
+        // far zone is unchanged, so a raise still sweeps at least 41 degrees.
+        topThreshold = 28.0,
         bottomThreshold = 85.0,
         hysteresis = 8.0,
         minRepDurationMs = 600.0,

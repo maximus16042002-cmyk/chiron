@@ -245,6 +245,67 @@ class ViewAndSideContractTest {
         }
     }
 
+    // DECISIONS.md P3-29: under near-side counting, only an accepted VALID
+    // repetition blocks another that overlaps it.
+
+    /**
+     * P3-28's finding on MM-Fit's push-ups and sit-ups, staged on the row. The far
+     * arm is seen as each row begins and lost partway down, for longer than a gap
+     * is bridged, so its machine gives up - INSUFFICIENT_DATA - before the near arm
+     * completes. Until P3-29 that failed attempt claimed its time, and the near
+     * arm's VALID repetition, overlapping it, was dropped: no row counted at all.
+     * The far arm's failed attempts are still reported; they are not counted.
+     */
+    @Test
+    fun a_far_arm_lost_partway_down_does_not_hide_the_near_arms_repetition() {
+        val records = run(
+            ExerciseLibrary.row,
+            twoArmedTrack(reps = 10, start = 168.0, far = 62.0, farSeen = { it !in 10 until 70 }),
+        )
+        val validities = records.map { it.validity }.toString()
+        assertTrue(
+            records.any { it.validity == RepValidity.INSUFFICIENT_DATA },
+            "the far arm never gave up, so this staged nothing: $validities",
+        )
+        assertEquals(10, records.count { it.validity == RepValidity.VALID }, validities)
+    }
+
+    /**
+     * The double count the rule must not let in. Both arms seen throughout, both
+     * rowing, the far one 20 frames (0.67 s) behind - far more than two arms
+     * rowing together differ by. Each arm alone counts ten, so both do complete
+     * every row; together they still count ten, not twenty.
+     */
+    @Test
+    fun two_arms_both_completing_the_same_rows_count_them_once() {
+        fun counted(nearSeen: Boolean, farSeen: Boolean) = run(
+            ExerciseLibrary.row,
+            twoArmedTrack(
+                reps = 10, start = 168.0, far = 62.0, lagFrames = 20,
+                nearSeen = { nearSeen }, farSeen = { farSeen },
+            ),
+        ).count { it.validity == RepValidity.VALID }
+
+        assertEquals(10, counted(nearSeen = true, farSeen = false), "the near arm alone")
+        assertEquals(10, counted(nearSeen = false, farSeen = true), "the far arm alone")
+        assertEquals(10, counted(nearSeen = true, farSeen = true), "both arms, the same ten rows")
+    }
+
+    /**
+     * The rule's other half: a counted repetition still blocks whatever overlaps
+     * it, failed attempts included. The far arm, 20 frames behind, turns back
+     * short of depth each time - an ABORTED cycle that completes after the near
+     * arm's counted one. It is the same row half-seen, and is not reported.
+     */
+    @Test
+    fun a_failed_attempt_overlapping_a_counted_repetition_is_not_reported() {
+        val records = run(
+            ExerciseLibrary.row,
+            twoArmedTrack(reps = 10, start = 168.0, far = 62.0, lagFrames = 20, farArm = { maxOf(it, 120.0) }),
+        )
+        assertEquals(List(10) { RepValidity.VALID }, records.map { it.validity })
+    }
+
     /**
      * The contrast that proves the near-side handling is not a no-op applied
      * everywhere.
@@ -316,11 +377,62 @@ class ViewAndSideContractTest {
     }
 
     /**
+     * [oneArmedTrack]'s movement on the near side, and on the far side the same
+     * movement [lagFrames] frames later, passed through [farArm]. Each side is seen
+     * only where [nearSeen] / [farSeen] say, by frame within the repetition -
+     * `0` is the first frame of its descent, `-1` the rest before the first. The
+     * set ends with enough rest for a lagging far side to finish. DECISIONS.md P3-29.
+     */
+    private fun twoArmedTrack(
+        reps: Int,
+        start: Double,
+        far: Double,
+        lagFrames: Int = 0,
+        farArm: (Double) -> Double = { it },
+        nearSeen: (Int) -> Boolean = { true },
+        farSeen: (Int) -> Boolean = { true },
+    ): List<Pair<Double, Landmarks>> {
+        val near = ArrayList<Double>()
+        repeat(12) { near += start }
+        repeat(reps) {
+            for (step in 1..30) near += start + (far - start) * step / 30.0
+            repeat(10) { near += far }
+            for (step in 1..30) near += far - (far - start) * step / 30.0
+            repeat(12) { near += start }
+        }
+        repeat(lagFrames + 12) { near += start }
+
+        return near.indices.map { index ->
+            val inRepetition = if (index < 12) -1 else (index - 12) % 82
+            (index * frameMs) to twoSidedFrame(
+                near = near[index],
+                far = farArm(near[maxOf(0, index - lagFrames)]),
+                nearVisibility = if (nearSeen(inRepetition)) 0.95 else 0.05,
+                farVisibility = if (farSeen(inRepetition)) 0.95 else 0.05,
+            )
+        }
+    }
+
+    /**
      * Stages both the arm chain and the leg chain at [degrees] on the left, with
      * every right-side landmark below the visibility floor. One builder serves
      * the elbow-driven row and the knee-driven squat.
      */
-    private fun frame(degrees: Double): Landmarks {
+    private fun frame(degrees: Double): Landmarks =
+        // Far side, present in the frame but never seen - below
+        // VisibilityPolicy.PROVISIONAL.marginal of 0.40.
+        twoSidedFrame(degrees, degrees, nearVisibility = 0.95, farVisibility = 0.05)
+
+    /**
+     * [frame] with each side's angle and visibility its own: the near (left) side
+     * at [near], the far (right) side at [far]. DECISIONS.md P3-29.
+     */
+    private fun twoSidedFrame(
+        near: Double,
+        far: Double,
+        nearVisibility: Double,
+        farVisibility: Double,
+    ): Landmarks {
         val packed = DoubleArray(Landmarks.PACKED_SIZE)
 
         fun put(id: LandmarkId, x: Double, y: Double, visibility: Double) {
@@ -337,6 +449,7 @@ class ViewAndSideContractTest {
             distal: LandmarkId,
             vertexX: Double,
             vertexY: Double,
+            degrees: Double,
             visibility: Double,
         ) {
             put(vertex, vertexX, vertexY, visibility)
@@ -345,24 +458,23 @@ class ViewAndSideContractTest {
             put(distal, vertexX + 0.20 * sin(radians), vertexY - 0.20 * cos(radians), visibility)
         }
 
-        // Visible near side.
+        // Near side.
         chain(
             LandmarkId.LEFT_SHOULDER, LandmarkId.LEFT_ELBOW, LandmarkId.LEFT_WRIST,
-            0.40, 0.45, 0.95,
+            0.40, 0.45, near, nearVisibility,
         )
         chain(
             LandmarkId.LEFT_HIP, LandmarkId.LEFT_KNEE, LandmarkId.LEFT_ANKLE,
-            0.44, 0.70, 0.95,
+            0.44, 0.70, near, nearVisibility,
         )
-        // Far side, present in the frame but never seen - below
-        // VisibilityPolicy.PROVISIONAL.marginal of 0.40.
+        // Far side.
         chain(
             LandmarkId.RIGHT_SHOULDER, LandmarkId.RIGHT_ELBOW, LandmarkId.RIGHT_WRIST,
-            0.60, 0.45, 0.05,
+            0.60, 0.45, far, farVisibility,
         )
         chain(
             LandmarkId.RIGHT_HIP, LandmarkId.RIGHT_KNEE, LandmarkId.RIGHT_ANKLE,
-            0.56, 0.70, 0.05,
+            0.56, 0.70, far, farVisibility,
         )
         return Landmarks.fromPacked(packed)
     }

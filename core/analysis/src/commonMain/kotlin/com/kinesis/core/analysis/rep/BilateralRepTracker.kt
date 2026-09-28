@@ -117,13 +117,19 @@ class BilateralRepTracker(
             profile.analysedSides == AnalysedSides.BOTH
 
     /**
-     * End of the last repetition reported under [AnalysedSides.NEAR_SIDE_ONLY].
+     * End of the last VALID repetition counted under [AnalysedSides.NEAR_SIDE_ONLY].
      *
      * If the far limb does become briefly measurable and completes a cycle
-     * overlapping one already reported, that is the same repetition seen twice,
+     * overlapping one already counted, that is the same repetition seen twice,
      * not a second one.
+     *
+     * Only a counted repetition sets it - DECISIONS.md P3-29. When a failed
+     * attempt set it too, a far side flickering in and out gave up first,
+     * claimed the time, and the near side's VALID repetition overlapping it was
+     * dropped without a record: on MM-Fit that cost 49 push-ups and 117 sit-ups
+     * (P3-28).
      */
-    private var lastNearSideEndMs: Double = Double.NaN
+    private var lastNearSideCountedEndMs: Double = Double.NaN
 
     fun onFrame(
         timestampMs: Double,
@@ -205,7 +211,7 @@ class BilateralRepTracker(
         rawAngleRight = Double.NaN
         pendingLeft = null
         pendingRight = null
-        lastNearSideEndMs = Double.NaN
+        lastNearSideCountedEndMs = Double.NaN
     }
 
     // --- Combining the two sides ---------------------------------------------------
@@ -221,10 +227,14 @@ class BilateralRepTracker(
      * finite asymmetry exists for anything downstream to report - which is
      * FINAL_ARCHITECTURE section 5's "no per-side comparison, no symmetry claim",
      * enforced rather than requested.
+     *
+     * A cycle overlapping a counted repetition is dropped, whatever its validity.
+     * Any other is reported; a failed attempt is reported but blocks nothing -
+     * DECISIONS.md P3-29.
      */
     private fun emitNearSide(cycle: RepCycle, side: Side, sink: RepSink) {
-        if (!lastNearSideEndMs.isNaN() && cycle.startMs < lastNearSideEndMs) return
-        lastNearSideEndMs = cycle.endMs
+        if (!lastNearSideCountedEndMs.isNaN() && cycle.startMs < lastNearSideCountedEndMs) return
+        if (cycle.validity == RepValidity.VALID) lastNearSideCountedEndMs = cycle.endMs
         emitOneSided(cycle, side, attributed = null, sink = sink)
     }
 

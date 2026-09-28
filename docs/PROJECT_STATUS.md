@@ -58,7 +58,7 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P4 Device Reality Check | Frame rate, thermal, mirroring, landmark reliability on a real phone | ⛔ Not started — no longer blocked; needs a physical phone (MediaPipe ships no x86_64 library, so standard emulators cannot run it) |
 | P5 RepRecord & Export | Record types, persistence, JSON/CSV export | ✅ Done (DECISIONS.md P3-25) — records and Room storage; the export in the shared core (CONTRACTS.md §10), golden-tested byte for byte on JVM and JS, and run once on the phone: all 59 sessions, 134 repetitions and 4 holds matched the database exactly |
 | P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Built, not yet run on the phone (DECISIONS.md P3-22) — per-side baselines from 5–8 valid reps (provisional), hold baselines, `AnalysisResult` as numbers beside the baseline, Room storage with a tested migration, the calibration flow. Personal *thresholds* are P8's rules; the counts wait for the MM-Fit convergence study |
-| P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | 🟡 Pipeline and harness built and run (DECISIONS.md P3-27): all 616 sets through the phone's own pipeline, the rep-count study measured for 7 exercises. The engine defect it exposed (a fast start is lost) is fixed and judged on the 13 held-out workouts in P3-28: curls 368 of 368, every set exact; push-ups and sit-ups now count from the near side. Two owner decisions are open (the near-side combining rule, the lateral raise's start zone); the other studies (verifier, personalisation) are still to come |
+| P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | 🟡 Pipeline and harness built and run (DECISIONS.md P3-27): all 616 sets through the phone's own pipeline, the rep-count study measured for 7 exercises. The engine defect it exposed (a fast start is lost) is fixed and judged on the 13 held-out workouts in P3-28: curls 368 of 368, every set exact; push-ups and sit-ups now count from the near side. In P3-29 near-side counting stopped letting a failed attempt hide a repetition, and the lateral raise's start zone moved to 36°: held-out raises 125 → 356 of 369, with no set counted above its label in either change. The push-up and sit-up start zones stay as they are, with a personal start zone proposed; the other studies (verifier, personalisation) are still to come |
 | P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | ⛔ Not started |
 | P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | ⛔ Not started (may be trimmed) |
 | P10 Visualisation & Android | App UI, live screen, dashboard | 🟡 Partial — shell, dashboard, streaks, Health Connect, sync, theme and the live camera screen (reps and holds, sets saved) done but never run on a device; visualisations not built |
@@ -79,7 +79,7 @@ past half; the thesis is well short of it.
 
 ### Test suite
 
-Last full run (DECISIONS.md P3-28): **1,849 test executions, 0 failures, 0
+Last full run (DECISIONS.md P3-29): **1,873 test executions, 0 failures, 0
 errors, 0 skipped**, via `gradlew assemble allTests :app:testDebugUnitTest
 :app:testReleaseUnitTest` — core tests count once per target (JVM, JS, both
 Android variants), so this is executions, not distinct tests. `:app` holds 181

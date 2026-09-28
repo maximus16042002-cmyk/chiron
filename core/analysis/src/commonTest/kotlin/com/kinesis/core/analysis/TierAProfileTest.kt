@@ -267,6 +267,41 @@ class TierAProfileTest {
         assertTrue(counted.all { it.attributedSide == null })
     }
 
+    // DECISIONS.md P3-29: the lateral raise's start zone, at or below 36 degrees.
+
+    /**
+     * On MM-Fit, about one return in five between raises stops at 28-33 degrees -
+     * the upper arm clears the thighs when seated. With the start zone at or
+     * below 28, each such return merged two raises into one (P3-28). Here every
+     * return stops at 32 degrees.
+     */
+    @Test
+    fun raises_whose_arms_come_down_only_to_thirty_two_degrees_still_count_each_raise() {
+        val counted = run(ExerciseLibrary.lateralRaise, lateralRaiseTrack(reps = 10, returnTo = 32.0))
+        assertEquals(10, counted.count { it.validity == RepValidity.VALID }, counted.map { it.validity }.toString())
+    }
+
+    /**
+     * The limit of that loosening: arms that come down only to 42 degrees have not
+     * returned to the start, and nothing after the first raise's ascent counts.
+     */
+    @Test
+    fun raises_whose_arms_come_down_only_to_forty_two_degrees_do_not_count_as_separate_raises() {
+        val counted = run(ExerciseLibrary.lateralRaise, lateralRaiseTrack(reps = 10, returnTo = 42.0))
+        assertEquals(0, counted.count { it.validity == RepValidity.VALID }, counted.map { it.validity }.toString())
+    }
+
+    /**
+     * The zones P3-29 decided, pinned: a start at or below 36 degrees, a far
+     * position at or above 77 unchanged, so a raise still sweeps at least 41.
+     */
+    @Test
+    fun the_lateral_raise_zones_are_the_decided_ones() {
+        val spec = ExerciseLibrary.lateralRaise.repSignal
+        assertEquals(36.0, spec.topThreshold + spec.hysteresis, "start zone edge")
+        assertEquals(77.0, spec.bottomThreshold - spec.hysteresis, "far zone edge")
+    }
+
     @Test
     fun ten_glute_bridges_count_as_ten_repetitions_and_not_twenty() {
         val counted = run(ExerciseLibrary.gluteBridge, gluteBridgeTrack(reps = 10))
@@ -364,8 +399,9 @@ class TierAProfileTest {
         reps: Int,
         leftFar: Double = 110.0,
         rightFar: Double = 110.0,
+        returnTo: Double = 10.0,
     ): List<Pair<Double, Landmarks>> =
-        repetitionTrack(reps, start = 10.0, far = leftFar, farRight = rightFar) { left, right ->
+        repetitionTrack(reps, start = 10.0, far = leftFar, farRight = rightFar, returnTo = returnTo) { left, right ->
             abductionFrame(left, right)
         }
 
@@ -379,12 +415,14 @@ class TierAProfileTest {
      * One shape for all three: dwell at the start, travel out, dwell, travel
      * back, dwell. The dwells matter - the pipeline smooths with an EMA, and a
      * track that reverses the instant it reaches an extreme never gets there.
+     * Each return goes to [returnTo], and the next repetition leaves from there.
      */
     private fun repetitionTrack(
         reps: Int,
         start: Double,
         far: Double,
         farRight: Double = far,
+        returnTo: Double = start,
         frame: (Double, Double) -> Landmarks,
     ): List<Pair<Double, Landmarks>> {
         val frames = ArrayList<Pair<Double, Landmarks>>()
@@ -395,21 +433,22 @@ class TierAProfileTest {
         }
 
         repeat(12) { emit(start, start) }
-        repeat(reps) {
+        repeat(reps) { rep ->
+            val from = if (rep == 0) start else returnTo
             for (step in 1..30) {
                 emit(
-                    start + (far - start) * step / 30.0,
-                    start + (farRight - start) * step / 30.0,
+                    from + (far - from) * step / 30.0,
+                    from + (farRight - from) * step / 30.0,
                 )
             }
             repeat(10) { emit(far, farRight) }
             for (step in 1..30) {
                 emit(
-                    far - (far - start) * step / 30.0,
-                    farRight - (farRight - start) * step / 30.0,
+                    far - (far - returnTo) * step / 30.0,
+                    farRight - (farRight - returnTo) * step / 30.0,
                 )
             }
-            repeat(12) { emit(start, start) }
+            repeat(12) { emit(returnTo, returnTo) }
         }
         return frames
     }
