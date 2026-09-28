@@ -25,3 +25,6 @@ kotlin-js-store/
 # The full pose model, for the debug-only lite/full switch. Not committed:
 # copy local/models/pose_landmarker_full.task here. DECISIONS.md P3-21.
 /app/src/debug/assets/*.task
+
+# Python bytecode (tools/mmfit-eval, P3-27)
+__pycache__/

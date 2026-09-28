@@ -53,3 +53,8 @@ include(":core:domain")
 include(":core:analysis")
 include(":app")
 include(":desktop")
+
+// P7's MM-Fit evaluation harness - DECISIONS.md P3-27. A JVM tool beside the
+// Python extraction scripts in the same folder; it ships in nothing.
+include(":mmfit-eval")
+project(":mmfit-eval").projectDir = file("tools/mmfit-eval")
