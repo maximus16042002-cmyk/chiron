@@ -6363,6 +6363,292 @@ builds nothing.
 
 ---
 
+## P3-27 — P7: MM-Fit through the phone's own pipeline, and what it found
+
+*2026-09-28*
+
+The owner's brief for P7:
+- run MediaPipe over the MM-Fit videos on disk;
+- apply CONTRACTS.md §4's frame-shape correction with MM-Fit's frame size;
+- build a harness that reads P5's export format and brings its own set identity and
+  window;
+- exclude squats, which MM-Fit films face-on while the profile is side-on (CLAUDE.md
+  §22);
+- report per-exercise numbers, and flag anything that looks wrong before treating it
+  as a result.
+
+Everything is in `tools/mmfit-eval/`, and its README reruns it. The outputs are under
+`data/`, which is not in git.
+
+### The pipeline
+
+**Extraction (`extract_landmarks.py`).** MM-Fit RGB → MediaPipe → Kinesis (CLAUDE.md
+§14). MM-Fit's OpenPose skeletons never reach the engine.
+- **The phone's own model file:** `app/src/main/assets/pose_landmarker_lite.task`,
+  SHA-256 `59929e1d…574a`.
+- **The phone's settings:** one pose, MediaPipe's default confidences. VIDEO mode is
+  the offline form of the phone's LIVE_STREAM.
+- **A fresh landmarker per set.**
+- **Every frame of each labelled set, plus 2 s either side.**
+- **Frames decoded strictly in order.** OpenCV's seek is not frame-exact on these
+  files, and the labels are frame numbers.
+- **The raw output is stored as it came out.** The correction is the harness's job,
+  as it is the phone adapter's.
+- **Versions:** MediaPipe 1.0.1 (Python) against the phone's 0.10.21, with the same
+  model file; OpenCV 5.0.0.
+- **The §17 check.** All were already installed, all Apache 2.0, none ships.
+
+**Every video decoded to exactly the frame count its container reports**, all 21 of
+them. MediaPipe found a person in at least 99.9% of the frames of every workout.
+
+**The frame-shape correction** is the phone adapter's back-camera path with 1280×720:
+x as given, y × 720/1280. MM-Fit is not mirrored: its OpenPose and MediaPipe agree on
+left and right for every body joint. So the front camera's unmirroring does not
+apply.
+
+**The harness (`:mmfit-eval`).** A JVM module that decides nothing about movement.
+- **Per set:** a fresh `LiveRepetitionAnalysis`, which is the live screen's own class.
+  Every frame of the window goes in, in order, stamped in video time. A frame with
+  nobody found goes to `onNothingSeen`, and the set ends with `finish`.
+- **Output:** each workout as a P5 export, read back with its format and version
+  checked. Beside it, `sets.csv` carries MM-Fit's identity, label, shift and window.
+  MM-Fit has no wall clock, so `startedAtEpochMs` there is video time.
+- **Where two sets are under 4 s apart** (w17's sets 31 and 32), their margins overlap.
+  The shared frames are processed once and taken by either set. A frame is the same
+  video frame either way.
+
+### Label alignment: five workouts drift, by up to 6.8 seconds
+
+MM-Fit's labels are frame numbers, and OpenPose's frame numbers show where MM-Fit's
+numbering meets this decode.
+- **The method.** Inside each set, each moving joint's trajectory is cross-correlated
+  between MediaPipe (decoded frames) and OpenPose (MM-Fit frames).
+- **A shift is taken as measured only when the joints agree:** at least two
+  joint-axes, with the middle half of their lags within 6 frames. Otherwise it is
+  interpolated from the neighbouring sets.
+- **What the harness does with it:** MM-Fit frame N is decoded frame N − shift.
+
+**Workouts w00–w15: the same numbering.** Every set's shift is −1 to 0.
+
+**Workouts w16–w20 drift.** They were filmed in a different setup; w19 is a different
+room. A steady rate of about 1.5 frames per 1,000 is broken by occasional jumps:
+
+| Workout | Shift over the workout |
+|---|---|
+| w16 | 5 → 103, one jump back of 17 |
+| w17 | 3 → 109 |
+| w18 | 2 → 203 (6.8 s) |
+| w19 | +1, then a jump to −26, then −26 → +31 |
+| w20 | 4 → 158 |
+
+**How the method got there** (two of my readings were wrong on the way):
+- **Mean distance over all joints came first.** It was inconsistent, because head and
+  hips barely move, and was replaced.
+- **A ±90-frame search pinned w16's last sets at its limit.**
+- **±160 fitted w16, but was wrong for w18.** Its last sets there read about 134–140,
+  and I first took those as right. With ±240 they read 174–203, and I then called
+  those wrong-repetition peaks.
+- **The two were settled by tracking.** Each workout starts near 0, and each set is
+  searched within ±40 frames of the last reliable set's shift. A peak one repetition
+  away (45 frames or more) is excluded that way. Tracking gives 174–203 and follows
+  w18's own drift rate. **So the ±160 readings were the false peaks:** the best
+  available below a limit the true peak lay beyond.
+- **An estimate at the edge of its search is rejected.**
+- **OpenPose's track is read across the whole workout.** It has gaps in its frame
+  numbers (w03), which an assertion found.
+- **19 of the 431 evaluated sets have interpolated shifts.**
+
+**The five drifting workouts were re-extracted centred on their shifted windows.** All
+616 sets' primary and widened windows lie wholly inside the extracted frames, checked
+set by set.
+
+**The labels are taken to share OpenPose's numbering**, since they are MM-Fit's frame
+index. A test on movement onset could not tell the two numberings apart, because
+people move before and after every set. So this is an assumption, stated as one.
+
+### The protocol, fixed before any count was seen
+
+- **PRIMARY:** the label window moved onto decoded frames by the set's shift. This is
+  the reported result.
+- **WIDENED:** the same window, 1 s wider each end.
+- **UNSHIFTED:** the label numbers used as decoded frames. For w16–w20 it is partial:
+  37 of its sets fall partly outside the shifted extraction.
+- **No threshold or setting was tuned on MM-Fit.** The engine ran as shipped.
+- **Development and held-out workouts.** Development is w00–w06 and w19, examined while
+  the defect below was found. Held-out is w07–w18 and w20. The split was declared
+  before any held-out result existed. Any engine change P7 motivates is to be judged on
+  the held-out set.
+
+### Exclusions and views
+
+- **Not evaluated:**
+  - squats, 64 sets, by the owner's decision;
+  - tricep extensions (64) and jumping jacks (57), which have no Kinesis profile.
+- **Views checked by eye**, on a frame from each development workout, and by a measured
+  index: shoulder separation over torso length, near 0.1 side-on and 0.6–0.7 face-on.
+  - **Match the profile:**
+    - shoulder press (index 0.64), lateral raise (0.71) and curls (0.57, sometimes
+      turned up to about 45°), all front-on;
+    - sit-ups (0.15) and push-ups, side-on. The index misreads a prone body, but every
+      frame checked shows it side-on.
+  - **Do not match:** lunges (0.44, front-on or oblique) and rows (0.54, oblique). Both
+    profiles are side-on. **Their counts are not evidence for the app's use**, for the
+    same reason squats are excluded. They are reported with an asterisk.
+
+### Results: counted (VALID) against labelled, per set, PRIMARY, all 21 workouts
+
+| Exercise | Sets | Labelled | Counted | MAE | Bias | Exact | Within ±1 |
+|---|---|---|---|---|---|---|---|
+| Shoulder press | 60 | 598 | 569 | 0.52 | −0.48 | 80.0% | 88.3% |
+| Bicep curl | 59 | 599 | 279 | 5.42 | −5.42 | 10.2% | 15.3% |
+| Lateral raise | 56 | 559 | 208 | 6.27 | −6.27 | 7.1% | 17.9% |
+| Sit-up | 65 | 640 | 101 | 8.29 | −8.29 | 3.1% | 6.2% |
+| Push-up | 65 | 649 | 5 | 9.91 | −9.91 | 0.0% | 0.0% |
+| Lunge* | 62 | 624 | 416 | 3.35 | −3.35 | 21.0% | 38.7% |
+| Row* | 64 | 644 | 180 | 7.25 | −7.25 | 1.6% | 7.8% |
+
+\* The view does not match the profile, so these are not evidence.
+
+**Development and held-out agree on mean absolute error.** Shoulder press, for
+example:
+- development: 24 sets, 83.3% exact, MAE 0.38;
+- held-out: 36 sets, 77.8% exact, MAE 0.61.
+
+**The MAE differs by at most 1.45 across the seven exercises**, sit-ups 9.21 against
+7.76; the rest differ by under 1. **The exact share moves more on small counts:**
+lateral raise is 0.0% exact in development against 10.8% held-out, and lunges 30.4%
+against 15.4%.
+
+**Sensitivity.**
+- **WIDENED** changes little: all evaluated sets 18.6% exact against 17.2%.
+- **UNSHIFTED** is worse: shoulder press 68.3% exact against 80.0%. **The drift
+  correction matters.**
+
+**What these numbers are.** They measure the engine as shipped, on one fixed camera at
+30 fps, in MM-Fit's lab, with MM-Fit's subjects. Only shoulder press is counted
+reliably. They do not extend to the phone's 15 results a second or to other views,
+rooms or people (ZERO_DATASET_BUILD_PLAN, "What must never be claimed"). Timing is
+not ground truth: MM-Fit labels no repetition's start or end.
+
+### Where the shortfall is: the movement, or the engine
+
+For every set, an ideal threshold machine counts cycles on the engine's own raw
+angles, using `RepFsm`'s zones but with no gate, no smoothing and no timing limits.
+The sides are combined per the profile. So:
+- labelled − threshold = what the movement, view or thresholds never showed;
+- threshold − counted = what the engine's pipeline and state machine lost.
+
+| Exercise | Labelled | Threshold cycles (sets equal to label) | Counted | Lost by the engine |
+|---|---|---|---|---|
+| Shoulder press | 598 | 589 (54/60) | 569 | 20 |
+| Bicep curl | 599 | 600 (58/59) | 279 | **321** |
+| Lateral raise | 559 | 289 (8/56) | 208 | 81 |
+| Sit-up | 640 | 207 (8/65) | 101 | 106 |
+| Push-up | 649 | 104 (2/65) | 5 | 99 |
+| Lunge* | 624 | 540 (40/62) | 416 | 124 |
+| Row* | 644 | 510 (26/64) | 180 | 330 |
+
+**The curls are in the signal.** Their raw angles hold the labelled count in 58 of 59
+sets, and the engine loses 54% of them. So the curl's number measures a defect, not
+the view or the thresholds.
+
+### A defect in the engine: a fast start is lost before it begins
+
+**Found on w00 set 22.** Curls, labelled 10, counted 0, with no record at all, while
+the raw elbow angles cycle cleanly five times per arm. A frame-by-frame trace
+(`TraceSet.kt`, with a copy of the engine's own pipeline beside it) shows the
+mechanism on every curl:
+
+1. The arm leaves the rest position fast: 118° at frame 50963, frames after 178°.
+2. The outlier gate compares that sample with the median of the last five, still the
+   resting angle, and rejects it. The state machine receives NaN.
+3. `RepFsm.onUnmeasurableFrame`, at TOP, drops to IDLE at once. P3-23's bridge covers
+   only a repetition already under way.
+4. The gate re-admits the moving value three frames later (59°), but IDLE waits for
+   the arm to come back to the top. The rise is rejected as well, and the repetition
+   is gone without a record.
+
+**Who it affects.** Any movement that starts faster than about 35° in three frames:
+about 350°/s at 30 fps, about 175°/s at the phone's 15. **So it affects the phone.**
+It is not an MM-Fit artefact.
+
+**Proposed fix, for the owner to decide; not made here.** At TOP, an unmeasurable
+frame is bridged for up to `maxBridgedGapMs`, as it already is mid-repetition,
+instead of dropping to IDLE. The next measured value, once the gate re-admits it,
+then starts the descent.
+- The gate is unchanged.
+- Nothing is filled in: a count still needs measured values reaching the far zone and
+  returning.
+- It is specified here, before the held-out results were run. If adopted, it is
+  judged on the held-out workouts only.
+
+### The other failures
+
+- **Push-ups and sit-ups: the far side is hidden side-on.**
+  - Its angle was measurable in 42% (push-ups) and 53% (sit-ups) of frames.
+  - Both profiles count a repetition only when both sides complete one.
+  - It is P3-23's side-on squat problem in two more exercises. On push-ups the depth
+    threshold (95°) is also reached in only 28–43 of 65 sets per side.
+- **Lateral raise: the start zone is not reached.** At rest the shoulder angle must be
+  within 28°, which the right side reaches in only 39 of 56 sets; threshold cycles are
+  289 of 559. The zones do not fit these subjects' 2D shoulder angle.
+- **Rows:** the view mismatch, plus the largest engine loss (330). Not evidence either
+  way.
+
+### What went wrong on the way
+
+- **A mutation run left a planted bug.** Interrupted part way, it left the harness
+  source mutated: the diagnostic counter's `far = false` removed.
+  - My first check missed it, because it looked for the other mutations' strings.
+  - A byte comparison with the harness's backup found it, and the file was restored
+    before anything else ran.
+- **Memory.** Nine extraction workers plus Gradle, and later a game using 5.3 GB,
+  pushed the 15 GB machine close to its limit. One extraction run died when the
+  computer restarted. Extraction was rerun with five workers, and with Gradle idle.
+- **The extractor stopped on w17's overlapping margins**, as designed. The rule was
+  changed to trim and record, and the harness to take a shared frame from either set.
+- **Two readings of mine were wrong**, both recorded above: which of w18's shift
+  estimates were false peaks, and my first check after the interruption.
+
+### Tests
+
+**The harness's own tests (7).** Each was checked failing first against a stub.
+- labels numbered from 1;
+- every MM-Fit exercise evaluated or excluded with its reason;
+- the correction is the adapter's back-camera path with 1280×720;
+- a landmark file reads back what was written;
+- windows move by the shift, per protocol;
+- a frame missing from a set's own run is taken from its neighbour;
+- six synthetic curls, stored as raw 1280×720 output, all counted, with 3 threshold
+  cycles per arm.
+
+**Mutations, all caught, every file restored byte for byte (7):**
+- the correction left out;
+- the shift's sign flipped;
+- squats let in;
+- every frame fed as nothing seen;
+- the cycle counter never re-arming;
+- labels numbered from 0;
+- the neighbour fallback removed.
+
+The Python scripts have no unit tests. Their checks are the ones above: decode counts,
+window coverage, and the dense OpenPose track.
+
+### What is NOT verified
+
+- **Frame rate.** MM-Fit is 30 fps; the phone gives about 15 results a second. The
+  engine's per-sample settings behave differently at the two rates.
+- **Mode and library.** MediaPipe 1.0.1 in VIDEO mode is not byte-identical to 0.10.21
+  in LIVE_STREAM.
+- **The label numbering assumption**, above.
+- **Any camera, room, view or person but MM-Fit's.**
+
+**Scope of this entry.** It records P7's pipeline, harness and first measured results.
+The per-exercise figures are measurements of the engine as shipped, on MM-Fit, under
+the protocol above. They claim nothing beyond that.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
