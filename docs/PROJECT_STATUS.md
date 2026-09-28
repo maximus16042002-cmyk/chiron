@@ -7,6 +7,20 @@ of date.*
 
 ---
 
+## Next session starts here
+
+Open items as of DECISIONS.md P3-29:
+
+- **P4:** a solo phone session for what is still owed (see the P4 row below).
+- **P6:** the first real calibration on the phone; it has no baselines yet.
+- **P7:** check whether it is done by `docs/ZERO_DATASET_BUILD_PLAN.md`'s own
+  definition. The rep-count study is done (P3-27 to P3-29).
+- **P8:** personal start zones for the push-up and sit-up, as proposed in P3-29.
+- **Squats:** the near-knee question, still untouched.
+- **P3-29:** record the owner's curl test result on the new build.
+
+---
+
 ## 1. What Kinesis is
 
 A camera-based personal movement-analysis app for Android. The phone camera
@@ -55,7 +69,7 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P1 Shared Core | Domain types, bilateral signal, claim levels, landmark model, pose adapter, JS facade | ✅ Done |
 | P2 Kinematics & Temporal | Geometry, joint angles, velocity, ring buffers, filter chain, resampling, ablation harness | ✅ Done |
 | P3 Profiles & Rep Engine | Rep FSM, bilateral rep tracker, hold analyser, 15 profiles + 2 variants | ✅ Done |
-| P4 Device Reality Check | Frame rate, thermal, mirroring, landmark reliability on a real phone | ⛔ Not started — no longer blocked; needs a physical phone (MediaPipe ships no x86_64 library, so standard emulators cannot run it) |
+| P4 Device Reality Check | Frame rate, thermal, mirroring, landmark reliability on a real phone | 🟡 Partly done (DECISIONS.md P3-18 onward) — launch crash fixed, live screen and sync work, solo curl check done (P3-24). Still owed: back camera, left arm, tracking-loss test, hold timing, heat run, other lighting, a second person |
 | P5 RepRecord & Export | Record types, persistence, JSON/CSV export | ✅ Done (DECISIONS.md P3-25) — records and Room storage; the export in the shared core (CONTRACTS.md §10), golden-tested byte for byte on JVM and JS, and run once on the phone: all 59 sessions, 134 repetitions and 4 holds matched the database exactly |
 | P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Built, not yet run on the phone (DECISIONS.md P3-22) — per-side baselines from 5–8 valid reps (provisional), hold baselines, `AnalysisResult` as numbers beside the baseline, Room storage with a tested migration, the calibration flow. Personal *thresholds* are P8's rules; the counts wait for the MM-Fit convergence study |
 | P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | 🟡 Pipeline and harness built and run (DECISIONS.md P3-27): all 616 sets through the phone's own pipeline, the rep-count study measured for 7 exercises. The engine defect it exposed (a fast start is lost) is fixed and judged on the 13 held-out workouts in P3-28: curls 368 of 368, every set exact; push-ups and sit-ups now count from the near side. In P3-29 near-side counting stopped letting a failed attempt hide a repetition, and the lateral raise's start zone moved to 36°: held-out raises 125 → 356 of 369, with no set counted above its label in either change. The push-up and sit-up start zones stay as they are, with a personal start zone proposed; the other studies (verifier, personalisation) are still to come |
