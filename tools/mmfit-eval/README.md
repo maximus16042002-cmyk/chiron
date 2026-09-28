@@ -40,3 +40,6 @@ python tools/mmfit-eval/analyse.py data/mm-fit-eval data/mm-fit-mediapipe --json
 | `src/…/TraceSet.kt` | A diagnostic: one set's engine state frame by frame (`gradlew :mmfit-eval:traceSet -Pworkout=w00 -Pset=22`). |
 | `analyse.py` | Counted against labelled per exercise and protocol, development and held-out apart, with flags, per-side diagnostics, threshold cycles and a measured view index. |
 | `trace_set.py` | A Python view of one set's raw angles and ideal threshold cycles. |
+| `src/…/NearSideDiagnostic.kt` | For near-side-only profiles: each side's own pipeline and state machine re-run, the engine's combining rule re-created and checked against the harness, and two alternatives counted (`gradlew :mmfit-eval:nearSideDiagnostic`). DECISIONS.md P3-28. |
+| `raise_rest_angles.py` | The lateral raise's resting angle between raises, per split - the evidence for its start-zone proposal. DECISIONS.md P3-28. |
+| `raise_threshold_check.py` | One held-out check of one proposed lateral-raise start zone, on the ideal threshold counter: a ceiling, not the engine. DECISIONS.md P3-28. |

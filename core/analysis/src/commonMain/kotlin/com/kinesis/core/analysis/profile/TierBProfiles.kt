@@ -250,8 +250,15 @@ class SitUpProfile : TierBProfile(), RepetitionExercise {
      */
     override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.SIMULTANEOUS
 
-    /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
-    override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+    /**
+     * **Near side only** - DECISIONS.md P3-28, by the owner's decision. It was
+     * `BOTH`; on MM-Fit's side-on sit-ups the far side's hip angle was measurable
+     * in 53% of frames, well measured in 11 sets of 65, and requiring both sides to
+     * complete a repetition counted 101 of 640. Whichever side faces the camera is
+     * counted - the left in 51 of the 65 sets, the right in 8 - and the core never
+     * learns which. No per-side comparison and no symmetry number, as for the row.
+     */
+    override val analysedSides: AnalysedSides = AnalysedSides.NEAR_SIDE_ONLY
 
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.HIP,
@@ -265,10 +272,13 @@ class SitUpProfile : TierBProfile(), RepetitionExercise {
         maxRepDurationMs = 12_000.0,
     )
 
+    /**
+     * The torso only, as for the row: requiring the far knee, which a side-on
+     * camera often cannot see, would mark every frame invalid (P3-8, P3-28).
+     */
     override val requiredLandmarks: RequiredLandmarks = RequiredLandmarks.of(
         LandmarkId.LEFT_SHOULDER, LandmarkId.RIGHT_SHOULDER,
         LandmarkId.LEFT_HIP, LandmarkId.RIGHT_HIP,
-        LandmarkId.LEFT_KNEE, LandmarkId.RIGHT_KNEE,
     )
 }
 

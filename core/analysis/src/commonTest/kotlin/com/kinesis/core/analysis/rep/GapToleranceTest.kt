@@ -97,6 +97,67 @@ class GapToleranceTest {
         assertNull(records.firstOrNull { it.validity != RepValidity.VALID })
     }
 
+    // --- At the start position - DECISIONS.md P3-28 --------------------------------------
+    //
+    // P7 found every fast curl in MM-Fit lost before it began: the outlier gate rejects the first
+    // fast-moving samples - they are far from the median of the resting ones - the machine gets
+    // NaN while still at TOP, and TOP used to drop to IDLE on the first unmeasured frame. IDLE then
+    // waits for the arm to come back to the top, so the whole repetition vanished without a record.
+    // The gap is now bridged at TOP as it already is mid-repetition. Distinct from the tests above:
+    // those are a repetition already under way.
+
+    private val curl = ArchetypeProfiles.bicepCurl.repSignal // top 145, bottom 60, band 8
+
+    /**
+     * MM-Fit's case, through the engine's real pipeline at MM-Fit's 30 frames a second: a curl that
+     * leaves the rest position fast enough that the gate rejects its first moving samples.
+     */
+    @Test
+    fun a_fast_start_whose_first_moving_frames_are_gated_still_counts() {
+        val frame = 1000.0 / 30.0
+        val pipeline = com.kinesis.core.analysis.temporal.RealTimeSignalPipeline(TemporalConfig.PROVISIONAL, 1024)
+        val fsm = RepFsm(curl, 1024, maxBridgedGapMs = TemporalConfig.PROVISIONAL.maxBridgedGapMs)
+        val rest = List(15) { 176.0 }
+        val lift = listOf(176.0, 150.0, 118.0, 85.0, 55.0, 38.0) // as w00 set 22: 178 to 118 at once
+        val top = List(15) { 34.0 }
+        val lower = listOf(60.0, 95.0, 130.0, 160.0)
+        val values = rest + lift + top + lower + rest
+        val cycles = ArrayList<RepCycle>()
+        values.forEachIndexed { i, v -> fsm.step(i * frame, pipeline.push(i * frame, v))?.let { cycles += it } }
+
+        assertTrue(pipeline.rejectedSampleCount > 0, "the gate rejected nothing, so this test proves nothing")
+        assertEquals(listOf(RepValidity.VALID), cycles.map { it.validity })
+        assertEquals(1, fsm.completedReps)
+    }
+
+    @Test
+    fun a_short_gap_at_the_start_position_is_bridged_and_the_descent_after_it_counts() {
+        val fsm = RepFsm(squat, 512, maxBridgedGapMs = 500.0)
+        val values = List(5) { 170.0 } + List(3) { Double.NaN } + // 200 ms at the top, unmeasured
+            (0 until 20).map { 150.0 - 3.5 * it } + (0 until 20).map { 80.0 + 4.5 * it } + List(5) { 170.0 }
+        val cycles = run(fsm, values)
+        assertEquals(listOf(RepValidity.VALID), cycles.map { it.validity })
+    }
+
+    /** Past the limit the start position is lost as before, and a descent seen only after it is not a repetition. */
+    @Test
+    fun a_gap_at_the_start_position_longer_than_the_limit_still_drops_to_idle() {
+        val fsm = RepFsm(squat, 512, maxBridgedGapMs = 500.0)
+        val values = List(5) { 170.0 } + List(10) { Double.NaN } + // 670 ms
+            (0 until 20).map { 150.0 - 3.5 * it } + (0 until 20).map { 80.0 + 4.5 * it } + List(5) { 170.0 }
+        val cycles = run(fsm, values)
+        assertTrue(cycles.isEmpty(), cycles.map { it.validity }.toString())
+        assertEquals(0, fsm.completedReps)
+    }
+
+    @Test
+    fun a_gap_at_the_start_position_never_counts_anything_by_itself() {
+        val fsm = RepFsm(squat, 512, maxBridgedGapMs = 500.0)
+        val values = List(5) { 170.0 } + List(4) { Double.NaN } + List(5) { 170.0 }
+        assertTrue(run(fsm, values).isEmpty())
+        assertEquals(0, fsm.completedReps)
+    }
+
     /** Knees at these angles; a NaN angle makes that leg invisible, as an occluded knee is. */
     private fun kneeFrame(leftKneeDeg: Double, rightKneeDeg: Double): com.kinesis.core.domain.landmark.Landmarks {
         val packed = DoubleArray(com.kinesis.core.domain.landmark.Landmarks.PACKED_SIZE)

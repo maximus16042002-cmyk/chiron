@@ -207,8 +207,20 @@ class PushUpProfile : TierAProfile(), RepetitionExercise {
      */
     override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.SIMULTANEOUS
 
-    /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
-    override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+    /**
+     * **Near side only** - DECISIONS.md P3-28, by the owner's decision. It was
+     * `BOTH`, on P3-8's premise that both arms are visible side-on; P7 measured
+     * otherwise. On MM-Fit's side-on push-ups the far arm's angle was measurable in
+     * 42% of frames, well measured (over 90%) in 3 sets of 65, and requiring both
+     * arms to complete a repetition counted 5 of 649. Whichever arm faces the
+     * camera is counted - the right in 54 of MM-Fit's 65 sets, the left in 10 - and
+     * the core never learns which (CLAUDE.md section 4).
+     *
+     * What it gives up, as the row does: no per-side comparison and no symmetry
+     * number for the push-up. A Tier A technique rule written for it in P8 has one
+     * arm to work with.
+     */
+    override val analysedSides: AnalysedSides = AnalysedSides.NEAR_SIDE_ONLY
 
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.ELBOW,
@@ -222,10 +234,14 @@ class PushUpProfile : TierAProfile(), RepetitionExercise {
         maxRepDurationMs = 15_000.0,
     )
 
+    /**
+     * The torso, not the arms, as for the row (P3-8): `ValidityGate` invalidates a
+     * frame on any required landmark below the floor, so requiring the far arm a
+     * side-on camera cannot see would mark every frame invalid. P3-28.
+     */
     override val requiredLandmarks: RequiredLandmarks = RequiredLandmarks.of(
         LandmarkId.LEFT_SHOULDER, LandmarkId.RIGHT_SHOULDER,
-        LandmarkId.LEFT_ELBOW, LandmarkId.RIGHT_ELBOW,
-        LandmarkId.LEFT_WRIST, LandmarkId.RIGHT_WRIST,
+        LandmarkId.LEFT_HIP, LandmarkId.RIGHT_HIP,
     )
 }
 

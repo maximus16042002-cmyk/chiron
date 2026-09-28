@@ -38,6 +38,20 @@ tasks.register<JavaExec>("runHarness") {
     dependsOn(main.compileTaskProvider)
 }
 
+// A diagnostic: what near-side counting loses to how it combines the sides (P3-28).
+tasks.register<JavaExec>("nearSideDiagnostic") {
+    group = "evaluation"
+    val main = kotlin.jvm().compilations.getByName("main")
+    classpath = files(main.output.allOutputs, main.runtimeDependencyFiles)
+    mainClass.set("com.kinesis.tools.mmfit.NearSideDiagnosticKt")
+    args = listOf(
+        project.findProperty("landmarks")?.toString() ?: "../../data/mm-fit-mediapipe",
+        project.findProperty("labels")?.toString() ?: "../../data/mm-fit",
+        project.findProperty("harness")?.toString() ?: "../../data/mm-fit-eval-p3-28-nearside",
+    )
+    dependsOn(main.compileTaskProvider)
+}
+
 // A diagnostic: one set's engine state, frame by frame.
 // gradlew :mmfit-eval:traceSet -Pworkout=w00 -Pset=22 [-Pshift=0]
 tasks.register<JavaExec>("traceSet") {

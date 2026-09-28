@@ -136,6 +136,8 @@ def main(harness_dir, landmark_dir, json_out=None):
     for name, keep in (("DEVELOPMENT (w00-w06, w19)", lambda r: r["workout"] in DEVELOPMENT),
                        ("HELD-OUT (w07-w18, w20)", lambda r: r["workout"] not in DEVELOPMENT)):
         subset = [r for r in primary_rows if keep(r)]
+        if not subset:
+            continue  # a run over one split only, e.g. judging a change on the held-out workouts
         by = defaultdict(list)
         for r in subset:
             by[r["profileId"]].append(r)

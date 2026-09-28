@@ -142,16 +142,22 @@ class ViewAndSideContractTest {
         }
     }
 
+    /**
+     * The row was the only one until P3-28, when the owner moved the push-up and the
+     * sit-up to near-side-only: on MM-Fit their far side was measurable in 42% and
+     * 53% of frames, and both counted a repetition only when both sides completed
+     * one - 5 of 649 push-ups and 101 of 640 sit-ups counted (P3-27).
+     */
     @Test
-    fun the_row_is_the_only_near_side_only_entry_in_the_library() {
+    fun the_near_side_only_entries_are_exactly_the_decided_ones() {
         assertEquals(
-            listOf("row"),
+            listOf("pushup", "row", "situp"),
             repetitionProfiles
                 .filter { it.analysedSides == AnalysedSides.NEAR_SIDE_ONLY }
                 .map { it.id }
                 .sorted(),
             "a near-side-only profile gives up symmetry entirely; adding one is a " +
-                "decision that belongs in DECISIONS.md",
+                "decision that belongs in DECISIONS.md (P3-8, P3-28)",
         )
     }
 
@@ -218,6 +224,27 @@ class ViewAndSideContractTest {
         }
     }
 
+    // DECISIONS.md P3-28: the push-up and the sit-up, side-on, from the near side alone.
+
+    @Test
+    fun a_side_on_push_up_counts_every_repetition_from_the_near_arm_alone() {
+        val counted = run(ExerciseLibrary.pushUp, oneArmedTrack(reps = 10, start = 168.0, far = 80.0))
+        assertEquals(10, counted.count { it.validity == RepValidity.VALID }, counted.map { it.validity }.toString())
+        for (record in counted) {
+            assertTrue(record.rangeOfMotion.asymmetry().isNaN(), "a near-side push-up reported a symmetry number")
+        }
+    }
+
+    /** Driven off the hip - shoulder, hip, knee - so it needs the trunk chain staged, not the leg. */
+    @Test
+    fun a_side_on_sit_up_counts_every_repetition_from_the_near_side_alone() {
+        val counted = run(ExerciseLibrary.situp, oneArmedTrack(reps = 10, start = 160.0, far = 60.0, frameAt = ::hipFrame))
+        assertEquals(10, counted.count { it.validity == RepValidity.VALID }, counted.map { it.validity }.toString())
+        for (record in counted) {
+            assertTrue(record.rangeOfMotion.asymmetry().isNaN(), "a near-side sit-up reported a symmetry number")
+        }
+    }
+
     /**
      * The contrast that proves the near-side handling is not a no-op applied
      * everywhere.
@@ -269,11 +296,12 @@ class ViewAndSideContractTest {
         reps: Int,
         start: Double,
         far: Double,
+        frameAt: (Double) -> Landmarks = ::frame,
     ): List<Pair<Double, Landmarks>> {
         val frames = ArrayList<Pair<Double, Landmarks>>()
         var index = 0
         fun emit(value: Double) {
-            frames += (index * frameMs) to frame(value)
+            frames += (index * frameMs) to frameAt(value)
             index++
         }
 
@@ -336,6 +364,31 @@ class ViewAndSideContractTest {
             LandmarkId.RIGHT_HIP, LandmarkId.RIGHT_KNEE, LandmarkId.RIGHT_ANKLE,
             0.56, 0.70, 0.05,
         )
+        return Landmarks.fromPacked(packed)
+    }
+
+    /**
+     * The trunk chain - shoulder, hip, knee - at [degrees] at the hip on the left,
+     * the right side present but below the visibility floor: a sit-up side-on
+     * (DECISIONS.md P3-28). [frame] cannot serve, because it never moves the hip.
+     */
+    private fun hipFrame(degrees: Double): Landmarks {
+        val packed = DoubleArray(Landmarks.PACKED_SIZE)
+        fun put(id: LandmarkId, x: Double, y: Double, visibility: Double) {
+            val base = id.index * Landmarks.STRIDE
+            packed[base] = x
+            packed[base + 1] = y
+            packed[base + 3] = visibility
+        }
+        val radians = degrees * PI / 180.0
+        for ((side, x, seen) in listOf(Triple("LEFT", 0.44, 0.95), Triple("RIGHT", 0.46, 0.05))) {
+            val hip = LandmarkId.valueOf(side + "_HIP")
+            val knee = LandmarkId.valueOf(side + "_KNEE")
+            val shoulder = LandmarkId.valueOf(side + "_SHOULDER")
+            put(hip, x, 0.60, seen)
+            put(knee, x + 0.20, 0.60, seen) // thigh along the floor
+            put(shoulder, x + 0.25 * cos(radians), 0.60 - 0.25 * sin(radians), seen)
+        }
         return Landmarks.fromPacked(packed)
     }
 }

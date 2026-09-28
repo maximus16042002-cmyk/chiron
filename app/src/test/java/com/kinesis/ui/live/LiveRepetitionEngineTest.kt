@@ -86,6 +86,16 @@ class LiveRepetitionEngineTest {
         assertEquals(1, skeleton.clears)
         assertEquals(FrameValidity.INVALID, published.last().frameValidity)
         assertEquals(OverlayState.UNTRACKED, published.last().overlayState)
+        // DECISIONS.md P3-28: one lost frame at the starting position no longer
+        // resets the phase - it is bridged, as a mid-repetition gap is - so the
+        // phase holds at TOP. This line asserted IDLE until then.
+        assertEquals(MovementPhase.TOP, published.last().phase)
+
+        // Past the bridge (500 ms), the start position is lost as before.
+        repeat(20) {
+            clockMs += 33
+            engine.onNoPose(clockMs)
+        }
         assertEquals(MovementPhase.IDLE, published.last().phase)
     }
 

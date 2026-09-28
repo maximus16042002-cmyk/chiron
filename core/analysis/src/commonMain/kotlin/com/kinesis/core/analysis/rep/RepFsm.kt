@@ -248,13 +248,27 @@ class RepFsm(
      * Past the limit the repetition becomes INSUFFICIENT_DATA rather than being
      * completed on guesswork or dropped without trace, ending at the last frame
      * that was actually measured.
+     *
+     * ### At the start position - DECISIONS.md P3-28
+     *
+     * The same bridge applies at [MovementPhase.TOP]. It used to drop to IDLE on
+     * the first unmeasured frame, and P7 found that lost every fast repetition in
+     * MM-Fit: the outlier gate rejects the first fast-moving samples, which are
+     * far from the median of the resting ones, so the machine got NaN while still
+     * at TOP, fell to IDLE, and IDLE waits for the top again - the repetition
+     * vanished without a record. Now TOP holds across a gap up to the limit, and
+     * the next measured value, once the gate admits it, starts the descent.
+     * Nothing is filled in: a count still needs measured values reaching the far
+     * zone and coming back. Past the limit, TOP drops to IDLE as before.
      */
     private fun onUnmeasurableFrame(timestampMs: Double): RepCycle? {
-        if (phase == MovementPhase.IDLE || phase == MovementPhase.TOP) {
-            phase = MovementPhase.IDLE
+        if (phase == MovementPhase.IDLE) return null
+        val bridged = !lastMeasuredMs.isNaN() && timestampMs - lastMeasuredMs <= maxBridgedGapMs
+        if (phase == MovementPhase.TOP) {
+            if (!bridged) phase = MovementPhase.IDLE
             return null
         }
-        if (!lastMeasuredMs.isNaN() && timestampMs - lastMeasuredMs <= maxBridgedGapMs) return null
+        if (bridged) return null
         return abandon(if (lastMeasuredMs.isNaN()) timestampMs else lastMeasuredMs, RepValidity.INSUFFICIENT_DATA)
     }
 
