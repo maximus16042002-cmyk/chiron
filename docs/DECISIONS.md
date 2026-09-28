@@ -7059,14 +7059,23 @@ shallow calibration cannot loosen it into counting partial repetitions. That is 
 
 ### On the phone
 
-**Not installed yet.** No device was attached when this was written. This build carries
-P3-28's fast-start fix, which is on the phone's own code path. The owner will run a curl
-check after it is installed.
+This build carries P3-28's fast-start fix, which is on the phone's own code path, so it
+was installed for the owner's own curl check.
 
-The plan, when the phone is connected:
-1. Back up the database first, as P3-25 did.
-2. Install with `installDebug`.
-3. The owner runs the curl check, recorded when run.
+- **The backup, first,** as P3-25 did. Every database file was pulled with `run-as`
+  into `local/` (not in git). Each file's hash matched the phone's. Integrity check
+  "ok": 59 sessions, 59 sets, 134 repetitions, 4 holds, no baselines, unchanged since
+  P3-25.
+- **The install.** `installDebug` at 21:57. The first-install time is unchanged
+  (2026-09-27 22:15:47) and the data was kept: the same counts afterwards, integrity
+  "ok".
+- **The build installed is this one.**
+  - The APK on the phone is byte-identical to the one built here.
+  - Its code carries this entry's near-side field (`lastNearSideCountedEndMs`) and not
+    the old one.
+  - The mutation harness's restores had touched the source files' times after the
+    build, but not their contents, which Gradle checks.
+- **The owner's curl check:** to be recorded when run.
 
 ### For the owner
 
