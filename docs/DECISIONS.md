@@ -6649,6 +6649,233 @@ the protocol above. They claim nothing beyond that.
 
 ---
 
+## P3-28 — The fast-start fix, near-side push-ups and sit-ups, and the lateral raise's start zone
+
+*2026-09-28*
+
+The owner's brief after P3-27:
+- push the P3-27 commits;
+- **fix the fast-start defect**, and judge it on the 13 held-out workouts only;
+- **count push-ups and sit-ups from the near side**, and rerun them on all 21;
+- **investigate the lateral raise's start zone** and propose, not apply, any change;
+- document all of it, and do not push.
+
+### 1. The fast-start fix
+
+**The change.** `RepFsm.onUnmeasurableFrame` at TOP now bridges a gap up to
+`maxBridgedGapMs` (500 ms), as it already did mid-repetition. It no longer drops to
+IDLE on the first unmeasured frame.
+- **Past the limit,** TOP drops to IDLE as before.
+- **The outlier gate is untouched.**
+- **Nothing is filled in:** a count still needs measured values reaching the far
+  zone and returning.
+- **The mechanism it fixes** is P3-27's. The gate rejects the first fast-moving
+  samples, TOP fell to IDLE, and IDLE waited for a top the arm had already left, so
+  the repetition vanished without a record.
+
+**Tests.** `GapToleranceTest` gains a section "at the start position", distinct from
+the mid-repetition tests:
+- MM-Fit's case through the engine's real pipeline at 30 fps: a curl whose first
+  moving samples the gate rejects. The test asserts the gate did reject, then that
+  the curl counts.
+- A short gap at TOP is bridged, and the descent after it counts.
+- A gap at TOP longer than the limit still drops to IDLE.
+- A gap at TOP never counts anything.
+
+The first two failed against the unfixed engine: the curl gave no record at all,
+MM-Fit's symptom. The last two passed from the start; they pin what must not change.
+
+**Tests changed on purpose:**
+- **`LiveRepetitionEngineTest`'s no-pose test** asserted the phase IDLE after one lost
+  frame at the top. It now asserts TOP, then IDLE after more than 500 ms without a
+  pose.
+- **The parity golden file** was regenerated. Only the squat scenario moved, and only
+  in its state lines: the unseen right knee now holds TOP from frame 311 to 326
+  before falling to IDLE. **Every record in every scenario is identical, frame
+  numbers included.**
+
+**Held-out result** (13 workouts, PRIMARY; before = as shipped, P3-27):
+
+| Exercise | Labelled | Counted before → after | MAE | Exact | Within ±1 | Sets up / down / same |
+|---|---|---|---|---|---|---|
+| Bicep curl | 368 | 170 → **368** | 5.50 → 0.00 | 8.3% → **100.0%** | 11.1% → 100.0% | 33 / 0 / 3 |
+| Lunge* | 393 | 258 → 269 | 3.46 → 3.18 | 15.4% → 23.1% | 38.5% → 46.2% | 8 / 0 / 31 |
+| Row* | 392 | 105 → 116 | 7.36 → 7.08 | 2.6% → 10.3% | 7.7% → 17.9% | 8 / **4** / 27 |
+| Shoulder press | 360 | 340 → 348 | 0.61 → 0.39 | 77.8% → 86.1% | 86.1% → 91.7% | 4 / 0 / 32 |
+| Lateral raise | 369 | 125 → 125 | 6.59 → 6.59 | 10.8% → 10.8% | 16.2% → 16.2% | 0 / 0 / 37 |
+| Push-up | 411 | 4 → 28 | 9.93 → 9.34 | 0.0% → 0.0% | 0.0% → 2.4% | 6 / 0 / 35 |
+| Sit-up | 399 | 81 → 86 | 7.76 → 7.63 | 2.4% → 2.4% | 7.3% → 7.3% | 2 / 0 / 39 |
+
+\* MM-Fit's view does not match the profile (P3-27), so these are not evidence.
+
+- **The curls were only the defect.** Every held-out set now counts its label
+  exactly.
+  - Checked, not assumed: the records alternate left and right, each curl takes
+    1.0–1.3 s and reaches 2–24°.
+  - The ideal threshold counter finds the same 368.
+- **The fix is general**, not specific to curls. Every exercise with fast starts
+  gains, and none but the row lost a repetition anywhere. The owner expected the
+  shoulder press and the others unchanged; only the lateral raise is.
+- **Rows fell in 4 sets.** That is not the fix's fault but a flaw it exposed in
+  near-side combining, finding 2b below.
+
+### 2. Push-ups and sit-ups counted from the near side
+
+**The change.** `PushUpProfile` and `SitUpProfile` go from `BOTH` to
+`NEAR_SIDE_ONLY`, by the owner's decision. P3-8's premise, "both limbs are visible
+from the required view", did not survive measurement: on MM-Fit the far side's angle
+was measurable in 42% (push-ups) and 53% (sit-ups) of frames.
+- **Their required landmarks become the torso** (both shoulders and hips), as for the
+  row. `ValidityGate` invalidates a frame on any required landmark below the floor, so
+  requiring the far limb would invalidate every frame.
+- **Frame validity does not gate counting.** The tracker counts every frame, so this
+  changes what the live screen says (P3-24's "NOT VISIBLE"), not what is counted.
+- **What it gives up,** as the row does: no per-side comparison and no symmetry
+  number. A Tier A push-up technique rule in P8 has one arm to work with.
+
+**Which side is near.** The near side is not a property of the exercise: the
+right arm faced the camera in 54 of MM-Fit's 65 push-up sets and the left in 10; the
+left side in 51 of 65 sit-up sets and the right in 8. Near-side-only takes whichever
+side completes cycles, and the core never learns which (CLAUDE.md §4).
+
+**The thresholds, checked on the near side alone:**
+- **The far zones fit:** push-ups reach ≤ 95° in 49 of 65 sets, sit-ups ≤ 83° in 62.
+- **The start zones are strict:**
+  - Push-ups need ≥ 155°. The near side's 95th percentile has a median of 156 (middle
+    half 148–161), and 34 of 65 sets reach it.
+  - Sit-ups need ≥ 132°. The median is 130 (middle half 116–136), and 28 of 65 sets
+    reach it.
+  - Like Part 3, that is a threshold question to reason through, not change here.
+
+**Tests.** In `ViewAndSideContractTest`:
+- the near-side-only list is now exactly push-up, row and sit-up. This test pinned the
+  row alone, and its own message said adding one "belongs in DECISIONS.md";
+- a side-on push-up with the far arm hidden throughout counts all 10 repetitions;
+- a side-on sit-up does the same, using a new hip-chain builder, because the existing
+  one never moves the hip;
+- both report no symmetry number.
+
+The three failed first; the two behaviour tests gave INSUFFICIENT_DATA for every
+repetition, MM-Fit's symptom.
+
+**Result, all 21 workouts.** "Part 1 only" is the fast-start fix with the old profiles
+(profile files reverted for that run, restored byte for byte, and checked in the
+manifest to have used `BOTH`):
+
+| Exercise | Run | Counted (of labelled) | MAE | Exact | Within ±1 |
+|---|---|---|---|---|---|
+| Push-up | as shipped | 5 of 649 | 9.91 | 0.0% | 0.0% |
+| | Part 1 only | 29 | 9.54 | 0.0% | 1.5% |
+| | + near side | **152** | 7.65 | **9.2%** | **16.9%** |
+| Sit-up | as shipped | 101 of 640 | 8.29 | 3.1% | 6.2% |
+| | Part 1 only | 106 | 8.22 | 3.1% | 6.2% |
+| | + near side | **141** | 7.68 | **4.6%** | **9.2%** |
+
+Against Part 1 alone: 23 push-up and 16 sit-up sets gained, none lost, and no set of
+any other exercise changed.
+
+**Why it is still short, measured in two halves:**
+1. **The start zone.** An ideal threshold machine on the near side reaches 320 (of
+   649) and 309 (of 640).
+2. **Near-side combining itself (finding 2b).** `emitNearSide` drops any cycle that
+   starts before the last reported cycle ended, from either side and **whatever its
+   validity**. So a far side flickering in and out reports short ABORTED and
+   INSUFFICIENT_DATA cycles first, and they block the near side's VALID ones, which
+   leave no record.
+   - **The diagnostic** (`NearSideDiagnostic.kt`) re-runs each side's own pipeline
+     and state machine and re-creates the engine's rule. It matches the harness's
+     count on every set.
+   - **If only an accepted VALID cycle could block another:** 201 push-ups (against
+     152) and 258 sit-ups (against 141).
+   - **Counting only the more-measured side:** 170 and 233.
+   - **The same flaw costs the row** the 4 sets of Part 1.
+
+**Proposed, not made:** the "VALID blocks only" rule, 2b. It still merges two VALID
+cycles that overlap, so nothing is double-counted. It changes the row too. The owner
+specified the row's existing rule for this part, so it waits for the owner's decision.
+
+### 3. The lateral raise's start zone: investigated, a proposal, not applied
+
+**No source.** `topThreshold = 20` (the zone is ≤ 28° with hysteresis 8) is marked
+provisional, and no repetition threshold carries a `sourceRef`: that field is for
+Layer 2 technique rules. So it may be loosened, conservatively.
+
+**The resting angle between raises** (`raise_rest_angles.py`), the valleys of the
+hip-shoulder-elbow angle between excursions past the far zone:
+
+| | Development (19 sets, 341 valleys) | Held-out (37 sets, 665 valleys) |
+|---|---|---|
+| Median (middle half) | 23.1° (20.4–26.6) | 22.8° (16.8–28.3) |
+| 5th–95th percentile | 10.1–32.8° | 11.0–32.9° |
+| At or below 28° | 84.5% | 74.1% |
+| At or below 36° | 98.2% | 99.4% |
+
+**The typical return reaches 28°, but about 1 in 5 stops at 28–33°.** Each such
+return merges two raises into one cycle for that arm, and the raise is simultaneous,
+counted as the lesser of the two arms. P3-27 described the zone as "often not
+reached"; that overstated it, and this measurement corrects it.
+
+**Proposal: `topThreshold` 20 → 28, a start zone of ≤ 36°.** It is reasoned, not
+fitted:
+- **The value:** the development sets' 95th-percentile resting angle (32.8°) plus a
+  small margin. No value was searched for the best score.
+- **The anatomy:** seated with dumbbells, the upper arm clears the thighs, so a 2D
+  resting angle in the 20s to low 30s is normal.
+- **Still a real raise:** 36° is under half the raise, and the far zone (≥ 77°) is
+  unchanged, so a repetition still needs a sweep of at least 41°.
+- **Real users:** a phone at another height shifts 2D angles by a few degrees, and the
+  current edge sits in the middle of normal resting values.
+
+**One held-out check of that one value** (`raise_threshold_check.py`). This is the
+ideal threshold machine, a ceiling, not the engine:
+
+| Start zone | Ideal cycles | Sets exact | Within ±1 | Sets over-counted |
+|---|---|---|---|---|
+| ≤ 28° (current) | 166 of 369 | 18.9% | 29.7% | 0 |
+| ≤ 36° (proposed) | 360 of 369 | 78.4% | 97.3% | 0 |
+
+The engine will land below the ceiling, because smoothing blunts the valleys. It is
+to be measured on the held-out set once the owner decides.
+
+### Checks
+
+- **Mutations, all caught, every file restored byte for byte (5):**
+  - TOP drops to IDLE at once again;
+  - TOP never drops to IDLE;
+  - the push-up back to both sides;
+  - the sit-up back to both sides;
+  - the near-side push-up requiring the far arm.
+
+  The two `RepFsm` mutations first failed to apply, because `RepFsm.kt` has CRLF
+  endings. The harness had left a backup; `RepFsm.kt` was confirmed identical to it,
+  the backup removed, and the mutations rerun.
+- **Full suite: 1,849 test executions, none failed, none skipped.** P3-27 had 1,825;
+  the 6 new core tests run on each of the four targets.
+- **Diagnostics added** to `tools/mmfit-eval`: `NearSideDiagnostic.kt`,
+  `raise_rest_angles.py` and `raise_threshold_check.py`. The analysis skips an empty
+  split, so it can judge a change on the held-out set alone.
+
+### For the owner
+
+1. **Part 2b:** the "VALID blocks only" near-side rule? Measured +49 push-ups and +117
+   sit-ups; it applies to the row as well.
+2. **Part 3:** the lateral raise start zone to ≤ 36°?
+3. **The push-up and sit-up start zones:** reason them through in the same way.
+4. **Squats:** the near-knee question remains, deliberately not touched here.
+
+### What is NOT verified
+
+- **On the phone:** these changes were made on MM-Fit. The fast-start fix bears on
+  the phone directly, since it is the same code path, but has not run there.
+- **Every MM-Fit limit of P3-27 stands:** 30 fps against the phone's 15, the
+  MediaPipe versions, one camera and room, and the label-numbering assumption.
+
+**Scope of this entry.** Two engine changes judged on data they were not designed
+against, one investigation with a proposal, and the measured cost of an open flaw.
+No accuracy claim beyond MM-Fit and the protocol of P3-27.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
