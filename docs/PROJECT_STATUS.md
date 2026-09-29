@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
 *Snapshot updated 2026-09-29, from the repository as it stands at the end of
-DECISIONS.md P3-30. This file summarises. It is not an authority: where it
+DECISIONS.md P3-31. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date.*
 
@@ -9,10 +9,37 @@ of date.*
 
 ## Next session starts here
 
-As of DECISIONS.md P3-30 and its addendum, "Owner decisions before the held-out
-run".
+As of DECISIONS.md P3-31 (the 2026-09-29 phone session).
 
-**Done:**
+**The phone session of 2026-09-29 (P3-31)** ran tests 1–2 of `docs/P4_TOMORROW.md`
+on P3-29's engine (reinstalled 15:05 that day, APK `f84c9987…`):
+- **curls filmed sideways counted correctly:** right 16 of 16, left 15 of 15, the
+  left from 21 records at ~6 results a second;
+- **facing the phone, the curl counted arm swings and snaps:** 7 over, and 5 false
+  with no curls at all;
+- **the first on-device baseline was saved, but from front-on data:** to be
+  recalibrated;
+- **a `RepFsm` defect:** a movement crossing the whole zone between two results is
+  recorded as turned back.
+
+The owner chose **side-on for the curl** and asked for the errors to be fixed before
+testing resumes.
+
+**Open, first:**
+1. **P3-32, the fixes:**
+   - the curl goes side-on, one arm at a time, turning round for the other;
+   - `RepFsm`'s jump across the zone;
+   - the throttled-gate reading (P3-31 error 3) and the one-result timings (error
+     4) need data, not guesses.
+2. **Install the fixed build,** only with the owner's approval, backing up first as
+   P3-25 and P3-29 did, and recording its hash.
+3. **Resume `docs/P4_TOMORROW.md`:**
+   - recalibrate the curl sideways (replacing the front-on baseline);
+   - tests 3–12: lateral raise, push-ups, sit-ups, plank against a stopwatch, book
+     test, "NOT VISIBLE", back camera, dim light, heat run;
+   - cool the phone first: it was at status 3 for half of this session.
+
+**Done before P3-31:**
 - **The split is by subject:** development A, B, C and w19's subject; held-out
   w12, w13, w16, w17, w18, w20, untouched. `tools/mmfit-eval/subjects.py` holds
   it.
@@ -31,9 +58,8 @@ run".
 - **Checked against the code:** `docs/EXERCISE_GUIDE.md`'s counting rules.
 - **Pushed.**
 
-**Open, in this order:**
-1. **The phone session:** `docs/P4_TOMORROW.md`. It also records the P3-29 curl
-   test and the first real P6 calibration.
+**Then, in this order:**
+1. **The rest of the phone session** (above).
 2. **The curl-timing trace on the development workouts** (decision 5): the
    one-frame lifts after a bridged start.
 3. **The S5 run** (development subjects A and B only).
@@ -107,9 +133,9 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P1 Shared Core | Domain types, bilateral signal, claim levels, landmark model, pose adapter, JS facade | ✅ Done |
 | P2 Kinematics & Temporal | Geometry, joint angles, velocity, ring buffers, filter chain, resampling, ablation harness | ✅ Done |
 | P3 Profiles & Rep Engine | Rep FSM, bilateral rep tracker, hold analyser, 15 profiles + 2 variants | ✅ Done |
-| P4 Device Reality Check | Frame rate, thermal, mirroring, landmark reliability on a real phone | 🟡 Partly done (DECISIONS.md P3-18 onward) — launch crash fixed, live screen and sync work, solo curl check done (P3-24). Still owed: back camera, left arm, tracking-loss test, hold timing, heat run, other lighting, a second person |
+| P4 Device Reality Check | Frame rate, thermal, mirroring, landmark reliability on a real phone | 🟡 Partly done (DECISIONS.md P3-18 onward) — launch crash fixed, live screen and sync work, solo curl check (P3-24). **2026-09-29 session (P3-31), on P3-29's engine:** curls filmed sideways counted 16 of 16 (right arm, fast ones included) and 15 of 15 (left arm, from 21 records at a throttled ~6 results a second); left and right correct on the front camera. **Facing the phone, curls counted arm swings and snaps: 7 over in one set, 5 false in another** (P3-31), so the curl goes side-on (owner, P3-32). The phone spent 23 of 50 minutes at thermal status 3. Still owed: tests 3–12 of `docs/P4_TOMORROW.md` (lateral raise, push-ups, sit-ups, plank timing, book test, back camera, dim light, heat run), a second person |
 | P5 RepRecord & Export | Record types, persistence, JSON/CSV export | ✅ Done (DECISIONS.md P3-25) — records and Room storage; the export in the shared core (CONTRACTS.md §10), golden-tested byte for byte on JVM and JS, and run once on the phone: all 59 sessions, 134 repetitions and 4 holds matched the database exactly |
-| P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Built, not yet run on the phone (DECISIONS.md P3-22) — per-side baselines from 5–8 valid reps (provisional), hold baselines, `AnalysisResult` as numbers beside the baseline, Room storage with a tested migration, the calibration flow. Personal *thresholds* are P8's rules. The MM-Fit convergence study (P3-30 S4, development subjects) says 5–8 repetitions do not settle a range-of-motion baseline (about 12–20 would); the count is the owner's decision |
+| P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Built (DECISIONS.md P3-22), and **run on the phone once (P3-31):** the calibration flow saved the device's first baseline (Bicep Curl, 5 per arm), but from curls filmed facing the phone, so its values (a 175° range, a 66 ms lift) are not a curl baseline; to be recalibrated sideways — per-side baselines from 5–8 valid reps (provisional), hold baselines, `AnalysisResult` as numbers beside the baseline, Room storage with a tested migration, the calibration flow. Personal *thresholds* are P8's rules. The MM-Fit convergence study (P3-30 S4, development subjects) says 5–8 repetitions do not settle a range-of-motion baseline (about 12–20 would); the count is the owner's decision |
 | P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | ✅ Done (DECISIONS.md P3-27 to P3-29). The build plan defines P7 as: *"acquire MM-Fit, run MediaPipe over its RGB video, align set boundaries and rep counts, build the evaluation harness"* (`ZERO_DATASET_BUILD_PLAN.md`, phase table). All four were done in P3-27: the videos on disk, MediaPipe run with the phone's own model file, the labels aligned set by set (five workouts drift, by up to 6.8 s, and were corrected), and the `:mmfit-eval` harness running the live screen's own class. All 616 sets went through, and the rep-count study was measured for 7 exercises. The engine defect it exposed (a fast start is lost) is fixed and judged on the 13 held-out workouts in P3-28: curls 368 of 368, every set exact; push-ups and sit-ups now count from the near side. In P3-29 near-side counting stopped letting a failed attempt hide a repetition, and the lateral raise's start zone moved to 36°: held-out raises 125 → 356 of 369, with no set counted above its label in either change. The push-up and sit-up start zones stay as they are, with a personal start zone proposed (P8). The verifier and personalisation studies, once listed here, belong to P9 and P12 in the plan's own evaluation table, not to P7 |
 | P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | 🟡 Layer 1 built in the shared core (DECISIONS.md P3-30), **not wired into the app**: personal deviations (Level 2) in range of motion, lifting and lowering time, left–right balance and consistency; the cited ACSM tempo rule (Level 3, Tier A); the push-up and sit-up personal start zone. Layer 2, the cited technique rules, not started |
 | P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | ⛔ Not started (may be trimmed) |

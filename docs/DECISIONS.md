@@ -7089,6 +7089,20 @@ was installed for the owner's own curl check.
 over-counting a set, and one method that did not transfer, stopped at a proposal. No
 accuracy claim beyond MM-Fit and the protocol of P3-27.
 
+### Addendum (2026-09-29): the owner's curl check, recorded in P3-31
+
+The curl check this entry left owed ran on the phone on 2026-09-29. The build was P3-29's
+engine, rebuilt and installed at 15:05 that day; P3-31 records how that was established.
+
+- **Right arm, filmed sideways: 16 of 16,** the owner's 10 normal and 6 fast. All attributed
+  RIGHT, at about 15 results a second. **Every fast curl (0.9–1.3 s) counted: P3-28's
+  fast-start fix works on the phone.**
+- **Left arm, filmed sideways: 15 of 15 counted, from 21 records** for the owner's 15 curls, at
+  about 6 results a second with the phone at thermal status 3. The count matches; the records
+  do not map one-to-one.
+- **The check was side-on, not the curl profile's front-on.** Facing the phone, the curl counted
+  arm swings and snaps as curls (P3-31). The owner has since chosen side-on for the curl.
+
 ---
 
 ## P3-30 — MM-Fit's subjects and a split by subject, P8 Layer 1, and the personalisation study on the development subjects
@@ -8127,6 +8141,179 @@ people, and no more.
 5. The frozen tag `p3-30-frozen`: the engine, the chosen settings, P3-30's cuts and floors,
    and the tools, exactly as the held-out run will use them.
 6. **Then a separate approval for the held-out run.**
+
+---
+
+## P3-31 — P4 on the phone, 2026-09-29: sideways curls count, facing the phone they count what isn't there
+
+*2026-09-29, 23:01–23:54 IST. A partial session: two of `docs/P4_TOMORROW.md`'s twelve tests.*
+
+**The owner's brief:**
+- Run `docs/P4_TOMORROW.md` one test at a time, in its order, alone.
+- Confirm the build is the P3-29 install and do not reinstall; attribute P4 to the P3-29
+  build.
+- After each test, compare the engine's count with the owner's.
+- **Record bugs; do not fix them.**
+- Skip squats.
+
+Everything read is in `local/p4-2026-09-29/`, which is gitignored: the database copies before,
+during and after, the Phase B readout, the thermal log, the pulled APK and the session notes.
+No image or video was taken.
+
+### The build on the phone is not the 21:57 install
+
+- **`lastUpdateTime` is 2026-09-29 15:05:18,** not P3-29's 2026-09-28 21:57. The first install
+  (2026-09-27 22:15:47) is unchanged, so the data survived.
+- **Its code, read without installing anything:** the APK was pulled (SHA-256
+  `f84c9987aa7b6d3172f88ea48055ae7d71d934dc42b26e5b9e4eacded2a8a334`).
+  - It carries P3-29's `lastNearSideCountedEndMs`.
+  - It carries **none of P3-30's code:** no `deviation` package, no `awayFromStart`, analysis
+    version `p6-comparison-1`.
+  - **So it is P3-29's engine, rebuilt and installed at 15:05.** No hash of the 21:57 APK was
+    recorded, so byte-identity with it cannot be shown.
+- **The owner chose to go on.** Results here are attributed to "P3-29 engine, reinstalled
+  2026-09-29 15:05:18, APK `f84c9987…`".
+- **Unrecorded use of that build, 15:08–15:13 IST:**
+  - a squat set: 5 records, 2 valid;
+  - a curl set: 9 records, 3 valid, 5 aborted, 1 insufficient;
+  - two push-up sets with no records.
+
+**The backup before:**
+- All five database files were pulled, and each hash matched the phone's.
+- Integrity "ok": 65 sessions, 65 sets, 148 repetitions, 4 holds, 0 baselines. P3-29 had
+  59, 59, 134, 4, 0.
+
+**The phone:**
+- **At the start:** thermal status 2 (CPU 65 °C, skin 42.7 °C), charging over USB, battery
+  84%, front camera, lite model.
+- **Across the session:** **thermal status 3 ("severe") in 23 of the 50 logged minutes,**
+  from 23:05. Skin 41.8–45.1 °C.
+- **No crash:** the crash buffer and the readout hold none.
+
+### Test 1: curls, done sideways
+
+**The checklist asked for front-on; the owner filmed side-on.** He said afterwards that he always
+curls sideways. So this is a **side-on** result for a profile that then required front-on.
+Whether he turned round for the left arm was asked and not answered.
+
+| | Owner's count | Records | Counted (VALID) | Attributed | Results a second (median) |
+|---|---|---|---|---|---|
+| Set 66, right arm | 10 normal + 6 fast = 16 | 18 | **16** | all RIGHT | 15.0 |
+| Set 67, left arm | 10 normal + 5 fast = 15 | 21 | **15** | all LEFT | **6.2** (1.8–8.1) |
+
+**Right arm: 16 of 16, a clean pass.**
+- The two uncounted records are a false start (0.47 s, 41°) and a flicker as the set ended.
+- **All six fast curls (0.9–1.3 s) counted: P3-28's fast-start fix works on the phone** at
+  about 15 results a second.
+
+**Left arm: 15 of 15, but not cleanly.**
+- **The normal part:** 12 separate full-range records (126–143°) for the owner's 10 curls. Ten
+  were counted and two ended as insufficient data.
+- **The fast part:** 9 records for 5 fast curls. Five were counted; one was recorded as turned
+  back despite 121° of range; three ended as insufficient data.
+- **The records do not map one-to-one onto the curls,** so the total's match is partly
+  coincidence.
+- **MediaPipe was throttled:** the camera delivered about 28 fps while results fell to about 6
+  a second, at thermal status 3.
+- **A reading, not traced:** at 6 a second, a fast curl moves about 60° between results. That is
+  past the outlier gate's 35°, and re-admission takes three results, about 0.5 s, the bridge's
+  limit.
+
+**Amber:** the owner saw few flashes, consistent with the records (2 and 6).
+
+**Left and right:** every record on the correct arm, front camera.
+
+### Test 2: the first calibration, and curls facing the phone
+
+- **A first report that front-on "doesn't count" was withdrawn by the owner.** The readout for
+  23:21:04–23:22:07 shows him tracked (visibility 0.95–1.00, about 15 results a second) but his
+  elbows unmoving: the largest change between results had a median of 1.1° and a maximum of
+  6.4°. That is consistent with no curling in that minute.
+- **Sets 68, 69 (squat) and 71–73 (curl)** were started and ended with no records.
+
+| Set | Time | What the owner did, facing the phone | Records | Counted |
+|---|---|---|---|---|
+| 70 | 23:27 | 15 curls | 35 | **22: seven over** |
+| 74 | 23:37 | **Calibration**, 5 + 5 alternating | 12 | 10 (5 per arm) |
+| 75 | 23:39 | **No curls: only swayed his arms** | 23 | **5: all false** |
+
+The owner: "only 15 correct ones, the rest were counted even if they were wrong"; and of set 75,
+"I didn't even do anything, just stood there and started swaying my hands and it counted".
+
+**Why: facing the phone, the angle measured is not the elbow's.**
+- **Side-on (sets 66 and 67):** a curl goes from 153–179° to 26–51°, a range of 111–143°, with a
+  normal-pace lift of 0.8–2.6 s.
+- **Front-on (sets 70, 74, 75):** almost every record goes from about 178° to **0–5° in one or
+  two results (33–100 ms)**, a range of 170–178°. No elbow does that.
+- **A reading, not traced frame by frame:** facing the camera, a forearm coming towards the
+  camera collapses the wrist's image onto the upper arm, and the flat-image angle snaps to about
+  0°. **A forward arm swing does the same, and the engine cannot tell the two apart.**
+- **MM-Fit's front-on curls also bottom out at 2–24° (P3-28).** They counted exactly inside
+  labelled windows, where nothing but curls happens. That says nothing about swings between
+  curls.
+
+**The first calibration on the phone.**
+- **The flow works:** set 74 produced the device's first baseline. `bicep_curl`, `p6-1`, 5 valid
+  repetitions per arm. The card, the store and the migration's `baselines` table all worked on
+  the device.
+- **Its values are not a curl baseline:**
+  - a usual range of 175.6° (left) and 175.4° (right);
+  - far positions of about 3–4°;
+  - a usual lift of 66–67 ms, one result;
+  - a usual lowering of 166 ms (left) and 3,509 ms (right).
+- **It is to be replaced** by recalibrating in the view the curl will use.
+
+**Another defect the front-on records exposed** (`RepFsm.kt` lines 158–179).
+- Several records reached the far zone yet were recorded as turned back: set 75 has 16 such
+  records, and set 67 #13 is one sideways at 6 results a second.
+- **At TOP,** a sample already inside the far zone only switches to DESCENDING. Nothing checks
+  that it is also at the bottom. If the next sample is back at the start, the repetition is
+  recorded as turned back.
+- Any movement that crosses the whole zone between two results loses its repetition.
+- Fixing it alone would turn the front-on snaps into counts, so it has to go with the view
+  change.
+
+### What did not run
+
+Tests 3–12: the lateral raise, push-ups, sit-ups, the plank against a stopwatch, the book test,
+the "NOT VISIBLE" label, the back camera, dim light and the heat run. Squats were skipped as
+directed. All are carried to the next session.
+
+### Errors found, recorded and not fixed here
+
+1. **Facing the phone, the curl counts arm swings and snaps:** set 70 seven over, set 75 five
+   false.
+2. **Full-depth repetitions recorded as turned back** when a movement crosses the whole zone
+   between two results (above).
+3. **Curls lost at a throttled ~6 results a second:** the outlier gate's 35° a result assumes
+   ~15 a second. A reading, not traced.
+4. **One-result phase times:** set 66 #16 reads 67 ms each way. It sits with P3-30's open
+   decision 5.
+5. **The first baseline was made facing the phone** and is not meaningful.
+6. **The 15:05 install was not recorded:** process, not code.
+7. **"NOT VISIBLE" (P3-24 item 18)** is unchanged. P3-8's guard requires both arms for a
+   both-sided profile.
+
+### The owner's decisions at the end
+
+- **Testing resumes tomorrow; first fix the errors.**
+- **The curl's view: sideways (side-on),** one arm at a time, turning round for the other: how
+  the owner curls, and what counted 16 of 16.
+  - **The cost, accepted:** MM-Fit's front-on curl results (P3-27, P3-28, P3-30) stop counting
+    as evidence for the app's curl (CLAUDE.md §22).
+  - **The fixes are P3-32's.**
+
+### What is NOT verified
+
+- **The front-on mechanism:** it is a reading, not traced frame by frame.
+- **The throttled-gate reading** for set 67.
+- **Which records are which curls** in sets 67 and 70.
+- **That the 15:05 build is the 21:57 build.**
+- **Every result here** is one person, one phone, one evening, mostly at thermal status 3.
+
+**Scope of this entry.** It records a partial P4 session on P3-29's engine: a sideways curl result
+per arm, the first on-device calibration, and a view in which the curl counts movements that are
+not curls. It makes no accuracy claim.
 
 ---
 
