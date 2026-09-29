@@ -99,6 +99,9 @@ class SquatProfile : TierAProfile(), RepetitionExercise {
     /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
     override val analysedSides: AnalysedSides = AnalysedSides.BOTH
 
+    /** Moving away from the start is the lowering - DECISIONS.md P3-30. */
+    override val awayFromStart: Contraction = Contraction.ECCENTRIC
+
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.KNEE,
         plane = MeasurementPlane.IMAGE_2D,
@@ -138,6 +141,9 @@ class BicepCurlProfile : TierAProfile(), RepetitionExercise {
 
     /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
     override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+
+    /** Moving away from the start is the lifting - DECISIONS.md P3-30. */
+    override val awayFromStart: Contraction = Contraction.CONCENTRIC
 
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.ELBOW,

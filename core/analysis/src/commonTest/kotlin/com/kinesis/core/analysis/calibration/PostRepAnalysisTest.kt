@@ -118,26 +118,41 @@ class PostRepAnalysisTest {
     }
 
     /**
-     * The guard for this phase's boundary. P6 compares numbers; judgement - "shallower
-     * than your usual" - and the rules behind it are P8, each with a `ruleVersion`
-     * and, for Level 3, a `sourceRef`. Until those rules exist, no finding of any
-     * level may come out of the post-rep analysis, for any exercise in the library.
-     * When P8 adds findings, this test is the one it replaces, deliberately.
+     * The guard for this phase's boundary. P3-22's version said no finding of any level
+     * may come out of the post-rep analysis until P8's rules existed, and that P8 would
+     * replace it deliberately. This is that replacement (DECISIONS.md P3-30). For every
+     * exercise in the library:
+     * - an ordinary repetition says nothing, with or without a baseline - no Level 2
+     *   without a baseline, and the cited Level 3 tempo rule only past its threshold;
+     * - an ordinary repetition against its own baseline says nothing either;
+     * - a hold says nothing: Layer 1 judges repetitions.
+     *
+     * That Tier B and C never produce Level 3, even for a very fast repetition, is
+     * `AcsmTempoRuleTest.only_tier_a_can_say_it_and_it_needs_no_baseline`.
      */
     @Test
-    fun p6_makes_no_claim_beyond_numbers_for_any_exercise() {
+    fun p8_says_nothing_about_an_ordinary_repetition_or_a_hold() {
         for (entry in ExerciseLibrary.all) {
             when (entry) {
                 is RepetitionExercise -> {
-                    val rep = paired(1, 100.0, 90.0)
-                    assertTrue(PostRepAnalysis.analyse(entry, rep, null).findings.isEmpty(), entry.id)
+                    // 1.0 s down and 0.8 s up: well within ACSM's tempo for every profile.
+                    assertEquals(emptyList(), PostRepAnalysis.analyse(entry, paired(1, 100.0, 90.0), null).findings, entry.id)
                     if (CalibrationKey.of(entry) == "squat") {
-                        assertTrue(PostRepAnalysis.analyse(entry, rep, squatBaseline).findings.isEmpty(), entry.id)
+                        // The baseline's own medians: no deviation on any feature.
+                        assertEquals(emptyList(), PostRepAnalysis.analyse(entry, paired(1, 103.5, 93.5), squatBaseline).findings, entry.id)
                     }
                 }
                 is IsometricExercise ->
                     assertTrue(PostRepAnalysis.analyse(entry, hold(), null).findings.isEmpty(), entry.id)
             }
         }
+    }
+
+    @Test
+    fun a_repetition_unlike_its_baseline_carries_layer_ones_findings() {
+        // Left 8.5° short of its usual: shallower, and left-minus-right 8.5° off its habitual 10.
+        val findings = PostRepAnalysis.analyse(squat, paired(9, 95.0, 93.5), squatBaseline).findings
+        assertEquals(setOf("rom_left", "asymmetry_lr"), findings.map { (it as com.kinesis.core.domain.finding.Deviation).metric }.toSet())
+        assertEquals("p8-layer1-1", PostRepAnalysis.VERSION)
     }
 }

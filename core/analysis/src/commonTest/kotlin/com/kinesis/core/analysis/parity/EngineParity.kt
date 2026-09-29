@@ -123,6 +123,38 @@ object EngineParity {
         return shortLines + run.calibrate()
     }
 
+    // --- Layer 1 findings - DECISIONS.md P3-30 -------------------------------------------
+
+    /**
+     * Findings through the facade, so their levels, rule versions, sources and words
+     * are compared on every target. Eight ordinary squats calibrate; then a shallow
+     * one (Level 2: shallower than usual) and a quick one (Level 2: faster than usual;
+     * Level 3: faster than ACSM's beginner tempo) are analysed against that baseline.
+     * Then a curl set whose first curl is quick, analysed with no baseline: Level 3
+     * alone.
+     */
+    fun layerOneFindings(): List<String> {
+        val squats = Run("""{"id": "squat"}""", seed = 31)
+        squats.stand(20)
+        for (bottom in listOf(72.0, 68.0, 75.0, 70.0, 66.0, 73.0, 69.0, 71.0)) {
+            squats.squatTo(bottom)
+            squats.stand(12)
+        }
+        squats.squatTo(88.0) // shallow
+        squats.stand(12)
+        squats.squatTo(70.0, half = 12) // quick
+        squats.stand(12)
+        val squatLines = squats.calibrate()
+
+        val curls = Run("""{"id": "bicep_curl"}""", seed = 37)
+        curls.arms(160.0, 160.0, frames = 20)
+        curls.curl(left = true, top = 158.0, bottom = 35.0, steps = 24) // quick
+        curls.arms(160.0, 160.0, frames = 8)
+        curls.curl(left = false, top = 162.0, bottom = 56.0)
+        curls.arms(160.0, 160.0, frames = 8)
+        return squatLines + curls.calibrate().map { "curl-" + it }
+    }
+
     // --- Export - DECISIONS.md P3-25 ---------------------------------------------------
 
     /**
@@ -196,11 +228,12 @@ object EngineParity {
             dropoutAt: Int = -1,
             rightLag: Int = 0,
             marginal: Boolean = false,
+            half: Int = 30,
         ) {
-            val steps = 60 + rightLag
+            val steps = 2 * half + rightLag
             for (step in 0 until steps) {
-                val left = cycle(step, bottom)
-                val right = cycle(step - rightLag, bottom)
+                val left = cycle(step, bottom, half)
+                val right = cycle(step - rightLag, bottom, half)
                 legs(
                     if (step == dropoutAt) Double.NaN else left,
                     if (!rightSeen || step == dropoutAt) Double.NaN else right,
@@ -209,11 +242,11 @@ object EngineParity {
             }
         }
 
-        /** 30 frames down to [bottom], 30 back up; standing outside that. */
-        private fun cycle(step: Int, bottom: Double): Double = when {
+        /** [half] frames down to [bottom], [half] back up; standing outside that. */
+        private fun cycle(step: Int, bottom: Double, half: Int): Double = when {
             step < 0 -> STANDING
-            step < 30 -> STANDING - (STANDING - bottom) * (step + 1) / 30.0
-            step < 60 -> bottom + (STANDING - bottom) * (step - 29) / 30.0
+            step < half -> STANDING - (STANDING - bottom) * (step + 1) / half.toDouble()
+            step < 2 * half -> bottom + (STANDING - bottom) * (step - half + 1) / half.toDouble()
             else -> STANDING
         }
 
@@ -308,10 +341,12 @@ object EngineParity {
             put(wrist, x + outward * 0.17 * sin(radians), 0.45 - 0.17 * cos(radians), 0.95)
         }
 
-        /** One arm curls from [top] to [bottom] and back while the other rests at [top]. */
-        fun curl(left: Boolean, top: Double, bottom: Double) {
-            for (step in 0 until 50) {
-                val angle = if (step < 25) top - (top - bottom) * (step + 1) / 25.0 else bottom + (top - bottom) * (step - 24) / 25.0
+        /** One arm curls from [top] to [bottom] and back, in [steps] frames, while the other rests at [top]. */
+        fun curl(left: Boolean, top: Double, bottom: Double, steps: Int = 50) {
+            val half = steps / 2
+            for (step in 0 until steps) {
+                val angle = if (step < half) top - (top - bottom) * (step + 1) / half.toDouble()
+                else bottom + (top - bottom) * (step - half + 1) / half.toDouble()
                 if (left) arms(angle, 160.0) else arms(160.0, angle)
             }
         }

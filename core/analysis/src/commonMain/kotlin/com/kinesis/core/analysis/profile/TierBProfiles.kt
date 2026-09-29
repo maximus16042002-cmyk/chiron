@@ -83,6 +83,9 @@ class LungeProfile : TierBProfile(), RepetitionExercise {
     /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
     override val analysedSides: AnalysedSides = AnalysedSides.BOTH
 
+    /** Moving away from the start is the lowering - DECISIONS.md P3-30. */
+    override val awayFromStart: Contraction = Contraction.ECCENTRIC
+
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.KNEE,
         plane = MeasurementPlane.IMAGE_2D,
@@ -138,6 +141,9 @@ class HipAbductionProfile : TierBProfile(), RepetitionExercise {
     /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
     override val analysedSides: AnalysedSides = AnalysedSides.BOTH
 
+    /** Moving away from the start is the lifting - DECISIONS.md P3-30. */
+    override val awayFromStart: Contraction = Contraction.CONCENTRIC
+
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.HIP,
         plane = MeasurementPlane.IMAGE_2D,
@@ -189,6 +195,9 @@ class KneeRaiseProfile : TierBProfile(), RepetitionExercise {
 
     /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
     override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+
+    /** Moving away from the start is the lifting - DECISIONS.md P3-30. */
+    override val awayFromStart: Contraction = Contraction.CONCENTRIC
 
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.HIP,
@@ -260,6 +269,9 @@ class SitUpProfile : TierBProfile(), RepetitionExercise {
      */
     override val analysedSides: AnalysedSides = AnalysedSides.NEAR_SIDE_ONLY
 
+    /** Moving away from the start is the lifting - DECISIONS.md P3-30. */
+    override val awayFromStart: Contraction = Contraction.CONCENTRIC
+
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.HIP,
         plane = MeasurementPlane.IMAGE_2D,
@@ -327,6 +339,9 @@ class ShoulderPressProfile : TierBProfile(), RepetitionExercise {
 
     /** Both arms are visible front-on, which is why that view was chosen. */
     override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+
+    /** Moving away from the start is the lifting - DECISIONS.md P3-30. */
+    override val awayFromStart: Contraction = Contraction.CONCENTRIC
 
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.SHOULDER,
@@ -411,6 +426,9 @@ class RowProfile : TierBProfile(), RepetitionExercise {
      */
     override val analysedSides: AnalysedSides = AnalysedSides.NEAR_SIDE_ONLY
 
+    /** Moving away from the start is the lifting - DECISIONS.md P3-30. */
+    override val awayFromStart: Contraction = Contraction.CONCENTRIC
+
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.ELBOW,
         plane = MeasurementPlane.IMAGE_2D,
@@ -478,6 +496,9 @@ class LegRaiseProfile : TierBProfile(), RepetitionExercise {
 
     /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
     override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+
+    /** Moving away from the start is the lifting - DECISIONS.md P3-30. */
+    override val awayFromStart: Contraction = Contraction.CONCENTRIC
 
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.HIP,

@@ -35,6 +35,8 @@ class EngineParityGoldenWriter {
             "plankCalibration" to EngineParity.plankCalibration(),
             // DECISIONS.md P3-25.
             "sessionExport" to EngineParity.sessionExport(),
+            // DECISIONS.md P3-30.
+            "layerOneFindings" to EngineParity.layerOneFindings(),
         )
         for ((name, lines) in scenarios) {
             out.append("\n    val ").append(name).append(": List<String> = listOf(\n")

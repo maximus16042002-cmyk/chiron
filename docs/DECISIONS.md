@@ -7091,7 +7091,7 @@ accuracy claim beyond MM-Fit and the protocol of P3-27.
 
 ---
 
-## P3-30 — P8 Layer 1 and the personalisation study: Step 0, MM-Fit's subjects, and a stop
+## P3-30 — MM-Fit's subjects and a split by subject, P8 Layer 1, and the personalisation study on the development subjects
 
 *2026-09-29*
 
@@ -7204,7 +7204,7 @@ call either:
   `analyse.py`) carry P3-27's workout sets. They would change with a new split; the
   results already recorded keep the old one.
 
-### Decisions for the owner
+### Decisions for the owner at Step 0 (decided in Part 2)
 
 1. **The split.** Three options:
    - **(a) By subject. Recommended.** Development: A, B, C and w19's subject (w00–w11,
@@ -7226,14 +7226,14 @@ call either:
 3. **Then:** the design and protocol against the chosen split, written into this entry
    and committed before anything is computed, as the brief asks.
 
-### Checks
+### Checks at Step 0
 
 - `subject_sheets.py`, rerun from the repository, reproduces the sheets the grouping
   was made from, pixel for pixel.
 - Nothing else ran. No Kotlin changed, so the suite was not rerun: P3-29's 1,873
   test executions stand.
 
-**Scope of this entry.** It records how MM-Fit's workouts map to subjects, judged by
+**Scope of Step 0.** It records how MM-Fit's workouts map to subjects, judged by
 eye and checked against the paper, and what that means for the split. It runs no
 study and makes no accuracy claim.
 
@@ -7623,6 +7623,334 @@ baseline outlives the day it was made. It waits for the owner.
   claimed");
 - any accuracy figure for the ACSM rule (CLAUDE.md §12a);
 - anything beyond MM-Fit's four development subjects, one camera and 30 fps.
+
+### Built: Layer 1 in the shared core
+
+Everything after the protocol commit (`3a11867`). **Nothing is wired into the app's UI.**
+The app's set summary receives the core's findings, but no app code renders them
+(checked: nothing in `app/src/main` reads `findings`).
+
+**What is in the core:**
+- **`awayFromStart`** on every repetition profile: eccentric for the squat, push-up and
+  lunge, concentric for the other nine. Variants inherit it by delegation, and a test
+  pins all fourteen.
+- **The `deviation` package**, on the post-rep path and classified so in the source
+  guard:
+  - `RepFeatures`: range of motion per side; lifting and lowering time, attributed as
+    the record attributes them; paired left-minus-right.
+  - `References`: the scaled deviation; `PersonalReference` (median, IQR / 1.349);
+    `PopulationReference` (evaluation only, never a finding).
+  - `DeviationRules`: Level 2 `Deviation`s, VALID repetitions only.
+  - `AcsmTempoRule`: Level 3, Tier A, cited, with the minimum-jerk estimate.
+  - `PersonalStartZone`: push-up and sit-up, clamped between the floor and the
+    profile's own edge, with a calibration profile at the floor.
+  - `DeviationPolicy.PROVISIONAL` (`p8-l1-1`): threshold 2; floors 3°, 70 ms, 3°, 2°.
+- **`CurveDistance`:** the root-mean-square curve distance, moved out of `Calibration` so
+  calibration's `curveSpread` and Layer 1's consistency use one definition. The P3-22
+  tests pass unchanged.
+- **`PostRepAnalysis`** is `p8-layer1-1`. It returns Layer 1's findings with a baseline,
+  and the ACSM rule for Tier A (a variant under its parent's authority) with or without
+  one. Holds get no finding.
+- **The facade's `analyzeRep`** writes each finding: its kind, level, rule version and
+  words, its metric and direction, and for Level 3 its fault id and `sourceRef`.
+
+**Decided while building, not in the design above:**
+- **One message per side for depth.** The baseline's curve distance is on raw curves
+  (P3-22), so a shallower repetition is also further from the usual curve. Where range
+  of motion has spoken for a side, consistency stays quiet there. The numbers still
+  carry both.
+- **Numbers in the words are written from integers only.** A Double's own text differs
+  between the JVM and JavaScript, and the parity suite compares the sentences.
+
+**The floors, from the development subjects only** (`start_zone_floor.py`, by the fixed
+method):
+
+| | Depth edge | Smallest median sweep | Floor edge |
+|---|---|---|---|
+| Push-up | 95° | 62.1° (subject B) | **126.0°** |
+| Sit-up | 83° | 62.9° (subject A) | **114.4°** |
+
+Each development subject's returns that clear the floor, against the profile's own
+edge:
+- **Push-up:** A 93.0% (72.1%), B 77.0% (2.1%), C 77.9% (19.1%), S19 100% (100%).
+- **Sit-up:** A 54.2% (0.0%), B 100% (80.2%), C 77.4% (0.0%), S19 100% (29.6%).
+
+**The floor still holds back subject A's sit-ups:** only 54% of A's returns reach
+114.4°. It is what the method gives, and it is reported, not adjusted (decision 4).
+
+**Tests first, as it happened:**
+- The deviation package began as a skeleton whose bodies threw. Against it, **48 of
+  402 JVM tests failed**, every one new or deliberately changed.
+- Three new tests passed from the start, each pinning something already true: the
+  `awayFromStart` pin, the policy pin, and "an ordinary repetition says nothing".
+- The implementation then passed all but one. The minimum-jerk inverse returned
+  0.9999982 at position 1: near the end, `s(t)` rounds to exactly 1.0 over about 2⁻¹⁸,
+  so bisection stopped short. Now only the lower half is bisected and the upper half
+  follows from `s(1 − t) = 1 − s(t)`.
+
+**New tests,** each running on the JVM, JS and both Android variants:
+- `DeviationRulesTest` 16, `RepFeaturesAndReferencesTest` 10, `AcsmTempoRuleTest` 11,
+  `PersonalStartZoneTest` 10.
+- `PostRepAnalysisTest` +1, with P3-22's P6 boundary test replaced deliberately.
+- `FacadeCalibrationTest` +1.
+- A parity scenario.
+
+**Parity.**
+- **The golden file was regenerated deliberately and its diff reviewed.** 27 existing
+  lines change, and in nothing but `analysisVersion`: the existing scenarios produce no
+  finding.
+- **So a new scenario, `layerOneFindings`, makes findings of every kind.** Eight
+  squats calibrate; a shallow and a quick one then give Level 2 shallower, slower,
+  faster lifting and faster lowering, and Level 3 ACSM. A quick curl with no baseline
+  gives Level 3 alone.
+- Words, levels, versions and sources match on the JVM, JS and both Android variants.
+
+**Tool code:** `Subjects.kt`, `PersonalisationStudy.kt` with its own tests (4), and
+`personalisation_study.py`. The nested-ICC estimator was checked first on simulated data
+with known components (40 subjects, unbalanced). It gave 9.02, 3.94, 1.00 against true
+9, 4, 1, and an ICC of 0.639 against 0.643.
+
+**Full suite:** `gradlew assemble allTests :app:testDebugUnitTest
+:app:testReleaseUnitTest`: **2,078 test executions, none failed, none skipped.** P3-29
+had 1,873: +200 is the 50 new core tests on four targets, +5 the new harness tests.
+
+**Mutations: 14, all caught, every file restored byte for byte** (checked by SHA-256). The core's
+whole JVM suite ran each time:
+
+| Mutation | Tests failing |
+|---|---|
+| The spread's floor ignored | 10 |
+| The IQR used as if it were an SD | 2 |
+| The population without its between-person spread | 1 |
+| Lifting and lowering swapped | 12 |
+| The threshold halved | 3 |
+| A repetition that did not count judged | 2 |
+| The left side judged against the right's baseline | 7 |
+| Consistency said where range of motion already was | 4 |
+| Minimum-jerk replaced by constant speed | 6 |
+| Another exercise's authority accepted by the ACSM rule | 1 |
+| A variant losing its parent's authority | 1 |
+| The start-zone floor ignored | 1 |
+| A personal start zone stricter than the profile's allowed | 1 |
+| The facade dropping a finding's source | 2 |
+
+**The first mutation run executed nothing.** `cmd` could not find `gradlew.bat` by a relative
+name, and the harness reported all fourteen as surviving with zero tests. It now reports NOT RUN
+when no test results appear. The rerun above is the one recorded.
+
+### The study, on the development subjects only: results
+
+**Data.**
+- A fresh harness run of this commit, PRIMARY, on the 15 development workouts
+  (`data/mm-fit-eval-p3-30-dev`). **Every export is byte-identical to P3-29's for those
+  workouts:** Layer 1 changes no count.
+- The study runner then ran the core's own calibrator and Layer 1 over those exports.
+- Everything is in `data/p3-30-study/`, not in git; `report.txt` is the full output.
+
+**Sessions calibrated by their first set:**
+
+| | Shoulder press | Bicep curl | Lateral raise | Push-up | Sit-up |
+|---|---|---|---|---|---|
+| Calibrated | 15 of 15 | 15 of 15 | 13 of 14 | **4 of 15** | **7 of 15** |
+| Scored repetitions | 291 | 282 | 257 | 24 | 50 |
+
+**With today's start zones, most push-up and sit-up sessions cannot calibrate:** too few
+VALID repetitions, P3-29's start-zone problem again. Their S1–S3 rest on two subjects
+and a few dozen repetitions, and **are not interpreted below.**
+
+**A measurement artefact in the curl's timing, found by the study:**
+- Many curls' timed lift is a single frame, 33 ms: 18% of A's, 34% of B's and 56% of
+  C's, none of S19's. No other exercise shows it.
+- It fits the P3-28 fast-start fix. After a bridged gap at the start, the descent timer
+  starts at the first re-admitted sample, which is already deep in the movement, and
+  reaches the far zone a frame later.
+- **Not traced set by set, so this is a reading, not a finding.**
+- It shortens curl lifting times. Curl tempo figures below are affected, and so is the
+  ACSM rule on curls (decision 2).
+
+**S1 — variability.** ICC_subject (subject-bootstrap 95% interval) and the three standard
+deviations. Every interval here starts at 0.00: **with four subjects no ICC is
+distinguishable from zero**, and the upper bounds reach 0.7–0.97.
+
+| Exercise | Metric | ICC_subject | SD subject / session / repetition |
+|---|---|---|---|
+| Lateral raise | range of motion, left | 0.95 [0.00, 0.97] | 23.3° / 3.1° / 4.1° |
+| | range of motion, right | 0.95 [0.00, 0.97] | 21.0° / 3.0° / 3.7° |
+| | lifting | 0.79 [0.00, 0.83] | 117 / 46 / 40 ms |
+| | lowering | 0.14 [0.00, 0.16] | 134 / 60 / 321 ms |
+| | left − right | 0.14 [0.00, 0.31] | 1.9° / 2.6° / 3.8° |
+| Shoulder press | range of motion, left | 0.54 [0.00, 0.73] | 7.9° / 3.8° / 6.3° |
+| | range of motion, right | 0.48 [0.00, 0.74] | 6.5° / 3.0° / 6.1° |
+| | lifting | 0.75 [0.00, 0.88] | 82 / 21 / 43 ms |
+| | lowering | 0.53 [0.00, 0.72] | 65 / 24 / 56 ms |
+| | left − right | 0.40 [0.00, 0.83] | 5.2° / 5.0° / 4.1° |
+| Bicep curl | range of motion, left | 0.31 [0.00, 0.47] | 7.0° / 8.7° / 5.8° |
+| | range of motion, right | 0.88 [0.00, 0.93] | 17.8° / 3.9° / 5.3° |
+| | lifting, left / right* | 0.27 / 0.65 | |
+| | lowering, left / right | 0.56 / 0.60 | |
+
+\* Affected by the one-frame artefact above.
+
+- **The clearest case is the lateral raise's range of motion.** The median range is 116°
+  for A, 92° for B, 63° for C and 87° for S19. People differ by about 21–23° (SD), and
+  one person's repetitions by about 4°.
+- **Per-subject medians, IQRs and robust SDs** are in `report.txt`, for every metric.
+- **About a third of the bootstrap resamples** hold only one or two distinct subjects.
+
+**S2 — false alarms, an upper bound on them.**
+- **At the equal operating point** (each comparator's cut set so the subjects' mean flag
+  rate is 5%), across the 16 metrics of the three interpretable exercises, the
+  **highest single subject's flag rate was higher under the population comparator in
+  10, under the personal one in 3, and tied in 3.**
+  - The population's false alarms land on whoever sits far from the others: C's
+    shoulder press range 18.9% against the rest's 0%; A's curl lowering 19.7%; A's
+    lateral raise range 14.8%.
+  - The personal comparator's are spread more evenly.
+- **Under the product rule, `|z| > 2`,** the population comparator shows the build plan's
+  picture: it flags most repetitions of one or two people and almost none of the
+  others.
+  - Lateral raise range, right: **A 82.8%, C 74.4%, B 0.0%**; personal: A 9.4%, B 4.4%,
+    C 23.1%.
+  - Shoulder press range, left: C 73.0%, the others 0%.
+- **The personal rule at `|z| > 2` flags too much for a product:**
+  - range of motion 14–32% of scored repetitions (curl right 32.3%, lateral raise left
+    21.7%);
+  - left − right 19–27%.
+
+  The cuts that bring it to 5% are 2.8–7.7 for range of motion. With S4 below: **a
+  baseline of 5–8 repetitions is too unsettled for a 2-SD rule on range of motion**
+  (decision 3).
+- **The ACSM rule on scored repetitions:**
+  - curls: A 97.5%, B 98.9%, C 100%, S19 93.3%;
+  - lateral raise: A 23.4%, B 0.0%, C 94.9%;
+  - push-up: A 100% (8), S19 31.2% (16).
+  - MM-Fit's curls take about 1.0–1.3 s a whole repetition (P3-28), so about half that
+    per phase, and the one-frame artefact shortens them further.
+  - **As built, the Level 3 message would speak on almost every MM-Fit curl** (decision
+    2).
+- **What these rates are:** MM-Fit's repetitions are assumed normal. Fatigue, miscounted
+  sets and free choice of weight inflate every rate, so each is an upper bound on false
+  alarms. The cuts are fixed on these same development repetitions: in-sample by
+  design, for the held-out run to test.
+
+**S3 — sensitivity to planted deviations (synthetic).** Detection at S2's operating point,
+the subjects' mean, personal against population:
+
+| Planted | Shoulder press | Bicep curl | Lateral raise |
+|---|---|---|---|
+| Range cut 20% | **66.6%** / 49.8% | **94.5%** / 25.2% | **99.7%** / 31.6% |
+| Range cut 30% | **85.9%** / 65.4% | **100%** / 45.5% | **100%** / 33.3% |
+| Range cut 40% | **98.2%** / 95.0% | **100%** / 74.0% | **100%** / 33.3% |
+| Tempo ×1.5 | **44.7%** / 0.0% | **16.4%** / 0.0% | **28.3%** / 2.6% |
+| Tempo ×2 | **84.8%** / 0.0% | **27.0%** / 0.0% | **65.8%** / 4.3% |
+| One side −20%, asymmetry | **93.1%** / 15.9% | — | 83.1% / **88.3%** |
+| One side −30%, asymmetry | **100%** / 34.7% | — | 96.6% / **99.1%** |
+| One side −40%, asymmetry | **100%** / 68.7% | — | 100% / 100% |
+
+- **What the table shows:** at the same average false-alarm rate, the personal
+  comparator detected the planted change as often as or more often than the population
+  one in every case but the lateral raise's asymmetry, where the two are close.
+- **The biggest gap is range of motion** (curl and lateral raise at 20%: 94.5% and 99.7%
+  against 25.2% and 31.6%) **and tempo**, which the population comparator scarcely
+  detects.
+- **Per subject,** the population comparator's detection is all or nothing by person.
+  Lateral raise range cuts: C 95–100%, A and B 0%, because A's and B's own ranges sit
+  far from the others'.
+- **The curves** (detection against mean false-alarm rate as one common cut varies) are
+  in `s3_curves.csv`, and give the same ordering.
+- **What this is not:** arithmetic on records, not movements anyone made. The planted
+  change is a share of each person's own range, which a person-centred reference is
+  built to see. **It is not a real-world detection claim**, and it is no evidence that
+  personalisation finds faults (ZERO_DATASET_BUILD_PLAN).
+
+**S4 — how many calibration repetitions until the baseline settles:**
+- **Timing settles early:** N = 3 for most subjects, at most 14.
+- **Range of motion settles late:**
+  - shoulder press: A 18, B 20 and 13, C 16 and more than 20, S19 17 and 7;
+  - curl: 12–16, and 5–7 for some arms;
+  - lateral raise: A more than 20 and 14, B 18 and 7, C 13 and 19.
+- **Per exercise, the largest over subjects and metrics:** shoulder press more than 20,
+  curl 16, lateral raise more than 20.
+- **P3-22's provisional counts:** at N = 5, 6–100% of starts pass on range of motion,
+  mostly under 50%. At N = 8, 0–100%, mostly 33–80%.
+- **So, by the definition fixed beforehand, 5–8 repetitions do not settle a
+  range-of-motion baseline for these subjects.** About 12–20 would.
+- **Exploratory, not in the protocol:** the median's condition alone settles at nearly
+  the same N as both together, so it is the centre, not only the spread, that needs the
+  repetitions.
+- **Limits:**
+  - one to eighteen starts per subject;
+  - the reference is the session's own repetitions, so agreement near the session's
+    total is partly mechanical;
+  - four subjects, and the subject-bootstrap intervals printed beside each median are
+    not precise.
+
+**What this does and does not show, on four development subjects:**
+- **It shows:**
+  - people differ a lot in some of these quantities, most in the lateral raise's range;
+  - at an equal average false-alarm rate, the population threshold's false alarms fall
+    on particular people;
+  - personal baselines detect planted within-person changes more often;
+  - 5–8 calibration repetitions are too few for a range-of-motion baseline under a 2-SD
+    rule.
+- **It does not show:**
+  - that any of this holds for people outside these four;
+  - that personalisation improves fault detection;
+  - that the ACSM rule, or any rule here, judges technique correctly.
+- **No held-out workout was touched.** The held-out run, with every cut, floor and
+  setting fixed as they stand now, is the owner's to approve.
+
+### Checks
+
+- The subject map's tests: 8 Python, 5 Kotlin, shown failing first against leaky splits.
+- The re-slice: recorded figures reproduced exactly before anything new was read.
+- Counting unchanged: 15 of 15 development exports byte-identical to P3-29's.
+- The ICC estimator on simulated data with known components.
+- The suite and the mutations, above.
+
+### Decisions for the owner
+
+1. **The held-out run.** S1–S4 on the six unseen people, with the cuts (c*), floors,
+   threshold and every setting frozen as recorded here. Approve, or change something
+   first; changing anything after seeing held-out data would spend it.
+2. **The ACSM tempo message.** As built it would fire on about 97% of MM-Fit's curls,
+   because these subjects curl faster than 1–2 s a phase, and on some people's raises.
+   Choose one:
+   - keep it per repetition;
+   - show it once per set;
+   - hold it back from the UI until the phone's hand-timed check (P3-26).
+
+   **Recommended: hold it back until then.**
+3. **Calibration count and the personal threshold.** S4 says 5–8 repetitions leave the
+   range-of-motion baseline unsettled, and S2 says `|z| > 2` then flags 14–32% of
+   range-of-motion repetitions. Options:
+   - more calibration repetitions (about 12–15, i.e. more than one set);
+   - a higher threshold (about 3);
+   - both.
+
+   The held-out run can test whichever is chosen. **Recommended: decide before the
+   held-out run, so it tests the product's real setting.**
+4. **The sit-up floor** holds back 46% of subject A's returns. Keep the method's value
+   (114.4°), or change the method (for example a third of the sweep instead of half),
+   on development data only.
+5. **The curl timing artefact.** Trace it on the P3-28 fix's own sets, and if it is
+   the bridged start, time the descent from the last measured sample at the start. That
+   is an engine change, judged on data it was not designed on.
+6. **Uncited population thresholds never reach the user:** the design rule above.
+   Confirm.
+7. **One message per side for depth** (consistency quiet where range of motion spoke).
+   Confirm.
+8. **S5,** cross-session stability for A and B: run it, or not.
+9. **Push:** Part 2's commits are local only, as directed.
+
+**Scope of this entry.**
+- The subject map and a split by subject.
+- A correction to how P3-29's held-out raise figure is read.
+- P8's Layer 1, built and tested in the core, not wired to any screen.
+- The personalisation study's first run, on four development subjects.
+
+No accuracy claim of any kind. Every number is a measurement on MM-Fit's development
+subjects under the protocol above, or a provisional setting.
 
 ---
 

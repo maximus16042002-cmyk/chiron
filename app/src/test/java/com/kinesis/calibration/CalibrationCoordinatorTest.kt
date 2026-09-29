@@ -155,7 +155,10 @@ class CalibrationCoordinatorTest {
         val first = withBaseline[0] as RepetitionAnalysisResult
         assertEquals(92.0, first.comparison!!.rangeOfMotionLeft.measured, 0.0)
         assertEquals(100.0, first.comparison!!.rangeOfMotionLeft.baseline, 0.0)
-        assertTrue(withBaseline.all { it.findings.isEmpty() })
+        // P3-30: the core's Layer 1 now judges a VALID repetition against the baseline, and
+        // leaves one that did not count alone. The app renders none of it yet.
+        assertTrue(withBaseline[0].findings.isNotEmpty())
+        assertTrue(withBaseline[1].findings.isEmpty())
 
         val without = coordinator.analyseSet(ExerciseLibrary.squat, set, null)
         assertTrue(without.all { (it as RepetitionAnalysisResult).comparison == null })

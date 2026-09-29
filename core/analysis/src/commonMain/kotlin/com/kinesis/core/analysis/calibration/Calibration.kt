@@ -20,7 +20,6 @@ import com.kinesis.core.domain.rep.RepValidity
 import com.kinesis.core.domain.session.HoldSetRecord
 import com.kinesis.core.domain.session.RepetitionSetRecord
 import com.kinesis.core.domain.session.SetRecord
-import kotlin.math.sqrt
 
 /**
  * Which baseline an exercise uses. A variant uses its parent's: CONTRACTS.md
@@ -288,19 +287,7 @@ object Calibration {
 
     /** Each repetition's root-mean-square distance from the mean curve, summarised. */
     private fun curveSpread(reps: List<RepRecord>, side: Side, mean: DoubleArray): RobustStatistic {
-        val distances = DoubleArray(reps.size) { index ->
-            val curve = curveOf(reps[index], side)
-            var sumOfSquares = 0.0
-            var count = 0
-            for (point in mean.indices) {
-                val difference = curve[point] - mean[point]
-                if (difference.isFinite()) {
-                    sumOfSquares += difference * difference
-                    count++
-                }
-            }
-            if (count == 0) Double.NaN else sqrt(sumOfSquares / count)
-        }
+        val distances = DoubleArray(reps.size) { index -> CurveDistance.rms(curveOf(reps[index], side), mean) }
         return RobustStatistics.of(distances)
     }
 

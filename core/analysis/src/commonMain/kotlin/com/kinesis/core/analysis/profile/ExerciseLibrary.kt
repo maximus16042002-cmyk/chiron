@@ -222,6 +222,9 @@ class PushUpProfile : TierAProfile(), RepetitionExercise {
      */
     override val analysedSides: AnalysedSides = AnalysedSides.NEAR_SIDE_ONLY
 
+    /** Moving away from the start is the lowering - DECISIONS.md P3-30. */
+    override val awayFromStart: Contraction = Contraction.ECCENTRIC
+
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.ELBOW,
         plane = MeasurementPlane.IMAGE_2D,
@@ -283,6 +286,9 @@ class LateralRaiseProfile : TierAProfile(), RepetitionExercise {
 
     /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
     override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+
+    /** Moving away from the start is the lifting - DECISIONS.md P3-30. */
+    override val awayFromStart: Contraction = Contraction.CONCENTRIC
 
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.SHOULDER,
@@ -354,6 +360,9 @@ class GluteBridgeProfile : TierAProfile(), RepetitionExercise {
 
     /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
     override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+
+    /** Moving away from the start is the lifting - DECISIONS.md P3-30. */
+    override val awayFromStart: Contraction = Contraction.CONCENTRIC
 
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.HIP,

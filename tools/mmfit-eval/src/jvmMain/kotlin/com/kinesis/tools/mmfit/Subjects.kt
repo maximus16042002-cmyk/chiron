@@ -55,8 +55,9 @@ class Subjects(
 }
 
 /**
- * Enough JSON for `subjects.json`: objects, arrays, strings without escapes beyond `\"` and `\\`, and
- * numbers. The tool takes no JSON library for one small file of its own making.
+ * Enough JSON for `subjects.json` and the harness's own P5 exports: objects, arrays, strings without
+ * escapes beyond `\"` and `\\`, numbers, `null`, `true` and `false`. The tool takes no JSON library for
+ * files of its own making.
  */
 internal class MiniJson(private val text: String) {
     private var at = 0
@@ -67,8 +68,17 @@ internal class MiniJson(private val text: String) {
             '{' -> obj()
             '[' -> arr()
             '"' -> str()
+            'n' -> literal("null", null)
+            't' -> literal("true", true)
+            'f' -> literal("false", false)
             else -> if (c == '-' || c.isDigit()) num() else error("unexpected '$c' at $at")
         }
+    }
+
+    private fun literal(word: String, value: Any?): Any? {
+        check(text.startsWith(word, at)) { "expected $word at $at" }
+        at += word.length
+        return value
     }
 
     private fun obj(): Map<String, Any?> {

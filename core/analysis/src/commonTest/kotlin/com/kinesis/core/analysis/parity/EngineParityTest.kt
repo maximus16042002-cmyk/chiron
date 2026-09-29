@@ -39,6 +39,12 @@ class EngineParityTest {
     fun a_plank_calibration_matches_the_golden_file_on_this_target() =
         check("plankCalibration", EngineParityGolden.plankCalibration, EngineParity.plankCalibration())
 
+    // DECISIONS.md P3-30: Layer 1's findings, their words and levels, through the facade.
+
+    @Test
+    fun layer_one_findings_match_the_golden_file_on_this_target() =
+        check("layerOneFindings", EngineParityGolden.layerOneFindings, EngineParity.layerOneFindings())
+
     // DECISIONS.md P3-25: P5's export, over records the facade produced on this target.
 
     @Test

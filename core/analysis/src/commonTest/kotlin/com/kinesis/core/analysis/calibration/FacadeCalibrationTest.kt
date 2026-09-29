@@ -73,7 +73,26 @@ class FacadeCalibrationTest {
         assertEquals(95.0, left["measured"])
         assertEquals(103.5, left["baseline"])
         assertNull(comparison["timingSide"])
-        assertEquals(emptyList<Any?>(), result["findings"])
+        // P3-30: left 95 against its usual 103.5 is Layer 1's one finding here.
+        val finding = (result["findings"] as List<*>).single() as Map<*, *>
+        assertEquals("deviation", finding["kind"])
+        assertEquals("L2_DEVIATION", finding["level"])
+        assertEquals("rom_left", finding["metric"])
+        assertEquals("BELOW_BASELINE", finding["direction"])
+        assertEquals("p8-l1-1", finding["ruleVersion"])
+        assertTrue((finding["displayText"] as String).startsWith("Shallower than your usual on the left"))
+    }
+
+    @Test
+    fun analyze_rep_writes_a_cited_technique_finding_with_its_source() {
+        val fast = oneSided(1, Side.RIGHT, 130.0, descentMs = 100.0, ascentMs = 100.0, top = 160.0)
+        val result = map(engine("bicep_curl").analyzeRep(EngineJson.rep(fast), "null"))
+        val finding = (result["findings"] as List<*>).single() as Map<*, *>
+        assertEquals("technique", finding["kind"])
+        assertEquals("L3_TECHNIQUE", finding["level"])
+        assertEquals("faster_than_acsm_novice_tempo", finding["faultId"])
+        assertEquals(com.kinesis.core.analysis.deviation.AcsmTempoRule.SOURCE_REF, finding["sourceRef"])
+        assertEquals("p8-acsm-tempo-1", finding["ruleVersion"])
     }
 
     @Test

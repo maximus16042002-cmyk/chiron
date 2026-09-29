@@ -414,6 +414,16 @@ class SharedCoreSourceGuardTest {
             // P3-25: the export runs over stored history when the user asks for
             // it, never while a set is being recorded.
             "SessionExport.kt",
+            // P3-30: Layer 1 judges a completed repetition, once, and the curve
+            // distance it shares with calibration runs over a finished curve. The
+            // personal start zone is computed from a baseline, before a set starts.
+            "CurveDistance.kt",
+            "DeviationPolicy.kt",
+            "References.kt",
+            "RepFeatures.kt",
+            "DeviationRules.kt",
+            "AcsmTempoRule.kt",
+            "PersonalStartZone.kt",
         )
 
         /**
@@ -430,6 +440,7 @@ class SharedCoreSourceGuardTest {
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/live",
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/calibration",
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/export",
+            "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/deviation",
         )
 
         /**

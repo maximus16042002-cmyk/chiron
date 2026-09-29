@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
 *Snapshot updated 2026-09-29, from the repository as it stands at the end of
-DECISIONS.md P3-29. This file summarises. It is not an authority: where it
+DECISIONS.md P3-30. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date.*
 
@@ -11,20 +11,24 @@ of date.*
 
 Open items as of DECISIONS.md P3-30:
 
-- **P8 Layer 1 and the personalisation study: stopped at Step 0** (P3-30). Two
-  MM-Fit subjects, A and B, have workouts in both the development and held-out
-  sets, so P3-27's split is by workout, not by subject. Waiting on the owner:
-  the split (P3-30 decision 1), and whether to re-slice P3-28/P3-29's held-out
-  results on the six unseen people (decision 2). Then P3-30's design and
-  protocol, committed before anything is computed.
 - **P4:** a solo phone session for what is still owed, in the order of
   `docs/P4_TOMORROW.md`.
+- **P3-30's nine decisions for the owner**, above all:
+  - approving the held-out run, with every setting frozen (decision 1);
+  - the ACSM tempo message, which as built fires on about 97% of MM-Fit's curls
+    (decision 2);
+  - the calibration count and the personal threshold: S4 says 5–8 repetitions
+    do not settle a range-of-motion baseline (decision 3).
+- **The split is by subject** (P3-30): development A, B, C and w19's subject;
+  held-out w12, w13, w16, w17, w18, w20, untouched. `tools/mmfit-eval/subjects.py`
+  holds it.
+- **P8:** Layer 1 is built in the core and **not wired into the app** (the
+  owner's stop point). Layer 2, the cited technique rules, is not started.
 - **P6:** the first real calibration on the phone; it has no baselines yet
   (item 2 of `docs/P4_TOMORROW.md`).
-- **P7:** done by the build plan's own definition (see the P7 row below).
-- **P8:** personal start zones for the push-up and sit-up, as proposed in P3-29.
 - **Squats:** the near-knee question, still untouched.
 - **P3-29:** record the owner's curl test result on the new build.
+- **Not pushed:** P3-30's Part 2 commits are local, as directed.
 
 ---
 
@@ -85,19 +89,21 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P3 Profiles & Rep Engine | Rep FSM, bilateral rep tracker, hold analyser, 15 profiles + 2 variants | ✅ Done |
 | P4 Device Reality Check | Frame rate, thermal, mirroring, landmark reliability on a real phone | 🟡 Partly done (DECISIONS.md P3-18 onward) — launch crash fixed, live screen and sync work, solo curl check done (P3-24). Still owed: back camera, left arm, tracking-loss test, hold timing, heat run, other lighting, a second person |
 | P5 RepRecord & Export | Record types, persistence, JSON/CSV export | ✅ Done (DECISIONS.md P3-25) — records and Room storage; the export in the shared core (CONTRACTS.md §10), golden-tested byte for byte on JVM and JS, and run once on the phone: all 59 sessions, 134 repetitions and 4 holds matched the database exactly |
-| P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Built, not yet run on the phone (DECISIONS.md P3-22) — per-side baselines from 5–8 valid reps (provisional), hold baselines, `AnalysisResult` as numbers beside the baseline, Room storage with a tested migration, the calibration flow. Personal *thresholds* are P8's rules; the counts wait for the MM-Fit convergence study |
+| P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Built, not yet run on the phone (DECISIONS.md P3-22) — per-side baselines from 5–8 valid reps (provisional), hold baselines, `AnalysisResult` as numbers beside the baseline, Room storage with a tested migration, the calibration flow. Personal *thresholds* are P8's rules. The MM-Fit convergence study (P3-30 S4, development subjects) says 5–8 repetitions do not settle a range-of-motion baseline (about 12–20 would); the count is the owner's decision |
 | P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | ✅ Done (DECISIONS.md P3-27 to P3-29). The build plan defines P7 as: *"acquire MM-Fit, run MediaPipe over its RGB video, align set boundaries and rep counts, build the evaluation harness"* (`ZERO_DATASET_BUILD_PLAN.md`, phase table). All four were done in P3-27: the videos on disk, MediaPipe run with the phone's own model file, the labels aligned set by set (five workouts drift, by up to 6.8 s, and were corrected), and the `:mmfit-eval` harness running the live screen's own class. All 616 sets went through, and the rep-count study was measured for 7 exercises. The engine defect it exposed (a fast start is lost) is fixed and judged on the 13 held-out workouts in P3-28: curls 368 of 368, every set exact; push-ups and sit-ups now count from the near side. In P3-29 near-side counting stopped letting a failed attempt hide a repetition, and the lateral raise's start zone moved to 36°: held-out raises 125 → 356 of 369, with no set counted above its label in either change. The push-up and sit-up start zones stay as they are, with a personal start zone proposed (P8). The verifier and personalisation studies, once listed here, belong to P9 and P12 in the plan's own evaluation table, not to P7 |
-| P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | ⛔ Not started |
+| P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | 🟡 Layer 1 built in the shared core (DECISIONS.md P3-30), **not wired into the app**: personal deviations (Level 2) in range of motion, lifting and lowering time, left–right balance and consistency; the cited ACSM tempo rule (Level 3, Tier A); the push-up and sit-up personal start zone. Layer 2, the cited technique rules, not started |
 | P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | ⛔ Not started (may be trimmed) |
 | P10 Visualisation & Android | App UI, live screen, dashboard | 🟡 Partial — shell, dashboard, streaks, Health Connect, sync, theme, the calibration flow and the live camera screen (reps and holds, sets saved) done and run on the owner's phone (P3-18 onward); visualisations not built |
 | P11 Windows PWA | React web app | ✂️ Cut (DECISIONS.md P0-2). The JS *target* survives; the web *app* does not |
-| P12 Evaluation & Documentation | Six studies, final write-up | ⛔ Not started |
+| P12 Evaluation & Documentation | Six studies, final write-up | 🟡 Started: the repetition-count study measured under P7 (P3-27 to P3-29; on the six unseen people in P3-30), and the personalisation study's development half (P3-30, four subjects). Still to come: its held-out run, the verifier, device and pose-reliability studies, parity as a study, and the write-up |
 
 ### Rough overall figure
 
 Counting a done phase as 1 and a partial phase as ½, across the 12 phases still
-in scope: **6 done + 3 × ½ = 7.5 of 12, roughly 63%** (2026-09-29). The six done
-are P0, P1, P2, P3, P5 and P7; P4, P6 and P10 are the three partial phases.
+in scope: **6 done + 5 × ½ = 8.5 of 12, roughly 71%** (2026-09-29, end of
+P3-30). The six done are P0, P1, P2, P3, P5 and P7; P4, P6, P8, P10 and P12 are
+the five partial phases. Earlier the same day it read 7.5 of 12 (63%); P8 and P12
+became partial in P3-30.
 
 **A correction to the previous figure.** It read 5 done + 3 × ½ = 6.5 of 12,
 54%, written at P3-25 when P6, P7 and P10 were the partial phases. P4 became
@@ -112,12 +118,12 @@ past half; the thesis is well short of it.
 
 ### Test suite
 
-Last full run (DECISIONS.md P3-29): **1,873 test executions, 0 failures, 0
+Last full run (DECISIONS.md P3-30): **2,078 test executions, 0 failures, 0
 errors, 0 skipped**, via `gradlew assemble allTests :app:testDebugUnitTest
 :app:testReleaseUnitTest` — core tests count once per target (JVM, JS, both
 Android variants), so this is executions, not distinct tests. `:app` holds 181
-of them in the debug variant and 169 in release; the MM-Fit harness
-(`tools/mmfit-eval`, P3-27) holds 7. Every test is synthetic: none
+of them in the debug variant and 169 in release; the MM-Fit tools
+(`tools/mmfit-eval`) hold 12, and `test_subjects.py` 8 more in Python. Every test is synthetic: none
 has seen a camera frame or a model. What has run on the phone is recorded in
 DECISIONS.md, entry by entry, and is not a test count.
 

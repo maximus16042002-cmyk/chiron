@@ -68,6 +68,22 @@ enum class AnalysedSides {
 }
 
 /**
+ * Whether a phase of a repetition works the muscle shortening (concentric - the
+ * lift) or lengthening under load (eccentric - the lowering). DECISIONS.md P3-26
+ * and P3-30.
+ *
+ * A record's `descentMs` is the time moving away from the starting position and
+ * `ascentMs` the time returning to it. Which of those is the lift depends on the
+ * exercise: a curl moves away from the start by lifting, a squat by lowering. So
+ * each repetition profile says which, with no default, for the reason
+ * [RepetitionSemantics] has none.
+ */
+enum class Contraction {
+    CONCENTRIC,
+    ECCENTRIC,
+}
+
+/**
  * Which signal drives repetition detection, and the thresholds that bound it.
  *
  * **The threshold values are provisional.** They are starting points chosen so
@@ -164,6 +180,12 @@ interface RepetitionExercise : ExerciseProfile {
      * see [AnalysedSides].
      */
     val analysedSides: AnalysedSides
+
+    /**
+     * What moving away from the starting position is: the lift or the lowering.
+     * No default - see [Contraction]. DECISIONS.md P3-30.
+     */
+    val awayFromStart: Contraction
 
     val repSignal: RepSignalSpec
 }
