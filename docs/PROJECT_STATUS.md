@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
-*Snapshot updated 2026-09-23, from the repository as it stands at the end of
-DECISIONS.md P3-17. This file summarises. It is not an authority: where it
+*Snapshot updated 2026-09-29, from the repository as it stands at the end of
+DECISIONS.md P3-29. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date.*
 
@@ -11,10 +11,11 @@ of date.*
 
 Open items as of DECISIONS.md P3-29:
 
-- **P4:** a solo phone session for what is still owed (see the P4 row below).
-- **P6:** the first real calibration on the phone; it has no baselines yet.
-- **P7:** check whether it is done by `docs/ZERO_DATASET_BUILD_PLAN.md`'s own
-  definition. The rep-count study is done (P3-27 to P3-29).
+- **P4:** a solo phone session for what is still owed, in the order of
+  `docs/P4_TOMORROW.md`.
+- **P6:** the first real calibration on the phone; it has no baselines yet
+  (item 2 of `docs/P4_TOMORROW.md`).
+- **P7:** done by the build plan's own definition (see the P7 row below).
 - **P8:** personal start zones for the push-up and sit-up, as proposed in P3-29.
 - **Squats:** the near-knee question, still untouched.
 - **P3-29:** record the owner's curl test result on the new build.
@@ -43,17 +44,24 @@ outperform population thresholds for flagging movement deviation?*
 The analysis engine is built and heavily tested: normalisation, validity
 gating, bilateral kinematics, filtering, the repetition state machine, the
 isometric hold analyser, and all 15 exercise profiles plus 2 variants. Around it
-sits a working Android app shell — sign-in, an exercise library, a history
-dashboard with streaks, Health Connect context, local Room storage and Firebase
-sync. **The two are now connected** (DECISIONS.md P3-15, P3-16): the live screen
-runs camera → MediaPipe → pose adapter → shared core for both repetitions and
-holds, draws the skeleton over the preview, and saves each finished set to
-storage, where the dashboard, streaks and sync pick it up. **But none of it has
-run on a phone.** No real repetition has been counted from a real camera; every
-test so far is synthetic, on the JVM and JS. The device reality check (P4) is
-the next thing. After that come calibration, the technique-rule engine, the ML
-layer and the six evaluation studies — the parts the MSc report actually rests
-on.
+sits a working Android app — sign-in, an exercise library, a history dashboard
+with streaks, Health Connect context, local Room storage, Firebase sync, and the
+live screen (camera → MediaPipe → pose adapter → shared core, skeleton drawn,
+each finished set saved; P3-15, P3-16). Personal calibration (P6) is built into
+the core and the app (P3-22), and the P5 export is done (P3-25).
+
+**It has run on a real phone** — the owner's Nothing Phone (2a), Android 16 —
+since P3-18: the launch crash found and fixed there (P3-18); the guide demo
+diagnosed from the phone's own records, and the gap bridge built from its
+recordings (P3-23); a solo check in which one set counted 15 of 15 curls
+(P3-24); the export run over the phone's real database, 59 sessions, 134
+repetitions and 4 holds matching exactly (P3-25); and the P3-28/P3-29 build
+installed for the owner's curl check (P3-29). That is one person, one phone,
+mostly the front camera, so the device reality check (P4) is still only partly
+done. **P7 is done**: MM-Fit's 616 sets through the phone's own pipeline, with
+repetition counts measured per exercise (P3-27 to P3-29). What is left is the
+research core — the form engine (P8), the optional ML layer (P9) and the six
+evaluation studies (P12), the parts the MSc report actually rests on.
 
 ---
 
@@ -72,19 +80,24 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P4 Device Reality Check | Frame rate, thermal, mirroring, landmark reliability on a real phone | 🟡 Partly done (DECISIONS.md P3-18 onward) — launch crash fixed, live screen and sync work, solo curl check done (P3-24). Still owed: back camera, left arm, tracking-loss test, hold timing, heat run, other lighting, a second person |
 | P5 RepRecord & Export | Record types, persistence, JSON/CSV export | ✅ Done (DECISIONS.md P3-25) — records and Room storage; the export in the shared core (CONTRACTS.md §10), golden-tested byte for byte on JVM and JS, and run once on the phone: all 59 sessions, 134 repetitions and 4 holds matched the database exactly |
 | P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Built, not yet run on the phone (DECISIONS.md P3-22) — per-side baselines from 5–8 valid reps (provisional), hold baselines, `AnalysisResult` as numbers beside the baseline, Room storage with a tested migration, the calibration flow. Personal *thresholds* are P8's rules; the counts wait for the MM-Fit convergence study |
-| P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | 🟡 Pipeline and harness built and run (DECISIONS.md P3-27): all 616 sets through the phone's own pipeline, the rep-count study measured for 7 exercises. The engine defect it exposed (a fast start is lost) is fixed and judged on the 13 held-out workouts in P3-28: curls 368 of 368, every set exact; push-ups and sit-ups now count from the near side. In P3-29 near-side counting stopped letting a failed attempt hide a repetition, and the lateral raise's start zone moved to 36°: held-out raises 125 → 356 of 369, with no set counted above its label in either change. The push-up and sit-up start zones stay as they are, with a personal start zone proposed; the other studies (verifier, personalisation) are still to come |
+| P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | ✅ Done (DECISIONS.md P3-27 to P3-29). The build plan defines P7 as: *"acquire MM-Fit, run MediaPipe over its RGB video, align set boundaries and rep counts, build the evaluation harness"* (`ZERO_DATASET_BUILD_PLAN.md`, phase table). All four were done in P3-27: the videos on disk, MediaPipe run with the phone's own model file, the labels aligned set by set (five workouts drift, by up to 6.8 s, and were corrected), and the `:mmfit-eval` harness running the live screen's own class. All 616 sets went through, and the rep-count study was measured for 7 exercises. The engine defect it exposed (a fast start is lost) is fixed and judged on the 13 held-out workouts in P3-28: curls 368 of 368, every set exact; push-ups and sit-ups now count from the near side. In P3-29 near-side counting stopped letting a failed attempt hide a repetition, and the lateral raise's start zone moved to 36°: held-out raises 125 → 356 of 369, with no set counted above its label in either change. The push-up and sit-up start zones stay as they are, with a personal start zone proposed (P8). The verifier and personalisation studies, once listed here, belong to P9 and P12 in the plan's own evaluation table, not to P7 |
 | P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | ⛔ Not started |
 | P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | ⛔ Not started (may be trimmed) |
-| P10 Visualisation & Android | App UI, live screen, dashboard | 🟡 Partial — shell, dashboard, streaks, Health Connect, sync, theme and the live camera screen (reps and holds, sets saved) done but never run on a device; visualisations not built |
+| P10 Visualisation & Android | App UI, live screen, dashboard | 🟡 Partial — shell, dashboard, streaks, Health Connect, sync, theme, the calibration flow and the live camera screen (reps and holds, sets saved) done and run on the owner's phone (P3-18 onward); visualisations not built |
 | P11 Windows PWA | React web app | ✂️ Cut (DECISIONS.md P0-2). The JS *target* survives; the web *app* does not |
 | P12 Evaluation & Documentation | Six studies, final write-up | ⛔ Not started |
 
 ### Rough overall figure
 
 Counting a done phase as 1 and a partial phase as ½, across the 12 phases still
-in scope: **5 done + 3 × ½ = 6.5 of 12, roughly 54%** (P3-25). The figure had
-last been written before P6 became partial in P3-22 and still said 4 + 3 × ½;
-P5 is now done, and P6, P7 and P10 are the three partial phases.
+in scope: **6 done + 3 × ½ = 7.5 of 12, roughly 63%** (2026-09-29). The six done
+are P0, P1, P2, P3, P5 and P7; P4, P6 and P10 are the three partial phases.
+
+**A correction to the previous figure.** It read 5 done + 3 × ½ = 6.5 of 12,
+54%, written at P3-25 when P6, P7 and P10 were the partial phases. P4 became
+partial afterwards and the figure was not recomputed, so it left P4 out. Counted
+the same way it should have read 5 + 4 × ½ = 7 of 12, 58%, before P7 was marked
+done.
 
 Treat that as an estimate, not a measurement. Phases are not equal in size, and
 the unfinished half contains the heaviest academic work — the form engine, the
@@ -116,10 +129,10 @@ DECISIONS.md, entry by entry, and is not a test count.
 | **Streaks** | Consecutive-day tracking over stored session timestamps, timezone-aware (DECISIONS.md P3-10). |
 | **Daily health context** | Steps, active calories and mean heart rate from Health Connect, read-only, shown *beside* Kinesis's own numbers. Every absence is named honestly — not installed, needs update, permission denied, device too old, read failed — with an in-app "grant access" button. |
 | **Cloud backup/sync** | Completed sessions sync to Firestore under the user's account. Local save always happens first; upload is scheduled afterwards by WorkManager and retried with backoff, so training is never lost to a bad connection. Merge on sign-in pulls history to a new device before the dashboard appears. |
-| **Live analysis screen** | Camera preview with the skeleton drawn over it, portrait only, front camera by default with a switch to the back camera (switching starts a new set; the one in progress is saved). Repetition exercises show rep count, movement phase and tracking state; holds (plank, wall sit, side plank) show time held, hold state and tracking state. **[ END SET ]**, or leaving the screen, finishes the set — an unfinished repetition is recorded as incomplete — and saves it locally, then to sync. Missing model, refused camera permission and an unsuitable camera are each shown as themselves. Debug builds add a Phase B readout (frame rate, largest per-frame angle change, landmark visibility, active camera; Logcat tag `KinesisPhaseB`). **Built and unit-tested; never run on a phone.** |
+| **Live analysis screen** | Camera preview with the skeleton drawn over it, portrait only, front camera by default with a switch to the back camera (switching starts a new set; the one in progress is saved). Repetition exercises show rep count, movement phase and tracking state; holds (plank, wall sit, side plank) show time held, hold state and tracking state. **[ END SET ]**, or leaving the screen, finishes the set — an unfinished repetition is recorded as incomplete — and saves it locally, then to sync. Missing model, refused camera permission and an unsuitable camera are each shown as themselves. Debug builds add a Phase B readout (frame rate, largest per-frame angle change, landmark visibility, active camera; Logcat tag `KinesisPhaseB`). **Run on the owner's phone since P3-18**; see P4 for what is still owed. |
 | **Licences** | Linked from the history screen: the pose model's notice (Apache 2.0, from its model card), the app's direct dependencies with the licence each declares, and the full Apache License 2.0 text. |
 
-### What the engine can do (built and tested; wired to the camera, never run on a device)
+### What the engine can do (built and tested; wired to the camera, run on the owner's phone since P3-18)
 
 - **Pose adapter** — converts camera coordinates to anatomical left/right,
   undoing front-camera mirroring in exactly one place, and puts x and y in one
@@ -204,7 +217,10 @@ In the order it has to happen.
 ### Next — the device reality check (P4 / Phase B)
 
 Needs a physical phone: MediaPipe ships no x86_64 library, so a standard
-emulator cannot load it.
+emulator cannot load it. **The order for the next solo session is
+`docs/P4_TOMORROW.md`.** The list below is the original P4 plan; parts of it
+were done in P3-18 to P3-24, and DECISIONS.md P3-19's camera-session list is the
+current, itemised version.
 
 1. First run on a real phone (Nothing Phone 2a): sustained frame rate,
    per-frame latency, memory, 15-minute thermal run. Each frame currently costs
@@ -243,15 +259,11 @@ emulator cannot load it.
 ### Then — the research core
 
 10. ~~**P5 export**~~ — done in P3-25 (CONTRACTS.md §10).
-11. **P6 calibration** — build `CalibrationBaseline` and `AnalysisResult`,
-    personal baselines from calibration reps, personal thresholds. This also
-    unlocks "deviation from your normal" on the dashboard, which is deliberately
-    blocked until a baseline exists.
-12. **P7 dataset pipeline** — run MediaPipe over MM-Fit's RGB video, align with
-    its set boundaries and rep counts, build the evaluation harness. **Apply the
-    same aspect-ratio correction the phone applies, using MM-Fit's own frame
-    size** (CONTRACTS.md §4), or the evaluation measures a differently distorted
-    angle and does not transfer to the phone.
+11. ~~**P6 calibration**~~ — built in P3-22 (`CalibrationBaseline`,
+    `AnalysisResult`, the calibration flow); still owed: a first calibration on
+    the phone. Personal *thresholds* are P8's.
+12. ~~**P7 dataset pipeline**~~ — done in P3-27 to P3-29, with the aspect-ratio
+    correction applied at MM-Fit's own 1280×720.
 13. **P8 form engine** — Layer 1 deviation rules (ROM, tempo, asymmetry,
     consistency, drift vs. baseline) and Layer 2 Tier A technique rules, each
     carrying a `sourceRef` citation. The attention colour in the overlay is
