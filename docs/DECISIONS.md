@@ -8696,6 +8696,233 @@ measurement. No accuracy claim, and nothing has run on the phone.
 
 ---
 
+## P3-34 — P9 in scope: its design, and the anomaly study's protocol, before any code
+
+*2026-09-30. Written and committed before any P9 code exists or any study runs.*
+
+**The owner's decisions, 2026-09-30:**
+- **P9 is in scope:** "i think we should do the p9 too". It is no longer "may be trimmed".
+- **Order:** personal anomaly detection (Layer 4) first, the exercise verifier second.
+- **The verifier's evaluation:**
+  - features and model are chosen on the development people only;
+  - the frozen pipeline then runs once over all ten people, leaving each out in turn, only after
+    the owner is asked.
+- **The verifier's input:** each repetition carries a small multi-joint summary, not only the
+  exercise's own joint. That changes the record, an architecture decision. The shape is proposed
+  below; the change itself gets its own entry when the verifier is built.
+
+**What the rules already fix:**
+- **Once per completed repetition, never per frame** (CLAUDE.md §6, §7).
+- **Only three uses of ML** (§13):
+  - the verifier warns of a mismatch and never selects the exercise;
+  - Layer 4 is fitted per user, on the device, and says "unusual for you", never "incorrect";
+  - supervised technique classifiers stay out of scope.
+- **Layer 4's claims are Level 2** (§12a).
+- **ML only where the deterministic approach cannot do the job** (§12).
+- **Training in Python with scikit-learn,** exported to JSON, run by a small evaluator in the
+  shared Kotlin core. No inference runtime (FINAL_ARCHITECTURE §7).
+- **Python and Kotlin give the same numbers** on data the model was not trained on (§18).
+
+### Part A — Layer 4, personal anomaly detection
+
+**The question it has to answer first.** Layer 1 already flags each feature that leaves the
+user's own baseline (P3-30). Layer 4 earns its place only if it detects something Layer 1 and a
+deterministic multivariate score do not, at the same false-alarm rate. **Either outcome is a
+result** (FINAL_ARCHITECTURE §7). If it adds nothing, it does not ship; that is the owner's call
+after A2.
+
+**The model: Isolation Forest** (Liu, Ting and Zhou, "Isolation Forest", IEEE ICDM 2008).
+- **Chosen over the one-class SVM** because it needs no kernel, no solver and no feature
+  scaling. Its splits are uniform between each feature's own minimum and maximum, so degrees
+  and milliseconds need no common unit.
+- **Written in the shared core,** with no library, and fitted on the phone.
+- **Deterministic.** Its random choices come from a seeded generator written in the core
+  (SplitMix64), so JVM, JS and Android grow identical trees. The golden parity file covers it.
+- **The paper's settings:**
+  - 100 trees;
+  - subsample ψ = min(256, n);
+  - height limit ⌈log₂ ψ⌉;
+  - score s = 2^(−E[h] / c(ψ)).
+- **No Python model is involved.** Layer 4 is fitted in Kotlin, so its parity is the JVM/JS
+  golden file.
+- **A scikit-learn `IsolationForest` on the same features is a sanity check,** not parity: the
+  rank correlation of the scores is reported. It runs once scikit-learn is installed for Part B.
+  It is not installed now; numpy is.
+
+**Its input, per repetition:**
+- **F1, Layer 1's scalars:** range of motion per measured side, lifting and lowering time, and
+  left minus right where both sides were measured.
+- **F2, the shape:**
+  - each measured side's resampled curve (64 points, CONTRACTS.md §7);
+  - measured from its start value and divided by its own range of motion, so shape is kept apart
+    from size;
+  - averaged down to 16 points.
+- **VALID repetitions only.**
+- **One model per exercise and timing side,** as Layer 1 keeps its baselines (P3-30).
+
+**Its history and its output:**
+- **History:** the user's most recent 200 VALID repetitions of that exercise and side, across
+  sessions, bounded.
+- **When it is refitted:** after each completed set, on the post-rep path.
+- **When it speaks:** only once the history holds N_min repetitions. A3 sets N_min.
+- **The cut:**
+  - a repetition is unusual when its score is above the 95th percentile of the history's own
+    scores;
+  - so the rule needs no one else's data;
+  - it is fixed here, before any run.
+- **The finding:** Level 2, "unusual for you", with its score. Never a fault name, never
+  "incorrect".
+- **Not wired into the app,** like Layer 1. Wiring is its own decision.
+- **Holds are deferred.** The plank, wall sit and side plank produce hold records, not
+  repetitions. Layer 4 for holds gets its own design after this study, so "all 15 exercises" is
+  not claimed yet.
+
+### The anomaly study's protocol (A1–A4), fixed before any run
+
+**Data:**
+- **Development subjects only:** A, B, C and S19 (P3-30). The held-out people are not read.
+- **The engine:** the development exports of the P3-33 engine at 30 a second
+  (`data/mm-fit-eval-p3-33-ta-s1-base`, primary protocol).
+- **The exercises:** the seven the harness evaluates. The curl, lunge and row are marked as view
+  mismatches (P3-27, P3-32).
+- **Order:** workouts in MM-Fit's numbering, repetitions in time. The real spacing between
+  sessions is unknown (P3-30 S5).
+- **The assumption, as in P3-30.** MM-Fit's repetitions are taken as normal. So every flag on an
+  unaltered repetition counts as a false alarm, and **the rate is an upper bound on false
+  alarms.**
+
+**A1 — false alarms as the history grows.**
+- **Setup:** for each subject, exercise and side, fit on the first n VALID repetitions, with
+  n = 10, 20, 40 and 80 as far as the data allows. Score the next 20, unaltered.
+- **The cut:** the device's own rule above.
+- **Reported:**
+  - the flag rate per subject;
+  - the rate pooled over subjects;
+  - the highest subject's rate;
+  - for F1 alone and for F1 + F2.
+
+**A2 — detection of planted deviations, against deterministic detectors, at equal false
+alarms.**
+- **Planted only in scored repetitions,** on the record and its curve together. Every plant
+  keeps the record self-consistent.
+
+| Plant | Sizes | What changes |
+|---|---|---|
+| Range of motion cut | 20, 30, 40% of the subject's median range | the range; the curve scaled towards its start |
+| Tempo | 1.5× and 2× faster | the phase times only: the curve is time-normalised |
+| One side shortened | 20, 30, 40% | that side's range and curve; paired exercises only, alternating sides as in P3-30 |
+| A stall at the far position | 15 and 25% of the repetition | the curve only: it reaches its far value early and holds it; times unchanged |
+| Combined | range 10% and tempo 1.25× together | each half of the smallest single plant of its kind |
+
+- **The detectors,** each at the cut where the mean over subjects of each subject's flag rate on
+  unaltered repetitions is 5% (P3-30's rule, on a 0.01 grid). The history is the first 40, or
+  all a subject has if fewer.
+  1. **Layer 1:** the largest |z| over its own features, as in P3-30.
+  2. **Deterministic multivariate:** the sum of squared robust z-scores over F1, then over
+     F1 + F2.
+  3. **Isolation Forest:** on F1, then on F1 + F2.
+- **Detected** means the repetition is flagged, by any feature for detector 1.
+- **Reported:**
+  - the detection rate per plant and size, per subject and pooled;
+  - the full curve, detection against false alarms;
+  - what the forest detects that neither deterministic detector does.
+- **A synthetic study, not a claim of real-world detection.** The plants are arithmetic on
+  records, and whether the engine would still count such a repetition is not tested.
+
+**A3 — how much history before Layer 4 may speak.** N_min is the smallest n in A1 at which
+every subject with data has a flag rate of at most 10% on the next 20. If none qualifies, the
+answer is "more than 80".
+
+**A4 — stability.** For the same data and 10 seeds: the share of flag decisions on which all 10
+agree. Reported; no threshold.
+
+**Not claimed, whatever the numbers:**
+- that Layer 4 detects faults;
+- any accuracy figure;
+- anything beyond MM-Fit's four development subjects, one camera and 30 a second.
+
+**The held-out people** are read only after A1–A4, and only with the owner's approval. The
+confirmation then is the frozen detectors, once.
+
+### Part B — the exercise verifier (designed now, built after Part A)
+
+**Its input: a per-repetition context.**
+- **The signals:**
+  - elbow flexion, left and right;
+  - upper arm against trunk, left and right;
+  - hip, left and right;
+  - knee, left and right;
+  - the trunk's lean from vertical.
+- **How it is recorded:** each is resampled to 16 points over the repetition's own window,
+  plus the repetition's duration.
+- **How it is computed:** in the core, from fixed-size ring buffers written once per frame
+  (O(1)) and resampled after the repetition. The context never exists per frame.
+- **The contract change** (the record, CONTRACTS.md, and whether P5's export carries it) gets
+  its own entry.
+
+**Classes and training data:**
+- **The classes are MM-Fit's ten:**
+  - the eight the app has profiles for: squat, push-up, shoulder press, lunge, row, sit-up,
+    curl and lateral raise;
+  - tricep extensions;
+  - jumping jacks, as "none of these" (ZERO_DATASET_BUILD_PLAN).
+- **Training data:**
+  - every MM-Fit set is run through every one of the app's repetition profiles for those
+    exercises;
+  - each resulting record, whatever its validity, is labelled with the set's true exercise;
+  - so the model sees repetitions cut the way any selected exercise would cut them, which is
+    what it meets on the phone.
+
+**The model, its use and its evaluation:**
+- **scikit-learn is a new dependency** of the Python tools, never of the app.
+  - It gets CLAUDE.md §17's check before it is installed (licence BSD-3-Clause), and the owner's
+    approval.
+- **Models:**
+  - logistic regression first, as the interpretable baseline;
+  - then a random forest or gradient boosting, in scikit-learn;
+  - exported to JSON, with an evaluator in the core.
+- **Python/Kotlin parity** to 1e-9 on repetitions the model did not train on.
+- **Its use:** a mismatch warning, "this looks like a different exercise". It never changes the
+  selection (§13).
+  - The exercises MM-Fit does not have (plank, side plank, wall sit, glute bridge, hip
+    abduction, knee raise, leg raise) get no verification, and the app says so.
+- **Evaluation, as the owner decided:**
+  - development people only, one left out at a time (four folds), for every choice;
+  - then the frozen pipeline over all ten, once, with approval.
+- **Reported:**
+  - accuracy, per-class F1 and the confusion matrix;
+  - the warning's rates: false warnings on matched sets, warnings on mismatched ones.
+- **Limits:**
+  - MM-Fit films the curl, squat, lunge and row from a different view than the app requires.
+    Its numbers describe MM-Fit's views, not the phone's (CLAUDE.md §22).
+  - 30 a second. The stride harness (P3-32) can show 15.
+
+### Order of work, and the stop points
+
+1. This entry, committed before any code.
+2. **Layer 4 in the core,** not wired into the app:
+   - the seeded generator;
+   - the Isolation Forest;
+   - the F1 and F2 feature builder;
+   - tests first, the golden file, mutations.
+3. A1–A4 on the development subjects, with a results entry.
+4. **Owner:** does Layer 4 ship? Should the held-out confirmation run?
+5. **The verifier:**
+   - the context and its contract entry;
+   - the harness run through every profile;
+   - training;
+   - the Kotlin evaluator and parity;
+   - development evaluation.
+
+   **Then stop** before the all-ten run.
+6. Layer 4 for holds: its own design.
+
+**Stops:**
+- **Before any app or UI wiring.**
+- **Before the held-out people,** for either part.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

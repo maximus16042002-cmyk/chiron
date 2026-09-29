@@ -246,7 +246,7 @@ This batch is also the core of the MSc work, so it gets the most care.
 
 - P7: run MediaPipe over the MM-Fit videos (frame-shape correction applied with
   MM-Fit's own frame size) and build the evaluation harness.
-- P9 (optional): exercise verifier and personal anomaly detection.
+- P9: personal anomaly detection, then the exercise verifier. In scope since DECISIONS.md P3-34.
 - P12: the six evaluation studies and the final report.
 
 These are what the MSc report rests on. The app features above make Kinesis a

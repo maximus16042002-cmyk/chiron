@@ -128,7 +128,7 @@ It is tested on every platform, with 14 deliberately planted bugs all caught.
 
 | Item | Note |
 |---|---|
-| **P9 ML layer** | Exercise verifier and personal anomaly detection. Optional; may be cut. |
+| **P9 ML layer** | Personal anomaly detection first, then the exercise verifier. In scope since P3-34; the design and the anomaly study's protocol are written, no code yet. |
 | **P8 Layer 2** | The cited technique rules. |
 | **Setup assistant** | Checks framing, distance and view before scoring (CLAUDE.md §10). |
 | **Feature Plan, Batch 1** | The new look (dark cards, orange accent) and five-tab navigation. The app still has the phosphor-green theme. |
