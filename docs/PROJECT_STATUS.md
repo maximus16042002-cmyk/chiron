@@ -9,26 +9,46 @@ of date.*
 
 ## Next session starts here
 
-Open items as of DECISIONS.md P3-30:
+As of DECISIONS.md P3-30 and its addendum, "Owner decisions before the held-out
+run".
 
-- **P4:** a solo phone session for what is still owed, in the order of
-  `docs/P4_TOMORROW.md`.
-- **P3-30's nine decisions for the owner**, above all:
-  - approving the held-out run, with every setting frozen (decision 1);
-  - the ACSM tempo message, which as built fires on about 97% of MM-Fit's curls
-    (decision 2);
-  - the calibration count and the personal threshold: S4 says 5–8 repetitions
-    do not settle a range-of-motion baseline (decision 3).
-- **The split is by subject** (P3-30): development A, B, C and w19's subject;
-  held-out w12, w13, w16, w17, w18, w20, untouched. `tools/mmfit-eval/subjects.py`
-  holds it.
-- **P8:** Layer 1 is built in the core and **not wired into the app** (the
-  owner's stop point). Layer 2, the cited technique rules, is not started.
-- **P6:** the first real calibration on the phone; it has no baselines yet
-  (item 2 of `docs/P4_TOMORROW.md`).
+**Done:**
+- **The split is by subject:** development A, B, C and w19's subject; held-out
+  w12, w13, w16, w17, w18, w20, untouched. `tools/mmfit-eval/subjects.py` holds
+  it.
+- **P8 Layer 1** is built in the core and **not wired into the app**.
+- **The personalisation study's S1–S4** have run on the development subjects.
+- **Decided in the addendum:**
+  - uncited population thresholds never reach the user (6);
+  - one message per side for depth (7);
+  - the ACSM tempo message held back from the UI until the phone's hand-timed
+    check, then shown once per set (2);
+  - the sit-up floor stays at 114.4°, with a knee-independent trunk-angle driver
+    added to P8's list (4);
+  - S5 to run on development subjects A and B, "sessions of unknown spacing" (8).
+- **Written and fixed before any run:** Decision 3's selection rule and S5's
+  protocol.
+- **Checked against the code:** `docs/EXERCISE_GUIDE.md`'s counting rules.
+- **Pushed.**
+
+**Open, in this order:**
+1. **The phone session:** `docs/P4_TOMORROW.md`. It also records the P3-29 curl
+   test and the first real P6 calibration.
+2. **The curl-timing trace on the development workouts** (decision 5): the
+   one-frame lifts after a bridged start.
+3. **The S5 run** (development subjects A and B only).
+4. **The Decision 3 evaluation,** by the addendum's fixed selection rule.
+   Calibration stays one set; if no candidate qualifies, report and stop.
+5. **The frozen tag `p3-30-frozen`:** the engine, the chosen settings, P3-30's cuts
+   and floors, and the tools, as the held-out run will use them.
+6. **Then a separate approval for the held-out run** (decision 1).
+
+**Also open, not in that sequence:**
+- **P8:** Layer 2, the cited technique rules, and a knee-independent trunk-angle
+  driver for the sit-up (development subjects only).
 - **Squats:** the near-knee question, still untouched.
-- **P3-29:** record the owner's curl test result on the new build.
-- **Not pushed:** P3-30's Part 2 commits are local, as directed.
+- **Feature Plan Batch 1** gains the skeleton redesign and a display-only focus
+  zoom, both after the evaluation work (CLAUDE.md §21).
 
 ---
 

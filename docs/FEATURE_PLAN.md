@@ -86,6 +86,43 @@ decisions in DECISIONS.md (next `P3-` number) before it is considered done.*
   the phone (whole body in frame, head visible, one person, within about 4 m —
   from the model card's out-of-scope list).
 
+**Skeleton redesign** *(added 2026-09-29, DECISIONS.md P3-30 addendum)*
+- **The new drawing, in the new palette:**
+  - filled joint circles with a soft halo;
+  - tapered limbs;
+  - a torso outline;
+  - a head circle from the face landmarks.
+- **Keep:**
+  - unseen joints greyed;
+  - the amber flash on a repetition that did not count (P3-23);
+  - the One Euro display smoothing (display only, as now).
+- **Tracking state is never conveyed by colour alone.** Shape, stroke or pattern carries it
+  too, as the four overlay states and the wider attention stroke already do (rule 7 above:
+  `SkeletonPaletteLegibilityTest` must still pass).
+- **The drawing must never hide that a joint is not tracked.** No halo, fill or smoothing may
+  make a guessed or unseen joint look measured.
+
+**Focus zoom (auto-framing) — DISPLAY ONLY** *(added 2026-09-29, DECISIONS.md P3-30 addendum)*
+- **What to frame.** Each profile names its focus landmarks, reusing `requiredLandmarks`.
+  The target is the box around them plus a margin, with zoom capped at about 1.6–2×.
+  - **Whole-body exercises get no zoom:** plank, push-up, side-on squat.
+  - **Overhead exercises keep headroom** above the head.
+- **When.**
+  - **Zoom in** only after every focus landmark has been reliably visible for N frames.
+  - **Zoom out** when any is lost for more than about 500 ms.
+- **How it moves.**
+  - Spring-smoothed, panned to centre, and clamped to the frame edge.
+  - A small decaying shake (about 200 ms), during the zoom-in transition only.
+  - A reduce-motion setting, and Android's animation-scale setting honoured.
+- **The pipeline is unchanged.**
+  - The preview and the skeleton share one transform.
+  - **Nothing zoomed is ever sent to the pose model.**
+  - The zoom decision uses full-frame landmarks, never the zoomed view.
+- **A real camera zoom is a separate, later feature,** because it changes the pipeline the
+  MM-Fit evidence rests on.
+- **Testing:** the framing function is pure and unit-tested on the JVM.
+- **Priority:** after the evaluation work (CLAUDE.md §21).
+
 **Notes**
 - Current navigation is a `when` with no library (P3-12). If Navigation Compose
   is added, run the §17 check; otherwise keep a hand-rolled navigator but make

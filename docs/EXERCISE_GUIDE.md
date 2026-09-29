@@ -24,7 +24,8 @@ not technique coaching, and Kinesis is not a medical or physiotherapy tool.
 3. **Get the body parts the exercise needs in frame, with some room to spare.** Each exercise lists
    them under "Keep in view". Leave space for where your arms or legs will move: at the top of a
    press your hands are the first thing to leave the frame.
-4. **Stay inside what the pose model was made for** (its model card, DECISIONS.md P3-17):
+4. **Stay inside what the pose model was made for** (its model card, DECISIONS.md P3-17, lines
+   3823–3826):
    - **one person** in the picture;
    - **your head visible**;
    - **within about 4 metres** of the phone.
@@ -36,15 +37,29 @@ not technique coaching, and Kinesis is not a medical or physiotherapy tool.
 
 The app runs a small state machine on one joint angle, for each side:
 
-1. **Start in the start position and hold still for a moment.** The machine starts only when you are
-   there. Walking into frame mid-movement counts nothing.
+1. **Start in the start position.** **No pause is needed:** the machine moves from idle to the start
+   the first time your joint's angle is measured inside the start zone (`RepFsm.kt` lines 148–156).
+   - The angle it sees is filtered first (an outlier gate, then smoothing, `TemporalConfig.kt` lines
+     124–127), so it trails you slightly.
+   - Pausing at the start is fine: the clock restarts there, so the pause belongs to no repetition
+     (`RepFsm.kt` lines 158–160, 310–319).
+   - Walking into frame mid-movement counts nothing until you pass through the start zone.
 2. **Move past the far position.** Turning back before it is *not counted*: the app records it as
    a turned-back attempt, and the screen flashes **amber**.
 3. **Come back to the start position.** Returning completes the repetition.
 4. **Each repetition must take longer than a minimum and less than a maximum,** listed per exercise.
    Too quick and it is not counted; too slow and it is recorded as incomplete.
-5. **If you are lost from view for more than half a second mid-repetition,** that repetition is not
-   counted. The next one counts normally.
+5. **Gaps longer than half a second end a repetition.** A frame is unmeasured when you are out of
+   view, the joint is not tracked, or the outlier gate rejects a sudden jump.
+   - **Mid-repetition:** a gap of up to **500 ms** since the last measured frame is bridged, and the
+     repetition carries on. Nothing is filled in (`TemporalConfig.kt` line 132, `RepFsm.kt` lines
+     264–271).
+   - **Longer, and the repetition ends as insufficient data:** recorded, not counted, and shown in
+     **amber** (`RepFsm.kt` lines 272–280, `LiveAnalysisBridge.kt` lines 121–125).
+   - **At the start position,** a longer gap drops the machine back to idle with no record
+     (`RepFsm.kt` lines 267–269).
+   - **Either way, the next repetition counts normally** once you are measured back in the start
+     zone.
 6. **Full range, every time.** Half repetitions are what the thresholds are there to refuse.
 
 ### What the screen tells you
@@ -65,7 +80,7 @@ On the exercise's screen, press **CALIBRATE**, then do one ordinary set the way 
 | Both sides together | At least **5 counted repetitions**; the first 8 are used. |
 | One arm or leg at a time | At least **5 with each arm or leg**. |
 | Near side only | At least **5 on the side facing the phone**. |
-| Holds | **One hold of at least 10 seconds.** |
+| Holds | **One valid hold with at least 10 seconds held inside the band.** Time outside the band does not count (`CalibrationPolicy.kt` line 63; `Calibration.kt` lines 188, 193). |
 
 These numbers are provisional. The P3-30 study suggests a range-of-motion baseline needs more
 repetitions than 5–8.

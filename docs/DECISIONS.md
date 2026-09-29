@@ -7952,6 +7952,182 @@ the subjects' mean, personal against population:
 No accuracy claim of any kind. Every number is a measurement on MM-Fit's development
 subjects under the protocol above, or a provisional setting.
 
+### Addendum — Owner decisions before the held-out run
+
+*2026-09-29, after P3-30's commits (pushed at `18d2579`).* The owner's decisions on the nine
+points above. Nothing here has been run; everything below is fixed before it is.
+
+**Decided:**
+- **Decision 6: confirmed. Uncited population thresholds never reach the user.** A
+  `PopulationReference` stays an evaluation instrument and never produces a `Finding`.
+- **Decision 7: confirmed. One message per side for depth.** Consistency stays quiet on a
+  side where range of motion has spoken.
+- **Decision 2: the ACSM tempo message is held back from the UI** until the phone check
+  against hand-timed repetitions (P3-26).
+  - **When it is shown, it is shown once per set,** not once per repetition.
+  - **The owner's reading:** MM-Fit's curls really are faster than 1–2 s a phase, so the
+    rule speaking on about 97% of them is the rule working. The problem is nagging, not
+    accuracy.
+  - **Recorded beside it:** the one-frame curl-timing artefact (decision 5, open) shortens
+    some curl lifts further. Whether it changes any flag is part of that trace.
+- **Decision 4: the sit-up floor stays at 114.4°.**
+  - **The limitation is recorded:** only 54% of subject A's returns clear it, against 0% at
+    the profile's own edge.
+  - **Added to P8's list: a knee-independent trunk-angle driver for the sit-up.** P3-29 found
+    the lying-back angle varies between people, most plausibly with how bent the knees are.
+    The hip angle (shoulder–hip–knee) carries the knee's bend; a trunk angle would not.
+  - It is to be evaluated on the development subjects only, and becomes a profile change
+    only through its own entry.
+- **Decision 8: S5 runs, on the development subjects only,** labelled "sessions of unknown
+  spacing". Its protocol is below.
+- **Decision 9:** pushed.
+
+**Open, to be done on data:**
+- **Decision 5, the curl timing artefact.** Trace it set by set on the development
+  workouts. Any engine change is its own decision, judged on data it was not designed on.
+- **Decision 3, the threshold and the floors,** by the selection rule below.
+- **Decision 1, the held-out run.** It waits for decisions 3 and 5, then the frozen tag
+  (`p3-30-frozen`), then **a separate approval.**
+
+### Decision 3: the selection rule — fixed before any run
+
+**Calibration stays one set:** 5–8 repetitions per side, as P3-22 set it. The rule may not
+require more. S4's finding that a range-of-motion baseline needs about 12–20 is answered
+here by the comparator, not by a longer calibration.
+
+**Data and design.**
+- The development subjects only (A, B, C, S19), with S2's design: in each session, the
+  first set of an exercise calibrates through the app's own calibrator, and the later sets
+  are scored.
+- **Exercises:** the three with interpretable data, shoulder press, bicep curl and lateral
+  raise. Push-ups and sit-ups (4 and 7 of 15 sessions calibrated) are reported, but take no
+  part in the rule.
+- **The engine:** the one current when this runs. If decision 5 has changed the engine, the
+  development exports are regenerated first. If not, the curl-timing artefact is stated with
+  the curl's timing results.
+
+**The candidates:**
+
+| | Candidate | What changes |
+|---|---|---|
+| (a) | **As now** | Threshold 2; floors 3° range of motion, 70 ms time, 3° left − right, 2° consistency. |
+| (b) | **Threshold 3** | The threshold only; the floors as in (a). |
+| (c) | **A range-of-motion floor from the development subjects** | Per exercise, the 3° floor is replaced by the value derived below, larger or smaller. |
+| (d) | **The personal spread shrunk towards a within-person spread** | Defined below, with k fixed at 8. |
+| (e) | **Combinations** | b + c, b + d, c + d, b + c + d. |
+
+**(c)'s floor, derived as follows:**
+1. For each development subject, session and side, take the within-session robust SD of
+   range of motion: IQR / 1.349 over that session's VALID repetitions of the exercise.
+   Near-side exercises use the near side only.
+2. For each subject and side, take the median over their sessions.
+3. The floor for the exercise is the median over all (subject, side) pairs, rounded to
+   0.1°.
+
+Every subject counts through its own median, so A's and B's six sessions do not outvote C's
+two or S19's one. Taking a median over the pairs is a named choice for a setting, not an
+average of anyone's two sides.
+
+**(d)'s shrinkage:**
+- The formula: `s² = w · s_personal² + (1 − w) · s_within²`, with `w = n / (n + k)`.
+  - `s_personal` is the baseline's robust SD (IQR / 1.349).
+  - `n` is the number of calibration repetitions behind it (`RobustStatistic.count`).
+  - `s_within` is the within-person spread for that exercise and feature: the root mean
+    square of (c)'s per-subject medians.
+- **Where `s_within` comes from:** in the study, from the **other** development subjects;
+  in a product setting, from all four. The same floors then apply to `s`. The centre stays
+  the personal median.
+- **Why `k = 8`:** at the calibration maximum of 8 repetitions, the person's own spread and
+  the within-person spread weigh equally. At the minimum of 5, the person's own weighs 38%.
+
+**Which features are judged:** 14, all of them range of motion or timing:
+- **Shoulder press and lateral raise:** range of motion left and right, lifting time and
+  lowering time.
+- **Bicep curl:** range of motion, lifting time and lowering time, each for the left and
+  the right arm.
+
+**A candidate qualifies when both of these hold:**
+1. **False alarms:** for every one of the 14 features, at the candidate's own threshold,
+   **the mean over subjects of the personal flag rate on scored repetitions is 5% or
+   less, and no subject's rate is above 10%.**
+2. **Sensitivity:** for each of the three exercises, S3's **30% range-of-motion cut is
+   detected in 80% or more of the planted repetitions** (the mean over subjects), at the
+   candidate's own threshold and floors.
+
+**Selection:**
+- **The simplest candidate that qualifies is chosen.** "Simplest" is this order, fixed now:
+  (a), (b), (c), (d), b + c, b + d, c + d, b + c + d.
+- **If none qualifies, the result is reported and the work stops.** The criteria are not
+  relaxed.
+- **The numbers in this rule** (5%, 10%, 80%, the 30% cut, k = 8, the order) **are the
+  owner's to change before any run, never after.**
+- **Reported for every candidate,** whether or not it qualifies: per subject and pooled,
+  with left − right, consistency, push-ups and sit-ups alongside, outside the rule.
+
+**Implementation.**
+- (c) and (d) need per-exercise settings that `DeviationPolicy` does not hold today. They are
+  evaluated first in the study runner, as overrides.
+- The core changes only for the chosen candidate, in its own entry, test-first, with the
+  parity golden file regenerated deliberately.
+
+### S5: cross-session baseline stability — the protocol, fixed before any run
+
+**The question.** Does a baseline made in one session describe the same person's other
+sessions?
+
+**The label on every S5 result: "sessions of unknown spacing".** MM-Fit gives no dates, so
+the sessions could be days or weeks apart, and in no known order of time.
+
+**Data.**
+- Development subjects **A and B only**, the two with six sessions each. C has two sessions
+  and S19 one: too few, and left out.
+- Exercises: shoulder press, bicep curl and lateral raise. Push-ups and sit-ups lack
+  calibrated sessions.
+- VALID repetitions, the same development exports as P3-30's S2. **No held-out workout.**
+
+**Design.**
+- **Each of the subject's sessions serves in turn as the baseline session.** Its first set of
+  the exercise calibrates through the app's calibrator, as in S2.
+- **The baseline is scored against every VALID repetition** of that exercise in each of the
+  subject's **other** sessions, every set: five other sessions per baseline, 30 ordered
+  pairs per subject and exercise.
+- **Beside it,** the same-session figure: S2's scoring of that session's own later sets.
+
+**Measures,** per subject, exercise, feature and pair, then summarised per subject:
+- **The personal flag rate** under the product rule as it stands now (threshold 2, P3-30's
+  floors) and at P3-30's S2 operating points c\*. Both are fixed already.
+  **Cross-session and same-session are reported side by side.**
+- **The centre's shift:** `|median of the other session − baseline median| /
+  max(baseline robust SD, floor)`, the distance in the baseline's own units.
+- **Features:** range of motion per side, lifting and lowering time, and left − right
+  where paired.
+
+**Reported:**
+- **per subject, A and B apart,** with every pair's figure in the data file;
+- no pooled figure beyond showing the two side by side;
+- **no interval,** since two subjects give none worth stating.
+
+**What S5 does not show:**
+- **how a baseline ages with time,** because the spacing and order of the sessions are
+  unknown;
+- anything about anyone but A and B;
+- how often a user should recalibrate;
+- whether any flag it raises is a real change in how someone moves or a change in the
+  camera, weight or setting between sessions;
+- detection of anything.
+
+It is a measure of how far one day's baseline sits from another day's repetitions, for two
+people, and no more.
+
+**The order of work from here:**
+1. The phone session (`docs/P4_TOMORROW.md`).
+2. The curl-timing trace on the development workouts (decision 5).
+3. S5.
+4. The Decision 3 evaluation, by the rule above.
+5. The frozen tag `p3-30-frozen`: the engine, the chosen settings, P3-30's cuts and floors,
+   and the tools, exactly as the held-out run will use them.
+6. **Then a separate approval for the held-out run.**
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics
