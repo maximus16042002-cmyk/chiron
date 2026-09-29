@@ -40,7 +40,7 @@ The app runs a small state machine on one joint angle, for each side:
 1. **Start in the start position.** **No pause is needed:** the machine moves from idle to the start
    the first time your joint's angle is measured inside the start zone (`RepFsm.kt` lines 150–158).
    - The angle it sees is filtered first (an outlier gate, then smoothing, `TemporalConfig.kt` lines
-     124–127), so it trails you slightly.
+     138–142), so it trails you slightly.
    - Pausing at the start is fine: the clock restarts there, so the pause belongs to no repetition
      (`RepFsm.kt` lines 160–162, 331–340).
    - Walking into frame mid-movement counts nothing until you pass through the start zone.
@@ -52,7 +52,7 @@ The app runs a small state machine on one joint angle, for each side:
 5. **Gaps longer than half a second end a repetition.** A frame is unmeasured when you are out of
    view, the joint is not tracked, or the outlier gate rejects a sudden jump.
    - **Mid-repetition:** a gap of up to **500 ms** since the last measured frame is bridged, and the
-     repetition carries on. Nothing is filled in (`TemporalConfig.kt` line 132, `RepFsm.kt` lines
+     repetition carries on. Nothing is filled in (`TemporalConfig.kt` line 147, `RepFsm.kt` lines
      285–292).
    - **Longer, and the repetition ends as insufficient data:** recorded, not counted, and shown in
      **amber** (`RepFsm.kt` lines 293–301, `LiveAnalysisBridge.kt` lines 121–125).

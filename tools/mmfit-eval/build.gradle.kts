@@ -34,6 +34,10 @@ tasks.register<JavaExec>("runHarness") {
     val split = project.findProperty("split")?.toString()
     // -Pstride=N feeds every N-th frame, to imitate a lower result rate (P3-32). 1 by default.
     systemProperty("kinesis.stride", project.findProperty("stride")?.toString() ?: "1")
+    // -Pgate=<degrees> and -Pbridge=<ms> override the outlier gate and the bridged gap, for
+    // diagnostics (P3-33). Unset, the phone's own settings.
+    project.findProperty("gate")?.let { systemProperty("kinesis.gate", it.toString()) }
+    project.findProperty("bridge")?.let { systemProperty("kinesis.bridge", it.toString()) }
     args = listOf(
         project.findProperty("landmarks")?.toString() ?: "../../data/mm-fit-mediapipe",
         project.findProperty("labels")?.toString() ?: "../../data/mm-fit",

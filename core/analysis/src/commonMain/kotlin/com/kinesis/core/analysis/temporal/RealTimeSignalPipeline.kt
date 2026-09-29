@@ -7,6 +7,9 @@ package com.kinesis.core.analysis.temporal
  *
  *     raw sample -> outlier gate -> EMA -> ring buffer
  *
+ * The EMA is weighted by the time since the last sample, in intervals of
+ * [TemporalConfig.smoothingIntervalMs], not per sample - DECISIONS.md P3-33.
+ *
  * ### Why this order, and why it is not the prototype's order
  *
  * The old prototype ran outlier removal, then gap interpolation, then smoothing,
@@ -47,6 +50,9 @@ class RealTimeSignalPipeline(
 
     private val smoother = EmaSmoother(config.smoothingAlpha)
 
+    /** When the last sample was pushed, measured or not; [Double.NaN] before the first. */
+    private var lastPushMs: Double = Double.NaN
+
     /**
      * Samples examined by the last [push]. Instrumentation, not behaviour:
      * "this frame did no work proportional to the session" is the invariant
@@ -74,7 +80,10 @@ class RealTimeSignalPipeline(
      */
     fun push(timestampMs: Double, rawValue: Double): Double {
         val gated = outlierGate.accept(rawValue)
-        val smoothed = smoother.update(gated)
+        // After a NaN the smoother starts afresh, so only the time since a measured
+        // sample ever weighs anything.
+        val smoothed = smoother.update(gated, (timestampMs - lastPushMs) / config.smoothingIntervalMs)
+        lastPushMs = timestampMs
         buffer.push(timestampMs, smoothed)
         lastPushSamplesVisited = outlierGate.lastCallSamplesVisited
         return smoothed
@@ -84,6 +93,7 @@ class RealTimeSignalPipeline(
     fun reset() {
         outlierGate.reset()
         smoother.reset()
+        lastPushMs = Double.NaN
         buffer.clear()
         lastPushSamplesVisited = 0
     }

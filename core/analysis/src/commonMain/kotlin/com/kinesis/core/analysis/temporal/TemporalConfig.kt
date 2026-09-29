@@ -36,6 +36,13 @@ data class TemporalConfig(
     val smoothingAlpha: Double,
 
     /**
+     * The interval [smoothingAlpha] is the weight for, in milliseconds. A sample
+     * that arrives k of these after the last is weighted `1 - (1 - alpha)^k`, so
+     * the smoothing is the same in time at any frame rate - DECISIONS.md P3-33.
+     */
+    val smoothingIntervalMs: Double,
+
+    /**
      * The longest run of missing data that may be bridged by interpolation, in
      * milliseconds. Longer gaps stay missing, because inventing a trajectory
      * across a second of occlusion is fabricating measurement.
@@ -74,6 +81,9 @@ data class TemporalConfig(
         require(smoothingAlpha > 0.0 && smoothingAlpha <= 1.0) {
             "smoothingAlpha must be in (0, 1], got " + smoothingAlpha
         }
+        require(smoothingIntervalMs > 0.0 && smoothingIntervalMs.isFinite()) {
+            "smoothingIntervalMs must be positive and finite, got " + smoothingIntervalMs
+        }
         require(maxInterpolationGapMs >= 0.0) {
             "maxInterpolationGapMs must be non-negative, got " + maxInterpolationGapMs
         }
@@ -111,6 +121,10 @@ data class TemporalConfig(
          *   second. Chosen, not measured - DECISIONS.md P3-17.
          * - `smoothingAlpha = 0.3` — the prototype's figure. Its own filter
          *   comparison printed results for 0.2 to 0.5 without concluding.
+         * - `smoothingIntervalMs = 1000 / 30` — the prototype's 0.3 assumed 30
+         *   fps, so it is 0.3 per thirtieth of a second at any rate. Weighted per
+         *   sample instead, the phone's 15 a second lagged twice as long and lost
+         *   repetitions - DECISIONS.md P3-32, P3-33.
          * - `maxInterpolationGapMs = 300.0` — the prototype's figure, roughly nine
          *   frames at 30 fps.
          * - `resampleLength = 64` — from CONTRACTS.md section 7, and the one value
@@ -125,6 +139,7 @@ data class TemporalConfig(
             outlierThreshold = 35.0,
             outlierReadmitSamples = 3,
             smoothingAlpha = 0.3,
+            smoothingIntervalMs = 1000.0 / 30.0,
             maxInterpolationGapMs = 300.0,
             resampleLength = 64,
             // DECISIONS.md P3-23: bridges 45% of the gaps under 3 s the phone

@@ -1,5 +1,7 @@
 package com.kinesis.core.analysis.temporal
 
+import kotlin.math.pow
+
 /**
  * An exponential moving average, applied one sample at a time.
  *
@@ -23,6 +25,14 @@ package com.kinesis.core.analysis.temporal
  * filter dragging a value from before the occlusion across it, which would
  * invent a trajectory through the gap. The prototype had this right and it is
  * kept exactly.
+ *
+ * ### Per unit of time - DECISIONS.md P3-33
+ *
+ * [alpha] is the weight a result gets one interval after the last. A result k
+ * intervals after the last gets `1 - (1 - alpha)^k`, what k results of the same
+ * value would have given, so a movement is followed as far in the same time at
+ * any result rate. Weighted per result, the phone's 15 results a second lagged
+ * twice as long as MM-Fit's 30, and 6 a second five times as long.
  */
 class EmaSmoother(val alpha: Double) {
 
@@ -41,14 +51,33 @@ class EmaSmoother(val alpha: Double) {
      *
      * A [Double.NaN] input resets the filter and returns [Double.NaN].
      */
-    fun update(value: Double): Double {
+    fun update(value: Double): Double = update(value, 1.0)
+
+    /**
+     * Folds [value], arriving [intervals] intervals after the last result, into the
+     * average and returns the new smoothed value. An interval that is not positive,
+     * a clock that stood still or went back, counts as one: the result is real even
+     * if its timestamp is not.
+     *
+     * A [Double.NaN] input resets the filter and returns [Double.NaN].
+     */
+    fun update(value: Double, intervals: Double): Double {
         if (value.isNaN()) {
             current = Double.NaN
             return Double.NaN
         }
-        current = if (current.isNaN()) value else alpha * value + (1.0 - alpha) * current
+        if (current.isNaN()) {
+            current = value
+        } else {
+            val weight = weightAfter(intervals)
+            current = weight * value + (1.0 - weight) * current
+        }
         return current
     }
+
+    /** The weight of a result [intervals] intervals after the last. Exactly [alpha] for one. */
+    fun weightAfter(intervals: Double): Double =
+        if (intervals == 1.0 || !(intervals > 0.0)) alpha else 1.0 - (1.0 - alpha).pow(intervals)
 
     fun reset() {
         current = Double.NaN

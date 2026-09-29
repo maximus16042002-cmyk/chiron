@@ -8503,6 +8503,199 @@ build has not run on the phone.
 
 ---
 
+## P3-33 — The smoother weighted per unit of time, and what the throttled rate's losses are made of
+
+*2026-09-30, after midnight. Nothing here has run on the phone.*
+
+**The owner's direction after P3-32:** "do whatever you want now".
+- **Taken as:** carry out what P3-32 recommended. Decision 4 is measuring the gate and the
+  bridge at 6 results a second. Decision 2 is the time-aware smoother, test-first, in its own
+  commit.
+- **Not taken as:**
+  - decision 3, the curl features in P3-30's Decision 3 rule, which is the owner's to record;
+  - anything on the held-out workouts;
+  - an install on the phone.
+
+### 1. At 6 results a second, the loss was the smoother (P3-32 decision 4)
+
+**The instrument.** Two harness options:
+- **`-Pgate`** sets the outlier gate's threshold.
+- **`-Pbridge`** sets the longest bridged gap.
+
+They reach the engine through `LiveRepetitionAnalysis`'s own `temporalConfig`, so nothing in the
+core is patched. Development workouts only. Unset, the runs reproduce P3-32's stride runs byte
+for byte.
+
+**Counted of labelled at 6 a second, on P3-32's engine:**
+
+| Exercise | Gate 35° (as built) | Gate 70° | Gate off | Bridge 1 s |
+|---|---|---|---|---|
+| Bicep curl* | 378 | 421 | 334 | 407 |
+| Lateral raise | 313 | 163 | 36 | 314 |
+| Shoulder press | 406 | 286 | 256 | 407 |
+| Push-up | 78 | 6 | 5 | 78 |
+| Sit-up | 114 | 18 | 16 | 151 |
+| Lunge* | 269 | 223 | 176 | 298 |
+| Row* | 274 | 77 | 5 | 276 |
+
+\* MM-Fit's view does not match the profile (P3-27, P3-32).
+
+**Reading:**
+- **A looser gate lost nearly everything except curls.**
+- **But the signal was fine.** The ideal threshold counter on the same raw angles at 6 a second
+  counts 403 left and 393 right lateral raises of 409, as at 30 (403 and 395). So the loss was
+  inside the engine.
+- **The cause was the smoother.** Weighted per result, its lag at 6 a second is five times
+  longer, and the smoothed angle stopped short of the zones.
+- **The gate was rescuing it by accident.**
+  - A rejected result is a gap, and a gap resets the smoother.
+  - The next accepted result passes unsmoothed, straight to the true angle.
+  - Loosening the gate removed those resets.
+
+So the smoother came first.
+
+### 2. The change: the smoother weighted per unit of time (P3-32 decision 2)
+
+- **`EmaSmoother.update(value, intervals)`:**
+  - a result k intervals after the last gets weight `1 - (1 - alpha)^k`, what k results of the
+    same value would have given;
+  - exactly alpha for one interval;
+  - a clock that stood still or went back counts as one interval.
+
+  `update(value)` is unchanged.
+- **`TemporalConfig.smoothingIntervalMs = 1000 / 30`.** The prototype's 0.3 assumed 30 fps, so
+  it is now 0.3 per thirtieth of a second at any rate.
+- **`RealTimeSignalPipeline`** passes the time since the last result. A gap still resets the
+  smoother.
+- **The app's timestamps** are the camera sensor's, in milliseconds and strictly increasing
+  (`LiveCamera.kt` 191–194).
+
+**Tests first.** `SmoothingRateTest`, written against the unchanged engine using only its
+existing API: five tests.
+- **Two failed:**
+  - a step sampled at 15 a second reached 114.96 degrees where 30 a second reaches 119.15;
+  - a result two intervals late was weighted as one.
+- **Three passed, pinning what must not change:**
+  - at 30 a second the weight is 0.3;
+  - a gap still resets the smoother;
+  - a result whose clock does not advance is an ordinary result.
+
+Two more tests came once the API existed: the weight function and the interval's validation.
+
+**The parity golden file was regenerated deliberately,** by P3-19's procedure.
+- **Why it moved:** the parity scenarios step 33.0 ms, not 33.3, so each weight is 0.2975.
+  Values moved by about 0.05%.
+- **State lines:** a few now fall one frame later. Where the two sides now change phase on
+  different frames, a state line splits in two: squat calibration 67 → 68 lines, Layer 1
+  findings 79 → 81.
+- **Unchanged:** every record's index and validity, and every finding.
+- **JS and Android match the new file.**
+
+### 3. What it does on MM-Fit's development workouts
+
+**Counted of labelled, before → after:**
+
+| Exercise | 30 a second | 15 a second | 6 a second |
+|---|---|---|---|
+| Bicep curl* | 436 → 436 | 436 → 436 | 378 → 378 |
+| Lateral raise | 387 → 387 | 351 → **388** | 313 → 336 |
+| Shoulder press | 441 → 441 | 430 → 438 | 406 → 413 |
+| Push-up | 92 → 92 | 62 → **88** | 78 → 84 |
+| Sit-up | 150 → 150 | 135 → 146 | 114 → 149 |
+| Lunge* | 352 → 352 | 331 → 347 | 269 → **196** |
+| Row* | 311 → 311 | 235 → **332** | 274 → 299 |
+
+- **At 30 a second, every recorded MM-Fit result stands:**
+  - the same 3,754 records;
+  - no validity changed;
+  - phase times identical;
+  - range of motion within 3 × 10⁻¹¹ degrees.
+- **At 15 a second, the phone's normal rate,** every exercise gains. None loses, and no set
+  counts over its label.
+- **At 6 a second the lunge loses 73.** Section 4 says why.
+- **The numbers are identical to P3-32's diagnostic,** exercise by exercise and rate by rate.
+
+### 4. At 6 a second, the loss is now the gate
+
+**Counted of labelled, with the smoother weighted per unit of time:**
+
+| Exercise | 30 a second | 6: gate 35° | 6: gate off | 6: bridge 1 s | 15: gate off |
+|---|---|---|---|---|---|
+| Bicep curl* | 436 | 378 | **434** | 407 | 436 |
+| Lateral raise | 387 | 336 | **382** | 337 | 387 |
+| Shoulder press | 441 | 413 | **437** | 414 | 441 |
+| Push-up | 92 | 84 | 90 | 84 | 88 |
+| Sit-up | 150 | 149 | 158 | 175 | 150 |
+| Lunge* | 352 | 196 | **321** | 220 | 357 |
+| Row* | 311 | 299 | 306 | 301 | 307 |
+
+No set counts over its label in any run.
+
+**Reading:**
+- **The gate is per result, as the smoother was.**
+  - It compares a result with the median of the last five, which at 6 a second is 0.8 s of
+    movement.
+  - Real fast movement is rejected, and the gaps end repetitions. The lunge's INSUFFICIENT_DATA
+    records went from 157 to 433.
+- **With the gate off at 6 a second,** every exercise comes within 31 of its count at 30.
+- **At 15 and 30 a second the gate matters little.** Rows at 15 lose 25 without it (332 → 307),
+  so there it helps.
+- **Not changed.** The gate is there for the phone's glitches:
+  - P3-17's plank;
+  - P3-23's readouts, with jumps of 50–174°.
+
+  MM-Fit's MediaPipe runs do not have the phone's glitches, so they cannot say what a looser gate
+  would let through at 6 a second. Proposed below.
+- **The bridge at 1 s** helps curls (+29), sit-ups (+26) and lunges (+24) at 6 a second, and
+  moves the rest by 2 at most. Not proposed on its own: the gate's rejections are what it
+  bridges.
+
+### Checks
+
+- **Tests first:** 2 of 5 failing against the unchanged engine, as above.
+- **Mutations: 6, all caught, every file restored byte for byte** (checked by SHA-256):
+
+| Mutation | Tests failing |
+|---|---|
+| The pipeline weighs every result as one interval | 9 |
+| The weight grows linearly with the intervals | 10 |
+| A clock that does not advance weighs nothing | 2 |
+| The last result's time never recorded | 9 |
+| The interval's validation removed | 1 |
+| The interval set to the parity scenarios' 33 ms | 11 |
+
+- **The suite: 2,138 test executions, none failed, none skipped** (P3-32: 2,110). Seven new
+  tests, on four targets.
+- **The phone build.** `app-debug.apk` from this commit's suite run, for `installDebug`:
+  - SHA-256 `3e9a548043822214ed1cf04ad13647fbfa76fe39a184ddcbb3cd94c899262a2d`;
+  - it carries P3-32's and P3-33's code (checked in its dex files).
+
+  Not installed.
+- **Docs:** `EXERCISE_GUIDE.md`'s `TemporalConfig.kt` line numbers; `P4_TOMORROW.md`'s build
+  check now names this hash.
+
+### Decisions for the owner
+
+1. **Install this build for the next session?** It is P3-32 and P3-33 together. Back up first,
+   as P3-25 and P3-29 did; the build check compares the phone's APK with the hash above.
+2. **A gate weighted by time,** as the smoother now is. It is what the 6-a-second losses need
+   (section 4). The evidence it needs first is phone readouts of glitches at 6 a second, which
+   MM-Fit cannot give.
+   - **Or keep the phone off 6 a second instead.** It only got there hot (P3-31). A warning when
+     results fall below about 10 a second would be app work, the owner's call.
+3. **P3-30's Decision 3 curl features** (P3-32 decision 3): still open.
+4. **The bridge:** no change proposed.
+
+**P3-32's decisions now stand as:**
+- **2 and 4 are done here.**
+- **1 is decision 1 above,** for this build.
+- **3 is open.**
+
+**Scope of this entry.** One change in the core, tested and mutation-checked, plus a
+measurement. No accuracy claim, and nothing has run on the phone.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

@@ -5,12 +5,16 @@
 items (1–19), P3-24's additions and P3-29's owed curl check. The results go into
 the next DECISIONS entry, not into this file.*
 
-**Updated after the 2026-09-29 session (DECISIONS.md P3-31) and its fixes (P3-32):**
+**Updated after the 2026-09-29 session (DECISIONS.md P3-31) and its fixes (P3-32, P3-33):**
 - **Tests 1 and 2 ran on 2026-09-29.** Curls filmed sideways counted 16 of 16 and 15 of 15.
   Facing the phone, the curl counted arm swings as curls.
 - **The curl is now filmed side-on** (P3-32): the curling arm nearer the phone, turning round for
   the other arm. Every curl step below says so.
-- **If the P3-32 build is installed,** repeat test 1 sideways on it, then recalibrate (test 2).
+- **The build to test is P3-33's:** P3-32's fixes plus the smoother weighted per unit of time.
+  - Its APK's SHA-256 is `3e9a548043822214ed1cf04ad13647fbfa76fe39a184ddcbb3cd94c899262a2d`.
+  - Install it only with the owner's approval, after section 0's backup, with
+    `./gradlew :app:installDebug` (it keeps the data), then run section 0's build check again.
+- **Once it is installed,** repeat test 1 sideways on it, then recalibrate (test 2).
 - **Cool the phone first.** It sat at thermal status 3 for half of that session.
 
 Do the items **in this order**. The heat run is last on purpose: every earlier
@@ -37,6 +41,7 @@ mkdir -p $S/before $S/after
 adb shell dumpsys package com.kinesis | grep -E "lastUpdateTime|versionName" > $S/build.txt
 adb pull "$(adb shell pm path com.kinesis | tr -d '\r' | sed 's/^package://')" $S/base.apk
 sha256sum $S/base.apk >> $S/build.txt
+# P3-33's build is 3e9a548043822214ed1cf04ad13647fbfa76fe39a184ddcbb3cd94c899262a2d
 
 # Back up the database first, as P3-25 and P3-29 did
 for f in $(adb shell run-as com.kinesis ls databases | tr -d '\r'); do
@@ -62,7 +67,7 @@ adb logcat -v time -s KinesisPhaseB > $S/readout.txt
 
 ## 1. Curls on the new build — right arm, then left arm *(owed to P3-29)*
 
-*Done sideways on 2026-09-29 (P3-31): right 16 of 16, left 15 of 15. Repeat it on the P3-32 build,
+*Done sideways on 2026-09-29 (P3-31): right 16 of 16, left 15 of 15. Repeat it on the P3-33 build,
 if installed.*
 
 **What to do.** **Side-on:** the curl's required view since P3-32. Two sets, each ended with END

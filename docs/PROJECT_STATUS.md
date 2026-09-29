@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
 *Snapshot updated 2026-09-29, from the repository as it stands at the end of
-DECISIONS.md P3-32. This file summarises. It is not an authority: where it
+DECISIONS.md P3-33. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date.*
 
@@ -9,7 +9,7 @@ of date.*
 
 ## Next session starts here
 
-As of DECISIONS.md P3-31 (the 2026-09-29 phone session).
+As of DECISIONS.md P3-33 (the fixes after the 2026-09-29 phone session).
 
 **The phone session of 2026-09-29 (P3-31)** ran tests 1–2 of `docs/P4_TOMORROW.md`
 on P3-29's engine (reinstalled 15:05 that day, APK `f84c9987…`):
@@ -31,21 +31,29 @@ testing resumes.
 - **`RepFsm`'s jump across the zone is fixed.** On MM-Fit development workouts, one
   push-up set gained one repetition and nothing counts over its label. It also
   removed most of P3-30's one-frame curl lifts: 118 → 17.
-- **Frame rate measured with a harness `stride`:**
-  - fewer results a second loses repetitions, the lateral raise even at the phone's
-    15;
-  - a time-aware smoother recovers them at 15 a second and changes nothing at 30;
-  - **proposed, not applied.**
+- **Frame rate measured with a harness `stride`:** fewer results a second loses
+  repetitions, the lateral raise even at the phone's 15.
 - **Suite:** 2,110 executions, none failed. **Mutations:** 6 of 6 caught.
 
+**Done since, in P3-33 (not yet on the phone):**
+- **The smoother is weighted per unit of time,** not per result.
+  - At 30 a second, every MM-Fit result stands.
+  - At the phone's 15 a second, no exercise counts fewer and most count more: the
+    lateral raise 351 → 388 of 409, rows 235 → 332, push-ups 62 → 88.
+  - At a throttled 6 a second the lunge loses 73.
+- **At 6 a second the loss is now the outlier gate,** which is per result, as the
+  smoother was. Not changed: it needs phone evidence first.
+- **Suite:** 2,138 executions, none failed. **Mutations:** 6 of 6 caught.
+- **Phone build:** `app-debug.apk` SHA-256 `3e9a5480…262a2d` (in full in P3-33),
+  carrying P3-32 and P3-33. Not installed.
+
 **Open, first:**
-1. **The owner's P3-32 decisions:**
-   - install the build (back up first and record its hash);
-   - the time-aware smoother;
-   - the six curl features in P3-30's Decision 3 rule;
-   - measuring the gate and bridge at 6 a second.
-2. **Install the fixed build,** only with the owner's approval, backing up first as
-   P3-25 and P3-29 did, and recording its hash.
+1. **Install the P3-33 build,** only with the owner's approval. Back up first as
+   P3-25 and P3-29 did, and check the phone's APK against the hash.
+2. **The owner's decisions:**
+   - a gate weighted by time, or a warning when results fall below about 10 a
+     second (P3-33);
+   - the six curl features in P3-30's Decision 3 rule (P3-32).
 3. **Resume `docs/P4_TOMORROW.md`:**
    - recalibrate the curl sideways (replacing the front-on baseline);
    - tests 3–12: lateral raise, push-ups, sit-ups, plank against a stopwatch, book

@@ -4,6 +4,7 @@ import com.kinesis.core.analysis.live.LiveRepetitionAnalysis
 import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.analysis.profile.RepSignalSpec
 import com.kinesis.core.analysis.profile.RepetitionExercise
+import com.kinesis.core.analysis.temporal.TemporalConfig
 import com.kinesis.core.domain.landmark.LandmarkId
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.rep.RepRecord
@@ -260,7 +261,7 @@ object Harness {
         val profile = (mapping as ExerciseMapping.Evaluated).profile
         val window = protocol.window(label, shift)
         val reps = ArrayList<RepRecord>()
-        val analysis = LiveRepetitionAnalysis(profile, onRepetition = { reps += it })
+        val analysis = LiveRepetitionAnalysis(profile, temporalConfig = TEMPORAL, onRepetition = { reps += it })
         var fed = 0
         var withPose = 0
         var missing = 0
@@ -298,5 +299,16 @@ object Harness {
     /** Feed every STRIDE-th frame; `-Pstride=N` on `runHarness`. 1 unless asked. */
     private val STRIDE: Int = (System.getProperty("kinesis.stride") ?: "1").toInt().also {
         require(it >= 1) { "kinesis.stride must be at least 1, got $it" }
+    }
+
+    /**
+     * The phone's temporal settings unless a diagnostic asks otherwise (DECISIONS.md P3-33):
+     * `-Pgate=<degrees>` the outlier gate's threshold, `-Pbridge=<ms>` the longest bridged gap.
+     */
+    private val TEMPORAL: TemporalConfig = TemporalConfig.PROVISIONAL.let { base ->
+        base.copy(
+            outlierThreshold = System.getProperty("kinesis.gate")?.toDouble() ?: base.outlierThreshold,
+            maxBridgedGapMs = System.getProperty("kinesis.bridge")?.toDouble() ?: base.maxBridgedGapMs,
+        )
     }
 }
