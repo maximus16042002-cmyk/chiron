@@ -38,11 +38,11 @@ not technique coaching, and Kinesis is not a medical or physiotherapy tool.
 The app runs a small state machine on one joint angle, for each side:
 
 1. **Start in the start position.** **No pause is needed:** the machine moves from idle to the start
-   the first time your joint's angle is measured inside the start zone (`RepFsm.kt` lines 148–156).
+   the first time your joint's angle is measured inside the start zone (`RepFsm.kt` lines 150–158).
    - The angle it sees is filtered first (an outlier gate, then smoothing, `TemporalConfig.kt` lines
      124–127), so it trails you slightly.
    - Pausing at the start is fine: the clock restarts there, so the pause belongs to no repetition
-     (`RepFsm.kt` lines 158–160, 310–319).
+     (`RepFsm.kt` lines 160–162, 331–340).
    - Walking into frame mid-movement counts nothing until you pass through the start zone.
 2. **Move past the far position.** Turning back before it is *not counted*: the app records it as
    a turned-back attempt, and the screen flashes **amber**.
@@ -53,11 +53,11 @@ The app runs a small state machine on one joint angle, for each side:
    view, the joint is not tracked, or the outlier gate rejects a sudden jump.
    - **Mid-repetition:** a gap of up to **500 ms** since the last measured frame is bridged, and the
      repetition carries on. Nothing is filled in (`TemporalConfig.kt` line 132, `RepFsm.kt` lines
-     264–271).
+     285–292).
    - **Longer, and the repetition ends as insufficient data:** recorded, not counted, and shown in
-     **amber** (`RepFsm.kt` lines 272–280, `LiveAnalysisBridge.kt` lines 121–125).
+     **amber** (`RepFsm.kt` lines 293–301, `LiveAnalysisBridge.kt` lines 121–125).
    - **At the start position,** a longer gap drops the machine back to idle with no record
-     (`RepFsm.kt` lines 267–269).
+     (`RepFsm.kt` lines 288–290).
    - **Either way, the next repetition counts normally** once you are measured back in the start
      zone.
 6. **Full range, every time.** Half repetitions are what the thresholds are there to refuse.
@@ -120,18 +120,25 @@ keep your elbows inside your knees."*
 
 ### 2. Bicep Curl — Tier A, one arm at a time
 
-- **Camera:** **front-on**, facing the phone, upper body at least from hips to head in frame.
-  Standing.
-- **Watches:** the elbow angle on each arm.
-- **Start:** arms hanging, elbows at **137° or straighter**.
-- **One repetition:** curl one arm until the elbow reaches **68° or less**, then lower it back to
-  **137° or straighter**. Then the other arm.
-- **Counts as:** **each arm's curl is one repetition.** A set of ten is five with each arm, as MM-Fit
-  counts it.
+- **Camera:** **side-on, with the curling arm nearer the phone.** Upper body at least from hips to
+  head in frame. Standing. *Changed from front-on in DECISIONS.md P3-32.*
+- **Do one arm at a time:** curl with the near arm, then **turn round** so your other side faces
+  the phone and curl with that arm. You can turn round within one set.
+- **Don't film it facing the phone.** Facing the phone, the app saw the elbow snap from straight to
+  about 0° as the forearm came towards the camera, and it counted arm swings as curls: 7 too many in
+  one set, and 5 with no curls done at all (P3-31).
+- **Watches:** the elbow angle of the curling arm.
+- **Start:** arm hanging, elbow at **137° or straighter**.
+- **One repetition:** curl until the elbow reaches **68° or less**, then lower it back to **137° or
+  straighter**.
+- **Counts as:** **each arm's curl is one repetition.**
 - **Time per curl:** 0.5–20 s.
-- **Keep in view:** both shoulders, elbows and wrists.
-- **Evidence:** the best-tested exercise. MM-Fit's unseen people: 163 of 163. The phone: 15 of 15 in
-  one set.
+- **Keep in view:** shoulders, elbows and wrists. The far arm is hidden behind you side-on, so the
+  line under the counter may say **"NOT VISIBLE"** while the near arm counts. That is a known
+  display issue.
+- **Evidence:** **sideways on the phone:** 16 of 16 (right arm, fast curls included) and 15 of 15
+  (left arm) (P3-31). MM-Fit films curls front-on, so its curl results no longer count as evidence
+  for this view.
 
 ### 3. Push-up — Tier A, both arms together, **near side only**
 
@@ -321,7 +328,7 @@ A hold is timed, not counted.
 | # | Exercise | View | Posture | Joint | Start | Far | How it counts |
 |---|---|---|---|---|---|---|---|
 | 1 | Squat (+ Goblet) | side-on | standing | knee | ≥ 155° | ≤ 95° | both legs together |
-| 2 | Bicep curl | front-on | standing | elbow | ≥ 137° | ≤ 68° | each arm |
+| 2 | Bicep curl | **side-on**, curling arm nearer; turn round for the other | standing | elbow | ≥ 137° | ≤ 68° | each arm |
 | 3 | Push-up | side-on, floor level | prone | elbow | ≥ 155° | ≤ 95° | near arm |
 | 4 | Lateral raise | front-on | **seated** | shoulder | ≤ 36° | ≥ 77° | both arms together |
 | 5 | Glute bridge | side-on, floor level | on back | hip | ≤ 145° | ≥ 167° | both together |
@@ -336,7 +343,8 @@ A hold is timed, not counted.
 | 14 | Wall sit | side-on | against a wall | knee | hold 75–105° (90 ± 15) | — | time held |
 | 15 | Side plank | **front-on** | on one side | hip | hold ≥ 165° (180 ± 15) | — | time held |
 
-**Tested enough to rely on:** bicep curl, shoulder press, lateral raise.
+**Tested enough to rely on:** the bicep curl filmed **sideways** (on the phone), and the shoulder press
+and lateral raise (on MM-Fit).
 **Known weak until the personal start zone reaches the app:** push-up, sit-up.
 **Untested or unproven:** everything else. Treat their counts as something to check, not something
 to trust.

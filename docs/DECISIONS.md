@@ -8317,6 +8317,192 @@ not curls. It makes no accuracy claim.
 
 ---
 
+## P3-32 — The fixes after P3-31: the curl filmed side-on, and a movement that crosses the whole zone at once
+
+*2026-09-30, after midnight. Nothing here has run on the phone.*
+
+**The owner's direction at the end of P3-31:** "first fix all the errors" before testing
+resumes. The owner's decision on the curl: **sideways**.
+
+### 1. The curl is filmed side-on
+
+**The change.** `BicepCurlProfile.requiredView` moves from `FRONT_ON` to `SIDE_ON`. Everything
+else stays: `PER_LIMB`, both sides analysed, P3-23's thresholds, and the required landmarks.
+
+**Why the rest stays:**
+- **Both sides stay analysed,** because that is how the 16-of-16 and 15-of-15 sideways sets ran
+  (P3-31). The resting far arm made no repetitions.
+- **P3-8's guard forbids the alternative.** `no_profile_combines_alternating_limbs_with_a_view_
+  that_sees_only_one` rejects a one-limb-at-a-time profile that is "near side only".
+- **There is a precedent:** the standing knee raise is already side-on, per limb, both sides
+  analysed.
+- **This is FINAL_ARCHITECTURE §5 row 4's "Side" after all.** P3-9 had diverged from it to
+  front-on so that alternating arms could both be seen.
+
+**The user turns round for the other arm.** The calibration instructions now say so for every
+side-on, one-limb-at-a-time exercise, which is the curl and the knee raise: "Work one side at a
+time with that side nearer the camera, then turn round for the other side." Front-on and
+both-together exercises are not told to turn.
+
+**Consequences, stated once:**
+- **MM-Fit films its curls front-on,** so its curl results no longer count as evidence for the
+  app's curl (CLAUDE.md §22):
+  - P3-27's count, P3-28's 368 of 368, P3-30's 163 of 163 on the unseen people;
+  - P3-30's S1–S4 curl rows.
+
+  `analyse.py` now marks the curl as a view mismatch beside the lunge and the row.
+- **P3-30's Decision 3 rule includes six curl features** measured on those front-on curls. They
+  now describe a view the app no longer uses. Whether they stay in the rule is the owner's to
+  decide before it runs.
+- **"NOT VISIBLE" (P3-24 item 18) stays.** Side-on is now the curl's normal view, and P3-8's
+  guard requires both arms for a both-sided profile. A display issue, still open.
+- **Nothing stops a user filming a curl facing the phone.** That would take the setup
+  assistant, which is not built (CLAUDE.md §10).
+
+**Tests.**
+- `ArchetypeProfileTest`'s view pin was changed deliberately, with the reasoning above.
+- `CalibrationGuideTest` gains a test: the curl and the knee raise are told to turn round; the
+  hip abduction, squat and lateral raise are not.
+
+### 2. A movement that crosses the whole zone between two results (P3-31 error 2)
+
+**The defect** (`RepFsm`): at TOP, a result already inside the far zone only started a descent.
+If the next result was back at the start, a repetition that reached full depth was recorded as
+turned back.
+
+**The change:**
+- **At TOP, a result in the far zone reaches the bottom.** The descent is timed from the last
+  result at the start: the most it can have taken.
+- **At BOTTOM, a result back at the start completes the repetition.** The ascent is timed from
+  the last result in the far zone.
+- **The minimum duration still applies.** Completion is one shared function for both paths.
+- **Nothing is filled in:** every phase change still needs a measured value.
+
+**Tests first.** `ZoneJumpTest`, six tests.
+- **Three failed against the unfixed engine**, with the phone's symptoms:
+  - full depth recorded as turned back;
+  - a completion one result late;
+  - a lift timed as one result after a bridged gap.
+- **Three passed from the start,** pinning what must not change:
+  - a twitch is still too short to count;
+  - a movement short of the far zone is still turned back;
+  - the ordinary path is still timed between the zone edges.
+
+**The development workouts at 30 fps, against P3-30's run:**
+- **Every count is identical except one push-up set,** +1 (91 → 92 of 448 in all).
+- **No set counts above its label.**
+- **Phase times moved** for 114 of 436 curl records, 37 of 316 push-ups, 56 of 758 rows and 10 of
+  1,127 lunges.
+- **VALID curl records with a one-result lift fell from 118 to 17.**
+  - So most of P3-30's "one-frame lift" artefact (decision 5) was this defect. After a bridged
+    gap at the start, the first re-admitted result was already in the far zone.
+  - They are now timed across the gap.
+  - The remaining 17 still need decision 5's trace.
+- **The parity golden file does not change:** no synthetic scenario crosses a zone in one result.
+
+**One caution.** On its own, this fix would have turned P3-31's front-on snaps into counts. With
+the curl side-on, an arm swing leaves the elbow straight. It is the two fixes together that
+remove the false counts.
+
+### 3. Frame rate (P3-31 error 3): measured, not fixed
+
+**The instrument.** A `stride` option on the harness feeds every N-th frame: 1 (30 a second, the
+default), 2 (15, the phone's normal) or 5 (6, the throttled rate of P3-31). It uses the
+development workouts only. Stride 1 reproduces tonight's exports byte for byte.
+
+**Counted of labelled, this commit's engine:**
+
+| Exercise | 30 a second | 15 a second | 6 a second |
+|---|---|---|---|
+| Bicep curl* | 436 / 436 | 436 / 436 | **378 / 436** |
+| Lateral raise | 387 / 409 | **351 / 409** | **313 / 409** |
+| Shoulder press | 441 / 448 | 430 / 448 | 406 / 448 |
+| Push-up | 92 / 448 | 62 / 448 | 78 / 448 |
+| Sit-up | 150 / 451 | 135 / 451 | 114 / 451 |
+| Lunge* | 352 / 441 | 331 / 441 | 269 / 441 |
+| Row* | 311 / 462 | 235 / 462 | 274 / 462 |
+
+\* MM-Fit's view does not match the profile.
+
+- **Fewer results a second loses repetitions** in every exercise but the curl at 15.
+- **None over-counts:** no set above its label at any rate.
+- **The lateral raise already loses 36 at the phone's normal 15 a second.**
+
+**One cause, found.** The smoother's weight (α 0.3) is per result, not per unit of time
+(`EmaSmoother.update`). At 15 a second its lag in time doubles, and at 6 it is about five times
+as long, blunting the peaks.
+
+**A diagnostic, then restored byte for byte:** α′ = 1 − (1 − 0.3)^(Δt / 33.3 ms).
+
+| Exercise | 15 a second, now → time-aware | 6 a second, now → time-aware |
+|---|---|---|
+| Lateral raise | 351 → **388** | 313 → 336 |
+| Row* | 235 → **332** | 274 → 299 |
+| Push-up | 62 → **88** | 78 → 84 |
+| Shoulder press | 430 → 438 | 406 → 413 |
+| Sit-up | 135 → 146 | 114 → 149 |
+| Lunge* | 331 → 347 | 269 → **196** |
+| Bicep curl* | 436 → 436 | 378 → 378 |
+
+- **At 30 a second no count changes**, so every recorded MM-Fit result stands.
+- **At 15 a second every exercise gains and none loses,** with no set over its label.
+- **At 6 a second the curl gains nothing and the lunge loses 73.** So the throttled curl's
+  losses have another cause, most plausibly the outlier gate's per-result 35° and the 0.5 s
+  bridge. Unmeasured.
+- **Not applied.** It changes P2's smoothing on the phone, a P2-4 decision. It is proposed for
+  the owner (decision 2 below).
+
+### 4. What is not fixed, and why
+
+- **The remaining one-result lifts (17 of 436):** decision 5's trace, as planned.
+- **The throttled rate's curl losses:** needs the gate and bridge measured first.
+- **The front-on baseline on the phone:** a test step. Recalibrate sideways (`docs/P4_TOMORROW.md`
+  test 2).
+- **The unrecorded reinstall:** `docs/P4_TOMORROW.md` now records every build's APK hash before
+  testing.
+- **"NOT VISIBLE":** above.
+
+### Checks
+
+- **Tests first** for the `RepFsm` fix: 3 of 6 failing against the unfixed engine, as above.
+- **Mutations: 6, all caught, every file restored byte for byte** (checked by SHA-256):
+
+| Mutation | Tests failing |
+|---|---|
+| TOP no longer reaches the bottom in one step | 2 |
+| The jump's descent timed from this result, not from the last at the start | 3 |
+| BOTTOM no longer completes on a jump back to the start | 2 |
+| The minimum duration no longer applied on completion | 2 |
+| The curl back to front-on | 3 |
+| No turn-round sentence | 1 |
+
+- **The suite:** **2,110 test executions, none failed, none skipped** (`gradlew assemble allTests
+  :app:testDebugUnitTest :app:testReleaseUnitTest`).
+  - P3-30 had 2,078: the 7 new core tests add 28 across four targets, and the study runner's 4
+    tests, written after P3-30's suite ran, add 4.
+  - The first run stopped on a Windows file lock: another Gradle daemon held `classes.jar`.
+    After `gradlew --stop`, it ran clean.
+- **Docs:** `EXERCISE_GUIDE.md`, `P4_TOMORROW.md` and `PROGRESS_REPORT.md` now describe the curl
+  side-on, and add an arm-swing check.
+
+### Decisions for the owner
+
+1. **Install this build on the phone for tomorrow?** Back up first, as P3-25 and P3-29 did, and
+   record the APK's hash. Nothing has been installed.
+2. **The time-aware smoother** (section 3): recommended.
+   - No MM-Fit count changes at 30 a second.
+   - Every exercise gains at the phone's 15 a second.
+   - The risk is more noise on the phone. Its own entry, test-first, and a phone check.
+3. **The six curl features in P3-30's Decision 3 rule:** keep them or drop them, before it runs.
+4. **The throttled curl losses:** measure the gate and bridge at 6 a second, on development
+   workouts only.
+
+**Scope of this entry.** Two fixes in the core, tested and mutation-checked, with one measured,
+unapplied proposal. No accuracy claim. The sideways curl's phone evidence is P3-31's, and the new
+build has not run on the phone.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

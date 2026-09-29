@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
 *Snapshot updated 2026-09-29, from the repository as it stands at the end of
-DECISIONS.md P3-31. This file summarises. It is not an authority: where it
+DECISIONS.md P3-32. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date.*
 
@@ -25,12 +25,25 @@ on P3-29's engine (reinstalled 15:05 that day, APK `f84c9987…`):
 The owner chose **side-on for the curl** and asked for the errors to be fixed before
 testing resumes.
 
+**Done since, in P3-32 (not yet on the phone):**
+- **The curl is side-on:** one arm at a time, turning round for the other. The
+  calibration instructions say so.
+- **`RepFsm`'s jump across the zone is fixed.** On MM-Fit development workouts, one
+  push-up set gained one repetition and nothing counts over its label. It also
+  removed most of P3-30's one-frame curl lifts: 118 → 17.
+- **Frame rate measured with a harness `stride`:**
+  - fewer results a second loses repetitions, the lateral raise even at the phone's
+    15;
+  - a time-aware smoother recovers them at 15 a second and changes nothing at 30;
+  - **proposed, not applied.**
+- **Suite:** 2,110 executions, none failed. **Mutations:** 6 of 6 caught.
+
 **Open, first:**
-1. **P3-32, the fixes:**
-   - the curl goes side-on, one arm at a time, turning round for the other;
-   - `RepFsm`'s jump across the zone;
-   - the throttled-gate reading (P3-31 error 3) and the one-result timings (error
-     4) need data, not guesses.
+1. **The owner's P3-32 decisions:**
+   - install the build (back up first and record its hash);
+   - the time-aware smoother;
+   - the six curl features in P3-30's Decision 3 rule;
+   - measuring the gate and bridge at 6 a second.
 2. **Install the fixed build,** only with the owner's approval, backing up first as
    P3-25 and P3-29 did, and recording its hash.
 3. **Resume `docs/P4_TOMORROW.md`:**

@@ -32,8 +32,18 @@ object CalibrationGuide {
                     profile.repetitionSemantics == RepetitionSemantics.PER_LIMB -> " on each side"
                     else -> ""
                 }
+                // DECISIONS.md P3-32: side-on, the far limb is behind the body, so one side
+                // at a time, each nearer the camera in turn.
+                val turn = if (
+                    profile.requiredView == CameraView.SIDE_ON &&
+                    profile.repetitionSemantics == RepetitionSemantics.PER_LIMB
+                ) {
+                    " Work one side at a time with that side nearer the camera, then turn round for the other side."
+                } else {
+                    ""
+                }
                 "Do your usual repetitions, the way you normally train, with your whole body in frame, " +
-                    "$filmed. Then end the set. Kinesis learns your baseline from your first " +
+                    "$filmed.$turn Then end the set. Kinesis learns your baseline from your first " +
                     "${policy.maxValidRepsPerSide} valid repetitions$where, and needs at least " +
                     "${policy.minValidRepsPerSide}$where. Repetitions that are cut short or not seen clearly " +
                     "are not used. These numbers are provisional."

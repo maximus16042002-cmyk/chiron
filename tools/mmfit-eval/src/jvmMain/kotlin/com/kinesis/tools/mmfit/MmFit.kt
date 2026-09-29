@@ -267,6 +267,9 @@ object Harness {
         val leftAngles = DoubleArray(window.count())
         val rightAngles = DoubleArray(window.count())
         for (frame in window) {
+            // DECISIONS.md P3-32: every STRIDE-th frame only, to see the engine at the phone's
+            // lower result rates (30 fps / 2 = 15, / 5 = 6). 1, the default, feeds every frame.
+            if ((frame - window.first) % STRIDE != 0) continue
             val record = data.frame(label.setIndex, frame)
             val at = frameTimeMs(frame)
             when {
@@ -288,7 +291,12 @@ object Harness {
         val set = RepetitionSetRecord(profile.id, frameTimeMs(window.first), reps)
         return SetResult.Evaluated(
             set, window, fed, withPose, missing,
-            SideReading(leftAngles, profile.repSignal), SideReading(rightAngles, profile.repSignal),
+            SideReading(leftAngles.copyOf(fed), profile.repSignal), SideReading(rightAngles.copyOf(fed), profile.repSignal),
         )
+    }
+
+    /** Feed every STRIDE-th frame; `-Pstride=N` on `runHarness`. 1 unless asked. */
+    private val STRIDE: Int = (System.getProperty("kinesis.stride") ?: "1").toInt().also {
+        require(it >= 1) { "kinesis.stride must be at least 1, got $it" }
     }
 }

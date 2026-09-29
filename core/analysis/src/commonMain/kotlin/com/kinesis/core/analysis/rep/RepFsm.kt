@@ -128,6 +128,8 @@ class RepFsm(
      */
     fun step(timestampMs: Double, value: Double): RepCycle? {
         if (value.isNaN()) return onUnmeasurableFrame(timestampMs)
+        // The result before this one: a crossing of the whole zone happened after it.
+        val previousMeasuredMs = lastMeasuredMs
         lastMeasuredMs = timestampMs
 
         if (phase != MovementPhase.IDLE) {
@@ -158,6 +160,17 @@ class RepFsm(
             MovementPhase.TOP -> {
                 if (isAtTop(value)) {
                     rebaseAtTop(timestampMs, value)
+                } else if (isAtBottom(value)) {
+                    // DECISIONS.md P3-32: the whole way down between two results - a
+                    // throttled frame rate, or a fast start the gate held back. It
+                    // reached depth, so it is at the bottom; taking it as the start of
+                    // a descent recorded a full repetition as turned back (P3-31). The
+                    // descent is timed from the last result at the start, the most it
+                    // can have taken.
+                    phase = MovementPhase.BOTTOM
+                    descentStartMs = previousMeasuredMs
+                    descentMs = timestampMs - previousMeasuredMs
+                    ascentStartMs = timestampMs
                 } else {
                     phase = MovementPhase.DESCENDING
                     descentStartMs = timestampMs
@@ -181,6 +194,13 @@ class RepFsm(
             }
 
             MovementPhase.BOTTOM -> {
+                if (isAtTop(value)) {
+                    // DECISIONS.md P3-32: the whole way back between two results. It
+                    // is at the start, so the repetition is complete; the ascent is
+                    // timed from the last result in the far zone.
+                    ascentStartMs = previousMeasuredMs
+                    return completeAtTop(timestampMs, value)
+                }
                 if (!isAtBottom(value)) {
                     phase = MovementPhase.ASCENDING
                     ascentStartMs = timestampMs
@@ -189,23 +209,24 @@ class RepFsm(
             }
 
             MovementPhase.ASCENDING -> {
-                if (isAtTop(value)) {
-                    val duration = timestampMs - repStartMs
-                    val validity = if (duration < spec.minRepDurationMs) {
-                        RepValidity.ABORTED
-                    } else {
-                        RepValidity.VALID
-                    }
-                    val completed = emit(timestampMs, validity)
-                    if (validity == RepValidity.VALID) completedReps++
-                    phase = MovementPhase.TOP
-                    beginRepetition(timestampMs, value)
-                    completed
-                } else {
-                    null
-                }
+                if (isAtTop(value)) completeAtTop(timestampMs, value) else null
             }
         }
+    }
+
+    /** The repetition has returned to the start: valid if it took long enough, turned back if not. */
+    private fun completeAtTop(timestampMs: Double, value: Double): RepCycle {
+        val duration = timestampMs - repStartMs
+        val validity = if (duration < spec.minRepDurationMs) {
+            RepValidity.ABORTED
+        } else {
+            RepValidity.VALID
+        }
+        val completed = emit(timestampMs, validity)
+        if (validity == RepValidity.VALID) completedReps++
+        phase = MovementPhase.TOP
+        beginRepetition(timestampMs, value)
+        return completed
     }
 
     fun reset() {

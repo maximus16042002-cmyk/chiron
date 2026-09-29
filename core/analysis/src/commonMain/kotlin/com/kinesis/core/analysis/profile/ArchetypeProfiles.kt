@@ -62,9 +62,10 @@ object ArchetypeProfiles {
      * One arm's curl is one repetition, matching MM-Fit's label definition
      * measured in DECISIONS.md P3-1.
      *
-     * **Filmed front-on.** Alternating arms means both must be visible at the
-     * same time; side-on would occlude the far arm for the whole set and halve
-     * the repetition count in a way that looks like poor detection.
+     * **Filmed side-on, one arm at a time, turning round for the other**
+     * (DECISIONS.md P3-32). It was front-on so alternating arms could both be
+     * seen; on the phone the front-on elbow angle snapped to about 0 degrees and
+     * counted arm swings as curls (P3-31). See [BicepCurlProfile.requiredView].
      */
     val bicepCurl: BicepCurlProfile = BicepCurlProfile()
 
@@ -126,7 +127,26 @@ class BicepCurlProfile : TierAProfile(), RepetitionExercise {
 
     override val id: String = "bicep_curl"
     override val displayName: String = "Bicep Curl"
-    override val requiredView: CameraView = CameraView.FRONT_ON
+
+    /**
+     * Side-on, one arm at a time with that arm nearer the camera - DECISIONS.md
+     * P3-32, the owner's decision after P3-31.
+     *
+     * It was front-on (P3-9), so both alternating arms could be seen at once. On
+     * the phone, front-on made the flat-image elbow angle snap from straight to
+     * about 0 degrees in one or two results as the forearm came towards the
+     * camera, and a forward arm swing did the same: one set counted 7 curls more
+     * than were done, another counted 5 with no curls at all. Side-on, elbow
+     * flexion is in the image plane, an arm swing leaves the elbow straight, and
+     * the owner's sideways sets counted 16 of 16 and 15 of 15 (P3-31).
+     *
+     * The user turns round for the other arm. The semantics stay per limb and
+     * both sides stay analysed, as for the side-on knee raise: each arm's machine
+     * reports on its own, and the resting far arm makes no repetitions (P3-31).
+     * MM-Fit films its curls front-on, so its curl counts are no longer evidence
+     * for this profile (CLAUDE.md section 22).
+     */
+    override val requiredView: CameraView = CameraView.SIDE_ON
     override val posture: Posture = Posture.STANDING
 
     /**

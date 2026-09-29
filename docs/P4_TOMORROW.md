@@ -5,6 +5,14 @@
 items (1–19), P3-24's additions and P3-29's owed curl check. The results go into
 the next DECISIONS entry, not into this file.*
 
+**Updated after the 2026-09-29 session (DECISIONS.md P3-31) and its fixes (P3-32):**
+- **Tests 1 and 2 ran on 2026-09-29.** Curls filmed sideways counted 16 of 16 and 15 of 15.
+  Facing the phone, the curl counted arm swings as curls.
+- **The curl is now filmed side-on** (P3-32): the curling arm nearer the phone, turning round for
+  the other arm. Every curl step below says so.
+- **If the P3-32 build is installed,** repeat test 1 sideways on it, then recalibrate (test 2).
+- **Cool the phone first.** It sat at thermal status 3 for half of that session.
+
 Do the items **in this order**. The heat run is last on purpose: every earlier
 item should run on a phone that is not yet hot.
 
@@ -24,8 +32,11 @@ cd /e/kinesis
 S=local/p4-2026-09-30
 mkdir -p $S/before $S/after
 
-# Which build is on the phone: expect the P3-29 install, 2026-09-28 21:57
+# Which build is on the phone: record its install time AND its APK's hash.
+# P3-31 found an unrecorded reinstall; the hash is what identifies a build.
 adb shell dumpsys package com.kinesis | grep -E "lastUpdateTime|versionName" > $S/build.txt
+adb pull "$(adb shell pm path com.kinesis | tr -d '\r' | sed 's/^package://')" $S/base.apk
+sha256sum $S/base.apk >> $S/build.txt
 
 # Back up the database first, as P3-25 and P3-29 did
 for f in $(adb shell run-as com.kinesis ls databases | tr -d '\r'); do
@@ -51,12 +62,15 @@ adb logcat -v time -s KinesisPhaseB > $S/readout.txt
 
 ## 1. Curls on the new build — right arm, then left arm *(owed to P3-29)*
 
-**What to do.** Face the camera: the curl's required view is front-on
-(`FRONT_ON`). Two sets, each ended with END SET:
-- **Right arm only:** 10 curls at a normal pace (about 1–2 s up, 1–2 s down),
-  then 5 fast ones, as fast as you can while still going all the way up and all
-  the way down.
-- **Left arm only:** the same, 10 normal and then 5 fast.
+*Done sideways on 2026-09-29 (P3-31): right 16 of 16, left 15 of 15. Repeat it on the P3-32 build,
+if installed.*
+
+**What to do.** **Side-on:** the curl's required view since P3-32. Two sets, each ended with END
+SET:
+- **Right side to the phone, right arm only:** 10 curls at a normal pace (about 1–2 s up, 1–2 s
+  down), then 5 fast ones, as fast as you can while still going all the way up and all the way
+  down.
+- **Turn round, left side to the phone, left arm only:** the same, 10 normal and then 5 fast.
 
 **Pass.**
 - Each set counts **15 VALID repetitions**, `repIndex` 1 to 15, nothing counted
@@ -71,10 +85,17 @@ the end (`reps` table: `validity`, `attributedSide`, `descentMs`, `ascentMs`).
 
 ## 2. The first P6 calibration — Bicep Curl
 
-**What to do.** Bicep Curl → CALIBRATE → START CALIBRATION SET. Front-on,
-alternating arms, **8 curls with each arm** at your usual pace (8 per side is
-the cap; 5 per side is the minimum). END SET. Then one ordinary set of 5 curls
-per arm.
+*The 2026-09-29 calibration was filmed facing the phone, and its baseline is not meaningful (P3-31).
+Redo it sideways: RECALIBRATE replaces it.*
+
+**What to do.**
+1. Bicep Curl → RECALIBRATE → START CALIBRATION SET. **Side-on:** right side to the phone, **8
+   curls with the right arm** at your usual pace. **Turn round**, left side to the phone, **8 with
+   the left arm.** 8 per side is the cap and 5 the minimum. END SET.
+2. **One ordinary set,** the same way: 5 curls with the right arm, turn round, 5 with the left.
+3. **The arm-swing check (added after P3-31):** START SET, stand **sideways**, and **swing your arms
+   for about 20 seconds without curling.** END SET. Facing the phone, this counted 5 curls on
+   2026-09-29.
 
 **Pass.**
 - The baseline card shows **both arms, each with its own median and IQR**,
@@ -85,6 +106,9 @@ per arm.
 - If the card says "No baseline yet", **copy its reason text exactly** into
   `notes.md`. That is itself the P3-22 finding (item 16): whether 5 valid
   repetitions per side are reachable on the phone.
+- **The baseline's values look like a curl:** a usual range well under 170° and a lift well over
+  one result (~70 ms). The front-on baseline read 175° and 66 ms.
+- **The arm-swing check counts 0.**
 
 **Log.** `notes.md`; the `baselines` table in the end-of-session database copy.
 
@@ -145,7 +169,7 @@ second.
 
 ## 7. The book test — a short loss of tracking mid-curl *(P3-19 item 17)*
 
-**What to do.** Front-on, right arm, one set of 10 curls. On five of them, sweep
+**What to do.** Side-on, right side to the phone, right arm, one set of 10 curls. On five of them, sweep
 a book (a hand is too small, P3-24) between the camera and the curling arm
 mid-curl: **three quick sweeps** (well under half a second) and **two slow**
 (hold the book there about 1–2 s). Note in `notes.md` which curls got which.
@@ -167,16 +191,17 @@ mid-curl: **three quick sweeps** (well under half a second) and **two slow**
 **Pass.** This is an **observation, not a fix**. Write down exactly what the line
 under the counter says during the set, and the count. P3-24 found it reads NOT
 VISIBLE all set while the near arm is tracked and counted, because the hidden far
-arm makes every frame `INVALID`. What it should say waits on the curl's view
-decision (P3-23 item 2).
+arm makes every frame `INVALID`. The curl is now side-on (P3-32), so this is its
+normal view; the label stays a display issue. P3-8's guard requires both arms for
+a profile that analyses both sides.
 
 **Log.** `notes.md`; the `reps` table.
 
 ## 9. Back camera — 10 curls *(P3-19 item 3)*
 
 **What to do.** Switch to the back camera (the screen will face away; read the
-result afterwards). Front-on, **5 curls with the right arm, then 5 with the
-left**, in one set.
+result afterwards). Side-on: **5 curls with the right arm, right side to the
+phone; turn round; 5 with the left arm**, in one set.
 
 **Pass.**
 - **10 VALID.**
@@ -190,7 +215,7 @@ left**, in one set.
 ## 10. Dim light — 10 curls *(P3-19 item 8)*
 
 **What to do.** Front camera, room lights off with one lamp or daylight behind
-curtains. 10 curls, right arm.
+curtains. 10 curls, right arm, side-on (right side to the phone).
 
 **Pass.**
 - The count is **10**, none above.

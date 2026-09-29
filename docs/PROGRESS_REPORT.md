@@ -150,7 +150,7 @@ people never used while tuning anything.
 
 | Exercise | Filmed | Evidence so far | Verdict |
 |---|---|---|---|
-| **Bicep curl** | front-on | MM-Fit unseen 163 of 163, every set exact; phone 15 of 15 (P3-24) | ✅ Works |
+| **Bicep curl** | **side-on** since P3-32 | Sideways on the phone: 16 of 16 and 15 of 15 (P3-31). Facing the phone it counted arm swings as curls, so the view changed. MM-Fit's front-on 163 of 163 is no longer evidence for this view | ✅ Works sideways |
 | **Shoulder press** (seated) | front-on | MM-Fit 348 of 360, 86% of sets exact, on P3-27's held-out workouts, which include people also used in development (P3-28); not yet re-read on the unseen six | ✅ Works |
 | **Lateral raise** (seated) | front-on | MM-Fit unseen 146 of 150, 80% of sets exact (P3-30) | ✅ Works |
 | **Push-up** | side-on | MM-Fit unseen 110 of 201; two people count almost nothing. Most can't reach the 155° start in 2D | ⚠️ Weak: the personal start zone is built but not in the app |

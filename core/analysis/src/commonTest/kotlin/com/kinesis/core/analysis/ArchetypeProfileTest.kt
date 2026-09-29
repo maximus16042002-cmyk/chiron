@@ -106,17 +106,19 @@ class ArchetypeProfileTest {
         assertEquals(CameraView.SIDE_ON, ArchetypeProfiles.squat.requiredView)
         assertEquals(Posture.STANDING, ArchetypeProfiles.squat.posture)
 
-        // Front-on, because alternating arms means both must be visible at once.
+        // Side-on, one arm at a time with that arm nearer the camera - DECISIONS.md
+        // P3-32, changed deliberately from P3-9's front-on.
         //
-        // This diverges from FINAL_ARCHITECTURE section 5 row 4, which assigns
-        // the bicep curl "Side / 45". The divergence is deliberate and is
-        // recorded in DECISIONS.md P3-9: the curl is PER_LIMB, and side-on
-        // occludes the far arm for the whole set, halving the count in a way
-        // that looks like poor detection. The guard added in P3-8 rejects the
-        // document's version independently - see
+        // Front-on was chosen so alternating arms could both be seen. On the phone
+        // (P3-31) the front-on elbow angle snapped from straight to about 0 degrees
+        // as the forearm came towards the camera, and a forward arm swing did the
+        // same: 7 curls too many in one set, 5 with no curls in another. Side-on
+        // counted 16 of 16 and 15 of 15. This is FINAL_ARCHITECTURE section 5 row
+        // 4's "Side" after all. The user turns round for the other arm, so the
+        // profile keeps PER_LIMB with both sides analysed - which the guard
         // ViewAndSideContractTest.no_profile_combines_alternating_limbs_with_a_
-        // view_that_sees_only_one.
-        assertEquals(CameraView.FRONT_ON, ArchetypeProfiles.bicepCurl.requiredView)
+        // view_that_sees_only_one still allows - as the side-on knee raise does.
+        assertEquals(CameraView.SIDE_ON, ArchetypeProfiles.bicepCurl.requiredView)
         assertEquals(Posture.STANDING, ArchetypeProfiles.bicepCurl.posture)
 
         assertEquals(CameraView.SIDE_ON, ArchetypeProfiles.plank.requiredView)

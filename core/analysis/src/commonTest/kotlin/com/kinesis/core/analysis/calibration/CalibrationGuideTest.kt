@@ -24,7 +24,24 @@ class CalibrationGuideTest {
     fun an_alternating_exercise_asks_for_the_count_on_each_side() {
         val text = CalibrationGuide.instructions(ExerciseLibrary.bicepCurl)
         assertTrue(text.contains("each side"), text)
-        assertTrue(text.contains("front-on"), text)
+        assertTrue(text.contains("side-on"), text)
+    }
+
+    /**
+     * DECISIONS.md P3-32: filmed side-on, one limb at a time, the far limb is behind the
+     * body, so the user turns round for the other side. The curl and the knee raise.
+     */
+    @Test
+    fun a_side_on_one_limb_at_a_time_exercise_says_to_turn_round_for_the_other_side() {
+        for (profile in listOf(ExerciseLibrary.bicepCurl, ExerciseLibrary.kneeRaise)) {
+            val text = CalibrationGuide.instructions(profile)
+            assertTrue(text.contains("turn round"), "${profile.id}: $text")
+            assertTrue(text.contains("nearer the camera"), "${profile.id}: $text")
+        }
+        // Front-on or both-together exercises are not told to turn.
+        for (profile in listOf(ExerciseLibrary.hipAbduction, ExerciseLibrary.squat, ExerciseLibrary.lateralRaise)) {
+            assertTrue(!CalibrationGuide.instructions(profile).contains("turn round"), profile.id)
+        }
     }
 
     @Test

@@ -32,6 +32,8 @@ tasks.register<JavaExec>("runHarness") {
     classpath = files(main.output.allOutputs, main.runtimeDependencyFiles)
     mainClass.set("com.kinesis.tools.mmfit.HarnessKt")
     val split = project.findProperty("split")?.toString()
+    // -Pstride=N feeds every N-th frame, to imitate a lower result rate (P3-32). 1 by default.
+    systemProperty("kinesis.stride", project.findProperty("stride")?.toString() ?: "1")
     args = listOf(
         project.findProperty("landmarks")?.toString() ?: "../../data/mm-fit-mediapipe",
         project.findProperty("labels")?.toString() ?: "../../data/mm-fit",

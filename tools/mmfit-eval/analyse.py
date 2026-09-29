@@ -38,10 +38,11 @@ DEVELOPMENT, HELD_OUT, SPLIT_LABEL = chosen_split(sys.argv)
 
 # MM-Fit's view is not the profile's (P3-27): lunges front-on or oblique and rows oblique, where both
 # profiles are side-on. Their counts are shown, never as evidence for the app's use (CLAUDE.md s22).
-VIEW_MISMATCH = {"lunge", "row"}
+# The curl joined them in P3-32: MM-Fit films it front-on, and the profile is now side-on.
+VIEW_MISMATCH = {"lunge", "row", "bicep_curl"}
 REQUIRED_VIEW = {
     "pushup": "SIDE_ON", "shoulder_press": "FRONT_ON", "lunge": "SIDE_ON", "row": "SIDE_ON",
-    "situp": "SIDE_ON", "bicep_curl": "FRONT_ON", "lateral_raise": "FRONT_ON",
+    "situp": "SIDE_ON", "bicep_curl": "SIDE_ON", "lateral_raise": "FRONT_ON",
 }
 L_SHO, R_SHO, L_HIP, R_HIP = 11, 12, 23, 24
 
