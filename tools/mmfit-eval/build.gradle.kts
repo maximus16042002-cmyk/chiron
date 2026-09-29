@@ -23,17 +23,20 @@ kotlin {
 }
 
 // gradlew :mmfit-eval:runHarness -Plandmarks=<dir> -Plabels=<mm-fit root> -Pout=<dir>
+//     [-Pworkouts=w00,w01,... | -Psplit=development]
+// A split is read from subjects.json (DECISIONS.md P3-30): development, held-out, or P3-27's pair.
 tasks.register<JavaExec>("runHarness") {
     group = "evaluation"
     description = "Runs every MM-Fit set through the analysis engine and writes P5 exports."
     val main = kotlin.jvm().compilations.getByName("main")
     classpath = files(main.output.allOutputs, main.runtimeDependencyFiles)
     mainClass.set("com.kinesis.tools.mmfit.HarnessKt")
+    val split = project.findProperty("split")?.toString()
     args = listOf(
         project.findProperty("landmarks")?.toString() ?: "../../data/mm-fit-mediapipe",
         project.findProperty("labels")?.toString() ?: "../../data/mm-fit",
         project.findProperty("out")?.toString() ?: "../../data/mm-fit-eval",
-        project.findProperty("workouts")?.toString() ?: "",
+        if (split != null) "split:$split" else project.findProperty("workouts")?.toString() ?: "",
     )
     dependsOn(main.compileTaskProvider)
 }

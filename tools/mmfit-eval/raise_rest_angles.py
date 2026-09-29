@@ -6,7 +6,10 @@ valleys of the hip-shoulder-elbow angle (the engine's definition, in the correct
 of CONTRACTS.md section 4) between excursions that reach the far zone. A diagnostic for reasoning about
 the threshold, not a fit: it reports distributions, split by development and held-out workouts.
 
-Usage: python raise_rest_angles.py <landmark dir> <harness protocol dir>
+Split by subject (DECISIONS.md P3-30), per subject and pooled. P3-28's figures were computed under P3-27's
+split by workout; `--p3-27-split` reproduces them, labelled so.
+
+Usage: python raise_rest_angles.py <landmark dir> <harness protocol dir> [--p3-27-split]
 """
 import csv
 import math
@@ -17,8 +20,10 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from check_alignment import read_bin  # noqa: E402
+from subjects import chosen_split, subject_of  # noqa: E402
 
-DEVELOPMENT = {"w00", "w01", "w02", "w03", "w04", "w05", "w06", "w19"}
+# The split, by subject (P3-30); `--p3-27-split` reproduces P3-28's figures under P3-27's split.
+DEVELOPMENT, HELD_OUT, SPLIT_LABEL = chosen_split(sys.argv)
 SIDES = {"left": (23, 11, 13), "right": (24, 12, 14)}  # hip, shoulder (vertex), elbow
 FAR = 77.0  # the far zone the engine needs: bottom 85 - hysteresis 8
 
@@ -53,6 +58,7 @@ def main(landmark_dir, protocol_dir):
             if r["status"] == "evaluated" and r["profileId"] == "lateral_raise"]
     per = {"development": [], "held-out": []}
     per_set = {"development": [], "held-out": []}
+    per_subject = {}
     cache = {}
     for r in rows:
         w = r["workout"]
@@ -73,13 +79,20 @@ def main(landmark_dir, protocol_dir):
                 series.append(angle(p, a, v, b))
             vals, excursions = valleys(np.array(series))
             per[split] += vals
+            per_subject.setdefault((split, subject_of(w)), []).extend(vals)
             set_valleys += vals
         if set_valleys:
             per_set[split].append(float(np.median(set_valleys)))
     for split in ("development", "held-out"):
         v = np.array(per[split])
         s = np.array(per_set[split])
-        print(f"{split}: {len(v)} valleys between raises, {len(s)} sets")
+        if not len(v):
+            continue
+        print(f"{split}{SPLIT_LABEL}: {len(v)} valleys between raises, {len(s)} sets")
+        for (sp, subject), vals in sorted(per_subject.items()):
+            if sp == split:
+                x = np.array(vals)
+                print(f"   subject {subject:4s}: {len(x):4d} valleys, median {np.median(x):5.1f}, 95th {np.percentile(x, 95):5.1f}")
         print(f"   valley angle: median {np.median(v):.1f}, IQR {np.percentile(v, 25):.1f}..{np.percentile(v, 75):.1f}, "
               f"5th-95th {np.percentile(v, 5):.1f}..{np.percentile(v, 95):.1f}")
         for limit in (28, 32, 36, 40, 44, 48):
@@ -87,4 +100,5 @@ def main(landmark_dir, protocol_dir):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    main(args[0], args[1])

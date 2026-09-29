@@ -27,12 +27,14 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from check_alignment import read_bin  # noqa: E402
+from subjects import chosen_split, subject_of  # noqa: E402
 
 PROTOCOLS = ["primary", "widened", "unshifted"]
 
-# Declared before any held-out result was run (P3-27): the development workouts are those examined
-# while the engine defect was found; any engine change P7 motivates is judged on the held-out ones.
-DEVELOPMENT = {"w00", "w01", "w02", "w03", "w04", "w05", "w06", "w19"}
+# The split is by subject (P3-30): development A, B, C and w19's subject; held-out the six people never
+# seen. P3-27 to P3-29 were reported under P3-27's split by workout, which put A and B on both sides;
+# `--p3-27-split` reproduces those figures, labelled "(P3-27 split)".
+DEVELOPMENT, HELD_OUT, SPLIT_LABEL = chosen_split(sys.argv)
 
 # MM-Fit's view is not the profile's (P3-27): lunges front-on or oblique and rows oblique, where both
 # profiles are side-on. Their counts are shown, never as evidence for the app's use (CLAUDE.md s22).
@@ -133,8 +135,8 @@ def main(harness_dir, landmark_dir, json_out=None):
             mark = "*" if p in VIEW_MISMATCH else " "
             print(f"  {p + mark:16s} {m['sets']:5d} {m['labelled']:9d} {m['counted']:8d} {m['mae']:6.2f} {m['bias']:+6.2f} {m['exact']:6.1%} {m['within1']:9.1%}")
 
-    for name, keep in (("DEVELOPMENT (w00-w06, w19)", lambda r: r["workout"] in DEVELOPMENT),
-                       ("HELD-OUT (w07-w18, w20)", lambda r: r["workout"] not in DEVELOPMENT)):
+    for name, keep in (("DEVELOPMENT" + SPLIT_LABEL, lambda r: r["workout"] in DEVELOPMENT),
+                       ("HELD-OUT" + SPLIT_LABEL, lambda r: r["workout"] in HELD_OUT)):
         subset = [r for r in primary_rows if keep(r)]
         if not subset:
             continue  # a run over one split only, e.g. judging a change on the held-out workouts
@@ -143,11 +145,22 @@ def main(harness_dir, landmark_dir, json_out=None):
             by[r["profileId"]].append(r)
         split = {p: metrics(rs) for p, rs in sorted(by.items())}
         report.setdefault("split", {})[name] = split
-        print(f"\n=== PRIMARY, {name}")
+        print(f"\n=== PRIMARY, {name}: {' '.join(sorted({r['workout'] for r in subset}))}")
         print(f"  {'exercise':16s} {'sets':>5s} {'labelled':>9s} {'counted':>8s} {'MAE':>6s} {'bias':>6s} {'exact':>6s} {'within 1':>9s}")
         for p, m in split.items():
             mark = "*" if p in VIEW_MISMATCH else " "
             print(f"  {p + mark:16s} {m['sets']:5d} {m['labelled']:9d} {m['counted']:8d} {m['mae']:6.2f} {m['bias']:+6.2f} {m['exact']:6.1%} {m['within1']:9.1%}")
+        # Per subject beside the pooled figure (P3-30): two subjects hold most of the workouts.
+        print(f"  per subject:")
+        per_subject = defaultdict(list)
+        for r in subset:
+            per_subject[(r["profileId"], subject_of(r["workout"]))].append(r)
+        report.setdefault("splitPerSubject", {})[name] = {}
+        for (p, s), rs in sorted(per_subject.items()):
+            m = metrics(rs)
+            report["splitPerSubject"][name][f"{p}/{s}"] = m
+            mark = "*" if p in VIEW_MISMATCH else " "
+            print(f"    {p + mark:16s} {s:4s} {m['sets']:3d} sets {m['labelled']:4d} labelled {m['counted']:4d} counted  MAE {m['mae']:5.2f}  exact {m['exact']:6.1%}  within 1 {m['within1']:6.1%}")
 
     rows = primary_rows
     print("\n=== Flags (primary)")

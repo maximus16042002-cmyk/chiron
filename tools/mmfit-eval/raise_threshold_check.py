@@ -6,7 +6,11 @@ the held-out sets only, the cycles an ideal threshold machine sees on the raw an
 zone (28) and with the proposed one (36), combined as the profile combines sides (simultaneous: the
 lesser of the two). A ceiling on what the engine could count, not the engine's count.
 
-Usage: python raise_threshold_check.py <landmark dir> <harness protocol dir>
+It reads held-out sets only, so under P3-30's split by subject it would be a new held-out run, which
+waits for the owner. It therefore runs only with `--p3-27-split`, reproducing P3-28's check under the
+split it was made with.
+
+Usage: python raise_threshold_check.py <landmark dir> <harness protocol dir> --p3-27-split
 """
 import csv
 import os
@@ -17,6 +21,9 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from check_alignment import read_bin  # noqa: E402
 from raise_rest_angles import DEVELOPMENT, SIDES, angle  # noqa: E402
+
+if "--p3-27-split" not in sys.argv:
+    sys.exit("refusing: this reads held-out sets; it reproduces P3-28 only with --p3-27-split (DECISIONS.md P3-30)")
 
 FAR = 77.0
 
@@ -60,9 +67,10 @@ def main(landmark_dir, protocol_dir):
             results[zone].append((int(r["labelledReps"]), ideal))
     for zone, vals in results.items():
         err = np.array([c - l for l, c in vals])
-        print(f"start zone <= {zone:.0f}: {len(vals)} held-out sets, labelled {sum(l for l, c in vals)}, ideal cycles {sum(c for l, c in vals)}, "
+        print(f"start zone <= {zone:.0f}: {len(vals)} held-out sets (P3-27 split), labelled {sum(l for l, c in vals)}, ideal cycles {sum(c for l, c in vals)}, "
               f"sets exact {np.mean(err == 0):.1%}, within 1 {np.mean(abs(err) <= 1):.1%}, over-count sets {int(np.sum(err > 0))}")
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    main(args[0], args[1])

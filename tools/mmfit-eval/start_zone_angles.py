@@ -8,7 +8,11 @@ square-pixel frame of CONTRACTS.md section 4 - between consecutive excursions in
 A diagnostic for reasoning about a threshold, not a fit: distributions, split by development and
 held-out workouts.
 
-Usage: python start_zone_angles.py <landmark dir> <harness protocol dir>
+Split by subject (DECISIONS.md P3-30), per subject and pooled. P3-29's figures were computed under P3-27's
+split by workout; `--p3-27-split` reproduces the split, labelled so. (P3-29 also describes removing
+depth-edge jitter before taking percentiles; this script reports the peaks as found.)
+
+Usage: python start_zone_angles.py <landmark dir> <harness protocol dir> [--p3-27-split]
 """
 import csv
 import os
@@ -18,7 +22,10 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from check_alignment import read_bin  # noqa: E402
-from raise_rest_angles import DEVELOPMENT, angle  # noqa: E402
+from raise_rest_angles import angle  # noqa: E402
+from subjects import chosen_split, subject_of  # noqa: E402
+
+DEVELOPMENT, HELD_OUT, SPLIT_LABEL = chosen_split(sys.argv)
 
 # profile: (left (a, vertex, b), right (a, vertex, b), far-zone edge, current start-zone edge)
 PROFILES = {
@@ -63,6 +70,7 @@ def main(landmark_dir, protocol_dir):
             if r["status"] == "evaluated" and r["profileId"] in PROFILES]
     rows.sort(key=lambda r: r["workout"])
     found = {(p, s): [] for p in PROFILES for s in ("development", "held-out")}
+    per_subject = {}
     cache = {}
     for r in rows:
         w = r["workout"]
@@ -76,11 +84,18 @@ def main(landmark_dir, protocol_dir):
         near = max(sides, key=lambda s: int(np.isfinite(s).sum()))
         split = "development" if w in DEVELOPMENT else "held-out"
         found[(r["profileId"], split)] += peaks(near, far)
+        per_subject.setdefault((r["profileId"], split, subject_of(w)), []).extend(peaks(near, far))
     for pid, (_, _, far, current) in PROFILES.items():
         print(f"=== {pid}: far zone <= {far:.0f}, current start zone >= {current:.0f}")
         for split in ("development", "held-out"):
             v = np.array(found[(pid, split)])
-            print(f"  {split}: {len(v)} returns between repetitions")
+            if not len(v):
+                continue
+            print(f"  {split}{SPLIT_LABEL}: {len(v)} returns between repetitions")
+            for (p, sp, subject), vals in sorted(per_subject.items()):
+                if p == pid and sp == split and vals:
+                    x = np.array(vals)
+                    print(f"    subject {subject:4s}: {len(x):4d} returns, median {np.median(x):5.1f}, 5th {np.percentile(x, 5):5.1f}")
             print(f"    peak angle: median {np.median(v):.1f}, IQR {np.percentile(v, 25):.1f}..{np.percentile(v, 75):.1f}, "
                   f"5th-95th {np.percentile(v, 5):.1f}..{np.percentile(v, 95):.1f}")
             for limit in (current, current - 5, current - 10, current - 15, current - 20):
@@ -88,4 +103,5 @@ def main(landmark_dir, protocol_dir):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    main(args[0], args[1])

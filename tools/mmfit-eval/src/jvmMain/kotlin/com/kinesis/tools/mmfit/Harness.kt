@@ -21,11 +21,14 @@ import java.util.Locale
  * session's is 0, a set's is its window's first frame - and records' times are video time too.
  */
 fun main(args: Array<String>) {
-    require(args.size in 3..4) { "usage: <landmark dir> <mm-fit root> <out dir> [wXX,wYY,...]" }
+    require(args.size in 3..4) { "usage: <landmark dir> <mm-fit root> <out dir> [wXX,wYY,... | split:<name>]" }
     val landmarkDir = File(args[0])
     val mmfitRoot = File(args[1])
     val outRoot = File(args[2])
-    val workouts = if (args.size == 4 && args[3].isNotBlank()) {
+    val workouts = if (args.size == 4 && args[3].startsWith("split:")) {
+        // A split by name, from subjects.json - DECISIONS.md P3-30.
+        Subjects.load().split(args[3].removePrefix("split:"))
+    } else if (args.size == 4 && args[3].isNotBlank()) {
         args[3].split(',').map { it.trim() }
     } else {
         landmarkDir.listFiles { f -> f.name.matches(Regex("w\\d\\d\\.bin")) }.orEmpty().map { it.name.removeSuffix(".bin") }.sorted()

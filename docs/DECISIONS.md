@@ -7237,6 +7237,334 @@ call either:
 eye and checked against the paper, and what that means for the split. It runs no
 study and makes no accuracy claim.
 
+### Part 2 — the owner's decisions on Step 0
+
+*2026-09-29, later the same evening.* The owner's decisions:
+- **Push** `0940771`, docs and one script only (done). Nothing else is pushed tonight.
+- **Decision 1, the split: by subject**, option (a).
+  - Development: subjects A, B, C and w19's subject (w00–w11, w14, w15, w19).
+  - Held-out: w12, w13, w16, w17, w18, w20.
+  - The subject map and both splits live in one place, and every tool reads them.
+  - Results recorded in P3-27 to P3-29 keep their old split, labelled "P3-27 split".
+  - A test fails if a subject is on both sides or the paper's counts do not hold. It
+    is to be shown failing first against a leaky split.
+  - Report per subject and pooled everywhere. A pooled interval from four subjects is
+    never presented as precise.
+- **Decision 2: re-slice P3-28 and P3-29's held-out results** on the six unseen people,
+  from the runs already made.
+  - No re-run, no re-tuning, no engine change on the strength of it.
+  - Recorded as a correction to how 356 of 369 should be read. **It is not a fresh
+    held-out:** those workouts were seen in aggregate before.
+  - **If the lateral raise on the six is much worse than the pooled result, stop and
+    report.**
+- **The study's protocol**, written here and committed before anything is computed. It
+  is below, with the owner's requirements: nested ICC with subject-bootstrap intervals;
+  false alarms at a fixed, equal operating point; planted deviations after the
+  calibration repetitions only; "settles" defined in numbers first; S5 proposed only.
+- **Then build** Layer 1 in the shared core as the first brief specified, and run S1–S4
+  on the development subjects only.
+- **Stop points:** before any held-out run, and before any app or UI wiring.
+
+### Decision 1: one subject map, and the split by subject
+
+**One place:** `tools/mmfit-eval/subjects.py`.
+- It holds the map, the paper's counts, the split by subject, and P3-27's split under
+  its own name (`p3-27-development`, `p3-27-held-out`).
+- `python subjects.py --write` writes `subjects.json`, the copy the Kotlin harness
+  reads (`Subjects.kt`). A test fails if the copy is stale.
+- **What reads it:**
+  - `analyse.py`, `raise_rest_angles.py`, `start_zone_angles.py`: the subject split by
+    default, with every split table followed by a per-subject one. `--p3-27-split`
+    reproduces the recorded figures, labelled "(P3-27 split)".
+  - `raise_threshold_check.py` reads held-out sets only, so it now refuses to run
+    without `--p3-27-split`. Under the subject split it would be a new held-out run.
+  - The harness: `runHarness -Psplit=development`.
+
+**The tests.** `test_subjects.py` (8, Python) and `SubjectsTest` (5, Kotlin) check four
+things:
+- no subject on both sides;
+- the counts 6, 6, 2 and seven 1s;
+- every workout exactly once;
+- the check itself, against P3-27's split, which must be found leaking through A and B.
+
+**Shown failing first, against deliberately leaky splits:**
+- **Python,** with the development/held-out pair replaced by P3-27's: 4 of 8 failed.
+  The no-leak test failed with "subject A is on both sides: w01, w03, w06 and w08,
+  w10, w14" and the same for B.
+- **Kotlin,** with w07 moved into held-out in the JSON: 2 of 5 failed, the no-leak
+  test with `{B=([w02, w04, w09, w11, w15], [w07])}`.
+- Both restored, and all 13 pass.
+
+### Decision 2: the re-slice, and when it stops
+
+**What is read.** Only the P3-28 and P3-29 runs already on disk, PRIMARY protocol,
+restricted to the six unseen people (w12, w13, w16, w17, w18, w20). Each figure comes
+from the run that produced it:
+
+| Exercise | Run | Its P3-27-split held-out figure |
+|---|---|---|
+| Bicep curl | `mm-fit-eval-p3-28-fast-start` | 368 of 368, 100% exact (P3-28) |
+| Push-up, sit-up | `mm-fit-eval-p3-29-rule` | 160 of 411; 209 of 399 (P3-29) |
+| Lateral raise | `mm-fit-eval-p3-29-raise` | 356 of 369, 70.3% exact, 94.6% within ±1, MAE 0.35 (P3-29) |
+
+The "before" runs (`p3-27`, `p3-28-nearside`, `p3-29-rule` for the raise) are read the
+same way for the "before → after" column.
+
+**"Much worse", fixed before the numbers are read.** The lateral raise on the six is
+much worse, and this stops, if any of these holds:
+- exact share below 50% (against 70.3%);
+- within ±1 below 80% (against 94.6%);
+- MAE above 1.0 (against 0.35);
+- any set counted above its label.
+
+The bars allow for a small sample: the six hold about 18 raise sets, where one set is
+about 5.6 points of share.
+
+### Layer 1: the design
+
+**Where.** A new package, `core/analysis/.../deviation/`, on the post-rep path. It runs
+once per completed record and is classified so in the source guard. Nothing is wired
+into the app.
+
+**The features, per completed repetition, per side, never averaged:**
+- **Range of motion:** the record's own, per side.
+- **Lifting and lowering time** (concentric and eccentric), from `descentMs` and
+  `ascentMs`.
+  - Which of the two is concentric depends on the exercise (P3-26).
+  - **Each repetition profile now declares it,** as `awayFromStart`, with no default,
+    like `repetitionSemantics`: moving away from the start is eccentric for the squat,
+    push-up and lunge, and concentric for the other nine. Variants inherit it by
+    delegation.
+  - Timing is attributed as the record attributes it: per side for a one-sided
+    repetition, per repetition when both sides moved together (P3-22).
+- **Left/right asymmetry:** the repetition's left-minus-right range of motion.
+  - Only where both sides were measured in the same repetition (the `Paired` case).
+  - Alternating and near-side-only exercises have no per-repetition asymmetry
+    (P3-22's three kinds).
+- **Consistency:** the repetition's root-mean-square distance from the user's own mean
+  curve, per side. This is the quantity P3-22's `curveSpread` summarises over the
+  calibration repetitions. Personal only: there is no population curve.
+
+**The personal comparator (Level 2).**
+- A feature's deviation is `z = (x − median) / max(IQR / 1.349, floor)`, from the
+  user's P6 baseline. IQR / 1.349 is the robust SD, the "baseline-SD unit".
+- **The floors** stop a tiny spread from flagging everything:
+  - 3° for range of motion and asymmetry;
+  - 70 ms for times, one result interval at the phone's ~14 results a second
+    (P3-24, P3-26);
+  - 2° for consistency.
+- **The product rule flags `|z| > 2`.** For consistency it is one-sided: only further
+  from the usual shape than usual.
+- **Every number here is provisional,** as P3-22's were. S2 and S3 measure what they
+  do.
+- **Findings are `Deviation`s,** composed in the core and personal in wording. Examples:
+  - "Shallower than your usual on the left: 71° against your usual 84°."
+  - "Faster than your usual lifting: 0.6 s against your usual 1.2 s."
+  - Never "wrong", "incorrect" or "unsafe".
+- **No baseline, no Level 2 finding.**
+
+**The population comparator: an evaluation instrument, never a finding.**
+- CLAUDE.md §12a gives Layer 1 the user's own calibration as its only evidence. Level 2
+  is personal, and a population norm with no citation has no claim level it could
+  honestly carry.
+- So an uncited population threshold derived from MM-Fit is a `PopulationReference`:
+  - it is labelled with its provenance ("derived from MM-Fit development subjects, P3-30");
+  - it gives numbers and a flag to the study;
+  - **it never produces a `Finding` or reaches the user.**
+- **Its scale** is the population's total spread, between and within people: `sqrt(sd
+  of the subjects' medians² + mean of their robust within-subject SD²)`, centred on the
+  mean of the subjects' medians. It uses the same floors as the personal comparator.
+- In the study, a subject's reference is built from the **other** development subjects
+  only.
+
+**The one cited population threshold: tempo (Level 3, Tier A, P3-26).**
+- **The source:** ACSM, Ratamess et al. 2009 (P3-26): "moderate contraction velocity
+  (1–2 s CON; 1–2 s ECC)" for novices.
+- **The message** names its source and says only that the repetition was faster than
+  that tempo. It never says "wrong".
+- **Tier A only, by type.** The rule takes a `TierAProfile`'s `techniqueAuthority`. A
+  variant speaks under its parent's.
+- **Allowing for the timer** (P3-26's first problem):
+  - The recorded phase runs only between the zone edges (`top ∓ hysteresis` to
+    `bottom ± hysteresis`), so it is shorter than the whole phase.
+  - The whole phase is estimated as `measured / f`. Here `f` is the share of a
+    movement's duration spent between the two edges' positions on the repetition's
+    own path from peak to trough, under a **minimum-jerk** profile.
+  - Among the standard smooth profiles, minimum-jerk crosses the middle fastest. So it
+    gives the longest whole-phase estimate: the conservative choice for a "too fast"
+    message.
+  - For timing both sides share, the side giving the longer estimate is used. That is
+    a named, conservative choice, never an average.
+- **It flags an estimated lifting or lowering phase under 1.0 s.**
+- **Still owed:** the phone check against hand-timed repetitions that P3-26 asked for,
+  and P3-26's one-frame (~70 ms) resolution.
+
+**The push-up and sit-up personal start zone (the P3-29 proposal).**
+- **Personal edge** = the baseline's median start-position angle − max(its IQR, the
+  profile's hysteresis). The user's usual top, less a margin.
+- **The zone used** is the personal edge, but **never stricter than the profile's own**
+  (155°, 132°) and **never looser than a floor**.
+- **The floor** = depth edge (95°, 83°) + a minimum sweep.
+- **The minimum sweep is derived from the development subjects only**, by a method
+  fixed now:
+  1. Take each subject's median near-side full sweep: the return peak minus the
+     deepest point of the excursion before it, in raw angles, as `start_zone_angles.py`
+     measures, with P3-29's jitter rule.
+  2. The minimum sweep is **half the smallest subject's median sweep**. A repetition
+     must still cover at least half of the shallowest full movement any development
+     subject made.
+  3. The values, and the share of each development subject's returns that clear the
+     floor, are reported here after the protocol commit.
+- **Calibrating these two profiles** needs the floor zone. The default zone may never
+  count the tops of a person who reads low (P3-29's 131°).
+- **Core only.** A function computes the zone, and another builds the personalised
+  profile. Nothing calls them from the app.
+
+**Types and wording.** `AnalysisResult.findings` stops being always empty.
+- P3-22's test `p6_makes_no_claim_beyond_numbers_for_any_exercise` is **replaced
+  deliberately**, as P3-22 said it would be. The new test: no finding without a
+  baseline except the cited Tier A tempo; no Level 3 finding from any Tier B or C
+  profile; no finding for a hold.
+- The facade's `analyzeRep` writes the findings, so the parity golden file changes. It
+  is regenerated deliberately and its diff reviewed.
+- `analysisVersion` becomes `p8-layer1-1`. The rules carry `p8-l1-1` and
+  `p8-acsm-tempo-1`.
+
+### The study: the protocol, fixed before anything is computed
+
+**Data.**
+- The development subjects only: A, B, C, S19 (15 workouts).
+- A fresh harness run of this commit's engine, PRIMARY protocol
+  (`data/mm-fit-eval-p3-30-dev`).
+- **Exercises:** only those whose MM-Fit view matches the profile (P3-27): shoulder
+  press, bicep curl, lateral raise (front-on), push-up and sit-up (side-on). No squats,
+  lunges or rows.
+- **VALID repetitions only.** For push-ups and sit-ups, the side a subject's sets show
+  nearer the camera most often. The other side's sets are left out, so two limbs never
+  share one distribution.
+
+**Structure:** subject → session (workout) → repetition. Sets inside a session are not
+modelled. **The subject is the unit** throughout.
+
+**Every result is reported per subject and pooled.** Four subjects is the limit of this
+data: **no pooled interval here is precise**, and none is presented as if it were.
+
+**S1 — variability: how much people differ, against how much they vary.**
+- **Metrics,** each separately: range of motion per side; lifting and lowering time;
+  asymmetry (paired exercises: shoulder press, lateral raise).
+- **The model:** `y_ijk = μ + a_i + b_ij + e_ijk`.
+  - Subject `i`, session `j` within subject, repetition `k`.
+  - `a_i ~ N(0, σ²_subject)`, `b_ij ~ N(0, σ²_session)`, `e_ijk ~ N(0, σ²_rep)`, all
+    independent.
+- **Estimated by the ANOVA method (Henderson's method I)** for the unbalanced nested
+  design:
+  - `σ²_rep = MS_E`
+  - `σ²_session = (MS_B − MS_E) / k1`
+  - `σ²_subject = (MS_A − MS_E − k2 σ²_session) / k3`
+  - with `k1 = (N − Σ_ij n_ij²/n_i) / (b − a)`,
+    `k2 = (Σ_ij n_ij²/n_i − Σ_ij n_ij²/N) / (a − 1)`,
+    `k3 = (N − Σ_i n_i²/N) / (a − 1)`.
+  - A negative component is set to zero, and reported as such.
+- **ICC_subject** = `σ²_subject / (σ²_subject + σ²_session + σ²_rep)`. ICC_session is
+  reported beside it.
+- **Intervals** from a **bootstrap over subjects:** 2,000 resamples of four subjects
+  with replacement, each bringing all its sessions and repetitions, and a repeat
+  counted as a separate subject. Seed 20260929; percentile 95% interval. Reported with
+  the share of resamples holding only one or two distinct subjects.
+- **With four subjects this interval is wide,** and that is stated with it.
+- **Per-subject table:** sessions, repetitions, median, IQR and robust SD per metric.
+
+**S2 — false alarms, at an operating point fixed in advance.**
+- **Calibration and scoring:** in each session, the first set of an exercise calibrates
+  it, through the app's own calibrator: at least 5 and at most the first 8 valid
+  repetitions per side, P3-22. The session's later sets of that exercise are scored.
+  **Calibration repetitions are never scored.** A session whose first set does not
+  calibrate is left out, and counted.
+- **Personal comparator:** as in the design, against that session's baseline.
+- **Population comparator:** as in the design, from the **other three** development
+  subjects' valid repetitions of that exercise, all their sessions.
+- **The operating point.**
+  - For each exercise, feature and comparator, the cut `c` on `|z|` is the smallest
+    value at which the **mean over subjects of each subject's flag rate is at most
+    5%**. Scored repetitions only, `c` on a 0.01 grid.
+  - Both comparators are then compared at the same false-alarm rate. What differs is
+    how the false alarms fall across subjects (per-subject rates, the highest, the
+    spread) and, in S3, what each detects.
+  - **Why not compare raw flag rates:** a k-SD personal rule flags a roughly fixed
+    share of anyone's repetitions by construction, so that comparison is circular.
+    Raw rates under the product rule (`|z| > 2`, both comparators) are reported too,
+    labelled so.
+  - The ACSM tempo rule's flag rate on the Tier A exercises (curl, lateral raise,
+    push-up) is reported per subject beside them: a cited threshold at its own fixed
+    value.
+- **The assumption, stated as one.** MM-Fit's repetitions are taken as normal,
+  competent execution, so every flag counts as a false alarm. They are not certified as
+  such:
+  - fatigue drift across a set;
+  - miscounted sets ("in limited cases, due to miscounting, fewer or more than 10
+    repetitions were performed", MM-Fit §3.1);
+  - subjects' free choice of weight ("free to choose how much weight to use", §3.1).
+
+  All three inflate the rate. **The flag rate is therefore an upper bound on false
+  alarms,** not a false-alarm rate.
+
+**S3 — sensitivity to planted deviations.**
+- **Planted only in scored repetitions,** never in calibration ones, on the record's
+  own fields: range of motion (and trough), `descentMs` and `ascentMs`.
+  - **Range of motion cut** by 20, 30 and 40% of the subject's own range: that
+    session's baseline median. Every measured side is cut.
+  - **Tempo sped up** 1.5× and 2×: both phase times divided.
+  - **One side shortened** by 20, 30 and 40% of its own baseline range. Paired
+    exercises only; the left side on odd repetitions, the right on even.
+- **What counts as detected:**
+  - the range cut: a flag on range of motion on any cut side;
+  - tempo: a flag on lifting or lowering time;
+  - one side: a flag on asymmetry (primary), and on that side's range of motion
+    (secondary), reported apart.
+- **Reported:**
+  - the detection rate per subject and pooled, at S2's operating point;
+  - the full curve, detection against mean-subject flag rate as `c` varies, for both
+    comparators.
+- **A synthetic study, not a real-world detection claim.** The deviations are
+  arithmetic on records, not movements anyone made. The curves are unchanged, and
+  whether the engine would still count such a repetition is not tested.
+
+**S4 — how many calibration repetitions until the baseline settles.**
+- **Starts and N.** In each session, a calibration may start at the first repetition
+  of any set of the exercise. Its first N valid repetitions per side run on in order,
+  N = 3 to 20, as far as the session has them. A curl's arm has at most 15 in a
+  session.
+- **The reference:** the median `m_ref` and robust SD `s_ref = max(IQR / 1.349, floor)`
+  of all the session's valid repetitions of that exercise, per side.
+- **"Settles", in numbers, before any run:** N has settled for a subject, exercise and
+  metric when, for every N′ from N up to 20 that has data, **at least 80% of that
+  subject's starts** meet both of these:
+  - the median is close: `|m_N′ − m_ref| ≤ 0.5 s_ref`;
+  - the spread is close: `IQR_N′ / IQR_ref` within [1/1.5, 1.5].
+
+  If no N ≤ 20 meets it, the answer is "more than 20".
+- **Reported:**
+  - the settled N per subject;
+  - per exercise, the largest over subjects and metrics (what the app would have to
+    ask for) and the median;
+  - the error curves;
+  - whether P3-22's provisional 5 and 8 settle.
+- **Limits:**
+  - Near N = the session's total, the median approaches the reference mechanically,
+    because it is most of the same data. That caveat goes with the curves.
+  - Between-session change is S5's question, not this one's.
+
+**S5 — cross-session stability. Proposed only; not run.** For A and B, whose six
+sessions each allow it: a baseline from one session, scored against their other
+sessions, with the same comparators and operating point. It would show whether a
+baseline outlives the day it was made. It waits for the owner.
+
+**Not claimed, whatever the numbers:**
+- that personalisation improves fault detection (ZERO_DATASET, "What must never be
+  claimed");
+- any accuracy figure for the ACSM rule (CLAUDE.md §12a);
+- anything beyond MM-Fit's four development subjects, one camera and 30 fps.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics
