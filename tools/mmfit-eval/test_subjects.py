@@ -46,7 +46,7 @@ class SubjectMapTest(unittest.TestCase):
     # The Kotlin harness reads the JSON copy; it must be exactly what subjects.py writes.
 
     def test_the_json_copy_is_current(self):
-        with open(subjects.JSON_PATH, newline="") as f:
+        with open(subjects.JSON_PATH) as f:  # universal newlines: git may check it out with CRLF
             self.assertEqual(subjects.json_text(), f.read(), "run: python tools/mmfit-eval/subjects.py --write")
 
 

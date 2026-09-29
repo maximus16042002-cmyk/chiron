@@ -7320,6 +7320,65 @@ much worse, and this stops, if any of these holds:
 The bars allow for a small sample: the six hold about 18 raise sets, where one set is
 about 5.6 points of share.
 
+### Decision 2, result: the held-out figures on the six unseen people
+
+`tools/mmfit-eval/reslice_unseen.py`, run after the protocol commit, over the runs already
+on disk. PRIMARY protocol, VALID repetitions counted against labels.
+
+**The recorded figures reproduce exactly** on P3-27's thirteen held-out workouts: curls
+368 of 368; push-ups 129 → 160 of 411; sit-ups 105 → 209 of 399; lateral raise 125 → 356
+of 369, 70.3% exact, 94.6% within ±1, MAE 0.35.
+
+**Before → after, the thirteen workouts against the six unseen people** (w12, w13, w16,
+w17, w18, w20):
+
+| Exercise (change) | P3-27 held-out, 13 workouts | The six unseen people | Sets over label (six) |
+|---|---|---|---|
+| Bicep curl (P3-28 fast start) | 170 → **368 of 368**, 100% exact | 54 → **163 of 163**, 100% exact | 0 |
+| Push-up (P3-29 near-side rule) | 129 → **160 of 411**, 14.6% exact, MAE 6.12 | 110 → **110 of 201**, 25.0% exact, MAE 4.55 | 0 |
+| Sit-up (P3-29 near-side rule) | 105 → **209 of 399**, 14.6% exact, MAE 4.63 | 32 → **108 of 189**, 15.0% exact, MAE 4.05 | 0 |
+| Lateral raise (P3-29 start zone ≤ 36°) | 125 → **356 of 369**, 70.3% exact, 94.6% within ±1, MAE 0.35 | 81 → **146 of 150**, 80.0% exact, 93.3% within ±1, MAE 0.27 | 0 |
+
+**Per person, after** (sets exact; counted of labelled):
+
+| | S12 | S13 | S16 | S17 | S18 | S20 |
+|---|---|---|---|---|---|---|
+| Curl | 1/1; 10/10 | 3/3; 32/32 | 3/3; 30/30 | 3/3; 31/31 | 3/3; 30/30 | 3/3; 30/30 |
+| Push-up | 0/3; 0/30 | 0/3; 22/30 | 2/4; 28/40 | 0/4; 3/41 | 1/3; 28/30 | 2/3; 29/30 |
+| Sit-up | 0/3; 26/30 | 0/3; 27/31 | 0/4; 0/36 | 1/4; 26/32 | 2/3; 29/30 | 0/3; 0/30 |
+| Lateral raise | none | 3/3; 30/30 | 3/3; 30/30 | 2/3; 29/30 | 1/3; 27/30 | 3/3; 30/30 |
+
+S12 has no lateral raise set in MM-Fit's labels.
+
+**The lateral raise is not much worse on the six, by every bar fixed beforehand:**
+- 80.0% exact against the 50% bar;
+- 93.3% within ±1 against 80%;
+- MAE 0.27 against 1.0;
+- no set over its label.
+
+So this does not stop. The six give about the same picture as the thirteen: fifteen sets
+is a small sample, and S18 (1 of 3 exact) is the weakest.
+
+**How the recorded figures should now be read:**
+- **Curls, P3-28:** unchanged. Every set of every unseen person is exact.
+- **Lateral raise, P3-29:** 356 of 369 mixed seven workouts from A and B, whose other
+  sessions set the 36° zone, with six from unseen people.
+  - **On the unseen people alone it is 146 of 150.**
+  - That is the figure to cite for the zone on people it was not fitted to, with its
+    fifteen-set sample stated.
+  - It is not a fresh held-out result: these workouts were seen in aggregate in P3-29.
+- **Push-ups, P3-29:** **the near-side rule's whole held-out gain, 129 → 160, came from A's
+  and B's workouts.** On the six unseen people it changed nothing (110 → 110).
+  - What P3-29 showed about the rule was measured on people also in development.
+  - The rule itself is structural and was not fitted, so nothing here says it is wrong.
+  - What still fails is the start zone:
+    - S12 counts 0 of 30 and S17 3 of 41;
+    - P3-29's proposed personal start zone is aimed at exactly this.
+- **Sit-ups, P3-29:** the gain holds on the unseen people (32 → 108 of 189), but two of
+  them count nothing: S16 0 of 36, S20 0 of 30.
+
+**No engine change is made on the strength of this,** as the owner directed.
+
 ### Layer 1: the design
 
 **Where.** A new package, `core/analysis/.../deviation/`, on the post-rep path. It runs
