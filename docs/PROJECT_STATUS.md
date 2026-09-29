@@ -9,8 +9,14 @@ of date.*
 
 ## Next session starts here
 
-Open items as of DECISIONS.md P3-29:
+Open items as of DECISIONS.md P3-30:
 
+- **P8 Layer 1 and the personalisation study: stopped at Step 0** (P3-30). Two
+  MM-Fit subjects, A and B, have workouts in both the development and held-out
+  sets, so P3-27's split is by workout, not by subject. Waiting on the owner:
+  the split (P3-30 decision 1), and whether to re-slice P3-28/P3-29's held-out
+  results on the six unseen people (decision 2). Then P3-30's design and
+  protocol, committed before anything is computed.
 - **P4:** a solo phone session for what is still owed, in the order of
   `docs/P4_TOMORROW.md`.
 - **P6:** the first real calibration on the phone; it has no baselines yet

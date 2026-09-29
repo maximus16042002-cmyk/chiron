@@ -7091,6 +7091,154 @@ accuracy claim beyond MM-Fit and the protocol of P3-27.
 
 ---
 
+## P3-30 — P8 Layer 1 and the personalisation study: Step 0, MM-Fit's subjects, and a stop
+
+*2026-09-29*
+
+The owner's brief had two parts:
+- **P8 Layer 1:** deviation rules with a population and a personal comparator, the
+  fast-repetition messages of P3-26, and the push-up and sit-up personal start zone
+  (P3-29).
+- **The personalisation study:** S1 variability, S2 false alarms, S3 sensitivity, S4
+  baseline convergence, on the development workouts only.
+
+It began with **Step 0**: work out which MM-Fit subject is in which workout, and
+**if any subject appears in both the development and held-out workouts, stop and
+report before any study runs.**
+
+Two subjects do. **This entry records Step 0 and stops there.**
+- Nothing of Layer 1 is built.
+- No study has run.
+- No held-out data or result was read.
+
+The design and protocol the brief asks for will be written into this entry, against
+whichever split the owner chooses, and committed before anything is computed.
+
+### What MM-Fit says, and does not
+
+**MM-Fit publishes no subject-to-workout mapping.** None was found in the dataset's
+files, its GitHub README, its project page, its Zenodo record or its paper.
+
+**The paper** (Strömbäck, Huang and Radu, *Proc. ACM IMWUT* 4(4), 2020) gives two
+things:
+- **§3.1, the counts:** "Ten subjects participated in the data collection; two
+  participants carried out six workout sessions each, one participated in two
+  sessions, and the remaining participants carried out one workout session each."
+- **The experiments section, a split by workout:** "train (1, 2, 3, 4, 6, 7, 8, 16,
+  17, 18), validation (14, 15, 19), seen subject test set (9, 10, 11), cross-subject
+  test set (0, 5, 12, 13, 20)". The cross-subject set contains "only samples from
+  participants who are never included in the training set".
+
+### How the workouts were grouped
+
+**The 3D pose does not separate people.** MM-Fit's lifted 3D pose gives each
+workout's median bone lengths over its labelled frames, and they form no clusters.
+Shoulder width, for example, reads 232–276 across the 21 workouts, and A's six
+workouts (251–265) and B's six (255–271) overlap completely. A lifting model pulls
+every body towards average proportions. Not used.
+
+**By eye, from contact sheets** (`tools/mmfit-eval/subject_sheets.py`):
+- **The sheets:** per workout, the person cropped from the middle of three sets, with
+  the box taken from MM-Fit's own 2D pose.
+- **What the grouping rests on:** build, hair and facial hair, which persist across
+  sessions, and recurring clothing. A wears the same three-quarter training trousers
+  in all six workouts, and w02 and w09 show the same printed T-shirt.
+- **Where the sheets are:** they show MM-Fit's subjects, so they stay under `data/`
+  with the dataset and are not in git.
+
+| Subject | Workouts | In the paper's split |
+|---|---|---|
+| A | w01, w03, w06, w08, w10, w14 | train 1, 3, 6, 8; seen-subject test 10; validation 14 |
+| B | w02, w04, w07, w09, w11, w15 | train 2, 4, 7; seen-subject test 9, 11; validation 15 |
+| C | w00, w05 | cross-subject test 0, 5 |
+| Seven others, one workout each | w12, w13, w16, w17, w18, w19, w20 | cross-subject test 12, 13, 20; train 16, 17, 18; validation 19 |
+
+**Checked against everything the paper states, and consistent with all of it:**
+- the counts: two subjects with six workouts, one with two, seven with one;
+- no cross-subject workout (w00, w05, w12, w13, w20) shares a subject with a
+  training workout;
+- every seen-subject test workout (w09, w10, w11) has its subject in training.
+
+The letters are this project's labels. No subject is identified beyond "the same
+person as".
+
+**How much rests on judgement by eye.** The grouping is by eye and is recorded as
+such. Its strongest check is that it reproduces the paper's counts and fits its
+split, which an arbitrary grouping would not. The stop does not hang on a close
+call either:
+- A's w01, w03 and w06 (development) and w08, w10 and w14 (held-out) are the same
+  person on every sheet;
+- so are B's w02 and w04 (development) and w07, w09, w11 and w15 (held-out).
+
+### What it means
+
+**P3-27's development/held-out split is by workout, not by subject.**
+- **Development** (w00–w06, w19) holds four subjects: A (3 workouts), B (2), C (2)
+  and w19's subject (1).
+- **Held-out** (w07–w18, w20) holds 13 workouts from eight subjects, and **7 of the
+  13 are A's or B's.**
+- **Only six held-out workouts come from people never seen in development:** w12,
+  w13, w16, w17, w18 and w20.
+
+**For P3-28 and P3-29, already recorded:**
+- **The fast-start fix and the near-side rule** are structural: no number in them
+  was fitted to the development workouts. Their held-out results stand as
+  measurements, but they were not measured on unseen people alone.
+- **The lateral raise's start zone was fitted.** 36° is the development workouts'
+  95th-percentile resting angle plus a margin (P3-28, P3-29). Its held-out result,
+  356 of 369 with 70.3% of sets exact, includes A's and B's sessions, and their other
+  sessions set the number. **So it is not a subject-independent result.**
+- **How much that matters is unmeasured.** The six unseen people's workouts would
+  answer it from the runs already made, with nothing re-run or re-tuned. That was not
+  done here: it reads held-out results, which the brief reserves for the owner.
+
+**For the personalisation study, the unit is the subject, not the workout:**
+- **S1's ICC** must group one person's sessions together. Grouped by workout, A's three
+  development sessions would count as three people and inflate the between-subject
+  spread.
+- **S2's population threshold** must not include the person being scored.
+- **Any split leaves few subjects on each side.** MM-Fit has ten people. The current
+  development workouts hold four, one of them with a single workout. An ICC's
+  interval on four groups is wide enough to say little.
+- **Tools that name the split** (`raise_rest_angles.py`, `start_zone_angles.py`,
+  `analyse.py`) carry P3-27's workout sets. They would change with a new split; the
+  results already recorded keep the old one.
+
+### Decisions for the owner
+
+1. **The split.** Three options:
+   - **(a) By subject. Recommended.** Development: A, B, C and w19's subject (w00–w11,
+     w14, w15, w19; 15 workouts, 4 people). Held-out: the six people never seen
+     (w12, w13, w16, w17, w18, w20; both filming setups).
+     - Nothing already examined becomes held-out.
+     - A's and B's held-out workouts join development, where their other sessions
+       already were.
+     - The study is built and checked on the four development subjects, then run on
+       all ten at the held-out run.
+   - **(b) Keep the workout split** and report every held-out figure twice: all 13
+     workouts, and the six unseen people.
+   - **(c) Leave-one-subject-out for the study itself**, the protocol the build plan
+     names for the verifier: every subject scored against thresholds from the other
+     nine. It suits a ten-person study, but leaves no untouched held-out set for later
+     engine changes.
+2. **Whether to re-slice P3-28's and P3-29's held-out results** on the six unseen
+   people, from the runs already made.
+3. **Then:** the design and protocol against the chosen split, written into this entry
+   and committed before anything is computed, as the brief asks.
+
+### Checks
+
+- `subject_sheets.py`, rerun from the repository, reproduces the sheets the grouping
+  was made from, pixel for pixel.
+- Nothing else ran. No Kotlin changed, so the suite was not rerun: P3-29's 1,873
+  test executions stand.
+
+**Scope of this entry.** It records how MM-Fit's workouts map to subjects, judged by
+eye and checked against the paper, and what that means for the split. It runs no
+study and makes no accuracy claim.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

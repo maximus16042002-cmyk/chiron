@@ -44,3 +44,4 @@ python tools/mmfit-eval/analyse.py data/mm-fit-eval data/mm-fit-mediapipe --json
 | `raise_rest_angles.py` | The lateral raise's resting angle between raises, per split - the evidence for its start-zone proposal. DECISIONS.md P3-28. |
 | `raise_threshold_check.py` | One held-out check of one proposed lateral-raise start zone, on the ideal threshold counter: a ceiling, not the engine. DECISIONS.md P3-28. |
 | `start_zone_angles.py` | Where push-ups and sit-ups return to between repetitions on the near side, per split - the measurement behind P3-29's proposal. DECISIONS.md P3-29. |
+| `subject_sheets.py` | Contact sheets of each workout's person, for grouping MM-Fit's workouts by subject - MM-Fit publishes no mapping. Written under `data/` only (`python tools/mmfit-eval/subject_sheets.py data/mm-fit data/mm-fit-mediapipe data/mm-fit-subjects`). DECISIONS.md P3-30. |
