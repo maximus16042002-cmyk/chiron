@@ -299,7 +299,7 @@ internal object Planting {
 /** The harness's P5 exports and sets.csv, as the study's sets. */
 internal object StudyInput {
 
-    fun read(protocolDir: File, subjects: Subjects, development: Set<String>): List<StudySet> {
+    fun read(protocolDir: File, subjects: Subjects, development: Set<String>, exercises: Collection<String> = STUDY_EXERCISES): List<StudySet> {
         val lines = File(protocolDir, "sets.csv").readLines()
         val header = csv(lines.first())
         val exports = HashMap<String, List<Any?>>()
@@ -308,7 +308,7 @@ internal object StudyInput {
             val row = header.zip(csv(line)).toMap()
             val workout = row.getValue("workout")
             if (workout !in development) continue // the stop point: development subjects only
-            if (row["status"] != "evaluated" || row["profileId"] !in STUDY_EXERCISES) continue
+            if (row["status"] != "evaluated" || row["profileId"] !in exercises) continue
             val sessionSets = exports.getOrPut(workout) {
                 @Suppress("UNCHECKED_CAST")
                 val doc = MiniJson(File(protocolDir, "$workout.export.json").readText()).value() as Map<String, Any?>

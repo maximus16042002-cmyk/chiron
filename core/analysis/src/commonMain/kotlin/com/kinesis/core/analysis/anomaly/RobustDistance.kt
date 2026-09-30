@@ -150,9 +150,10 @@ class RobustDistance private constructor(
 
 /**
  * The device rule's cut - DECISIONS.md P3-34, P3-36: the nearest-rank [quantile] of [scores], the
- * smallest score with at least that share of the scores at or below it.
+ * smallest score with at least that share of the scores at or below it. Public so the anomaly
+ * study (P3-37) applies this implementation, not a copy of it.
  */
-internal fun nearestRank(scores: List<Double>, quantile: Double): Double {
+fun nearestRank(scores: List<Double>, quantile: Double): Double {
     require(scores.isNotEmpty()) { "no scores" }
     require(quantile > 0.0 && quantile < 1.0) { "quantile must be in (0, 1), got $quantile" }
     val sorted = scores.sorted()

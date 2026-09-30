@@ -61,6 +61,20 @@ tasks.register<JavaExec>("personalisationStudy") {
     dependsOn(main.compileTaskProvider)
 }
 
+// The anomaly study's data, development subjects only (P3-34, P3-36, P3-37):
+// gradlew :mmfit-eval:anomalyStudy -Pharness=<harness out dir> -Pstudy=<out dir>
+tasks.register<JavaExec>("anomalyStudy") {
+    group = "evaluation"
+    val main = kotlin.jvm().compilations.getByName("main")
+    classpath = files(main.output.allOutputs, main.runtimeDependencyFiles)
+    mainClass.set("com.kinesis.tools.mmfit.AnomalyStudyKt")
+    args = listOf(
+        project.findProperty("harness")?.toString() ?: "../../data/mm-fit-eval-p3-33-ta-s1-base",
+        project.findProperty("study")?.toString() ?: "../../data/p3-37-anomaly-study",
+    )
+    dependsOn(main.compileTaskProvider)
+}
+
 // A diagnostic: what near-side counting loses to how it combines the sides (P3-28).
 tasks.register<JavaExec>("nearSideDiagnostic") {
     group = "evaluation"

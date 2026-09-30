@@ -9141,6 +9141,115 @@ answer.
 
 ---
 
+## P3-37 — P9 step 3: the anomaly study on the development subjects
+
+*2026-10-01. Order of work, step 3 of P3-34, with P3-36's amendment.*
+
+### The harness's readings of the protocol, fixed before any run
+
+*Committed with the harness, before it ran.* P3-34 and P3-36 leave a few choices to the code.
+They are fixed here, so nothing about them can follow the results.
+
+**Code.** `AnomalyStudy.kt` in `tools/mmfit-eval` writes the scores; `anomaly_study.py` does the
+statistics.
+- Every detector is the shared core's own code. The forest comes through
+  `PersonalAnomalyModel`, the distance through `RobustDistance`, Layer 1 through the app's
+  calibrator and `DeviationRules`, and the device rule through `nearestRank`.
+- `nearestRank` is made public for this purpose, and its behaviour is unchanged.
+- The output is `data/p3-37-anomaly-study/`, which is not in git. `report.txt` is the full
+  output.
+
+**Histories.**
+- **Exercises:** all seven that the harness evaluates. The curl, lunge and row are marked as view
+  mismatches in every table.
+- **One history per subject, exercise and anomaly key.** The key is P3-35's: exercise, attributed
+  side and measured sides. So a curl's two arms, and a near-side exercise filmed from either side,
+  never share a history.
+- **Order:** workouts in MM-Fit's numbering, then sets, then repetitions.
+- **Only VALID repetitions with every F1 + F2 feature,** so every detector sees the same
+  repetitions. How many are dropped is reported.
+
+**Data available, from repetition counts alone (no score had been computed):**
+- S19 has no history longer than 40, so S19 has nothing to score in A2.
+- C has histories longer than 40 only for the shoulder press, lateral raise and lunge.
+- The push-up has 3 scored repetitions (A), and the sit-up's are B's alone.
+
+**A1 and A3.**
+- **An n is used only when 20 repetitions follow it,** so every rate is out of 20.
+- **The forest's `minHistory` is lowered to 2 for the study,** since the study asks when it may
+  speak. The device rule is otherwise the policy's.
+- **Rates are given per subject,** pooled over that subject's histories, and also per subject
+  and exercise.
+- **N_min, primary:** every subject's pooled rate is at most 10%. The stricter version, every
+  subject and exercise pair at most 10%, is reported beside it.
+
+**A2.**
+- **The history is a key's first 40 repetitions;** every later repetition is scored. A key with 40
+  or fewer has nothing scored.
+- **Detector 1, Layer 1.**
+  - The app's calibrator runs on exactly that history. Its per-side maximum is raised from 8 to
+    40, so its baseline is the same 40 repetitions.
+  - The curl is per-limb, so its two arms' histories go in together, and each side takes its own.
+  - The score is the largest |z| over P3-30's features: range of motion per measured side,
+    lifting time, lowering time, and left minus right.
+- **Detector 2, the sum of squared robust z.**
+  - "Robust z" is read as Layer 1's own: the history's median and IQR / 1.349, under the feature's
+    floor.
+  - On F1, these are exactly Layer 1's z. The harness checks this on every scored repetition to
+    1e-9, and stops if any repetition differs.
+  - On F2, each shape point has P3-36's floor of 0.02.
+- **Detectors 3 and 4** are as P3-34 and P3-36 specify. The forest's primary seed is the policy's
+  own, 20260930.
+- **The plants,** on the record and its curve together:
+  - **Range cut:**
+    - each measured side is cut by the fraction of the history's median range on that side;
+    - the trough moves towards the start, as in P3-30;
+    - the curve is scaled towards its first point by the same share.
+    - F2 divides by the range, so it is unchanged. The cut is a change of size alone.
+  - **One side shortened:** the same, on one side only. Only keys that measure both sides get
+    it. Sides alternate: left on odd scored repetitions, right on even.
+  - **Tempo:** both phase times are divided, P3-30's arithmetic. The curve is unchanged, since it
+    is already time-normalised.
+  - **Stall** (curve only):
+    - each measured curve holds its far value for 15% or 25% of the repetition;
+    - the plateau takes that share of the time before the far point and of the time after it,
+      so the far point stays inside it and the phase times still hold;
+    - the rest of the curve is compressed to fit, by linear interpolation;
+    - F1 is unchanged.
+  - **Combined:** a 10% range cut, then tempo 1.25×.
+  - **A plant that would leave a cut side with no range is not made.** Such plants are counted.
+- **The equal-false-alarm cut** is set per exercise and detector, over the subjects with
+  unaltered scored repetitions of that exercise.
+  - Detectors 1–3 use the smallest multiple of 0.01.
+  - The distance uses its distinct pooled unaltered scores (P3-36).
+- **Detected** means flagged at that cut.
+- **One exploratory detector, reported apart: `layer1c`.**
+  - It is Layer 1's largest |z| with its consistency metric added: each measured side's curve
+    distance to the baseline's mean curve.
+  - Why it is added: P3-34's detector 1 leaves that metric out, as P3-30 did. The app's Layer 1
+    has it, and a change of shape is exactly what the forest's F2 is meant to see.
+  - Without it, "the forest sees what Layer 1 does not" would compare against a Layer 1 missing
+    one of its own metrics.
+  - It does not replace detector 1.
+- **Reported:**
+  - the subjects' mean per exercise (P3-30's summary);
+  - detection pooled over all seven exercises and over the four whose MM-Fit view matches;
+  - what each detector flags that the others do not;
+  - the curves from 0 to 30% mean false alarms, in 1% steps.
+
+**A4.**
+- Over the forest's 10 seeds (the policy's seed and the next nine), it reports the share of
+  unanimous decisions in two places:
+  - A1's device-rule decisions;
+  - A2's decisions, with the equal-false-alarm cut recomputed for each seed.
+- It also reports the range of pooled detection across the seeds.
+
+**Not run:** the scikit-learn sanity check. It is not installed, and P3-34 defers it to Part B.
+
+**Not claimed, whatever the numbers:** as P3-34 and P3-36.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
