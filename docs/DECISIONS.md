@@ -9248,6 +9248,170 @@ statistics.
 
 **Not claimed, whatever the numbers:** as P3-34 and P3-36.
 
+### Results (2026-10-01)
+
+**The run.**
+- The harness ran once, as committed in `cb94532`.
+- **Detector 2's F1 z matched Layer 1's own on all 12,585 scored repetitions,** to 1e-9.
+- No VALID repetition lacked a feature. No plant had to be skipped.
+- **Data:** 34 histories. 19 of them have repetitions after the first 40, giving 1,140 scored
+  repetitions: A 536, B 549, C 55, S19 none.
+- **A1's histories:** 21 at n = 10, 19 at n = 20, 14 at n = 40, and 7 at n = 80. Only A and B
+  have any at n = 80.
+
+**A2: detection at equal false alarms.**
+- Every figure is pooled over all seven exercises, with each repetition judged at its own
+  exercise's cut. The mean over subjects of each subject's false-alarm rate is at most 5%.
+- `layer1c` is the exploratory detector.
+- The forests use the policy's seed.
+- Per exercise, the subjects' mean is in `report.txt`.
+
+| Plant | Layer 1 | Σz² F1 | Σz² F1+F2 | Forest F1 | Forest F1+F2 | Distance F1 | Distance F1+F2 | `layer1c` |
+|---|---|---|---|---|---|---|---|---|
+| Range −20% | 64.4% | 57.1% | 13.8% | 19.1% | 5.5% | **65.7%** | 20.4% | 64.2% |
+| Range −30% | 89.5% | 86.9% | 33.9% | 22.6% | 5.7% | 88.1% | 51.1% | **91.4%** |
+| Range −40% | **97.8%** | 97.5% | 53.2% | 24.2% | 6.0% | 94.6% | 68.2% | 97.7% |
+| Tempo 1.5× | 13.1% | 14.2% | 6.3% | **22.5%** | 4.4% | 11.1% | 6.1% | 11.3% |
+| Tempo 2× | 26.1% | **32.9%** | 7.2% | 28.2% | 4.5% | 24.5% | 8.7% | 20.9% |
+| One side −20% | **68.9%** | 62.8% | 11.0% | 15.7% | 4.4% | 62.1% | 17.9% | 64.6% |
+| One side −30% | 83.7% | 80.6% | 35.4% | 17.2% | 4.6% | 81.0% | 54.5% | **88.1%** |
+| One side −40% | 91.5% | 89.3% | 63.2% | 17.8% | 5.0% | 86.6% | 69.7% | **94.1%** |
+| Stall 15% | 5.4% | 5.0% | **18.9%** | 4.3% | 15.2% | 5.6% | 15.3% | 18.6% |
+| Stall 25% | 5.4% | 5.0% | **47.5%** | 4.3% | 40.1% | 5.6% | 43.9% | 43.6% |
+| Range −10% and tempo 1.25× | 21.9% | 22.9% | 6.4% | 26.1% | 4.7% | **31.5%** | 7.2% | 17.7% |
+
+The one-side rows come from 775 repetitions of the three paired exercises. Every other row
+comes from 1,140. Restricted to the four exercises whose MM-Fit view matches, the readings below
+hold, with one difference, given in point 3. Those figures are in `report.txt`.
+
+1. **The forest as specified, on F1 + F2, detects stalls and nothing else.** Range, tempo and
+   one-side changes are flagged at 4–6%, which is its false-alarm rate. P3-35 predicted this:
+   - 32 of its 37 features are shape, and these plants leave shape untouched;
+   - a change beyond the history's range scores like the history's own edge.
+2. **The stall is its one strength, and the deterministic detectors match it there.** At 25%:
+   - the sum of squares on F1 + F2 flags 47.5%;
+   - the distance flags 43.9%;
+   - Layer 1 with its own consistency metric flags 43.6%;
+   - the forest flags 40.1%, and 34.3–47.0% across its ten seeds.
+3. **The forest on F1 alone has one edge: the smallest tempo change.**
+   - At 1.5×, it flags 22.5% at the policy's seed, a median of 19.8% over ten seeds, and
+     11.1–23.7% across them. The best deterministic detector flags 14.2%.
+   - At 2×, the sum of squares leads with 32.9% against 28.2%.
+   - On the combined plant, the distance leads with 31.5% against 26.1%. On the four
+     view-matched exercises alone, the forest leads it with 34.1% against 30.9%.
+   - On range and one side, the forest is far behind: 16–24% against 62–98%.
+4. **What the forest flags that no deterministic detector does (1, 2 or 4):**
+   - 1.5× tempo: 99 of 1,140 planted repetitions;
+   - the same count on unaltered repetitions: 24 of 1,140. That is chance, because there is
+     nothing planted to find;
+   - the combined plant: 62; 2× tempo: 52;
+   - stalls: 50 and 57, falling to 36 and 31 once Layer 1's consistency metric is counted;
+   - range and one side: 3–18, at or below chance.
+
+**A1: the device rule over the next 20.** The table gives the rate pooled over subjects, then
+the highest subject's rate:
+
+| n | Forest F1 | Forest F1+F2 | Distance F1 | Distance F1+F2 | If exchangeable |
+|---|---|---|---|---|---|
+| 10 | 8.3 / 15.0% | 6.9 / 10.6% | 30.0 / 38.1% | 25.7 / 31.9% | 9.1% |
+| 20 | 13.9 / 22.5% | 18.2 / 21.9% | 22.1 / 26.7% | 25.0 / 30.0% | 9.5% |
+| 40 | 13.2 / 19.2% | 15.0 / 25.7% | 14.6 / 16.7% | 20.4 / 28.6% | 7.3% |
+| 80 | 12.9 / 23.3% | 2.9 / 3.3% | 8.6 / 13.3% | 6.4 / 8.3% | 6.2% |
+
+- **"If exchangeable"** is what the rule would flag if the next 20 were like the history and
+  scored as the history was. A model scores its own history closer than it scores new
+  repetitions, so the real rates run higher. Every rate here is an upper bound on false alarms.
+- **The worst pairs of subject and exercise reach 90–95%.** Two causes are visible:
+  - **a workout the history never saw.** For B's sit-up at n = 40, 19 of the next 20 come from
+    w09, and the forest on F1 + F2 flags 90%.
+  - **too little history for 37 features.** For B's lateral raise at n = 10, the next 20 come
+    from the same workout, and the distance on F1 + F2 still flags 90%.
+
+**A3: N_min.** The primary rule is that every subject's rate is at most 10%.
+
+| Detector | N_min | Stricter: every subject-exercise pair |
+|---|---|---|
+| Forest, F1 | more than 80 | more than 80 |
+| Forest, F1 + F2 | 80 | 80 |
+| Distance, F1 | more than 80 | more than 80 |
+| Distance, F1 + F2 | 80 | more than 80 |
+
+At n = 80 there are two people, A and B, with 7 histories and 140 decisions. So "80" rests on
+two people.
+
+**A4: stability over ten seeds.**
+- **A1's decisions:** all ten seeds agree on 84.5–92.5% of them on F1, and on 82.9–93.6% on
+  F1 + F2.
+- **A2's decisions,** with the cut set again for each seed:
+  - 74.4% on F1 and 85.7% on F1 + F2, of 12,585 decisions;
+  - on unaltered repetitions only, 93.1% and 93.0%.
+- **The forest on F1's pooled detection moves 13–18 points between seeds** on every plant
+  it sees (it never sees stalls). For example, the 20% range cut runs from 18.1% to 32.5%.
+
+**Added after the run, labelled so, and changing no number above.** It is the section
+"Supplementary" in `report.txt`:
+- the chance counts in point 4 above;
+- the median over seeds in point 3;
+- **the forest's cut on its distinct pooled scores instead of the 0.01 grid.** The grid left the
+  forest's realised false alarms at 3.0–4.5% in some exercises. On distinct scores:
+  - the forest on F1 flags 27.1% at 1.5× tempo, 33.0% at 2× and 29.7% on the combined plant;
+    range and one side stay at 20–30%;
+  - on F1 + F2, the stall flags 18.1% and 43.7%, and every other plant 5–8%.
+
+  The grid cost the forest a few points. It changes no ordering.
+
+### What it means
+
+**P3-34's question** was whether Layer 4 detects something that Layer 1 and a deterministic
+multivariate score do not, at the same false-alarm rate. On MM-Fit's development subjects and
+these synthetic plants, the answers are:
+- **The forest as specified, on F1 + F2, does not.** It sees only a change of shape, and Layer
+  1's own consistency metric and the sum of squared z see that as often.
+- **The forest on F1 adds little, and depends on its seed.** Its gain is on a small tempo
+  change, and it misses most changes of range and balance.
+- **The detector aside, the device rule itself is the larger problem.**
+  - With 10–40 repetitions of history, a cut at the history's own 95th percentile flags 7–30%
+    of unaltered repetitions, pooled over subjects.
+  - It needs 80 or more repetitions per history before every subject's rate falls to 10%, and
+    only two subjects could show even that.
+
+**Not claimed:** as P3-34 and P3-36. These are synthetic plants on four people, at 30 a second,
+with one camera. MM-Fit's repetitions are assumed normal. No fault detection, and no accuracy
+figure.
+
+### For the owner
+
+P3-34 says that if Layer 4 adds nothing, it does not ship, and that this is the owner's call after
+A2. The choices:
+1. **Layer 4 does not ship (recommended).**
+   - The study is reported as a negative result; FINAL_ARCHITECTURE §7 counts either outcome as
+     a result.
+   - The forest and the distance stay in the core as tested components, wired to nothing, and
+     the study stays reproducible.
+   - P9's remaining ML is the exercise verifier (Part B).
+2. **The forest on F1 only.** Its gain is on tempo alone and depends on the seed, and its N_min
+   is more than 80.
+3. **A deterministic score in Layer 4's place,** the distance or the sum of squares on F1. That
+   is not ML (CLAUDE.md §12) and would need its own decision. The distance's device rule
+   flagged 8.6–30% in A1.
+
+**The held-out confirmation** is not recommended for Layer 4 under choice 1, because there is no
+detector to confirm. Under choice 2 or 3, it runs once, with the frozen detector, after approval.
+
+**Until the owner decides:** nothing is wired, and the held-out people are not read.
+
+### Checks
+
+- **`:mmfit-eval` tests:** 25, none failed. 9 of them are new: the plants, the windows, and
+  detector 2's z against Layer 1's.
+- **Mutations, 3 of 3 caught**, with the file restored byte for byte:
+  - a range cut that leaves the curve;
+  - a plateau only before the far point;
+  - a history of 30.
+- **Python:** 3 tests of the equal-false-alarm cut, none failed.
+- **`:core:analysis`,** with `nearestRank` public: JVM 457 plus 5 allocation guards, JS 446,
+  Android debug 446, Android release 446. None failed.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

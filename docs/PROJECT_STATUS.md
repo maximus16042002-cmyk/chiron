@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
-*Snapshot updated 2026-09-29, from the repository as it stands at the end of
-DECISIONS.md P3-34. This file summarises. It is not an authority: where it
+*Snapshot updated 2026-10-01, from the repository as it stands at the end of
+DECISIONS.md P3-37. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date.*
 
@@ -9,7 +9,8 @@ of date.*
 
 ## Next session starts here
 
-As of DECISIONS.md P3-34 (P9's design, after the fixes to the 2026-09-29 phone session).
+As of DECISIONS.md P3-37 (P9's anomaly study run on the development subjects; Layer 4
+waits on the owner).
 
 **The phone session of 2026-09-29 (P3-31)** ran tests 1–2 of `docs/P4_TOMORROW.md`
 on P3-29's engine (reinstalled 15:05 that day, APK `f84c9987…`):
@@ -49,19 +50,32 @@ testing resumes.
 
 **Open, first:**
 1. **Install the P3-33 build,** only with the owner's approval. Back up first as
-   P3-25 and P3-29 did, and check the phone's APK against the hash.
+   P3-25 and P3-29 did, and check the phone's APK against the hash. On 2026-10-01 the
+   phone still held P3-29's build, `f84c9987…` (P3-35).
 2. **Resume `docs/P4_TOMORROW.md`:**
    - recalibrate the curl sideways (replacing the front-on baseline);
    - tests 3–12: lateral raise, push-ups, sit-ups, plank against a stopwatch, book
      test, "NOT VISIBLE", back camera, dim light, heat run;
    - cool the phone first: it was at status 3 for half of this session.
-3. **P9, Layer 4 (DECISIONS.md P3-34):** the Isolation Forest in the core, test-first
-   and not wired into the app; then the anomaly study A1–A4 on the development
-   subjects. Stop before the held-out people.
+3. **P9, Layer 4: built and studied, waiting on the owner.**
+   - **In the core (P3-35, P3-36),** tested on every target and not wired into the app:
+     the Isolation Forest, and a robust covariance distance the owner added before any
+     run.
+   - **The anomaly study A1–A4 (P3-37),** development subjects only:
+     - the forest as specified (F1 + F2) detects planted stalls and nothing else;
+     - Layer 1's own consistency metric and a sum of squared z detect those stalls as
+       often;
+     - on F1 alone, the forest's one edge is a small tempo change, and it depends on
+       the seed;
+     - the device rule (the history's own 95th percentile) flags 7–30% of unaltered
+       repetitions with 10–40 in the history.
+   - **The owner decides:** does Layer 4 ship? P3-37 recommends not. Under that choice
+     there is no held-out run for it.
 4. **The owner's decisions:**
    - a gate weighted by time, or a warning when results fall below about 10 a
      second (P3-33);
-   - the six curl features in P3-30's Decision 3 rule (P3-32).
+   - the six curl features in P3-30's Decision 3 rule (P3-32);
+   - whether Layer 4 ships, and so whether its held-out confirmation runs (P3-37).
 
 **Done before P3-31:**
 - **The split is by subject:** development A, B, C and w19's subject; held-out
@@ -162,7 +176,7 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Built (DECISIONS.md P3-22), and **run on the phone once (P3-31):** the calibration flow saved the device's first baseline (Bicep Curl, 5 per arm), but from curls filmed facing the phone, so its values (a 175° range, a 66 ms lift) are not a curl baseline; to be recalibrated sideways — per-side baselines from 5–8 valid reps (provisional), hold baselines, `AnalysisResult` as numbers beside the baseline, Room storage with a tested migration, the calibration flow. Personal *thresholds* are P8's rules. The MM-Fit convergence study (P3-30 S4, development subjects) says 5–8 repetitions do not settle a range-of-motion baseline (about 12–20 would); the count is the owner's decision |
 | P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | ✅ Done (DECISIONS.md P3-27 to P3-29). The build plan defines P7 as: *"acquire MM-Fit, run MediaPipe over its RGB video, align set boundaries and rep counts, build the evaluation harness"* (`ZERO_DATASET_BUILD_PLAN.md`, phase table). All four were done in P3-27: the videos on disk, MediaPipe run with the phone's own model file, the labels aligned set by set (five workouts drift, by up to 6.8 s, and were corrected), and the `:mmfit-eval` harness running the live screen's own class. All 616 sets went through, and the rep-count study was measured for 7 exercises. The engine defect it exposed (a fast start is lost) is fixed and judged on the 13 held-out workouts in P3-28: curls 368 of 368, every set exact; push-ups and sit-ups now count from the near side. In P3-29 near-side counting stopped letting a failed attempt hide a repetition, and the lateral raise's start zone moved to 36°: held-out raises 125 → 356 of 369, with no set counted above its label in either change. The push-up and sit-up start zones stay as they are, with a personal start zone proposed (P8). The verifier and personalisation studies, once listed here, belong to P9 and P12 in the plan's own evaluation table, not to P7 |
 | P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | 🟡 Layer 1 built in the shared core (DECISIONS.md P3-30), **not wired into the app**: personal deviations (Level 2) in range of motion, lifting and lowering time, left–right balance and consistency; the cited ACSM tempo rule (Level 3, Tier A); the push-up and sit-up personal start zone. Layer 2, the cited technique rules, not started |
-| P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | ⛔ Not started, **in scope since DECISIONS.md P3-34** (the owner, 2026-09-30). The design and the anomaly study's protocol are written: Layer 4 first (an Isolation Forest in the core, measured against Layer 1 and a deterministic score), the verifier second |
+| P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | 🔶 Partial, **in scope since DECISIONS.md P3-34** (the owner, 2026-09-30). Layer 4 is built in the core, not wired: an Isolation Forest (P3-35), and a robust covariance distance added to the comparison before any run (P3-36). The anomaly study ran on the development subjects (P3-37). The forest on F1 + F2 sees only stalls, which the deterministic detectors see as often; the device rule flags 7–30% of unaltered repetitions with 10–40 in the history. Whether Layer 4 ships is the owner's call; P3-37 recommends not. The verifier (Part B) is next and not started |
 | P10 Visualisation & Android | App UI, live screen, dashboard | 🟡 Partial — shell, dashboard, streaks, Health Connect, sync, theme, the calibration flow and the live camera screen (reps and holds, sets saved) done and run on the owner's phone (P3-18 onward); visualisations not built |
 | P11 Windows PWA | React web app | ✂️ Cut (DECISIONS.md P0-2). The JS *target* survives; the web *app* does not |
 | P12 Evaluation & Documentation | Six studies, final write-up | 🟡 Started: the repetition-count study measured under P7 (P3-27 to P3-29; on the six unseen people in P3-30), and the personalisation study's development half (P3-30, four subjects). Still to come: its held-out run, the verifier, device and pose-reliability studies, parity as a study, and the write-up |

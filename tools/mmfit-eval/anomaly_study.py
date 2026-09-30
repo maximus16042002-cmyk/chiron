@@ -354,6 +354,73 @@ def a4_section(a1, a2, detectors, out, files):
         out.append("    pooled detection, lowest-highest over seeds: " + "; ".join(spread))
 
 
+def supplementary_section(a2, out, files):
+    """Added after the run, and labelled so (P3-37): nothing here changes a primary number."""
+    out.append("\n=== Supplementary, added after the run - not the protocol's analysis")
+    detectors = PRIMARY + EXPLORATORY
+    cols = [column(d) for d in detectors]
+    cuts = cuts_for(a2, cols)
+
+    out.append("\n  1. Chance: what each detector flags alone on UNALTERED repetitions, at the same cuts, for comparison with A2's")
+    out.append("     'what each detector flags that the others do not'. Unaltered repetitions have no planted change to find.")
+    un = [r for r in a2 if r["plant"] == "none"]
+    flags = {c: [np.isfinite(r[c]) and r[c] > cuts[(r["exercise"], c)] for r in un] for c in cols}
+    primary_cols = [column(d) for d in PRIMARY]
+    forest_any = [flags["forestF1_s0"][i] or flags["forestF1F2_s0"][i] for i in range(len(un))]
+    det_p334 = [flags["layer1"][i] or flags["sumsqF1"][i] or flags["sumsqF1F2"][i] for i in range(len(un))]
+    det_all = [det_p334[i] or flags["distanceF1"][i] or flags["distanceF1F2"][i] for i in range(len(un))]
+    det_all_c = [det_all[i] or flags["layer1c"][i] for i in range(len(un))]
+    only = {d: sum(1 for i in range(len(un)) if flags[c][i] and not any(flags[o][i] for o in primary_cols if o != c))
+            for d, c in zip(PRIMARY, primary_cols)}
+    out.append(f"     none n={len(un):5}  forest, not detectors 1-2: {sum(f and not d for f, d in zip(forest_any, det_p334)):4}; "
+               f"not 1, 2 or 4: {sum(f and not d for f, d in zip(forest_any, det_all)):4}; "
+               f"nor layer1c: {sum(f and not d for f, d in zip(forest_any, det_all_c)):4}.  "
+               f"Deterministic, not forest: {sum(d and not f for f, d in zip(forest_any, det_all)):4}.  Only this one: "
+               + ", ".join(f"{d} {only[d]}" for d in PRIMARY))
+
+    out.append("\n  2. The forest over its 10 seeds, each seed at its own equal-false-alarm cut: pooled detection, all exercises,")
+    out.append("     median and lowest-highest, beside the deterministic detectors (which have no seed).")
+    per_seed = {}
+    for features in ["F1", "F1F2"]:
+        fcols = [f"forest{features}_s{s}" for s in range(SEEDS)]
+        fcuts = cuts_for(a2, fcols)
+        for plant, size in PLANTS:
+            planted = [r for r in a2 if r["plant"] == plant and r["size"] == size]
+            per_seed[(features, plant, size)] = [float(np.mean([r[c] > fcuts[(r["exercise"], c)] for r in planted])) for c in fcols]
+    out.append(f"     {'plant':24}{'forestF1 median (range)':>28}{'forestF1F2 median (range)':>30}{'layer1':>9}{'sumsqF1':>9}{'distF1':>9}{'layer1c':>9}")
+    for plant, size in PLANTS:
+        planted = [r for r in a2 if r["plant"] == plant and r["size"] == size]
+        det = {d: float(np.mean([np.isfinite(r[d]) and r[d] > cuts[(r["exercise"], d)] for r in planted]))
+               for d in ["layer1", "sumsqF1", "distanceF1", "layer1c"]}
+        cells = []
+        for features in ["F1", "F1F2"]:
+            v = per_seed[(features, plant, size)]
+            cells.append(f"{pct(float(np.median(v)))} ({pct(min(v)).strip()}-{pct(max(v)).strip()})")
+        out.append(f"     {plant + ' ' + size:24}{cells[0]:>28}{cells[1]:>30}" + "".join(f"{pct(det[d]):>9}" for d in det))
+        files["supp_seeds"].append([plant, size] + [f"{x:.6f}" for x in per_seed[("F1", plant, size)] + per_seed[("F1F2", plant, size)]])
+
+    out.append("\n  3. The forest's cut on its distinct pooled unaltered scores, as the distance's is (P3-36), instead of the 0.01 grid.")
+    out.append("     Forest scores crowd between about 0.4 and 0.7, so a 0.01 step can leave the realised mean false-alarm rate")
+    out.append("     well under 5% (3.0-4.5% above). Policy seed.")
+    for features in ["F1", "F1F2"]:
+        c = f"forest{features}_s0"
+        line = f"     forest{features:5}"
+        realised = []
+        hits = defaultdict(list)
+        for e in EXERCISES:
+            rows = [r for r in a2 if r["exercise"] == e]
+            if not rows:
+                continue
+            cut = equal_cut(unaltered_by_subject(rows, c), distinct=True)
+            _, fa, _, _ = detection([r for r in rows if r["plant"] == "none"], c, cut)
+            realised.append(f"{e} {pct(fa).strip()}")
+            for r in rows:
+                if r["plant"] != "none":
+                    hits[(r["plant"], r["size"])].append(r[c] > cut)
+        out.append(line + " realised false alarms: " + ", ".join(realised))
+        out.append("       pooled detection: " + "; ".join(f"{p} {s} {pct(float(np.mean(hits[(p, s)]))).strip()}" for p, s in PLANTS if hits[(p, s)]))
+
+
 def write_csv(path, header, rows):
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
@@ -372,12 +439,14 @@ def main(study):
     a1_section(a1, out, a1_rows)
     a2_section(a2, out, files)
     a4_section(a1, a2, detectors, out, files)
+    supplementary_section(a2, out, files)
     write_csv(os.path.join(study, "a1_rates.csv"), ["detector", "features", "n", "subject", "exercise", "decisions", "rate"], a1_rows)
     write_csv(os.path.join(study, "a2_cuts.csv"), ["exercise", "detector", "cut", "meanFalseAlarm", "perSubject..."], files["a2_cuts"])
     write_csv(os.path.join(study, "a2_detection.csv"), ["exercise", "plant", "size", "detector", "subject", "rate"], files["a2_detection"])
     write_csv(os.path.join(study, "a2_curves.csv"), ["exercise", "detector", "targetFalseAlarm", "cut", "meanFalseAlarm", "plant", "size", "detection"], files["a2_curves"])
     write_csv(os.path.join(study, "a2_unique.csv"), ["plant", "size", "planted", "forestNotDetectors12", "forestNot124", "forestNot124Nor1c", "deterministicNotForest"] + [f"only_{d}" for d in PRIMARY], files["a2_unique"])
     write_csv(os.path.join(study, "a4.csv"), ["decisions", "features", "n", "count", "allTenAgree"], files["a4"])
+    write_csv(os.path.join(study, "supp_seeds.csv"), ["plant", "size"] + [f"forestF1_s{i}" for i in range(SEEDS)] + [f"forestF1F2_s{i}" for i in range(SEEDS)], files["supp_seeds"])
     text = "\n".join(out) + "\n"
     with open(os.path.join(study, "report.txt"), "w", encoding="utf-8") as f:
         f.write(text)
