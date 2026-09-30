@@ -9613,6 +9613,52 @@ B's left-arm curl lift at 23%.
 
 ---
 
+## P3-41 — Decision 3: Layer 1's threshold and floors, by the rule fixed in P3-30
+
+*2026-10-01. P3-30's Decision 3, the third step of P3-38's order. Development subjects only.*
+
+### The readings of the rule, fixed before the run
+
+*Committed with the code, before it ran.* The rule itself is P3-30's addendum, and nothing in it
+changes here: the candidates, the criteria, the order, and "if none qualifies, the work stops".
+The following are choices the rule leaves to the code.
+
+- **The engine: P3-33's development exports at 30 a second**
+  (`data/mm-fit-eval-p3-33-ta-s1-base`). P3-39 changed no engine, so this is the current one. The
+  curl-timing limitation of P3-39 is stated beside the curl's timing results.
+- **Data:**
+  - `PersonalisationStudy.kt` writes `decision3.csv`: every scored repetition and feature, with
+    the baseline statistic it is judged against (median, IQR, count) and the core's own z;
+  - the rows come unplanted, and with S3's 30% range cut on every measured side;
+  - `decision3.py` computes each candidate's z from those numbers.
+- **The guard:** candidate (a), recomputed this way, must reproduce the core's z, or the script
+  stops.
+- **The within-session spread for (c) and (d):**
+  - IQR / 1.349 over one session's used repetitions of the exercise, all its sets;
+  - only sessions with at least 5 of them count, the calibrator's own minimum;
+  - near-side exercises use the harness's near side, and the curl is taken per arm.
+- **(c)'s floor** is the median over (subject, side) pairs of each pair's median over sessions,
+  per exercise, rounded to 0.1°.
+- **(d)'s s_within:**
+  - it is per exercise and feature: the root mean square over the other development subjects of
+    their medians for that same feature;
+  - for range of motion, "the same feature" means the same side, and the curl is per arm;
+  - n is the baseline statistic's own count, and k = 8;
+  - if no other subject has a median, the personal spread is used alone.
+- **Flag:** |z| > threshold, as Layer 1 flags.
+- **"Mean over subjects":** the subjects with scored repetitions of that feature.
+- **Sensitivity:**
+  - a planted repetition is detected when any of its range-of-motion features is flagged;
+  - the result is the mean over subjects with planted repetitions.
+- **Alongside, outside the rule:**
+  - left − right and consistency, at the candidate's threshold (no candidate changes their spread
+    or floor);
+  - push-ups and sit-ups, under the whole candidate.
+- **Afterwards:** the chosen candidate enters the core only in its own entry. It is built
+  test-first, and the parity golden file is regenerated deliberately, as the rule says.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

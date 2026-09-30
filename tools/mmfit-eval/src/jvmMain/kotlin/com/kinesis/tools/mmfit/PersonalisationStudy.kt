@@ -10,12 +10,14 @@ import com.kinesis.core.analysis.deviation.IQR_PER_SD
 import com.kinesis.core.analysis.deviation.PopulationReference
 import com.kinesis.core.analysis.deviation.RepFeatures
 import com.kinesis.core.analysis.profile.AnalysedSides
+import com.kinesis.core.analysis.profile.Contraction
 import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.analysis.profile.RepetitionSemantics
 import com.kinesis.core.domain.bilateral.BilateralSignal
 import com.kinesis.core.domain.bilateral.Side
 import com.kinesis.core.domain.calibration.RepetitionBaseline
+import com.kinesis.core.domain.calibration.RobustStatistic
 import com.kinesis.core.domain.profile.TierAProfile
 import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.core.domain.rep.RepValidity
@@ -39,7 +41,9 @@ import java.util.Locale
  * - `acsm.csv`: the ACSM tempo rule on each scored repetition of a Tier A exercise (S2);
  * - `sessions.csv`: which sessions calibrated, and why not;
  * - `s5.csv`: S5 - each of A's and B's calibrated sessions as the baseline, scored against every used
- *   repetition of their other sessions (P3-30's addendum, P3-40).
+ *   repetition of their other sessions (P3-30's addendum, P3-40);
+ * - `decision3.csv`: Decision 3 - each scored repetition's features with the baseline statistics they
+ *   are judged against, unplanted and with a 30% range cut (P3-30's addendum, P3-41).
  *
  * Usage: <harness output dir, with primary/> <study output dir>
  */
@@ -142,6 +146,7 @@ internal class PersonalisationStudy(private val sets: List<StudySet>, private va
         writeReps()
         writeScored()
         writeS5()
+        writeDecision3()
     }
 
     // --- S1 and S4: every used repetition's features ------------------------------------------
@@ -282,6 +287,66 @@ internal class PersonalisationStudy(private val sets: List<StudySet>, private va
             }
         }
         File(out, "s5.csv").writeText(rows.toString())
+    }
+
+    // --- Decision 3: the scored repetitions with their baseline statistics -------------------
+
+    /**
+     * P3-30's Decision 3, as its addendum fixed the rule (P3-41): S2's design - each session's first
+     * set calibrates, its later sets are scored - with, for every scored repetition and feature, the
+     * value, the baseline statistic it is judged against (median, IQR, count) and the core's own z
+     * under today's policy. Unplanted, and with S3's 30% range cut on every measured side. The
+     * candidates' z are `decision3.py`'s, from these numbers; left - right and consistency carry the
+     * core's z only, since no candidate changes their spread or floor.
+     */
+    private fun writeDecision3() {
+        val rows = StringBuilder("subject,workout,exercise,repKey,deviation,feature,value,centre,iqr,count,zCore\n")
+        for ((key, group) in sessions()) {
+            val first = group.first()
+            val outcome = Calibration.fromRepetitions(first.profile, first.reps, 0.0, null, com.kinesis.core.analysis.calibration.CalibrationPolicy.PROVISIONAL)
+            val baseline = (outcome as? CalibrationOutcome.Calibrated)?.baseline as? RepetitionBaseline ?: continue
+            for (set in group.drop(1)) for (rep in set.reps.sortedBy { it.repIndex }) {
+                if (!used(set, rep)) continue
+                val repKey = "${set.workout}|${set.mmfitSet}|${rep.repIndex}"
+                for ((deviation, record) in listOf("none" to rep, "rom30" to Planting.cutRange(set.profile, rep, baseline, 0.3, null))) {
+                    val z = personal(set, record, baseline)
+                    val consistency = DeviationRules.deviations(set.profile, record, baseline, policy).consistency
+                    for (feature in features(set, record)) {
+                        val statistic = statisticOf(set, record, baseline, feature.key)
+                        rows.append("${set.subject},${set.workout},${key.second},$repKey,$deviation,${feature.key},${num(feature.value)},")
+                        if (statistic != null) {
+                            rows.append("${num(statistic.median)},${num(statistic.interquartileRange)},${statistic.count},")
+                        } else {
+                            rows.append(",,,")
+                        }
+                        rows.append("${num(z[feature.key] ?: Double.NaN)}\n")
+                    }
+                    for (side in Side.entries) {
+                        if (!record.rangeOfMotion.on(side).isFinite()) continue
+                        val name = if (nearSide[set.subject to set.profile.id] != null) "near" else side.name.lowercase()
+                        rows.append("${set.subject},${set.workout},${key.second},$repKey,$deviation,cons_$name,,,,,${num(consistency.on(side))}\n")
+                    }
+                }
+            }
+        }
+        File(out, "decision3.csv").writeText(rows.toString())
+    }
+
+    /** The baseline statistic a feature is judged against, as `DeviationRules` chooses it; `null` for left - right. */
+    private fun statisticOf(set: StudySet, rep: RepRecord, baseline: RepetitionBaseline, key: String): RobustStatistic? {
+        val timingSide = RepFeatures.of(set.profile, rep).timingSide
+        fun phase(contraction: Contraction): RobustStatistic {
+            val timing = if (contraction == set.profile.awayFromStart) baseline.descentMs else baseline.ascentMs
+            return if (timingSide == null) timing.perRepetition else timing.perSide.on(timingSide)
+        }
+        return when {
+            key == "rom_near" -> baseline.rangeOfMotion.on(nearSide.getValue(set.subject to set.profile.id))
+            key == "rom_left" -> baseline.rangeOfMotion.left
+            key == "rom_right" -> baseline.rangeOfMotion.right
+            key.startsWith("lift_") -> phase(Contraction.CONCENTRIC)
+            key.startsWith("lower_") -> phase(Contraction.ECCENTRIC)
+            else -> null
+        }
     }
 
     private fun num(value: Double): String = if (value.isFinite()) String.format(Locale.ROOT, "%.6f", value) else ""
