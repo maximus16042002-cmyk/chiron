@@ -9048,6 +9048,68 @@ That is the owner's decision. Until it is made, step 3 runs as P3-34 wrote it.
 **Not claimed:** any detection figure. Everything above is synthetic, and none
 of it is MM-Fit or the phone.
 
+
+---
+
+## P3-36 — A2 amended before any run: a robust covariance distance joins the comparison
+
+*2026-10-01. Written and committed before any A1–A4 code exists or any run starts.*
+
+**The owner's decision, 2026-10-01.** P3-35 measured that the forest, as specified, scores
+anything beyond the history's range like the history's own most extreme repetition. It also does
+not see unusual combinations. The owner chose to add a robust covariance detector to A2 while the
+protocol is still unrun. It is deterministic statistics, not ML. The comparison then asks what
+P3-34 meant it to ask: does the forest add anything over **good** statistics (CLAUDE.md §12)?
+Nothing else in P3-34's protocol changes.
+
+### Detector 4 — the robust covariance distance
+
+For one history (one subject, exercise and key) and one feature set, F1 or F1 + F2:
+
+1. **Location and scale.** For each feature j:
+   - **location** m_j is the history's median;
+   - **scale** s_j is the history's MAD × 1.4826;
+   - **floors** under s_j:
+     - Layer 1's floors (`DeviationPolicy.PROVISIONAL`): range of motion and left minus
+       right 3°, lifting and lowering time 70 ms;
+     - **0.02 for every shape point**, 2% of the side's own range. It is fixed here because F2
+       has no floor elsewhere.
+2. **Standardise:** z_j = (x_j − m_j) / s_j.
+3. **Correlation.** R is the Spearman rank correlation matrix of the history's features: ranks
+   with ties averaged, then the Pearson correlation of the ranks. A feature whose ranks do not
+   vary gets correlation 0 with every other feature and 1 with itself.
+4. **Shrinkage.** R_λ = (1 − λ)·R + λ·I, with λ = min(1, p / n), where p is the number of features
+   and n the history's length. Fixed here, not tuned: more features per repetition means more
+   shrinkage, and R_λ is positive definite whenever λ > 0.
+5. **Score:** d² = zᵀ · R_λ⁻¹ · z, solved by Cholesky decomposition.
+
+**What it sees that the forest does not.** d² grows without limit as a repetition moves beyond
+the history's range, and R_λ⁻¹ weighs a combination against how the features went together in
+the history.
+
+**Where it lives.** It lives in the shared core as `RobustDistance`, beside the forest, with
+tests first, golden-file parity on every target, and mutations. It is not wired into the app. If
+it is the better detector, whether it ships is the owner's decision after A2, as P3-34 already
+says of the forest.
+
+### How it enters A1–A4
+
+- **A1.** It is reported beside the forest under the same device rule: fitted on the first n,
+  flagged above the 95th percentile of its own scores over its own history.
+- **A2.** It is a fourth detector, on F1 and on F1 + F2, at the same equal-false-alarm cut as the
+  others. That is the cut at which the mean over subjects of each subject's flag rate on
+  unaltered repetitions is 5%, on a grid. A d² is not bounded like the forest's score, so its
+  grid is the **distinct pooled unaltered scores** rather than 0.01 steps; the rule is the same.
+  Everything P3-34 reports for the others is reported for it too, including what each detector
+  flags that the others do not.
+- **A3.** N_min is computed for it as for the forest, by the same rule.
+- **A4.** Not applicable. It has no random choice, so its decisions agree across seeds by
+  construction.
+
+**Not claimed, whatever the numbers:** as P3-34. Synthetic plants on MM-Fit's four development
+subjects, at 30 a second, on one camera. No fault detection and no accuracy figure. The
+held-out people only with the owner's approval.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics
