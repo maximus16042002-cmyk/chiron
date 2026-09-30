@@ -9727,6 +9727,83 @@ must be tested on data it has not seen:
 
 ---
 
+## P3-42 — A Layer 1 setting fixed on the development subjects, tested once on the held-out people
+
+*2026-10-01. Written, committed and tagged `p3-42-frozen` before any held-out workout is read.*
+
+**The owner's decision, 2026-10-01.** Decision 3 selected nothing (P3-41). The owner was asked
+whether to fix P3-41's recommended setting and test it once on MM-Fit's six held-out people, and
+chose: "Yes, lock it and test". The owner's condition: "If it passes, Layer 1 goes into the app.
+If it fails, it stays out."
+
+**Why this is not a relaxed Decision 3.**
+- **Decision 3's result stands:** no candidate qualified. What it would have tested stays
+  untested.
+- **This is a new, smaller claim.** It concerns only the messages that met Decision 3's criterion
+  on the development subjects.
+- **It is chosen on the data already seen, and judged on data not seen.** That is what the split
+  by subject (P3-30) exists for.
+
+### The setting, frozen
+
+- **Threshold 3.**
+- **Floors:**
+  - range of motion per exercise, derived from the development subjects in P3-41: shoulder press
+    5.2°, lateral raise 3.8°, bicep curl 3.0°;
+  - time 70 ms, left − right 3° and consistency 2°, as now.
+- **Calibration as now:** one set, 5–8 valid repetitions per side.
+- **The messages that ship.** Every one of them met Decision 3's false-alarm criterion on the
+  development subjects under this setting:
+  - **Shoulder press:** range of motion (left and right), lifting time, lowering time, left −
+    right, consistency (left and right).
+  - **Lateral raise:** range of motion (left and right), lifting time, lowering time.
+  - **Bicep curl:** lifting and lowering time, for each arm.
+- **Held back:**
+  - **the lateral raise's left − right and consistency.** On the development subjects they
+    flagged 6.0% and 3.5–7.2% on average;
+  - **the curl's range of motion and consistency.** MM-Fit films them face-on, and they failed.
+    They wait for side-on curls from the phone;
+  - **every other exercise's Layer 1 messages,** since there is no evidence for them. Those
+    exercises show measurements (Level 1) only;
+  - **the ACSM tempo message,** which still waits for the phone's hand-timed check (P3-30's
+    addendum).
+
+### The test, run once
+
+- **Data:**
+  - the six held-out workouts, w12, w13, w16, w17, w18 and w20 (subjects S12, S13, S16, S17, S18,
+    S20);
+  - run through the current engine (P3-33's, at 30 a second) with `runHarness -Psplit=held-out`,
+    primary protocol;
+  - then `personalisationStudy -PheldOut=true`, which writes only the Layer 1 rows. None of P3-30's
+    other held-out analyses is computed.
+- **Design:** S2's, as in Decision 3. Each session's first set of the exercise calibrates, and its
+  later sets are scored.
+- **It passes when both hold:**
+  1. **False alarms:** every shipped feature with held-out data has a mean over subjects of at
+     most 5%, and no subject above 10%.
+  2. **Sensitivity:** the 30% range cut is detected in 80% or more of planted repetitions (mean
+     over subjects), for the shoulder press and for the lateral raise.
+- **A shipped feature with no held-out data** is not tested, and is held back. That is not a
+  failure.
+- **Outcome:**
+  - **Pass:** Layer 1 goes into the app with exactly the tested shipped messages, in its own entry,
+    built test-first.
+  - **Fail:** Layer 1 stays out of the app. No second attempt on these people.
+- **Tools:** `tools/mmfit-eval/layer1_test.py`.
+  - It was checked on the development study before this commit. It reproduced P3-41's figures
+    there, and passed, as it must, since the setting was chosen on that data.
+
+**Not claimed, whatever the result:**
+- that any message detects a fault;
+- any accuracy figure;
+- anything beyond MM-Fit's view and 30 a second.
+
+A pass says only this: on six people not used to choose the setting, the shipped messages stayed
+quiet on normal repetitions and saw a 30% range cut.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

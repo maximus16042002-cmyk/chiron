@@ -45,15 +45,23 @@ import java.util.Locale
  * - `decision3.csv`: Decision 3 - each scored repetition's features with the baseline statistics they
  *   are judged against, unplanted and with a 30% range cut (P3-30's addendum, P3-41).
  *
- * Usage: <harness output dir, with primary/> <study output dir>
+ * Usage: <harness output dir, with primary/> <study output dir> [held-out]
+ *
+ * With `held-out` - DECISIONS.md P3-42, approved by the owner for one run - the held-out workouts
+ * instead, and only `decision3.csv` and `decision3_sessions.csv`: the frozen Layer 1 setting's test.
+ * Nothing else of P3-30's study is computed on them.
  */
 fun main(args: Array<String>) {
-    require(args.size == 2) { "usage: <harness output dir> <study output dir>" }
+    require(args.size == 2 || (args.size == 3 && args[2] == "held-out")) {
+        "usage: <harness output dir> <study output dir> [held-out]"
+    }
+    val heldOut = args.size == 3
     val out = File(args[1]).also { it.mkdirs() }
     val subjects = Subjects.load()
-    val development = subjects.split("development").toSet()
-    val sets = StudyInput.read(File(args[0], "primary"), subjects, development)
-    PersonalisationStudy(sets, out).run()
+    val workouts = subjects.split(if (heldOut) "held-out" else "development").toSet()
+    val sets = StudyInput.read(File(args[0], "primary"), subjects, workouts)
+    val study = PersonalisationStudy(sets, out)
+    if (heldOut) study.runLayerOneTest() else study.run()
 }
 
 /** The study's exercises: those whose MM-Fit view matches the profile (P3-27). */
@@ -146,6 +154,11 @@ internal class PersonalisationStudy(private val sets: List<StudySet>, private va
         writeReps()
         writeScored()
         writeS5()
+        writeDecision3()
+    }
+
+    /** P3-42's held-out test: the Decision 3 rows alone. */
+    fun runLayerOneTest() {
         writeDecision3()
     }
 
@@ -301,9 +314,11 @@ internal class PersonalisationStudy(private val sets: List<StudySet>, private va
      */
     private fun writeDecision3() {
         val rows = StringBuilder("subject,workout,exercise,repKey,deviation,feature,value,centre,iqr,count,zCore\n")
+        val calibrations = StringBuilder("subject,workout,exercise,calibrated,laterSets\n")
         for ((key, group) in sessions()) {
             val first = group.first()
             val outcome = Calibration.fromRepetitions(first.profile, first.reps, 0.0, null, com.kinesis.core.analysis.calibration.CalibrationPolicy.PROVISIONAL)
+            calibrations.append("${first.subject},${first.workout},${key.second},${outcome is CalibrationOutcome.Calibrated},${group.size - 1}\n")
             val baseline = (outcome as? CalibrationOutcome.Calibrated)?.baseline as? RepetitionBaseline ?: continue
             for (set in group.drop(1)) for (rep in set.reps.sortedBy { it.repIndex }) {
                 if (!used(set, rep)) continue
@@ -330,6 +345,7 @@ internal class PersonalisationStudy(private val sets: List<StudySet>, private va
             }
         }
         File(out, "decision3.csv").writeText(rows.toString())
+        File(out, "decision3_sessions.csv").writeText(calibrations.toString())
     }
 
     /** The baseline statistic a feature is judged against, as `DeviationRules` chooses it; `null` for left - right. */

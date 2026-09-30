@@ -54,9 +54,11 @@ tasks.register<JavaExec>("personalisationStudy") {
     val main = kotlin.jvm().compilations.getByName("main")
     classpath = files(main.output.allOutputs, main.runtimeDependencyFiles)
     mainClass.set("com.kinesis.tools.mmfit.PersonalisationStudyKt")
-    args = listOf(
+    // -PheldOut=true: P3-42's one held-out test of the frozen Layer 1 setting, and nothing else.
+    args = listOfNotNull(
         project.findProperty("harness")?.toString() ?: "../../data/mm-fit-eval-p3-30-dev",
         project.findProperty("study")?.toString() ?: "../../data/p3-30-study",
+        if (project.findProperty("heldOut")?.toString() == "true") "held-out" else null,
     )
     dependsOn(main.compileTaskProvider)
 }
