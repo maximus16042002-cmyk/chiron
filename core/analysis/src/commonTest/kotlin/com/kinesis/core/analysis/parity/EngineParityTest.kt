@@ -52,6 +52,11 @@ class EngineParityTest {
         check("sessionExport", EngineParityGolden.sessionExport, EngineParity.sessionExport())
 
     /** The comparison must be able to fail, or a passing run proves nothing. */
+    /** Layer 4's forest, cut and decisions on every target - DECISIONS.md P3-35. */
+    @Test
+    fun layer_four_scores_match_the_golden_file_on_this_target() =
+        check("layerFourScores", EngineParityGolden.layerFourScores, EngineParity.layerFourScores())
+
     @Test
     fun the_comparison_sees_a_discrete_and_a_continuous_difference() {
         val golden = EngineParityGolden.squat
@@ -71,7 +76,12 @@ class EngineParityTest {
 
     private fun check(scenario: String, golden: List<String>, actual: List<String>) {
         assertTrue(
-            golden.any { it.startsWith("records|") || it.startsWith("finish|[{") || (it.startsWith("export|") && "\"reps\":[{" in it) },
+            golden.any {
+                it.startsWith("records|") || it.startsWith("finish|[{") ||
+                    (it.startsWith("export|") && "\"reps\":[{" in it) ||
+                    // DECISIONS.md P3-35: Layer 4 records a fitted model and its scores.
+                    (it.startsWith("score|") && "\"score\":" in it)
+            },
             "the golden $scenario file records nothing",
         )
         val differences = EngineParity.differences(scenario, golden, actual)

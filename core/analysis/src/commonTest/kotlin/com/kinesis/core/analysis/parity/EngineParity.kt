@@ -3,7 +3,12 @@ package com.kinesis.core.analysis.parity
 import com.kinesis.core.analysis.EngineJson
 import com.kinesis.core.analysis.JsonText
 import com.kinesis.core.analysis.KinesisEngine
+import com.kinesis.core.analysis.anomaly.AnomalyFeatures
+import com.kinesis.core.analysis.anomaly.AnomalyPolicy
+import com.kinesis.core.analysis.anomaly.AnomalyTestReps
+import com.kinesis.core.analysis.anomaly.PersonalAnomalyModel
 import com.kinesis.core.analysis.export.SessionExport
+import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.domain.landmark.LandmarkId
 import com.kinesis.core.domain.session.HoldSetRecord
 import com.kinesis.core.domain.session.RepetitionSetRecord
@@ -153,6 +158,41 @@ object EngineParity {
         curls.curl(left = false, top = 162.0, bottom = 56.0)
         curls.arms(160.0, 160.0, frames = 8)
         return squatLines + curls.calibrate().map { "curl-" + it }
+    }
+
+    // --- Layer 4 - DECISIONS.md P3-34, P3-35 -------------------------------------------
+
+    /**
+     * Layer 4's personal anomaly model, fitted on the same synthetic squat history on
+     * every target - with the shape features and without - and five repetitions scored
+     * against it. The forest is grown from [SplitMix64], so every target must grow the
+     * same trees: the cut and every score within tolerance, every decision exactly.
+     * Layer 4 is not on the facade (it is not wired, P3-34), so this calls the core.
+     */
+    fun layerFourScores(): List<String> {
+        val squat = ExerciseLibrary.squat
+        val history = AnomalyTestReps.squatHistory(40)
+        val key = AnomalyFeatures.keyOf(squat, history.first())
+        val probes = listOf(
+            "usual" to AnomalyTestReps.rep(90.0, 88.0, descentMs = 1200.0, ascentMs = 1000.0),
+            "farOutside" to AnomalyTestReps.rep(130.0, 128.0, descentMs = 2600.0, ascentMs = 2300.0),
+            "shallow" to AnomalyTestReps.rep(50.0, 48.0, descentMs = 1200.0, ascentMs = 1000.0),
+            "oneSideShort" to AnomalyTestReps.rep(90.0, 60.0, descentMs = 1200.0, ascentMs = 1000.0),
+            "stall" to AnomalyTestReps.rep(90.0, 88.0, descentMs = 1200.0, ascentMs = 1000.0, shape = AnomalyTestReps::stall),
+        )
+        val lines = ArrayList<String>()
+        for (withShape in listOf(true, false)) {
+            val policy = AnomalyPolicy.PROVISIONAL.copy(withShape = withShape)
+            val model = PersonalAnomalyModel.fit(squat, key, history, policy)
+                ?: error("the parity history is too short for Layer 4")
+            val set = if (withShape) "F1+F2" else "F1"
+            lines += "model|$set|{\"historySize\":${model.historySize},\"cut\":${model.cut}}"
+            for ((name, rep) in probes) {
+                val score = model.score(rep)
+                lines += "score|$set-$name|{\"score\":$score,\"unusual\":${model.assess(rep) != null}}"
+            }
+        }
+        return lines
     }
 
     // --- Export - DECISIONS.md P3-25 ---------------------------------------------------
@@ -434,6 +474,8 @@ object EngineParity {
         "count", "validLeft", "validRight", "requiredPerSide",
         // DECISIONS.md P3-25: the export's counts and positions.
         "formatVersion", "utcOffsetMinutes", "setIndex", "recordCount", "validCount",
+        // DECISIONS.md P3-35: how many repetitions a Layer 4 model was fitted on.
+        "historySize",
     )
 
     /**

@@ -8921,6 +8921,133 @@ confirmation then is the frozen detectors, once.
 - **Before any app or UI wiring.**
 - **Before the held-out people,** for either part.
 
+
+---
+
+## P3-35 — P9 step 2: Layer 4 in the shared core, and what it cannot see
+
+*2026-10-01. Order of work, step 2 of P3-34. Not wired into the app.*
+
+**Provenance.** A session after P3-34 wrote Layer 4's code and tests but committed
+neither, and wrote no entry. This session:
+- reviewed that code against P3-34;
+- ran its tests: 28 of 29 passed;
+- found the failure to be a wrong expectation about the model, not a bug (below);
+- completed step 2: golden-file parity and mutations.
+
+The owner had also installed what they took to be P3-33's build. The phone's APK
+still hashes `f84c9987…`, P3-29's build, last updated 2026-09-29 15:05. P3-33's
+build (`3e9a5480…`) is not on the phone.
+
+### What is built, as P3-34 specifies
+
+- **`SplitMix64`:** the seeded generator, pinned to the reference outputs for
+  seed 1234567 on every target.
+- **`IsolationForest`** (Liu, Ting and Zhou 2008), with the paper's settings:
+  - 100 trees, subsample ψ = min(256, n) without replacement;
+  - height limit ⌈log₂ψ⌉;
+  - leaves adjusted by c(size), score 2^(−E[h]/c(ψ));
+  - split values uniform within the node's own range, on a feature that still
+    varies there.
+- **`AnomalyFeatures`:**
+  - **F1** is Layer 1's scalars: range of motion per measured side, lifting and
+    lowering time, and left minus right when both sides were measured.
+  - **F2** is each measured side's 64-point curve, measured from its start,
+    turned towards the far position, divided by its own range of motion and
+    averaged to 16 points.
+  - One key per exercise, attributed side and measured sides, so sides stay
+    apart.
+- **`PersonalAnomalyModel`:**
+  - VALID repetitions only, the most recent 200, silent below 20 (provisional
+    until A3);
+  - the cut is the nearest-rank 95th percentile of the history's own scores;
+  - the finding is a Level 2 `UNUSUAL_FOR_YOU` deviation, worded as personal,
+    with no fault named.
+
+### What it cannot see, measured before any study
+
+A synthetic squat history of 40 repetitions: about 90° deep, lowering 1.2 s,
+rising 1.0 s, with jitter. Five repetitions scored against it:
+
+| Repetition | F1 only: score / cut | F1 + F2 (provisional): score / cut |
+|---|---|---|
+| Usual | 0.434 / 0.561, not flagged | 0.412 / 0.539, not flagged |
+| Far outside: 130°, 2.6 / 2.3 s | **0.583 / 0.561, flagged** | 0.435 / 0.539, not flagged |
+| 130° deep, usual tempo | not flagged | not flagged |
+| **Half as deep, 50°** | **0.558 / 0.561, not flagged** | **0.436 / 0.539, not flagged** |
+| One side short, 90° / 60° | 0.554 / 0.561, not flagged | 0.432 / 0.539, not flagged |
+| A stall at depth (shape) | 0.434 / 0.561, not flagged | **0.574 / 0.539, flagged** |
+
+The highest score in the history itself was 0.584 (F1) and 0.592 (F1 + F2).
+
+**Why.** The forest's split values are drawn inside the history's own range. So
+a repetition beyond that range is scored as the history's own most extreme
+repetition, which the tests already pin as
+`a_point_beyond_the_history_scores_exactly_as_the_historys_own_edge_does`. The
+cut is set by the history's own scores, so a new repetition, however far out,
+can barely clear it. With F2 included, 32 of 37 features are shape, so most
+random splits fall where a range or tempo change is invisible.
+
+**Also measured.** Take a history in which deeper squats were always slower. A
+deep and quick squat, inside every feature's own range and unusual only in how
+the features go together, was not flagged under any of five seeds:
+- F1 alone: 0.568–0.589 against a cut of 0.588–0.601;
+- F1 + F2: 0.427–0.460 against 0.532–0.541.
+
+Axis-parallel splits are the known weakness here. The extended isolation forest
+(Hariri, Kind and Brunner) exists for exactly this.
+
+**What that means, stated before A1–A4 and not replacing them.** As specified,
+Layer 4 flags changes of **shape**, such as a stall, and little of what Layer 1
+already catches on range, tempo and balance. A2 was designed to measure exactly
+this, at equal false alarms and on MM-Fit's development subjects. These
+synthetic cases predict its direction; they are not its result.
+
+**The tests say so.**
+- The first version expected the deep-and-quick squat to be flagged. It now pins
+  the opposite:
+  `a_combination_inside_every_features_own_range_is_not_isolated_by_this_forest`.
+  A change of model has to revisit that test rather than pass it by.
+- The Level 2 wording checks moved to a stall, which is flagged reliably.
+
+### Tested
+
+- **30 Layer 4 tests**, in the shared core, so they run on every target:
+  - `SplitMix64Test`, 4;
+  - `IsolationForestTest`, 10;
+  - `AnomalyFeaturesTest`, 6;
+  - `PersonalAnomalyModelTest`, 10.
+- **Golden-file parity.** A new scenario, `layerFourScores`, fits the model with
+  and without F2 and scores the five repetitions above. JVM, JS, Android debug
+  and Android release all match it: every score within 1e-9 relative, and every
+  cut and decision exact. Regenerating the golden file added only these 12 lines;
+  every existing scenario reproduced exactly. The suite's empty-golden guard now
+  also accepts `score|` lines.
+- **`:core:analysis`:**
+  - JVM 448, plus the 5 allocation guards in their own JVM;
+  - JS 437, Android debug 437, Android release 437;
+  - none failed.
+- **Mutations, 4 of 4 caught**, with files restored byte for byte. Each was
+  caught by its own unit test and by the golden file:
+  - the score's sign;
+  - the leaf adjustment c(size) dropped;
+  - the cut one rank too high;
+  - the shape not divided by range of motion.
+
+### For the owner, before A1–A4 run
+
+A1–A4 were fixed in P3-34 before any run, and they can run exactly as written.
+Given the table above, the owner may instead want the A2 comparison to include a
+detector that can see beyond the history's range and across features, added
+**before** the run so the protocol stays pre-registered. For example:
+- the extended isolation forest;
+- a robust covariance-based distance.
+
+That is the owner's decision. Until it is made, step 3 runs as P3-34 wrote it.
+
+**Not claimed:** any detection figure. Everything above is synthetic, and none
+of it is MM-Fit or the phone.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

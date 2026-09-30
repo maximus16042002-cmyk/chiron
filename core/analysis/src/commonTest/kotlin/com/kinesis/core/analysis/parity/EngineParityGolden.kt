@@ -332,4 +332,19 @@ internal object EngineParityGolden {
         "curl-baseline|{\"outcome\":\"tooFewRepetitions\",\"validLeft\":1,\"validRight\":1,\"requiredPerSide\":5,\"oneSideSuffices\":false,\"displayText\":\"No baseline yet. Calibration needs at least 5 valid repetitions on each side; this set had 1 on the left and 1 on the right. Only repetitions counted as valid are used.\"}",
         "curl-analysis|none|{\"kind\":\"repetition\",\"exerciseId\":\"bicep_curl\",\"repIndex\":1,\"analysisVersion\":\"p8-layer1-1\",\"baseline\":null,\"comparison\":null,\"findings\":[{\"kind\":\"technique\",\"profileId\":\"bicep_curl\",\"faultId\":\"faster_than_acsm_novice_tempo\",\"sourceRef\":\"Ratamess NA et al. American College of Sports Medicine position stand: Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708. Novices: moderate contraction velocity, 1-2 s concentric, 1-2 s eccentric.\",\"level\":\"L3_TECHNIQUE\",\"ruleVersion\":\"p8-acsm-tempo-1\",\"displayText\":\"Faster than the beginner tempo the ACSM recommends: lifting took about 0.7 s and lowering about 0.7 s, against 1–2 s for each phase (Ratamess et al., 2009).\"}]}",
     )
+
+    val layerFourScores: List<String> = listOf(
+        "model|F1+F2|{\"historySize\":40,\"cut\":0.5393389444641811}",
+        "score|F1+F2-usual|{\"score\":0.4120983089912933,\"unusual\":false}",
+        "score|F1+F2-farOutside|{\"score\":0.43506960119862015,\"unusual\":false}",
+        "score|F1+F2-shallow|{\"score\":0.4356137562882991,\"unusual\":false}",
+        "score|F1+F2-oneSideShort|{\"score\":0.43177942560321375,\"unusual\":false}",
+        "score|F1+F2-stall|{\"score\":0.5744926205308857,\"unusual\":true}",
+        "model|F1|{\"historySize\":40,\"cut\":0.5611730740586539}",
+        "score|F1-usual|{\"score\":0.43351963243025726,\"unusual\":false}",
+        "score|F1-farOutside|{\"score\":0.5825886164380121,\"unusual\":true}",
+        "score|F1-shallow|{\"score\":0.5579107263494704,\"unusual\":false}",
+        "score|F1-oneSideShort|{\"score\":0.5535640564655981,\"unusual\":false}",
+        "score|F1-stall|{\"score\":0.43351963243025726,\"unusual\":false}",
+    )
 }

@@ -37,6 +37,8 @@ class EngineParityGoldenWriter {
             "sessionExport" to EngineParity.sessionExport(),
             // DECISIONS.md P3-30.
             "layerOneFindings" to EngineParity.layerOneFindings(),
+            // DECISIONS.md P3-35.
+            "layerFourScores" to EngineParity.layerFourScores(),
         )
         for ((name, lines) in scenarios) {
             out.append("\n    val ").append(name).append(": List<String> = listOf(\n")
