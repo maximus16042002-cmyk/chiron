@@ -9530,7 +9530,7 @@ long.
     requires.
 - **The root cause is the outlier gate, which works per result.** A gate that let sustained fast
   movement through would remove both lags. That is P3-33's open question, a gate weighted by
-  time, which needs phone evidence. This trace is further evidence for it, recorded there.
+  time, which needs phone evidence. This trace is further evidence for it.
 - **Decision 5 is closed.** No engine change was made, so Decision 3 runs on P3-33's
   development exports (`data/mm-fit-eval-p3-33-ta-s1-base`).
 

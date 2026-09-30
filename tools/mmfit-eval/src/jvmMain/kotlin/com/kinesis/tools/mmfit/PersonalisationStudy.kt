@@ -37,7 +37,9 @@ import java.util.Locale
  * - `scored.csv`: each scored repetition's features against its session's baseline and against the
  *   other subjects' population, unplanted and planted (S2, S3);
  * - `acsm.csv`: the ACSM tempo rule on each scored repetition of a Tier A exercise (S2);
- * - `sessions.csv`: which sessions calibrated, and why not.
+ * - `sessions.csv`: which sessions calibrated, and why not;
+ * - `s5.csv`: S5 - each of A's and B's calibrated sessions as the baseline, scored against every used
+ *   repetition of their other sessions (P3-30's addendum, P3-40).
  *
  * Usage: <harness output dir, with primary/> <study output dir>
  */
@@ -139,6 +141,7 @@ internal class PersonalisationStudy(private val sets: List<StudySet>, private va
     fun run() {
         writeReps()
         writeScored()
+        writeS5()
     }
 
     // --- S1 and S4: every used repetition's features ------------------------------------------
@@ -250,8 +253,43 @@ internal class PersonalisationStudy(private val sets: List<StudySet>, private va
         File(out, "sessions.csv").writeText(sessionRows.toString())
     }
 
+    // --- S5: one session's baseline against the same person's other sessions --------------------
+
+    /**
+     * S5, as fixed in P3-30's addendum: for subjects A and B and the three interpretable exercises,
+     * each session whose first set calibrates serves in turn as the baseline, and every used
+     * repetition of every set of each of that subject's other sessions is scored against it. The
+     * same-session figure is S2's own (`scored.csv`). "Sessions of unknown spacing": MM-Fit gives no
+     * dates.
+     */
+    private fun writeS5() {
+        val rows = StringBuilder("subject,exercise,baselineWorkout,otherWorkout,mmfitSet,repIndex,feature,value,zPersonal\n")
+        val bySession = sessions().filter { (key, group) -> group.first().subject in S5_SUBJECTS && key.second in S5_EXERCISES }
+        for ((key, group) in bySession) {
+            val first = group.first()
+            val outcome = Calibration.fromRepetitions(first.profile, first.reps, 0.0, null, com.kinesis.core.analysis.calibration.CalibrationPolicy.PROVISIONAL)
+            val baseline = (outcome as? CalibrationOutcome.Calibrated)?.baseline as? RepetitionBaseline ?: continue
+            for ((otherKey, otherGroup) in bySession) {
+                if (otherKey.second != key.second || otherKey.first == key.first || otherGroup.first().subject != first.subject) continue
+                for (set in otherGroup) for (rep in set.reps.sortedBy { it.repIndex }) {
+                    if (!used(set, rep)) continue
+                    val z = personal(set, rep, baseline)
+                    for (feature in features(set, rep)) {
+                        rows.append("${first.subject},${key.second},${key.first},${otherKey.first},${set.mmfitSet},${rep.repIndex},")
+                        rows.append("${feature.key},${num(feature.value)},${num(z[feature.key] ?: Double.NaN)}\n")
+                    }
+                }
+            }
+        }
+        File(out, "s5.csv").writeText(rows.toString())
+    }
+
     private fun num(value: Double): String = if (value.isFinite()) String.format(Locale.ROOT, "%.6f", value) else ""
 }
+
+/** S5's subjects and exercises - P3-30's addendum: the two with six sessions, the three interpretable exercises. */
+internal val S5_SUBJECTS = setOf("A", "B")
+internal val S5_EXERCISES = setOf("shoulder_press", "bicep_curl", "lateral_raise")
 
 /**
  * S3's planted deviations, on the record's own fields - DECISIONS.md P3-30. Arithmetic on records, not
