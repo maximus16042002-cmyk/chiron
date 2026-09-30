@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
 *Snapshot updated 2026-10-01, from the repository as it stands at the end of
-DECISIONS.md P3-40. This file summarises. It is not an authority: where it
+DECISIONS.md P3-41. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date.*
 
@@ -75,7 +75,9 @@ testing resumes.
 4. **The owner's decisions:**
    - a gate weighted by time, or a warning when results fall below about 10 a
      second (P3-33);
-   - the six curl features in P3-30's Decision 3 rule (P3-32).
+   - the six curl features in P3-30's Decision 3 rule (P3-32);
+   - after Decision 3 selected nothing (P3-41): a new rule for Layer 1, tested on the held-out
+     people, or Layer 1 left out of the app.
 
 **Done before P3-31:**
 - **The split is by subject:** development A, B, C and w19's subject; held-out
@@ -104,8 +106,10 @@ testing resumes.
    timing is now pinned by tests.
 3. ~~The S5 run~~ **done (P3-40):** a baseline from one session often misdescribes the same
    person's other sessions for range of motion and left–right balance; tempo holds.
-4. **The Decision 3 evaluation,** by the addendum's fixed selection rule.
-   Calibration stays one set; if no candidate qualifies, report and stop.
+4. ~~The Decision 3 evaluation~~ **done (P3-41): no candidate qualifies,** so the work stopped
+   as the rule says. The nearest, threshold 3 with derived range floors, fails only on the curl's
+   range of motion, and MM-Fit films the curl face-on, not side-on as the app does. The owner's
+   choice is next: P3-41 recommends a new rule, fixed now and tested once on the held-out people.
 5. **The frozen tag `p3-30-frozen`:** the engine, the chosen settings, P3-30's cuts
    and floors, and the tools, as the held-out run will use them.
 6. **Then a separate approval for the held-out run** (decision 1).

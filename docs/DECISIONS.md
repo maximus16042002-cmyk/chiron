@@ -9657,6 +9657,74 @@ The following are choices the rule leaves to the code.
 - **Afterwards:** the chosen candidate enters the core only in its own entry. It is built
   test-first, and the parity golden file is regenerated deliberately, as the rule says.
 
+### Results (2026-10-01)
+
+**The run.**
+- It ran once, on the committed code (`f2a8f59`).
+- **The guard held:** candidate (a) reproduced the core's own z, with a worst relative difference
+  of 6.9e-7, which is the CSV's rounding.
+- **(c)'s derived range-of-motion floors:**
+  - shoulder press 5.2°, bicep curl 3.0°, lateral raise 3.8°;
+  - push-up 3.2° and sit-up 1.5°, both outside the rule.
+- **Outputs:** `data/p3-41-decision3/decision3_report.txt`, which has every feature per subject
+  for every candidate, and `decision3_results.csv`. Neither is in git.
+
+The table counts, for each candidate, how many of the 14 judged features miss the false-alarm
+criterion (mean over subjects at most 5%, no subject above 10%). Sensitivity is the lowest of the
+three exercises' 30% range-cut detection:
+
+| Candidate | Features failing | Sensitivity, lowest | What fails |
+|---|---|---|---|
+| (a) as now | 10 of 14 | 97.5% | range of motion on all three exercises; press timing; curl right lowering; raise lowering |
+| (b) threshold 3 | 6 | 91.5% | range of motion on all three |
+| (c) derived floor | 10 | 96.9% | as (a) |
+| (d) shrunk spread | 10 | 98.6% | as (a) |
+| **b + c** | **2** | 91.5% | **the curl's range of motion only:** left 11.5% mean, 39.3% highest; right 22.2%, 46.7% |
+| b + d | 6 | 91.5% | range of motion on all three; press lifting |
+| c + d | 10 | 98.6% | as (a) |
+| b + c + d | 3 | 91.5% | the curl's range of motion; press lifting (S19 14.3%) |
+
+**Selected: none.** No candidate qualifies. As the rule says, this is reported, and the work
+stops. The criteria are not relaxed.
+
+**Observations.** None of these changes the result.
+- **Sensitivity was never the difficulty.** The 30% cut was detected in at least 91.5% of
+  planted repetitions under every candidate. False alarms decide it.
+- **The nearest candidate, b + c, fails only on the curl's range of motion.** The loud subjects
+  are A (39–40%) and S19 (47% on the right arm).
+- **The curl's view.** MM-Fit films its curl face-on, but since P3-32 the app's curl is filmed
+  side-on. So the one feature that fails is measured in a view the app no longer uses.
+  - That was known before the run (P3-32, P3-34). It is still not grounds to change the rule
+    after it.
+  - P3-30's rule is fixed: its numbers are "the owner's to change before any run, never after".
+- **Alongside, at threshold 3:**
+  - left − right flags 3–6% on average;
+  - the curl's consistency flags 18–24%, as loud as its range of motion.
+- **The curl's timing features pass under every threshold-3 candidate.** The P3-39 limitation
+  (lifts timed short at 30 a second) does not decide anything here.
+
+### What follows
+
+- **P3-38 step 2, Layer 1 in the app, is blocked.** It was to use "the settings Decision 3
+  selects", and none was selected.
+- **The frozen tag `p3-30-frozen`, and so the held-out run, cannot be made as P3-30 described
+  it.** P3-30 said it holds "the chosen settings", and there are none.
+- **P3-38 step 3 goes ahead:** FEATURE_PLAN Batches 1, 3 and 4. They do not depend on Layer 1's
+  settings.
+
+**For the owner.** Any way forward is a new decision, taken after seeing these results, so it
+must be tested on data it has not seen:
+1. **Recommended: a new rule, fixed now and tested once on data not yet seen.**
+   - b + c (threshold 3, the derived range floors) for the shoulder press and lateral raise, and
+     for the curl's timing;
+   - the curl's range-of-motion and consistency messages held back until side-on curls from the
+     phone can be judged;
+   - tested by the held-out run, with the owner's approval. If it fails there, Layer 1 stays
+     out of the app.
+2. **Layer 1 stays out of the app.** The app shows measurements (Level 1) only.
+3. **Something else the owner prefers,** under the same condition: fixed first, tested on unseen
+   data.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics
