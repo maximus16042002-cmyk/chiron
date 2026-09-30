@@ -9856,6 +9856,115 @@ the data has been seen.
 
 ---
 
+## P3-43 — P8 Layer 2: the cited technique rules, their sources, and what can be measured now
+
+*2026-10-01. The owner: "shall we finish p8 first". Written before any Layer 2 code.*
+
+**What Layer 2 is** (CLAUDE.md §12a, ZERO_DATASET_BUILD_PLAN):
+- exercise-specific form rules for the **Tier A** exercises only;
+- every rule carries a `sourceRef` citing the published description it implements;
+- **no accuracy figure,** because there are no fault labels anywhere in this project;
+- the report states: *these rules implement thresholds from cited sources, and their agreement
+  with expert human judgement was not measured in this work.*
+
+### The sources, read on 2026-10-01
+
+Each quotation below was checked word for word against the page's own text, not against a
+summary.
+
+| # | Source | The words the rule rests on |
+|---|---|---|
+| S1 | American Council on Exercise, Exercise Library: *Lateral Raise* (acefitness.org, exercise-library/26) | "Continue raising the dumbbells until your arms are level with your shoulders and approximately parallel with the floor." |
+| S2 | ACE Exercise Library: *Hammer Curl* (exercise-library/10) | "Position the dumbbells alongside your thighs with your elbows fully extended." … "gently lower the dumbbells back towards your starting position until the elbow(s) is/are fully extended" |
+| S3 | ACE Exercise Library: *Push-Ups* (exercise-library/41) | "Continue pressing until the arms are fully extended at the elbows." … "Do not allow your low back to sag or your hips to hike upwards" |
+| S4 | ACE Exercise Library: *Bodyweight Squat* (exercise-library/135) | "Continue to lower yourself until your thighs are parallel or almost parallel with the floor" … "From the side, the position of the tibia (shinbone) and torso should be parallel with each other" |
+| S5 | Smith A. *Teaching for Skill Acquisition in Fitness—Best Practices for Fitness Pedagogy.* NSCA Coach 7(4), from p. 22; Table 4, a checklist for the barbell biceps curl | "Hold the upper arms close to the ribs and do not let them move forward." Critical feature: "Elbows at the ribs" |
+| S6 | Cook G, Burton L, Hoogenboom B. *Pre-Participation Screening: The Use of Fundamental Movements as an Assessment of Function – Part 2.* N Am J Sports Phys Ther. 2006;1(3):132–139 | trunk stability push-up: "The body should be lifted as a unit; no 'lag' should occur in the lumbar spine" |
+
+**Notes on the sources:**
+- **S2 is ACE's hammer curl.** ACE's own biceps curl page (exercise-library/322) uses a
+  resistance band, and says nothing about the bottom position. The hammer curl differs in grip,
+  not in where the elbow ends, so S2's "fully extended" is applied to the curl, and the citation
+  says it is the hammer curl.
+- **S5's year is not given here.** It could not be read from the document, and the NSCA's page
+  refused automated access. The citation gives volume, issue and page, not a guessed year.
+- **Looked at and not used:**
+  - **the FMS deep squat criteria** (Part 1 of S6). Its text could not be retrieved, and it
+    scores an overhead squat with a dowel, not the app's squat;
+  - **ACE's glute bridge pages.** exercise-library/66 is a bridge on a stability ball, and the
+    floor bridge (exercise-library/49) states no alignment that can be measured. **The glute
+    bridge gets no Layer 2 rule** until a source that fits it is found.
+
+### The tolerance, and why it is the app's, not the sources'
+
+The sources describe positions ("level with your shoulders", "fully extended"), not error bands.
+Every angle rule here adds **one tolerance of 20°**, fixed now, before any rule has run on any
+data:
+- **what it allows for:**
+  - a 2D angle from one camera;
+  - MediaPipe's landmark noise;
+  - the sources' own "approximately" and "almost";
+- **what it does:** the rules speak only on a clear departure;
+- **it is not from any source,** and every message and this entry say so.
+
+### Step A — three rules from what each repetition already records
+
+Each rule reads the driving angle the repetition machine already keeps per side: `peakValue`,
+the most extended value from the end of the last repetition to this one's far point, and
+`troughValue`, the far point. No new work per frame. Sides are judged apart, and never averaged
+(CLAUDE.md §3); a message names its side.
+
+| Rule | Exercise | Fires when | Source |
+|---|---|---|---|
+| `raised_above_shoulder_level` | Lateral raise (front-on; hip–shoulder–elbow angle) | the far angle on a side is above 90° + 20° = 110° | S1 |
+| `curl_started_elbow_bent` | Bicep curl (side-on; the working arm's elbow) | the start angle is below 180° − 20° = 160° | S2 |
+| `pushup_arms_not_extended` | Push-up (side-on; the measured elbow) | the start angle is below 160° | S3 |
+
+- **VALID repetitions only.**
+- **The lower side of each description is already enforced by counting.** A repetition counts
+  only when it reaches the far zone, so "not up to shoulder level" and "not down to 90°" are
+  not rules here.
+- **The curl's and the push-up's start is the extension reached before that repetition.** The
+  straightening after a set's last repetition is not judged.
+
+### Step B — the rules that need a second joint (next, its own entry)
+
+- **Curl:** the upper arm moving forward, the shoulder angle rising during the repetition (S5).
+- **Push-up:** the hips sagging or hiking, the shoulder–hip–ankle line bending (S3, S6).
+- **Squat:**
+  - depth: the thigh short of parallel to the floor (S4);
+  - the torso leaning further than the shin (S4).
+
+These need a small per-repetition summary of other joints, which the record does not carry
+today. That is a change to `RepRecord`, CONTRACTS.md §7 and the export, so it gets its own
+entry. P3-34 anticipated the same kind of summary for the exercise verifier.
+
+### How the rules are checked
+
+- **Tests first:**
+  - each rule fires beyond its tolerance and not inside it;
+  - it judges each side on its own;
+  - it ignores a repetition that is not VALID;
+  - its `sourceRef` is the constant above.
+
+  The type system already makes a Tier B or C rule impossible (CONTRACTS.md §3).
+- **Parity:** a scenario in the golden file on JVM, JS and Android, and mutations.
+- **On MM-Fit's development subjects, descriptively:** how often each rule speaks on
+  repetitions assumed normal. This is not an accuracy figure; there are no labels. The curl is
+  face-on in MM-Fit, not side-on as in the app, and is labelled so.
+
+**Not wired into the app** by this entry. Showing Layer 2 messages is the form-feedback screen's
+own decision (FEATURE_PLAN Batch 2), taken once the rules have been seen on the phone.
+
+**Not claimed:**
+- that any rule detects a fault reliably;
+- any accuracy;
+- agreement with a coach's judgement.
+
+They implement described positions from cited sources, with the app's own tolerance.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
