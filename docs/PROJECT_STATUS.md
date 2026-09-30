@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
 *Snapshot updated 2026-10-01, from the repository as it stands at the end of
-DECISIONS.md P3-41. This file summarises. It is not an authority: where it
+DECISIONS.md P3-42. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date.*
 
@@ -76,8 +76,8 @@ testing resumes.
    - a gate weighted by time, or a warning when results fall below about 10 a
      second (P3-33);
    - the six curl features in P3-30's Decision 3 rule (P3-32);
-   - after Decision 3 selected nothing (P3-41): a new rule for Layer 1, tested on the held-out
-     people, or Layer 1 left out of the app.
+   - the calibration count (5–8 now; S4 said about 12–20). Both S5 (P3-40) and P3-42's
+     held-out failure point at it.
 
 **Done before P3-31:**
 - **The split is by subject:** development A, B, C and w19's subject; held-out
@@ -106,15 +106,17 @@ testing resumes.
    timing is now pinned by tests.
 3. ~~The S5 run~~ **done (P3-40):** a baseline from one session often misdescribes the same
    person's other sessions for range of motion and left–right balance; tempo holds.
-4. ~~The Decision 3 evaluation~~ **done (P3-41): no candidate qualifies,** so the work stopped
-   as the rule says. The nearest, threshold 3 with derived range floors, fails only on the curl's
-   range of motion, and MM-Fit films the curl face-on, not side-on as the app does. The owner's
-   choice is next: P3-41 recommends a new rule, fixed now and tested once on the held-out people.
-5. **The frozen tag `p3-30-frozen`:** the engine, the chosen settings, P3-30's cuts
-   and floors, and the tools, as the held-out run will use them.
-6. **Then a separate approval for the held-out run** (decision 1).
-7. **Layer 1 in the app,** with Decision 3's settings (the second half of FEATURE_PLAN
-   Batch 2).
+4. ~~The Decision 3 evaluation~~ **done (P3-41): no candidate qualifies.**
+   - Then P3-42: the owner approved one held-out test of a smaller setting (threshold 3, derived
+     range floors, 15 messages), fixed and tagged `p3-42-frozen` first.
+   - **It failed.** False alarms on 3 of 15 messages; S17's calibration set was shallower than
+     the sets after it.
+   - **So Layer 1 stays out of the app.** The app shows measurements only.
+5. ~~The frozen tag and the held-out run~~ are superseded: Decision 3 chose no settings,
+   and the held-out people have been read once, for P3-42's test. P3-30's own held-out
+   analyses remain the owner's decision.
+6. —
+7. ~~Layer 1 in the app~~: not after P3-42's failure. The app shows measurements only.
 8. **FEATURE_PLAN Batches 1, 3 and 4,** with P10's charts.
 9. **P8 Layer 2, then P9 Part B** (the verifier).
 
@@ -186,7 +188,7 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P5 RepRecord & Export | Record types, persistence, JSON/CSV export | ✅ Done (DECISIONS.md P3-25) — records and Room storage; the export in the shared core (CONTRACTS.md §10), golden-tested byte for byte on JVM and JS, and run once on the phone: all 59 sessions, 134 repetitions and 4 holds matched the database exactly |
 | P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Built (DECISIONS.md P3-22), and **run on the phone once (P3-31):** the calibration flow saved the device's first baseline (Bicep Curl, 5 per arm), but from curls filmed facing the phone, so its values (a 175° range, a 66 ms lift) are not a curl baseline; to be recalibrated sideways — per-side baselines from 5–8 valid reps (provisional), hold baselines, `AnalysisResult` as numbers beside the baseline, Room storage with a tested migration, the calibration flow. Personal *thresholds* are P8's rules. The MM-Fit convergence study (P3-30 S4, development subjects) says 5–8 repetitions do not settle a range-of-motion baseline (about 12–20 would); the count is the owner's decision |
 | P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | ✅ Done (DECISIONS.md P3-27 to P3-29). The build plan defines P7 as: *"acquire MM-Fit, run MediaPipe over its RGB video, align set boundaries and rep counts, build the evaluation harness"* (`ZERO_DATASET_BUILD_PLAN.md`, phase table). All four were done in P3-27: the videos on disk, MediaPipe run with the phone's own model file, the labels aligned set by set (five workouts drift, by up to 6.8 s, and were corrected), and the `:mmfit-eval` harness running the live screen's own class. All 616 sets went through, and the rep-count study was measured for 7 exercises. The engine defect it exposed (a fast start is lost) is fixed and judged on the 13 held-out workouts in P3-28: curls 368 of 368, every set exact; push-ups and sit-ups now count from the near side. In P3-29 near-side counting stopped letting a failed attempt hide a repetition, and the lateral raise's start zone moved to 36°: held-out raises 125 → 356 of 369, with no set counted above its label in either change. The push-up and sit-up start zones stay as they are, with a personal start zone proposed (P8). The verifier and personalisation studies, once listed here, belong to P9 and P12 in the plan's own evaluation table, not to P7 |
-| P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | 🟡 Layer 1 built in the shared core (DECISIONS.md P3-30), **not wired into the app**: personal deviations (Level 2) in range of motion, lifting and lowering time, left–right balance and consistency; the cited ACSM tempo rule (Level 3, Tier A); the push-up and sit-up personal start zone. Layer 2, the cited technique rules, not started |
+| P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | 🟡 **Layer 1 will not ship:** Decision 3 selected no setting (P3-41), and a smaller setting failed its one held-out test (P3-42). Layer 1 is built in the shared core (DECISIONS.md P3-30) and **not wired into the app**: personal deviations (Level 2) in range of motion, lifting and lowering time, left–right balance and consistency; the cited ACSM tempo rule (Level 3, Tier A); the push-up and sit-up personal start zone. Layer 2, the cited technique rules, not started |
 | P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | 🔶 Partial, **in scope since DECISIONS.md P3-34** (the owner, 2026-09-30). Layer 4 is built in the core, not wired: an Isolation Forest (P3-35), and a robust covariance distance added to the comparison before any run (P3-36). The anomaly study ran on the development subjects (P3-37). The forest on F1 + F2 sees only stalls, which the deterministic detectors see as often; the device rule flags 7–30% of unaltered repetitions with 10–40 in the history. Layer 4 does not ship (P3-38, under the owner's delegation); the study stands as a negative result. The verifier (Part B) is not started, and comes after the app work P3-38 orders first |
 | P10 Visualisation & Android | App UI, live screen, dashboard | 🟡 Partial — shell, dashboard, streaks, Health Connect, sync, theme, the calibration flow and the live camera screen (reps and holds, sets saved) done and run on the owner's phone (P3-18 onward); visualisations not built |
 | P11 Windows PWA | React web app | ✂️ Cut (DECISIONS.md P0-2). The JS *target* survives; the web *app* does not |

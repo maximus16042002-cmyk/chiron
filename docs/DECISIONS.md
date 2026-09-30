@@ -9802,6 +9802,58 @@ If it fails, it stays out."
 A pass says only this: on six people not used to choose the setting, the shipped messages stayed
 quiet on normal repetitions and saw a 30% range cut.
 
+### Result (2026-10-01): FAIL, and Layer 1 stays out of the app
+
+**The run.**
+- It ran once, after the tagged commit (`121c460`, `p3-42-frozen`).
+- **The harness processed all six held-out workouts:** w12 22 sets, w13 30, w16 33, w17 34, w18 30,
+  w20 27.
+- **Calibrated sessions with later sets:** shoulder press 4 of 5, lateral raise 5 of 5, bicep curl
+  5 of 6.
+- **Outputs:** `data/p3-42-held-out/layer1_test_report.txt`, not in git.
+
+**Sensitivity passed.** The 30% range cut was detected in 98.7% of planted repetitions on the
+shoulder press and 99.0% on the lateral raise.
+
+**False alarms failed on 3 of the 15 shipped features:**
+
+| Feature | Mean over subjects | Highest subject |
+|---|---|---|
+| Lateral raise, range of motion, left | **11.0%** | **S17: 55.0%** (11 of 20) |
+| Shoulder press, left − right | 3.6% | **S12: 14.3%** (3 of 21) |
+| Shoulder press, range of motion, right | 3.8% | **S13: 10.5%** (2 of 19) |
+
+The other 12 met the criterion: timing on all three exercises, the press's left range and
+consistency, and the raise's right range.
+
+**What the failures are made of:**
+- **S17's lateral raise.** The calibration set's left range had a median of 88.6° (IQR 4.2°). The
+  later sets' median was 100.9° (90.9–111.8°). So the flags say "further than your usual": the
+  first set was shallower than the rest. This is the change within a session that S5 (P3-40) saw
+  between sessions.
+- **The other two failures come from 2 or 3 flags in about 20 repetitions,** each in one person.
+  With about 20 scored repetitions each, "no subject above 10%" allows at most 2 flags.
+
+**Decided, as the owner set it before the run:**
+- **Layer 1 stays out of the app.** There is no second attempt on these six people.
+- **Criteria and message set stay as they were.** Neither is changed after this result.
+- **The app shows measurements (Level 1) only:** repetitions, range of motion per side, tempo and
+  left–right values, with no "unusual for you" message.
+- **Layer 1 stays in the core, tested and wired to nothing,** like Layer 4.
+
+**What a future attempt would need** (recorded, not started):
+- **new people,** because these six have now been used once;
+- **the phone's own data:** the side-on curl, and whether the app's calibration set represents
+  the sets after it.
+
+A longer or later calibration is what both S5 and this result point at. P3-30 fixed calibration
+at one set, and S4 said 12–20 repetitions would settle a range baseline. That is the owner's open
+decision on the calibration count (P3-30).
+
+**The held-out people have now been read once, for this test only.** None of P3-30's own held-out
+analyses was computed. Running them later is still the owner's decision; this entry records that
+the data has been seen.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics
