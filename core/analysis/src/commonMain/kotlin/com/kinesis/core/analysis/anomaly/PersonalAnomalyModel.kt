@@ -6,7 +6,6 @@ import com.kinesis.core.domain.finding.DeviationDirection
 import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.core.domain.rep.RepValidity
 import kotlin.math.abs
-import kotlin.math.ceil
 import kotlin.math.roundToLong
 
 /**
@@ -123,9 +122,7 @@ class PersonalAnomalyModel private constructor(
                 .takeLast(policy.historyLimit)
             if (rows.size < policy.minHistory) return null
             val forest = IsolationForest.fit(rows, policy.seed, policy.trees, policy.maxSubsample)
-            val scores = rows.map { forest.score(it) }.sorted()
-            // Nearest rank: the smallest score with at least cutQuantile of the history at or below it.
-            val cut = scores[ceil(policy.cutQuantile * rows.size).toInt() - 1]
+            val cut = nearestRank(rows.map { forest.score(it) }, policy.cutQuantile)
             return PersonalAnomalyModel(profile, key, policy, forest, rows.size, cut)
         }
     }

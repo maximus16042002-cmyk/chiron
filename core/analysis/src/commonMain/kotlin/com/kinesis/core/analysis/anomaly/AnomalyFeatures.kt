@@ -1,5 +1,6 @@
 package com.kinesis.core.analysis.anomaly
 
+import com.kinesis.core.analysis.deviation.DeviationPolicy
 import com.kinesis.core.analysis.deviation.RepFeatures
 import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.domain.bilateral.Side
@@ -57,6 +58,27 @@ object AnomalyFeatures {
         if (values.any { !it.isFinite() }) return null
         return values.toDoubleArray()
     }
+
+    /**
+     * The floor under each feature's scale, in the order [of] builds them - DECISIONS.md P3-36.
+     * Layer 1's floors for F1; [SHAPE_FLOOR] for every shape point, which has no floor elsewhere.
+     */
+    fun floorsOf(key: AnomalyKey, withShape: Boolean, policy: DeviationPolicy = DeviationPolicy.PROVISIONAL): DoubleArray {
+        val floors = ArrayList<Double>()
+        if (key.measuresLeft) floors += policy.rangeOfMotionFloorDeg
+        if (key.measuresRight) floors += policy.rangeOfMotionFloorDeg
+        floors += policy.timeFloorMs
+        floors += policy.timeFloorMs
+        if (key.measuresLeft && key.measuresRight) floors += policy.asymmetryFloorDeg
+        if (withShape) {
+            if (key.measuresLeft) repeat(SHAPE_POINTS) { floors += SHAPE_FLOOR }
+            if (key.measuresRight) repeat(SHAPE_POINTS) { floors += SHAPE_FLOOR }
+        }
+        return floors.toDoubleArray()
+    }
+
+    /** 2% of the side's own range: fixed in P3-36, before any run. */
+    const val SHAPE_FLOOR: Double = 0.02
 
     /** One side's curve: from its start, towards the far position, over its range, in [SHAPE_POINTS]. */
     private fun addShape(profile: RepetitionExercise, curve: DoubleArray, rangeOfMotion: Double, into: MutableList<Double>) {

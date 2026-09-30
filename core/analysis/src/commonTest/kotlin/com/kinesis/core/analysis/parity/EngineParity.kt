@@ -7,6 +7,8 @@ import com.kinesis.core.analysis.anomaly.AnomalyFeatures
 import com.kinesis.core.analysis.anomaly.AnomalyPolicy
 import com.kinesis.core.analysis.anomaly.AnomalyTestReps
 import com.kinesis.core.analysis.anomaly.PersonalAnomalyModel
+import com.kinesis.core.analysis.anomaly.RobustDistance
+import com.kinesis.core.analysis.anomaly.nearestRank
 import com.kinesis.core.analysis.export.SessionExport
 import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.domain.landmark.LandmarkId
@@ -190,6 +192,15 @@ object EngineParity {
             for ((name, rep) in probes) {
                 val score = model.score(rep)
                 lines += "score|$set-$name|{\"score\":$score,\"unusual\":${model.assess(rep) != null}}"
+            }
+            // DECISIONS.md P3-36: the robust covariance distance on the same history.
+            val rows = history.map { AnomalyFeatures.of(squat, it, withShape)!! }
+            val distance = RobustDistance.fit(rows, AnomalyFeatures.floorsOf(key, withShape))
+            val cut = nearestRank(rows.map { distance.distanceSquared(it) }, policy.cutQuantile)
+            lines += "distance|$set|{\"historySize\":${distance.historySize},\"shrinkage\":${distance.shrinkage},\"cut\":$cut}"
+            for ((name, rep) in probes) {
+                val d2 = distance.distanceSquared(AnomalyFeatures.of(squat, rep, withShape)!!)
+                lines += "score|$set-$name-distance|{\"score\":$d2,\"unusual\":${d2 > cut}}"
             }
         }
         return lines

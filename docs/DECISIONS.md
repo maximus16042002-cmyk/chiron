@@ -9110,6 +9110,35 @@ says of the forest.
 subjects, at 30 a second, on one camera. No fault detection and no accuracy figure. The
 held-out people only with the owner's approval.
 
+### Built, before the study (2026-10-01)
+
+`RobustDistance` is in the shared core, as specified above. `AnomalyFeatures.floorsOf` gives
+one floor per feature in the feature order. `nearestRank` is now the device rule's one
+implementation, used by the forest's model too; the forest's golden lines did not move.
+
+- **9 tests on every target.** Two pin the arithmetic: a one-feature distance equals the squared
+  robust z, and tied ranks are averaged. The rest cover the floors, the shrinkage, and growth
+  beyond the range, and show that a broken correlation stands out.
+- **The P3-35 cases.** Under the same device rule, with F1 and with F1 + F2, it flags the three
+  repetitions the forest missed: half as deep, far outside, one side short. It also flags the
+  deep-and-quick combination. A usual repetition stays under the cut.
+- **Golden parity.** The same distances were added to `layerFourScores` (12 lines). They match
+  on JVM, JS, Android debug and Android release; nothing else in the golden file moved.
+  Examples:
+  - with F1 + F2 (λ = 0.925), the cut is 20.3. The usual repetition scores 0.95; half as deep
+    359, far outside 1,047, one side short 171, the stall 2,765.
+  - with F1 (λ = 0.125), the cut is 4.39. The stall scores 0.16, because F1 has no shape.
+- **`:core:analysis`:** JVM 457 plus 5 allocation guards, JS 446, Android debug 446, Android
+  release 446. None failed.
+- **Mutations, 4 of 4 caught**, with files restored byte for byte:
+  - no 1.4826;
+  - ties not averaged;
+  - λ = 0;
+  - floors ignored.
+
+These are synthetic cases, as P3-35's were. What the detectors do on MM-Fit is A1–A4's
+answer.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics
