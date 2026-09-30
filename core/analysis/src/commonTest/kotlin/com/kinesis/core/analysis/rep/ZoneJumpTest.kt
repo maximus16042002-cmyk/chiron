@@ -84,6 +84,56 @@ class ZoneJumpTest {
         assertEquals(268.0 - 67.0, rep.descentMs, 1e-9)
     }
 
+    /**
+     * DECISIONS.md P3-39, P3-30 decision 5 - pinned as it is, deliberately. The same fast start,
+     * but the first measured value lands just short of the far zone: the descent is timed from
+     * that value, not from inside the gap. At 30 results a second this times MM-Fit's fastest
+     * curls short (the one-result lifts). Timing it from the gap's first result was tried and
+     * measured against the raw angle: better at 30 a second, but at the phone's 15 the gate also
+     * holds back the arrival in the far zone, the two lags cancel today, and the change made
+     * lifts 133 ms too long (median). A change here has to answer that measurement first.
+     */
+    @Test
+    fun a_descent_that_starts_inside_a_bridged_gap_is_timed_from_the_first_result_after_it() {
+        val fsm = RepFsm(curl, 256, maxBridgedGapMs = 500.0)
+        val nan = Double.NaN
+        val cycles = run(
+            fsm,
+            listOf(0.0 to 170.0, 67.0 to 170.0, 134.0 to nan, 201.0 to nan, 268.0 to 71.4, 335.0 to 60.0) +
+                (1..12).map { (335.0 + 67.0 * it) to (60.0 + 10.0 * it) } + // back up to 180
+                listOf(1_200.0 to 174.0),
+        )
+        val rep = cycles.single()
+        assertEquals(RepValidity.VALID, rep.validity)
+        assertEquals(335.0 - 268.0, rep.descentMs, 1e-9)
+    }
+
+    /** The way back, the same, and pinned for the same reason. */
+    @Test
+    fun an_ascent_that_starts_inside_a_bridged_gap_is_timed_from_the_first_result_after_it() {
+        val fsm = RepFsm(curl, 256, maxBridgedGapMs = 500.0)
+        val nan = Double.NaN
+        val down = (0..10).map { 170.0 - 13.0 * it } // 170 .. 40, 100 ms apart
+        val samples = (List(3) { 170.0 } + down + List(4) { 40.0 }).mapIndexed { i, v -> i * 100.0 to v } + // far zone to 1700
+            listOf(1_800.0 to nan, 1_900.0 to nan, 2_000.0 to 132.1, 2_100.0 to 165.2, 2_200.0 to 170.0)
+        val rep = run(fsm, samples).single()
+        assertEquals(RepValidity.VALID, rep.validity)
+        assertEquals(2_100.0 - 2_000.0, rep.ascentMs, 1e-9)
+    }
+
+    /** Without a gap, a value between the zones starts the phase where it is measured. */
+    @Test
+    fun without_a_gap_a_phase_starts_at_the_first_result_off_its_zone() {
+        val fsm = RepFsm(curl, 256, maxBridgedGapMs = 500.0)
+        val cycles = run(
+            fsm,
+            listOf(0.0 to 170.0, 67.0 to 170.0, 134.0 to 71.4, 201.0 to 60.0) +
+                (1..12).map { (201.0 + 67.0 * it) to (60.0 + 10.0 * it) } +
+                listOf(1_100.0 to 174.0),
+        )
+        assertEquals(201.0 - 134.0, cycles.single().descentMs, 1e-9)
+    }
+
     @Test
     fun a_twitch_across_the_zone_is_still_too_short_to_count() {
         val fsm = RepFsm(curl, 256)

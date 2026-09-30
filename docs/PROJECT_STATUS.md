@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
 *Snapshot updated 2026-10-01, from the repository as it stands at the end of
-DECISIONS.md P3-38. This file summarises. It is not an authority: where it
+DECISIONS.md P3-39. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date.*
 
@@ -99,8 +99,9 @@ testing resumes.
 **Then, in this order (P3-38 adds steps 7–9):**
 1. **The rest of the phone session** (above), whenever the owner is ready. The steps
    below that need no exercise go ahead without it.
-2. **The curl-timing trace on the development workouts** (decision 5): the
-   one-frame lifts after a bridged start.
+2. ~~The curl-timing trace~~ **done (P3-39):** the outlier gate holds back fast starts. A fix
+   helped 30 a second but made the phone's 15 worse, so the engine is unchanged and the
+   timing is now pinned by tests.
 3. **The S5 run** (development subjects A and B only).
 4. **The Decision 3 evaluation,** by the addendum's fixed selection rule.
    Calibration stays one set; if no candidate qualifies, report and stop.

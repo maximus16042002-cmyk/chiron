@@ -9453,6 +9453,92 @@ used, so nothing here passes as the owner's own choice.
 
 ---
 
+## P3-39 — Decision 5 traced: the curl's one-result lifts, a fix tried, and why the engine stays
+
+*2026-10-01. P3-30 decision 5, the first step of P3-38's order. Development workouts only.*
+
+### The trace
+
+- **What was left.** P3-32 took the one-result curl lifts from 118 to 17. Those 17 remain in
+  P3-33's development exports at 30 a second.
+- **The 17, and a few others like them, are one mechanism.** The others are 7 curl lowerings and
+  3 row phases.
+- **Example: w00, set 22, record 7, the right arm.** Traced with `traceSet`:
+  - the raw elbow angle goes 173° → 100.7° → 82.2° → 71.4° → 60.0° in four frames;
+  - the outlier gate (35° per result) rejects 100.7° and 82.2°;
+  - the first re-admitted value, 71.4°, is between the zones (the start below 137°, the far zone
+    from 68°);
+  - the descent is timed from that value, so the lift is one frame, 33 ms.
+  - Timed on the raw angle by the engine's own rule, the same lift is 100 ms.
+- **The same on the way back:** 81.5° and 101.3° are rejected, and the ascent starts at 132.1°.
+
+### The fix tried
+
+- **The change:** a phase that begins after unmeasured results is timed from the first result
+  that went unmeasured, not from the first result after the gap.
+- **Why that rule:**
+  - it is the earliest the rule "a phase starts at the first result off its zone" allows;
+  - it gives the same time as P3-32's whole-way-down case when the far zone comes one result
+    later.
+- **An earlier variant, from the last result at the start, was dropped before measuring.** On
+  the traced lift it gives 133 ms against the raw angle's 100.
+- **Built test-first:**
+  - two new tests failed with 67 and 100 ms, then passed;
+  - `:core:analysis` JVM, JS and the allocation guards all passed;
+  - the golden parity file did not move.
+- **Harness, development workouts, at 30 and 15 results a second:**
+  - every count was identical, and no set counted over its label;
+  - no field but the two phase times changed;
+  - at 30 a second, one-result phases went from 27 to 0.
+
+**Measured against the raw angle.** `tools/mmfit-eval/gap_timing.py` covers every VALID curl
+phase whose time moved. It times the same phase on the raw elbow angle by the engine's rule, and
+reports the engine's time minus the raw one:
+
+| | Phases | Before: median (median \|error\|) | After: median (median \|error\|) |
+|---|---|---|---|
+| Lifts, 30 a second | 91 | −66.7 ms (66.7) | **0.0 ms (33.3)** |
+| Lowerings, 30 a second | 277 | −33.3 ms (33.3) | +33.3 ms (33.3) |
+| Lifts, 15 a second | 68 | **0.0 ms (0.0)** | +133.3 ms (133.3) |
+| Lowerings, 15 a second | 219 | −66.7 ms (66.7) | +66.7 ms (66.7) |
+
+**Why 15 a second goes the other way.** The gate (`MedianOutlierGate`) compares each result
+with the median of recent accepted ones. Take w01, set 24, record 3: the raw angle falls 20–28°
+per result, yet that median falls behind by more than 35°. So results are rejected in the
+middle of the lift, not only at its start, and the engine is late in two places:
+- it is late leaving the start;
+- it is late arriving in the far zone.
+
+Today those two lags cancel. The fix removes the first lag, and the second makes the lift too
+long.
+
+### Decided: the engine is not changed
+
+- **The phone runs at 12–16 results a second** (P3-18, P3-19). There, the current rule is the
+  better one for lifts and no worse for lowerings. A change that improves MM-Fit's 30 a second
+  and worsens the phone is the wrong trade for the app. The change is reverted.
+- **The behaviour is now pinned.** It was untested before. Three tests in `ZoneJumpTest` pin it:
+  - a descent that starts in a gap is timed from the first result after it;
+  - an ascent is timed the same way;
+  - without a gap, a phase starts at the first result off its zone.
+
+  Their documentation carries this measurement, so a later change has to answer it.
+- **Recorded as a limitation.** At 30 a second, MM-Fit's fastest curls are timed short:
+  - 91 of 436 VALID curl records have lifts short by a median of 67 ms;
+  - P3-30's curl lifting figures are affected, as P3-30 already warned;
+  - the Decision 3 evaluation states it beside the curl's timing results, as its rule
+    requires.
+- **The root cause is the outlier gate, which works per result.** A gate that let sustained fast
+  movement through would remove both lags. That is P3-33's open question, a gate weighted by
+  time, which needs phone evidence. This trace is further evidence for it, recorded there.
+- **Decision 5 is closed.** No engine change was made, so Decision 3 runs on P3-33's
+  development exports (`data/mm-fit-eval-p3-33-ta-s1-base`).
+
+**The data from the tried change** is kept outside git as `data/mm-fit-eval-p3-39-tried-s1`
+and `-s2`. It is labelled as that trial, not as the engine.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
