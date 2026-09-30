@@ -9414,6 +9414,45 @@ detector to confirm. Under choice 2 or 3, it runs once, with the frozen detector
 
 ---
 
+## P3-38 — The owner delegates: Layer 4 does not ship, and the order of work to a complete app
+
+*2026-10-01, after P3-37's results.*
+
+**The owner's words,** in answer to P3-37's question (does Layer 4 ship?): "do whatever you
+want..but i just want the app perfect and complete". This entry records how that delegation was
+used, so nothing here passes as the owner's own choice.
+
+**Decided under the delegation:**
+- **Layer 4 does not ship.** This is P3-37's option 1.
+  - The study stands as a negative result. FINAL_ARCHITECTURE §7 counts either outcome as a
+    result.
+  - `IsolationForest`, `PersonalAnomalyModel` and `RobustDistance` stay in the core, tested on
+    every target and wired to nothing, so the study stays reproducible.
+  - **No held-out confirmation runs for Layer 4.** There is no detector to confirm.
+  - CLAUDE.md §13 still lists personal anomaly detection as a permitted use. It stays
+    permitted and unused. Taking it up again needs its own entry and a new study.
+- **The order of work, towards the owner's goal of a complete app.** The main feature is form
+  feedback (FEATURE_PLAN), so what it depends on comes first:
+  1. **P3-30's remaining steps,** in their recorded order: the curl-timing trace
+     (decision 5), S5, and the Decision 3 evaluation, which sets Layer 1's product threshold
+     and floors.
+  2. **Layer 1 in the app** (the second half of FEATURE_PLAN Batch 2), with the settings
+     Decision 3 selects. Wiring it is its own entry. It keeps P3-30's addendum:
+     - uncited population thresholds never reach the user;
+     - one message per side for depth;
+     - the ACSM tempo message is held back until the phone's hand-timed check.
+  3. **FEATURE_PLAN Batches 1, 3 and 4:** the new look and pages; the streak calendar with
+     freezes and reminders; the workout generator. P10's charts come with them.
+  4. **P8 Layer 2** (cited technique rules, Tier A only), then **P9 Part B** (the exercise
+     verifier). Installing scikit-learn for Part B still gets its §17 check first.
+- **Unchanged, and still the owner's:**
+  - installing any build on the phone;
+  - the P4 phone tests;
+  - the frozen tag and the held-out runs of P3-30 and the verifier;
+  - the open points of P3-32 and P3-33.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

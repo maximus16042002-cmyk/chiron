@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
 *Snapshot updated 2026-10-01, from the repository as it stands at the end of
-DECISIONS.md P3-37. This file summarises. It is not an authority: where it
+DECISIONS.md P3-38. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date.*
 
@@ -9,8 +9,9 @@ of date.*
 
 ## Next session starts here
 
-As of DECISIONS.md P3-37 (P9's anomaly study run on the development subjects; Layer 4
-waits on the owner).
+As of DECISIONS.md P3-38. P9's anomaly study has run on the development subjects, and Layer 4
+does not ship. The owner delegated that choice and asked for a complete app; P3-38 records
+the order of work towards it.
 
 **The phone session of 2026-09-29 (P3-31)** ran tests 1–2 of `docs/P4_TOMORROW.md`
 on P3-29's engine (reinstalled 15:05 that day, APK `f84c9987…`):
@@ -69,13 +70,12 @@ testing resumes.
        the seed;
      - the device rule (the history's own 95th percentile) flags 7–30% of unaltered
        repetitions with 10–40 in the history.
-   - **The owner decides:** does Layer 4 ship? P3-37 recommends not. Under that choice
-     there is no held-out run for it.
+   - **Layer 4 does not ship (P3-38),** under the owner's delegation. The study stands
+     as a negative result, and no held-out run is needed for it.
 4. **The owner's decisions:**
    - a gate weighted by time, or a warning when results fall below about 10 a
      second (P3-33);
-   - the six curl features in P3-30's Decision 3 rule (P3-32);
-   - whether Layer 4 ships, and so whether its held-out confirmation runs (P3-37).
+   - the six curl features in P3-30's Decision 3 rule (P3-32).
 
 **Done before P3-31:**
 - **The split is by subject:** development A, B, C and w19's subject; held-out
@@ -96,8 +96,9 @@ testing resumes.
 - **Checked against the code:** `docs/EXERCISE_GUIDE.md`'s counting rules.
 - **Pushed.**
 
-**Then, in this order:**
-1. **The rest of the phone session** (above).
+**Then, in this order (P3-38 adds steps 7–9):**
+1. **The rest of the phone session** (above), whenever the owner is ready. The steps
+   below that need no exercise go ahead without it.
 2. **The curl-timing trace on the development workouts** (decision 5): the
    one-frame lifts after a bridged start.
 3. **The S5 run** (development subjects A and B only).
@@ -106,6 +107,10 @@ testing resumes.
 5. **The frozen tag `p3-30-frozen`:** the engine, the chosen settings, P3-30's cuts
    and floors, and the tools, as the held-out run will use them.
 6. **Then a separate approval for the held-out run** (decision 1).
+7. **Layer 1 in the app,** with Decision 3's settings (the second half of FEATURE_PLAN
+   Batch 2).
+8. **FEATURE_PLAN Batches 1, 3 and 4,** with P10's charts.
+9. **P8 Layer 2, then P9 Part B** (the verifier).
 
 **Also open, not in that sequence:**
 - **P8:** Layer 2, the cited technique rules, and a knee-independent trunk-angle
@@ -176,7 +181,7 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Built (DECISIONS.md P3-22), and **run on the phone once (P3-31):** the calibration flow saved the device's first baseline (Bicep Curl, 5 per arm), but from curls filmed facing the phone, so its values (a 175° range, a 66 ms lift) are not a curl baseline; to be recalibrated sideways — per-side baselines from 5–8 valid reps (provisional), hold baselines, `AnalysisResult` as numbers beside the baseline, Room storage with a tested migration, the calibration flow. Personal *thresholds* are P8's rules. The MM-Fit convergence study (P3-30 S4, development subjects) says 5–8 repetitions do not settle a range-of-motion baseline (about 12–20 would); the count is the owner's decision |
 | P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | ✅ Done (DECISIONS.md P3-27 to P3-29). The build plan defines P7 as: *"acquire MM-Fit, run MediaPipe over its RGB video, align set boundaries and rep counts, build the evaluation harness"* (`ZERO_DATASET_BUILD_PLAN.md`, phase table). All four were done in P3-27: the videos on disk, MediaPipe run with the phone's own model file, the labels aligned set by set (five workouts drift, by up to 6.8 s, and were corrected), and the `:mmfit-eval` harness running the live screen's own class. All 616 sets went through, and the rep-count study was measured for 7 exercises. The engine defect it exposed (a fast start is lost) is fixed and judged on the 13 held-out workouts in P3-28: curls 368 of 368, every set exact; push-ups and sit-ups now count from the near side. In P3-29 near-side counting stopped letting a failed attempt hide a repetition, and the lateral raise's start zone moved to 36°: held-out raises 125 → 356 of 369, with no set counted above its label in either change. The push-up and sit-up start zones stay as they are, with a personal start zone proposed (P8). The verifier and personalisation studies, once listed here, belong to P9 and P12 in the plan's own evaluation table, not to P7 |
 | P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | 🟡 Layer 1 built in the shared core (DECISIONS.md P3-30), **not wired into the app**: personal deviations (Level 2) in range of motion, lifting and lowering time, left–right balance and consistency; the cited ACSM tempo rule (Level 3, Tier A); the push-up and sit-up personal start zone. Layer 2, the cited technique rules, not started |
-| P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | 🔶 Partial, **in scope since DECISIONS.md P3-34** (the owner, 2026-09-30). Layer 4 is built in the core, not wired: an Isolation Forest (P3-35), and a robust covariance distance added to the comparison before any run (P3-36). The anomaly study ran on the development subjects (P3-37). The forest on F1 + F2 sees only stalls, which the deterministic detectors see as often; the device rule flags 7–30% of unaltered repetitions with 10–40 in the history. Whether Layer 4 ships is the owner's call; P3-37 recommends not. The verifier (Part B) is next and not started |
+| P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | 🔶 Partial, **in scope since DECISIONS.md P3-34** (the owner, 2026-09-30). Layer 4 is built in the core, not wired: an Isolation Forest (P3-35), and a robust covariance distance added to the comparison before any run (P3-36). The anomaly study ran on the development subjects (P3-37). The forest on F1 + F2 sees only stalls, which the deterministic detectors see as often; the device rule flags 7–30% of unaltered repetitions with 10–40 in the history. Layer 4 does not ship (P3-38, under the owner's delegation); the study stands as a negative result. The verifier (Part B) is not started, and comes after the app work P3-38 orders first |
 | P10 Visualisation & Android | App UI, live screen, dashboard | 🟡 Partial — shell, dashboard, streaks, Health Connect, sync, theme, the calibration flow and the live camera screen (reps and holds, sets saved) done and run on the owner's phone (P3-18 onward); visualisations not built |
 | P11 Windows PWA | React web app | ✂️ Cut (DECISIONS.md P0-2). The JS *target* survives; the web *app* does not |
 | P12 Evaluation & Documentation | Six studies, final write-up | 🟡 Started: the repetition-count study measured under P7 (P3-27 to P3-29; on the six unseen people in P3-30), and the personalisation study's development half (P3-30, four subjects). Still to come: its held-out run, the verifier, device and pose-reliability studies, parity as a study, and the write-up |
@@ -184,10 +189,11 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 ### Rough overall figure
 
 Counting a done phase as 1 and a partial phase as ½, across the 12 phases still
-in scope: **6 done + 5 × ½ = 8.5 of 12, roughly 71%** (2026-09-29, end of
-P3-30). The six done are P0, P1, P2, P3, P5 and P7; P4, P6, P8, P10 and P12 are
-the five partial phases. Earlier the same day it read 7.5 of 12 (63%); P8 and P12
-became partial in P3-30.
+in scope: **6 done + 6 × ½ = 9 of 12, roughly 75%** (2026-10-01, end of P3-38).
+The six done are P0, P1, P2, P3, P5 and P7. P4, P6, P8, P9, P10 and P12 are the six
+partial phases; P9 became partial with P3-35. At the end of P3-30 (2026-09-29) it
+read 8.5 of 12 (71%), and earlier that day 7.5 of 12 (63%), before P8 and P12 became
+partial.
 
 **A correction to the previous figure.** It read 5 done + 3 × ½ = 6.5 of 12,
 54%, written at P3-25 when P6, P7 and P10 were the partial phases. P4 became
