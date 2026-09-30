@@ -58,6 +58,10 @@ class EngineParityTest {
         check("layerFourScores", EngineParityGolden.layerFourScores, EngineParity.layerFourScores())
 
     @Test
+    fun layer_two_findings_match_the_golden_file_on_this_target() =
+        check("layerTwoFindings", EngineParityGolden.layerTwoFindings, EngineParity.layerTwoFindings())
+
+    @Test
     fun the_comparison_sees_a_discrete_and_a_continuous_difference() {
         val golden = EngineParityGolden.squat
         val index = golden.indexOfFirst { it.startsWith("records|") }
@@ -80,7 +84,9 @@ class EngineParityTest {
                 it.startsWith("records|") || it.startsWith("finish|[{") ||
                     (it.startsWith("export|") && "\"reps\":[{" in it) ||
                     // DECISIONS.md P3-35: Layer 4 records a fitted model and its scores.
-                    (it.startsWith("score|") && "\"score\":" in it)
+                    (it.startsWith("score|") && "\"score\":" in it) ||
+                    // DECISIONS.md P3-43: Layer 2 records the technique faults it found.
+                    (it.startsWith("finding|") && "\"faultId\":" in it)
             },
             "the golden $scenario file records nothing",
         )

@@ -77,6 +77,20 @@ tasks.register<JavaExec>("anomalyStudy") {
     dependsOn(main.compileTaskProvider)
 }
 
+// How often Layer 2's step A rules speak on the development subjects (P3-43), descriptive only:
+// gradlew :mmfit-eval:techniqueStudy -Pharness=<harness out dir> -Pstudy=<out dir>
+tasks.register<JavaExec>("techniqueStudy") {
+    group = "evaluation"
+    val main = kotlin.jvm().compilations.getByName("main")
+    classpath = files(main.output.allOutputs, main.runtimeDependencyFiles)
+    mainClass.set("com.kinesis.tools.mmfit.TechniqueStudyKt")
+    args = listOf(
+        project.findProperty("harness")?.toString() ?: "../../data/mm-fit-eval-p3-33-ta-s1-base",
+        project.findProperty("study")?.toString() ?: "../../data/p3-43-technique",
+    )
+    dependsOn(main.compileTaskProvider)
+}
+
 // A diagnostic: what near-side counting loses to how it combines the sides (P3-28).
 tasks.register<JavaExec>("nearSideDiagnostic") {
     group = "evaluation"

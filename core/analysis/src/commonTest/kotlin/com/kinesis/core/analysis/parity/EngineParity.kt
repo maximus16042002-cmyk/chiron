@@ -11,6 +11,12 @@ import com.kinesis.core.analysis.anomaly.RobustDistance
 import com.kinesis.core.analysis.anomaly.nearestRank
 import com.kinesis.core.analysis.export.SessionExport
 import com.kinesis.core.analysis.profile.ExerciseLibrary
+import com.kinesis.core.analysis.technique.TechniqueRules
+import com.kinesis.core.domain.bilateral.BilateralSignal
+import com.kinesis.core.domain.bilateral.Side
+import com.kinesis.core.domain.finding.TechniqueFault
+import com.kinesis.core.domain.rep.RepRecord
+import com.kinesis.core.domain.rep.RepValidity
 import com.kinesis.core.domain.landmark.LandmarkId
 import com.kinesis.core.domain.session.HoldSetRecord
 import com.kinesis.core.domain.session.RepetitionSetRecord
@@ -205,6 +211,46 @@ object EngineParity {
         }
         return lines
     }
+
+    // --- Layer 2 - DECISIONS.md P3-43 -------------------------------------------------
+
+    /**
+     * Layer 2's step A rules on repetitions built to sit either side of each limit, with half
+     * degrees that every target must round the same way. Each message carries whole degrees
+     * written from integers, and each source is compared whole. Layer 2 is not on the facade
+     * (P3-43: not wired), so this calls the core.
+     */
+    fun layerTwoFindings(): List<String> {
+        val nan = Double.NaN
+        val raise = ExerciseLibrary.lateralRaise
+        val curl = ExerciseLibrary.bicepCurl
+        val pushUp = ExerciseLibrary.pushUp
+        val squat = ExerciseLibrary.squat
+        fun line(name: String, faults: List<TechniqueFault>): String =
+            "finding|$name|[" + faults.joinToString(",") { f ->
+                "{\"faultId\":${quoted(f.faultId)},\"level\":${quoted(f.level.name)},\"ruleVersion\":${quoted(f.ruleVersion)}," +
+                    "\"sourceRef\":${quoted(f.sourceRef)},\"displayText\":${quoted(f.displayText)}}"
+            } + "]"
+        return listOf(
+            line("raise-both-high", TechniqueRules.evaluate(raise.techniqueAuthority, raise, techniqueRep(20.0, 22.0, 124.5, 111.0))),
+            line("raise-at-limit", TechniqueRules.evaluate(raise.techniqueAuthority, raise, techniqueRep(20.0, 22.0, 110.0, 109.9))),
+            line("curl-bent-right", TechniqueRules.evaluate(curl.techniqueAuthority, curl, techniqueRep(nan, 147.5, nan, 45.0, Side.RIGHT))),
+            line("curl-straight-left", TechniqueRules.evaluate(curl.techniqueAuthority, curl, techniqueRep(165.0, nan, 40.0, nan, Side.LEFT))),
+            line("pushup-bent", TechniqueRules.evaluate(pushUp.techniqueAuthority, pushUp, techniqueRep(nan, 151.2, nan, 80.0))),
+            line("squat-no-rule", TechniqueRules.evaluate(squat.techniqueAuthority, squat, techniqueRep(150.0, 150.0, 60.0, 60.0))),
+        )
+    }
+
+    private fun techniqueRep(peakL: Double, peakR: Double, farL: Double, farR: Double, side: Side? = null): RepRecord = RepRecord(
+        repIndex = 1, attributedSide = side, startMs = 0.0, endMs = 2_000.0, validity = RepValidity.VALID,
+        rangeOfMotion = BilateralSignal(abs(peakL - farL), abs(peakR - farR)),
+        peakValue = BilateralSignal(peakL, peakR), troughValue = BilateralSignal(farL, farR),
+        descentMs = 900.0, ascentMs = 1_100.0,
+        resampledLeft = DoubleArray(64) { peakL }, resampledRight = DoubleArray(64) { peakR },
+    )
+
+    /** A JSON string: quotes and backslashes escaped. */
+    private fun quoted(text: String): String = "\"" + text.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
     // --- Export - DECISIONS.md P3-25 ---------------------------------------------------
 
@@ -622,12 +668,32 @@ object MiniJson {
             }
         }
 
+        /** A string, with JSON's escapes - DECISIONS.md P3-43: Layer 2's sources quote their words. */
         private fun str(): String {
             require(text[at] == '"') { "expected a string at $at" }
-            val end = text.indexOf('"', at + 1)
-            val value = text.substring(at + 1, end)
-            at = end + 1
-            return value
+            at++
+            val value = StringBuilder()
+            while (text[at] != '"') {
+                if (text[at] == '\\') {
+                    at++
+                    when (val escaped = text[at]) {
+                        '"', '\\', '/' -> value.append(escaped)
+                        'n' -> value.append('\n')
+                        't' -> value.append('\t')
+                        'r' -> value.append('\r')
+                        'u' -> {
+                            value.append(text.substring(at + 1, at + 5).toInt(16).toChar())
+                            at += 4
+                        }
+                        else -> error("unknown escape \\$escaped at $at")
+                    }
+                } else {
+                    value.append(text[at])
+                }
+                at++
+            }
+            at++
+            return value.toString()
         }
 
         private fun num(): Double {

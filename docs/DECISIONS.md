@@ -9963,6 +9963,70 @@ own decision (FEATURE_PLAN Batch 2), taken once the rules have been seen on the 
 
 They implement described positions from cited sources, with the app's own tolerance.
 
+### Step A built (2026-10-01)
+
+`core/analysis/.../technique/TechniqueRules.kt` holds the three rules exactly as specified above,
+under rule version `p8-layer2-1`.
+
+**Tests:**
+- **12 tests,** in `TechniqueRulesTest`, covering:
+  - each limit and its tolerance;
+  - one message per side, left then right;
+  - only the curl's working arm is judged;
+  - repetitions that did not count are not judged;
+  - no message for the squat or the glute bridge;
+  - one exercise's authority cannot judge another;
+  - every rule quotes its source.
+- **A parity scenario, `layerTwoFindings`,** in the golden file:
+  - it includes half degrees, which every target must round the same way;
+  - regenerating the file added only its lines;
+  - the parity suite's small JSON reader learned JSON's escapes, because the sources quote their
+    words.
+- **`:core:analysis`:** JVM 473 plus 5 allocation guards, JS 462, Android debug 462, Android
+  release 462. None failed.
+- **Mutations, 4 of 4 caught,** with the file restored byte for byte:
+  - the tolerance on the wrong side of shoulder level;
+  - the curl's resting arm judged;
+  - the push-up judged at its far point;
+  - a repetition that did not count judged.
+
+### How often the rules speak on MM-Fit's development subjects
+
+Descriptive only. These are repetitions assumed normal, with no labels, so this is not an
+accuracy figure and not a false-alarm rate. `techniqueStudy` ran on P3-33's development exports:
+
+| Exercise | A | B | C | S19 |
+|---|---|---|---|---|
+| Lateral raise: raised above shoulder level | 187 of 187 | 138 of 138 | 0 of 58 | 4 of 4 |
+| Bicep curl: started with the elbow bent (MM-Fit films it face-on) | 1 of 181 | 0 of 154 | 0 of 61 | 1 of 40 |
+| Push-up: arms not extended at the top | 31 of 62 | — | 1 of 5 | 5 of 25 |
+
+**What the angles are:**
+- **The lateral raise reflects the people.** Median far angles:
+  - A: 137° on both sides;
+  - B: 106° left, 118° right;
+  - S19: 112–118°;
+  - C: 86–90°, level with the shoulder.
+
+  So the rule speaks on almost every raise by three of the four people. The pattern is the same
+  as the ACSM tempo rule on curls, which the owner read as "nagging, not accuracy" (P3-30's
+  addendum). If it is shown, it should appear once per set, not once per repetition. That is for
+  the wiring decision.
+- **The push-up rule sits on top of the spread.**
+  - A's top angle has a median of 159° measured on the right side (43 repetitions), against 179°
+    on the left (19), in different sessions;
+  - S19's median is 161°.
+
+  So the 160° limit falls within the spread of top positions, and a 20° difference between A's
+  two viewing sides suggests camera geometry, not technique. **This rule needs the phone's check
+  more than the others before it is shown.**
+- **The curl rule is nearly silent:** MM-Fit's curlers straighten their arms.
+
+**Still to do in P8:**
+- step B, the per-repetition summary and its rules;
+- the sit-up's trunk-angle driver;
+- the wiring decision, after the phone.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics
