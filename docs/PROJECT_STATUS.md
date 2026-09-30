@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
 *Snapshot updated 2026-10-01, from the repository as it stands at the end of
-DECISIONS.md P3-39. This file summarises. It is not an authority: where it
+DECISIONS.md P3-40. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date.*
 
@@ -102,7 +102,8 @@ testing resumes.
 2. ~~The curl-timing trace~~ **done (P3-39):** the outlier gate holds back fast starts. A fix
    helped 30 a second but made the phone's 15 worse, so the engine is unchanged and the
    timing is now pinned by tests.
-3. **The S5 run** (development subjects A and B only).
+3. ~~The S5 run~~ **done (P3-40):** a baseline from one session often misdescribes the same
+   person's other sessions for range of motion and left–right balance; tempo holds.
 4. **The Decision 3 evaluation,** by the addendum's fixed selection rule.
    Calibration stays one set; if no candidate qualifies, report and stop.
 5. **The frozen tag `p3-30-frozen`:** the engine, the chosen settings, P3-30's cuts

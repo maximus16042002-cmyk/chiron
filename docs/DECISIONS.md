@@ -9539,6 +9539,80 @@ and `-s2`. It is labelled as that trial, not as the engine.
 
 ---
 
+## P3-40 — S5: one session's baseline against the same person's other sessions
+
+*2026-10-01. P3-30 decision 8, run as its addendum's protocol fixed it: development subjects A
+and B only, sessions of unknown spacing.*
+
+### The run
+
+- **The code** was committed before the run (`bc6c788`):
+  - `PersonalisationStudy.kt` writes `s5.csv`;
+  - `s5_study.py` summarises it.
+- **The exports are P3-30's own** (`data/mm-fit-eval-p3-30-dev`), as the protocol says. The same
+  run reproduced P3-30's study files byte for byte (`reps.csv`, `scored.csv`, `acsm.csv`,
+  `sessions.csv`).
+- **The baselines:** every session's first set of the exercise calibrated through the app's
+  calibrator:
+  - A: 6 of 6 sessions for each exercise;
+  - B: 6 of 6 for the press and the curl, 5 of 5 for the lateral raise.
+- **The pairs:** 30 per exercise, and 20 for B's lateral raise.
+- **The cuts:** S2's c\*, recomputed by S2's own function on S2's own rows.
+- **The centre's shift** is computed as |median z| of the other session. Since z is linear in the
+  value, that equals the protocol's |median − baseline median| / max(robust SD, floor).
+- **Outputs:** `data/p3-40-s5/s5_report.txt`, which has every feature, and `s5_pairs.csv`, which
+  has every pair. Neither is in git.
+
+### Results
+
+**The centre's shift above 2 of the baseline's own robust SDs,** as a share of cross-session
+pairs, against S2's same-session figure (the baseline session's own later sets):
+
+| Feature | Cross-session pairs | Shift > 2 SD, cross-session | Shift > 2 SD, same session |
+|---|---|---|---|
+| Range of motion (per side) | 340 | **31%** | 15% |
+| Left − right (press, raise) | 110 | **35%** | 4% |
+| Lifting time | 230 | 6% | 0% |
+| Lowering time | 230 | 3% | 4% |
+
+**Per subject** there are 32 feature rows in all (subject × exercise × feature):
+- the median cross-session shift is larger than the same-session one in 21 of the 32;
+- the median flag rate under |z| > 2 is higher across sessions in 15 of the 32, and equal in 10.
+
+**What moves most:**
+- **Left − right on the press:**
+  - A: flagged 15% within a session and 55% across sessions (median pair), with the shift going
+    from 0.12 to 2.09;
+  - B: 10% and 40%, with the shift going from 0.65 to 1.71.
+- **B's left-arm curl range:** 0% within a session and 94% across sessions (median pair), with
+  the shift going from 0.60 to 3.84 SD.
+- **The spread across pairs is wide:** for most features, a pair's rate runs from 0% to 100%.
+  Some pairs of sessions sit close together, and others far apart.
+
+**What stays:** tempo. The median cross-session rate for lifting and lowering is 0–7%, except
+B's left-arm curl lift at 23%.
+
+### What it means, and what it does not
+
+- **A baseline from one session does not reliably describe the same person's other sessions**
+  for range of motion and left–right balance. For tempo, mostly it does.
+- **The reason cannot be separated here.** It may be:
+  - a real change in how the person moved;
+  - the camera placed differently;
+  - a different weight;
+  - a different day's fatigue.
+
+  MM-Fit records none of these, and gives no dates.
+- **For the app, this bears on Layer 1's wiring** (P3-38 step 2): how long a stored baseline is
+  trusted, and when to recalibrate. It is recorded for that entry, not decided here.
+- **Not claimed:**
+  - anything about how baselines age, since the spacing is unknown;
+  - anything beyond A and B;
+  - any detection;
+  - how often a user should recalibrate.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
