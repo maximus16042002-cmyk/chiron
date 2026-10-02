@@ -42,11 +42,11 @@ import com.kinesis.licenses.ThirdPartyNotices
 import com.kinesis.ui.live.LiveHoldUiState
 import com.kinesis.ui.live.LiveUiState
 import com.kinesis.ui.live.SkeletonOverlayView
-import com.kinesis.ui.theme.Amber
-import com.kinesis.ui.theme.PhosphorDim
-import com.kinesis.ui.theme.PhosphorFaint
-import com.kinesis.ui.theme.PhosphorGreen
-import com.kinesis.ui.theme.VoidRaised
+import com.kinesis.ui.theme.Attention
+import com.kinesis.ui.theme.InkSecondary
+import com.kinesis.ui.theme.InkFaint
+import com.kinesis.ui.theme.Ink
+import com.kinesis.ui.theme.Card
 import com.kinesis.ui.theme.color
 
 /**
@@ -92,7 +92,7 @@ fun ExerciseSelectionScreen(
                         ExerciseLibrary.variants.size + " variants · " +
                         ExerciseLibrary.all.size + " entries",
                     style = MaterialTheme.typography.bodySmall,
-                    color = PhosphorFaint,
+                    color = InkFaint,
                 )
             }
         }
@@ -111,8 +111,8 @@ private fun ExerciseRow(profile: ExerciseProfile, calibrated: Boolean, onClick: 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, if (isVariant) PhosphorFaint else PhosphorDim)
-            .background(VoidRaised)
+            .border(1.dp, if (isVariant) InkFaint else InkSecondary)
+            .background(Card)
             .clickable(onClick = onClick)
             .padding(14.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -129,14 +129,14 @@ private fun ExerciseRow(profile: ExerciseProfile, calibrated: Boolean, onClick: 
                     if (isVariant) append(" · variant of " + (profile as ExerciseVariant).parent.id)
                 },
                 style = MaterialTheme.typography.bodySmall,
-                color = PhosphorFaint,
+                color = InkFaint,
             )
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
                 "TIER " + profile.tier.name,
                 style = MaterialTheme.typography.labelSmall,
-                color = PhosphorDim,
+                color = InkSecondary,
             )
             // Whether the user has a baseline for it - a variant's being its
             // parent's (CONTRACTS.md section 3). DECISIONS.md P3-22.
@@ -147,7 +147,7 @@ private fun ExerciseRow(profile: ExerciseProfile, calibrated: Boolean, onClick: 
                     else -> "CALIBRATED"
                 },
                 style = MaterialTheme.typography.labelSmall,
-                color = if (calibrated) PhosphorGreen else PhosphorFaint,
+                color = if (calibrated) Ink else InkFaint,
             )
         }
     }
@@ -193,7 +193,7 @@ fun DashboardScreen(
                 Text(
                     "DAY STREAK · longest " + summary.streak.longestDays,
                     style = MaterialTheme.typography.bodySmall,
-                    color = PhosphorFaint,
+                    color = InkFaint,
                 )
             }
         }
@@ -218,7 +218,7 @@ fun DashboardScreen(
                 Text(
                     "NO SESSIONS RECORDED",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = PhosphorFaint,
+                    color = InkFaint,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
                 )
@@ -229,8 +229,8 @@ fun DashboardScreen(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .border(1.dp, PhosphorDim)
-                    .background(VoidRaised)
+                    .border(1.dp, InkSecondary)
+                    .background(Card)
                     .padding(14.dp),
             ) {
                 Text(exercise.exerciseId, style = MaterialTheme.typography.titleMedium)
@@ -238,7 +238,7 @@ fun DashboardScreen(
                     exercise.validRepCount.toString() + " reps · " +
                         exercise.setCount + " sets",
                     style = MaterialTheme.typography.bodySmall,
-                    color = PhosphorFaint,
+                    color = InkFaint,
                 )
                 // Left and right stay separate here too - a single averaged
                 // range of motion would be the one number CLAUDE.md section 3
@@ -247,7 +247,7 @@ fun DashboardScreen(
                     "ROM  L " + format(exercise.meanRangeOfMotion.left) +
                         "   R " + format(exercise.meanRangeOfMotion.right),
                     style = MaterialTheme.typography.bodySmall,
-                    color = PhosphorDim,
+                    color = InkSecondary,
                 )
             }
         }
@@ -260,7 +260,7 @@ fun DashboardScreen(
                     Text(
                         if (exporting) "[ EXPORTING... ]" else "[ EXPORT DATA ]",
                         style = MaterialTheme.typography.labelSmall,
-                        color = PhosphorDim,
+                        color = InkSecondary,
                         modifier = Modifier
                             .clickable(onClick = onExport)
                             .padding(vertical = 12.dp),
@@ -270,7 +270,7 @@ fun DashboardScreen(
                         "Every session on this phone, and your baselines, as JSON and CSV " +
                             "files. They leave the phone only if you choose where to send them.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = PhosphorFaint,
+                        color = InkFaint,
                     )
                 }
             }
@@ -279,7 +279,7 @@ fun DashboardScreen(
             Text(
                 "[ LICENCES ]",
                 style = MaterialTheme.typography.labelSmall,
-                color = PhosphorFaint,
+                color = InkFaint,
                 modifier = Modifier
                     .clickable(onClick = onOpenLicences)
                     .padding(vertical = 12.dp),
@@ -319,11 +319,11 @@ fun LicencesScreen(
                 modifier = Modifier.padding(top = 24.dp),
             )
         }
-        item { Text("POSE MODEL", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint) }
+        item { Text("POSE MODEL", style = MaterialTheme.typography.labelSmall, color = InkFaint) }
         item { NoticeRow(ThirdPartyNotices.poseModel) }
-        item { Text("SOFTWARE", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint) }
+        item { Text("SOFTWARE", style = MaterialTheme.typography.labelSmall, color = InkFaint) }
         items(ThirdPartyNotices.software) { NoticeRow(it) }
-        item { Text("BSD 3-CLAUSE", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint) }
+        item { Text("BSD 3-CLAUSE", style = MaterialTheme.typography.labelSmall, color = InkFaint) }
         items(bsdTexts) { (notice, text) ->
             Column {
                 NoticeRow(notice)
@@ -331,7 +331,7 @@ fun LicencesScreen(
                 LicenceText(text)
             }
         }
-        item { Text("APACHE LICENSE, VERSION 2.0", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint) }
+        item { Text("APACHE LICENSE, VERSION 2.0", style = MaterialTheme.typography.labelSmall, color = InkFaint) }
         item { LicenceText(apacheLicenceText) }
         item { Spacer(Modifier.height(24.dp)) }
     }
@@ -342,7 +342,7 @@ private fun LicenceText(text: String?) {
     Text(
         text ?: "The licence text could not be read from the app's assets.",
         style = MaterialTheme.typography.bodySmall,
-        color = if (text == null) Amber else PhosphorDim,
+        color = if (text == null) Attention else InkSecondary,
     )
 }
 
@@ -351,14 +351,14 @@ private fun NoticeRow(notice: ThirdPartyNotice) {
     Column(
         Modifier
             .fillMaxWidth()
-            .border(1.dp, PhosphorDim)
-            .background(VoidRaised)
+            .border(1.dp, InkSecondary)
+            .background(Card)
             .padding(14.dp),
     ) {
         Text(notice.component, style = MaterialTheme.typography.bodyMedium)
-        Text(notice.licence, style = MaterialTheme.typography.bodySmall, color = PhosphorGreen)
+        Text(notice.licence, style = MaterialTheme.typography.bodySmall, color = Ink)
         if (notice.detail.isNotEmpty()) {
-            Text(notice.detail, style = MaterialTheme.typography.bodySmall, color = PhosphorFaint)
+            Text(notice.detail, style = MaterialTheme.typography.bodySmall, color = InkFaint)
         }
     }
 }
@@ -367,12 +367,12 @@ private fun NoticeRow(notice: ThirdPartyNotice) {
 private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
     Column(
         modifier
-            .border(1.dp, PhosphorDim)
-            .background(VoidRaised)
+            .border(1.dp, InkSecondary)
+            .background(Card)
             .padding(12.dp),
     ) {
         Text(value, style = MaterialTheme.typography.headlineMedium)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = PhosphorFaint)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = InkFaint)
     }
 }
 
@@ -392,14 +392,14 @@ private fun HealthContextPanel(
     Column(
         Modifier
             .fillMaxWidth()
-            .border(1.dp, PhosphorFaint)
+            .border(1.dp, InkFaint)
             .padding(14.dp),
     ) {
-        Text("DAILY CONTEXT", style = MaterialTheme.typography.labelSmall, color = PhosphorFaint)
+        Text("DAILY CONTEXT", style = MaterialTheme.typography.labelSmall, color = InkFaint)
         Spacer(Modifier.height(6.dp))
 
         when (context) {
-            null -> Text("—", style = MaterialTheme.typography.bodySmall, color = PhosphorFaint)
+            null -> Text("—", style = MaterialTheme.typography.bodySmall, color = InkFaint)
 
             is ActivityContextResult.Available -> {
                 Metric("STEPS", context.context.steps)
@@ -411,7 +411,7 @@ private fun HealthContextPanel(
                 Text(
                     describe(context.reason),
                     style = MaterialTheme.typography.bodySmall,
-                    color = PhosphorFaint,
+                    color = InkFaint,
                 )
                 if (context.reason == ContextUnavailable.PERMISSIONS_DENIED &&
                     onRequestHealthAccess != null
@@ -420,7 +420,7 @@ private fun HealthContextPanel(
                     Text(
                         "[ GRANT ACCESS ]",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = PhosphorGreen,
+                        color = Ink,
                         modifier = Modifier.clickable(onClick = onRequestHealthAccess),
                     )
                 }
@@ -432,7 +432,7 @@ private fun HealthContextPanel(
 @Composable
 private fun Metric(label: String, metric: DailyMetric) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = PhosphorFaint)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = InkFaint)
         Text(
             when (metric) {
                 is DailyMetric.Measured -> metric.value.toInt().toString()
@@ -441,7 +441,7 @@ private fun Metric(label: String, metric: DailyMetric) {
                 DailyMetric.ReadFailed -> "could not be read"
             },
             style = MaterialTheme.typography.bodySmall,
-            color = if (metric is DailyMetric.Measured) PhosphorDim else PhosphorFaint,
+            color = if (metric is DailyMetric.Measured) InkSecondary else InkFaint,
         )
     }
 }
@@ -493,7 +493,7 @@ fun LiveAnalysisScreen(
         Text(
             state.phase.name,
             style = MaterialTheme.typography.titleMedium,
-            color = PhosphorDim,
+            color = InkSecondary,
         )
         Spacer(Modifier.height(24.dp))
         Text(
@@ -535,7 +535,7 @@ fun LiveHoldScreen(
         Text(
             state.holdState.name.replace('_', ' '),
             style = MaterialTheme.typography.titleMedium,
-            color = PhosphorDim,
+            color = InkSecondary,
         )
         Spacer(Modifier.height(24.dp))
         Text(
@@ -597,16 +597,16 @@ private fun LiveCameraLayout(
                 AndroidView(factory = { overlay }, modifier = Modifier.fillMaxSize())
             }
             Column(Modifier.align(Alignment.TopStart).padding(16.dp)) {
-                Text(exerciseId, style = MaterialTheme.typography.labelSmall, color = PhosphorFaint)
+                Text(exerciseId, style = MaterialTheme.typography.labelSmall, color = InkFaint)
                 if (modeLabel != null) {
-                    Text(modeLabel, style = MaterialTheme.typography.labelSmall, color = PhosphorGreen)
+                    Text(modeLabel, style = MaterialTheme.typography.labelSmall, color = Ink)
                 }
             }
             Column(Modifier.align(Alignment.TopEnd), horizontalAlignment = Alignment.End) {
                 Text(
                     "[ $switchCameraLabel ]",
                     style = MaterialTheme.typography.labelSmall,
-                    color = PhosphorGreen,
+                    color = Ink,
                     modifier = Modifier
                         .clickable(onClick = onSwitchCamera)
                         .padding(16.dp),
@@ -615,7 +615,7 @@ private fun LiveCameraLayout(
                     Text(
                         "[ $switchModelLabel ]",
                         style = MaterialTheme.typography.labelSmall,
-                        color = PhosphorFaint,
+                        color = InkFaint,
                         modifier = Modifier
                             .clickable(onClick = onSwitchModel)
                             .padding(horizontal = 16.dp),
@@ -626,10 +626,10 @@ private fun LiveCameraLayout(
                 Text(
                     diagnostics,
                     style = MaterialTheme.typography.labelSmall,
-                    color = PhosphorFaint,
+                    color = InkFaint,
                     modifier = Modifier
                         .align(Alignment.BottomStart)
-                        .background(VoidRaised)
+                        .background(Card)
                         .padding(8.dp),
                 )
             }
@@ -646,7 +646,7 @@ private fun LiveCameraLayout(
             Text(
                 "[ END SET ]",
                 style = MaterialTheme.typography.titleMedium,
-                color = PhosphorGreen,
+                color = Ink,
                 modifier = Modifier.clickable(onClick = onEndSet),
             )
         }
@@ -681,12 +681,12 @@ fun LiveUnavailableScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(headline, style = MaterialTheme.typography.titleMedium, color = Amber)
+            Text(headline, style = MaterialTheme.typography.titleMedium, color = Attention)
             Spacer(Modifier.height(16.dp))
             Text(
                 detail,
                 style = MaterialTheme.typography.bodySmall,
-                color = PhosphorDim,
+                color = InkSecondary,
                 textAlign = TextAlign.Center,
             )
             if (action != null && onAction != null) {
@@ -694,7 +694,7 @@ fun LiveUnavailableScreen(
                 Text(
                     "[ $action ]",
                     style = MaterialTheme.typography.titleMedium,
-                    color = PhosphorGreen,
+                    color = Ink,
                     modifier = Modifier.clickable(onClick = onAction),
                 )
             }
@@ -703,7 +703,7 @@ fun LiveUnavailableScreen(
         Text(
             exerciseId,
             style = MaterialTheme.typography.labelSmall,
-            color = PhosphorFaint,
+            color = InkFaint,
             modifier = Modifier.align(Alignment.TopStart).padding(16.dp),
         )
     }

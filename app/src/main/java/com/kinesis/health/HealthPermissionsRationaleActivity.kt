@@ -16,8 +16,8 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kinesis.ui.theme.KinesisTheme
-import com.kinesis.ui.theme.PhosphorDim
-import com.kinesis.ui.theme.PhosphorGreen
+import com.kinesis.ui.theme.InkSecondary
+import com.kinesis.ui.theme.Ink
 
 /**
  * Why Kinesis asks for Health Connect data - DECISIONS.md P3-19.
@@ -49,18 +49,18 @@ class HealthPermissionsRationaleActivity : ComponentActivity() {
                     Text(
                         "WHY KINESIS ASKS FOR HEALTH CONNECT",
                         style = MaterialTheme.typography.titleMedium,
-                        color = PhosphorGreen,
+                        color = Ink,
                     )
                     Spacer(Modifier.height(16.dp))
                     for (paragraph in RATIONALE) {
-                        Text(paragraph, style = MaterialTheme.typography.bodyMedium, color = PhosphorDim)
+                        Text(paragraph, style = MaterialTheme.typography.bodyMedium, color = InkSecondary)
                         Spacer(Modifier.height(12.dp))
                     }
                     Spacer(Modifier.height(12.dp))
                     Text(
                         "[ CLOSE ]",
                         style = MaterialTheme.typography.titleMedium,
-                        color = PhosphorGreen,
+                        color = Ink,
                         modifier = Modifier.clickable { finish() },
                     )
                 }

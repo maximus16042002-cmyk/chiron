@@ -26,11 +26,11 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.kinesis.sync.AuthFailure
-import com.kinesis.ui.theme.Amber
-import com.kinesis.ui.theme.PhosphorDim
-import com.kinesis.ui.theme.PhosphorFaint
-import com.kinesis.ui.theme.PhosphorGreen
-import com.kinesis.ui.theme.VoidRaised
+import com.kinesis.ui.theme.Attention
+import com.kinesis.ui.theme.InkSecondary
+import com.kinesis.ui.theme.InkFaint
+import com.kinesis.ui.theme.Ink
+import com.kinesis.ui.theme.Card
 
 /**
  * Sign in or create an account - DECISIONS.md P3-14.
@@ -74,7 +74,7 @@ fun AuthScreen(
         Text(
             if (creatingAccount) "CREATE ACCOUNT" else "SIGN IN",
             style = MaterialTheme.typography.titleMedium,
-            color = PhosphorDim,
+            color = InkSecondary,
         )
 
         Spacer(Modifier.height(28.dp))
@@ -88,7 +88,7 @@ fun AuthScreen(
             Text(
                 describe(failure),
                 style = MaterialTheme.typography.bodyMedium,
-                color = Amber,
+                color = Attention,
             )
         }
 
@@ -101,7 +101,7 @@ fun AuthScreen(
                 else -> "[ SIGN IN ]"
             },
             style = MaterialTheme.typography.titleMedium,
-            color = if (busy) PhosphorFaint else PhosphorGreen,
+            color = if (busy) InkFaint else Ink,
             modifier = Modifier.clickable(enabled = !busy) {
                 if (creatingAccount) onSignUp(email, password) else onSignIn(email, password)
             },
@@ -111,7 +111,7 @@ fun AuthScreen(
         Text(
             if (creatingAccount) "have an account? sign in" else "no account? create one",
             style = MaterialTheme.typography.bodySmall,
-            color = PhosphorDim,
+            color = InkSecondary,
             modifier = Modifier.clickable { creatingAccount = !creatingAccount },
         )
 
@@ -131,14 +131,14 @@ fun SyncDisclosure(modifier: Modifier = Modifier) {
     Column(
         modifier
             .fillMaxWidth()
-            .border(1.dp, Amber)
-            .background(VoidRaised)
+            .border(1.dp, Attention)
+            .background(Card)
             .padding(14.dp),
     ) {
         Text(
             "WHAT LEAVES THIS DEVICE",
             style = MaterialTheme.typography.labelSmall,
-            color = Amber,
+            color = Attention,
         )
         Spacer(Modifier.height(8.dp))
         Text(
@@ -146,7 +146,7 @@ fun SyncDisclosure(modifier: Modifier = Modifier) {
                 "hold durations and their timestamps - are stored in your account so " +
                 "they survive losing this phone.",
             style = MaterialTheme.typography.bodySmall,
-            color = PhosphorDim,
+            color = InkSecondary,
         )
         Spacer(Modifier.height(10.dp))
         Text(
@@ -154,14 +154,14 @@ fun SyncDisclosure(modifier: Modifier = Modifier) {
                 "estimation and all movement analysis run entirely on this device, and " +
                 "nothing is sent while you are training.",
             style = MaterialTheme.typography.bodySmall,
-            color = PhosphorDim,
+            color = InkSecondary,
         )
         Spacer(Modifier.height(10.dp))
         Text(
             "Sessions are saved on this device first and always work offline. " +
                 "Uploading is a background retry, never a requirement.",
             style = MaterialTheme.typography.bodySmall,
-            color = PhosphorFaint,
+            color = InkFaint,
         )
     }
 }
@@ -174,14 +174,14 @@ private fun Field(
     secret: Boolean = false,
 ) {
     Column(Modifier.fillMaxWidth()) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = PhosphorFaint)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = InkFaint)
         Spacer(Modifier.height(4.dp))
         BasicTextField(
             value = value,
             onValueChange = onChange,
             singleLine = true,
-            textStyle = MaterialTheme.typography.bodyMedium.copy(color = PhosphorGreen),
-            cursorBrush = SolidColor(PhosphorGreen),
+            textStyle = MaterialTheme.typography.bodyMedium.copy(color = Ink),
+            cursorBrush = SolidColor(Ink),
             visualTransformation = if (secret) {
                 PasswordVisualTransformation()
             } else {
@@ -189,8 +189,8 @@ private fun Field(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, PhosphorDim)
-                .background(VoidRaised)
+                .border(1.dp, InkSecondary)
+                .background(Card)
                 .padding(12.dp),
         )
     }

@@ -73,8 +73,8 @@ import com.kinesis.core.domain.calibration.CalibrationBaseline
 import com.kinesis.core.domain.session.SessionRecord
 import com.kinesis.storage.RoomBaselineRepository
 import com.kinesis.ui.theme.KinesisTheme
-import com.kinesis.ui.theme.PhosphorFaint
-import com.kinesis.ui.theme.PhosphorGreen
+import com.kinesis.ui.theme.InkFaint
+import com.kinesis.ui.theme.Ink
 import com.kinesis.export.ExportFiles
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -445,7 +445,7 @@ private fun NavBar(
         Text(
             text = (email ?: "signed in") + "  [OUT]",
             style = MaterialTheme.typography.labelSmall,
-            color = PhosphorFaint,
+            color = InkFaint,
             modifier = Modifier.clickable(onClick = onSignOut),
         )
     }
@@ -456,7 +456,7 @@ private fun NavItem(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(
         text = if (selected) "> $label" else "  $label",
         style = MaterialTheme.typography.titleMedium,
-        color = if (selected) PhosphorGreen else PhosphorFaint,
+        color = if (selected) Ink else InkFaint,
         modifier = Modifier.clickable(onClick = onClick),
     )
 }

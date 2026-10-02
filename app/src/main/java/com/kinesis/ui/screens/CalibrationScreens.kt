@@ -40,11 +40,11 @@ import com.kinesis.core.domain.rep.RepValidity
 import com.kinesis.core.domain.session.HoldSetRecord
 import com.kinesis.core.domain.session.RepetitionSetRecord
 import com.kinesis.core.domain.session.SessionRecord
-import com.kinesis.ui.theme.Amber
-import com.kinesis.ui.theme.PhosphorDim
-import com.kinesis.ui.theme.PhosphorFaint
-import com.kinesis.ui.theme.PhosphorGreen
-import com.kinesis.ui.theme.VoidRaised
+import com.kinesis.ui.theme.Attention
+import com.kinesis.ui.theme.InkSecondary
+import com.kinesis.ui.theme.InkFaint
+import com.kinesis.ui.theme.Ink
+import com.kinesis.ui.theme.Card
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -88,7 +88,7 @@ fun ExerciseScreen(
                         " · " + profile.posture.name.replace('_', ' ').lowercase() +
                         if (profile is IsometricExercise) " · hold" else "",
                     style = MaterialTheme.typography.bodySmall,
-                    color = PhosphorFaint,
+                    color = InkFaint,
                 )
             }
         }
@@ -100,7 +100,7 @@ fun ExerciseScreen(
                     "Uses the " + profile.parent.displayName + " baseline: a variant shares its parent's " +
                         "calibration. Calibrate from " + profile.parent.displayName + ".",
                     style = MaterialTheme.typography.bodySmall,
-                    color = PhosphorFaint,
+                    color = InkFaint,
                 )
             }
         }
@@ -108,7 +108,7 @@ fun ExerciseScreen(
             if (baseline == null) {
                 Card {
                     Label("BASELINE")
-                    Text("NOT CALIBRATED", style = MaterialTheme.typography.bodyMedium, color = PhosphorFaint)
+                    Text("NOT CALIBRATED", style = MaterialTheme.typography.bodyMedium, color = InkFaint)
                 }
             } else {
                 BaselineCard(if (profile is ExerciseVariant) profile.parent.displayName else profile.displayName, baseline)
@@ -134,12 +134,12 @@ fun CalibrationIntroScreen(
     ) {
         Spacer(Modifier.height(8.dp))
         Text("CALIBRATE " + profile.displayName.uppercase(), style = MaterialTheme.typography.titleMedium)
-        Text(instructions, style = MaterialTheme.typography.bodyMedium, color = PhosphorDim)
+        Text(instructions, style = MaterialTheme.typography.bodyMedium, color = InkSecondary)
         Text(
             "The baseline is kept on this phone only. It is not uploaded with your sessions, and " +
                 "calibrating again replaces it.",
             style = MaterialTheme.typography.bodySmall,
-            color = PhosphorFaint,
+            color = InkFaint,
         )
         Action("START CALIBRATION SET", onStart)
     }
@@ -169,15 +169,15 @@ fun CalibrationResultScreen(
             )
         }
         when (outcome) {
-            null -> item { Text("Building the baseline…", style = MaterialTheme.typography.bodyMedium, color = PhosphorFaint) }
+            null -> item { Text("Building the baseline…", style = MaterialTheme.typography.bodyMedium, color = InkFaint) }
 
             is CalibrationOutcome.Calibrated -> {
-                item { Text(outcome.displayText, style = MaterialTheme.typography.bodyMedium, color = PhosphorGreen) }
+                item { Text(outcome.displayText, style = MaterialTheme.typography.bodyMedium, color = Ink) }
                 item {
                     Text(
                         "Saved on this phone. It replaces any earlier " + profile.displayName + " baseline.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = PhosphorFaint,
+                        color = InkFaint,
                     )
                 }
                 item { BaselineCard(profile.displayName, outcome.baseline) }
@@ -185,12 +185,12 @@ fun CalibrationResultScreen(
             }
 
             else -> {
-                item { Text(outcome.displayText, style = MaterialTheme.typography.bodyMedium, color = Amber) }
+                item { Text(outcome.displayText, style = MaterialTheme.typography.bodyMedium, color = Attention) }
                 item {
                     Text(
                         "Nothing was saved, and any earlier baseline is unchanged. The set itself is in your history.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = PhosphorFaint,
+                        color = InkFaint,
                     )
                 }
                 item { Action("TRY AGAIN", onTryAgain) }
@@ -213,7 +213,7 @@ fun BaselineCard(title: String, baseline: CalibrationBaseline, modifier: Modifie
                 Text(
                     "repetitions used: L " + baseline.repetitionsUsedLeft + "   R " + baseline.repetitionsUsedRight,
                     style = MaterialTheme.typography.bodySmall,
-                    color = PhosphorFaint,
+                    color = InkFaint,
                 )
                 Spacer(Modifier.height(6.dp))
                 SidesRow("RANGE", baseline.rangeOfMotion.left, baseline.rangeOfMotion.right, ::degrees)
@@ -245,7 +245,7 @@ fun BaselineCard(title: String, baseline: CalibrationBaseline, modifier: Modifie
         Text(
             "Provisional: estimator " + baseline.estimatorVersion + ".",
             style = MaterialTheme.typography.labelSmall,
-            color = PhosphorFaint,
+            color = InkFaint,
             modifier = Modifier.padding(top = 6.dp),
         )
     }
@@ -254,11 +254,11 @@ fun BaselineCard(title: String, baseline: CalibrationBaseline, modifier: Modifie
 @Composable
 private fun SidesRow(label: String, left: RobustStatistic, right: RobustStatistic, unit: (Double) -> String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = PhosphorFaint)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = InkFaint)
         Text(
             "L " + unit(left.median) + spread(left, unit) + "   R " + unit(right.median) + spread(right, unit),
             style = MaterialTheme.typography.bodySmall,
-            color = PhosphorDim,
+            color = InkSecondary,
         )
     }
 }
@@ -284,7 +284,7 @@ fun BaselinesPanel(baselines: List<Pair<String, CalibrationBaseline>>) {
             Text(
                 "No exercise calibrated yet. Calibrate one from TRAIN.",
                 style = MaterialTheme.typography.bodySmall,
-                color = PhosphorFaint,
+                color = InkFaint,
             )
         }
         for ((name, baseline) in baselines) BaselineCard(name, baseline)
@@ -320,12 +320,12 @@ fun SetSummaryScreen(
                     if (set is RepetitionSetRecord) set.completedUnits.toString() + " counted of " + set.reps.size + " records"
                     else set.completedUnits.toString() + " valid hold",
                     style = MaterialTheme.typography.bodySmall,
-                    color = PhosphorFaint,
+                    color = InkFaint,
                 )
                 Text(
                     if (baselineTitle != null) "BESIDE THE $baselineTitle BASELINE" else "NO BASELINE: CALIBRATE TO SEE ITS VALUES HERE",
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (baselineTitle != null) PhosphorGreen else PhosphorFaint,
+                    color = if (baselineTitle != null) Ink else InkFaint,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
@@ -347,7 +347,7 @@ private fun RepetitionRow(result: RepetitionAnalysisResult, rep: RepRecord?) {
         Label(
             "#" + result.repIndex + "  " + (rep?.validity?.name ?: "") +
                 (rep?.attributedSide?.let { "  " + it.name } ?: ""),
-            if (rep?.validity == RepValidity.VALID) PhosphorGreen else Amber,
+            if (rep?.validity == RepValidity.VALID) Ink else Attention,
         )
         val comparison = result.comparison
         if (comparison == null && rep != null) {
@@ -388,10 +388,10 @@ private fun HoldRow(result: HoldAnalysisResult, hold: HoldRecord?) {
 @Composable
 private fun Beside(label: String, value: BesideBaseline, unit: (Double) -> String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = PhosphorFaint)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = InkFaint)
         Row {
-            Text(unit(value.measured), style = MaterialTheme.typography.bodySmall, color = PhosphorGreen)
-            Text("   baseline " + unit(value.baseline), style = MaterialTheme.typography.bodySmall, color = PhosphorDim)
+            Text(unit(value.measured), style = MaterialTheme.typography.bodySmall, color = Ink)
+            Text("   baseline " + unit(value.baseline), style = MaterialTheme.typography.bodySmall, color = InkSecondary)
         }
     }
 }
@@ -401,21 +401,21 @@ private fun Beside(label: String, value: BesideBaseline, unit: (Double) -> Strin
 @Composable
 private fun Card(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Column(
-        modifier.fillMaxWidth().border(1.dp, PhosphorDim).background(VoidRaised).padding(14.dp),
+        modifier.fillMaxWidth().border(1.dp, InkSecondary).background(Card).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) { content() }
 }
 
 @Composable
-private fun Label(text: String, color: Color = PhosphorFaint) {
+private fun Label(text: String, color: Color = InkFaint) {
     Text(text, style = MaterialTheme.typography.labelSmall, color = color)
 }
 
 @Composable
 private fun Value(label: String, value: String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = PhosphorFaint)
-        Text(value, style = MaterialTheme.typography.bodySmall, color = PhosphorDim)
+        Text(label, style = MaterialTheme.typography.bodySmall, color = InkFaint)
+        Text(value, style = MaterialTheme.typography.bodySmall, color = InkSecondary)
     }
 }
 
@@ -424,7 +424,7 @@ private fun Action(label: String, onClick: () -> Unit) {
     Text(
         "[ $label ]",
         style = MaterialTheme.typography.titleMedium,
-        color = PhosphorGreen,
+        color = Ink,
         modifier = Modifier.clickable(onClick = onClick).padding(vertical = 8.dp),
     )
 }
