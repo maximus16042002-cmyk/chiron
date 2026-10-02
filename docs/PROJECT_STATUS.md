@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
 *Snapshot updated 2026-10-01, from the repository as it stands at the end of
-DECISIONS.md P3-46. This file summarises. It is not an authority: where it
+DECISIONS.md P3-47. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date.*
 
@@ -50,9 +50,9 @@ testing resumes.
   carrying P3-32 and P3-33. Not installed.
 
 **Open, first:**
-1. **Install the P3-33 build,** only with the owner's approval. Back up first as
-   P3-25 and P3-29 did, and check the phone's APK against the hash. On 2026-10-01 the
-   phone still held P3-29's build, `f84c9987…` (P3-35).
+1. ~~Install the P3-33 build~~ **done (P3-47):** the P3-46 build (`e7fe84d3…`) is on the
+   phone, installed after a verified backup. Room migrated to version 3 on the owner's data,
+   with all 79 sessions intact.
 2. **Resume `docs/P4_TOMORROW.md`:**
    - recalibrate the curl sideways (replacing the front-on baseline);
    - tests 3–12: lateral raise, push-ups, sit-ups, plank against a stopwatch, book

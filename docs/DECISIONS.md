@@ -10520,6 +10520,47 @@ The test ran once, after the tagged commit (`85660ed`, `p3-46-frozen`):
 
 ---
 
+## P3-47 — The P3-46 build on the phone, and version 3 migrated on the owner's data
+
+*2026-10-02. The owner: "phone is connected now...do whatever you want".*
+
+**What was installed.** `app-debug.apk` built from `a0c7f73`, SHA-256 `e7fe84d3dee6bbd8…bcb941c0e6a`.
+- **What it carries** beyond P3-29's build (`f84c9987…`, the one on the phone since 2026-09-29):
+  - P3-32 and P3-33's engine fixes;
+  - the form summary (P3-44);
+  - the trunk-driven sit-up (P3-46).
+- **Nothing analytical is wired into the app beyond counting.** Layer 1 and Layer 2 still say
+  nothing.
+
+**How it was installed, by P3-23's rule:**
+1. **The backup, first.** Every file in the app's `databases/` was copied with `run-as` into
+   `local/backup-p3-46-2026-10-02/`, which is not in git, and each file's SHA-256 matched the
+   phone's.
+   - The backup reads: integrity "ok", Room version 2, 79 sessions, 79 sets, 258 repetitions,
+     4 holds, 1 baseline (the bicep curl).
+   - It holds no sit-up session and no sit-up baseline, so P3-46's key revision touches nothing
+     here.
+2. **`adb install -r`, which keeps the app's data.** The on-device test task was not used,
+   because P3-23 found it uninstalls the app. The installed APK's SHA-256 matched the build's.
+3. **The app opened normally** (`am start`), with nothing force-stopped.
+
+**The migration, on real data:**
+- A copy of the database taken after opening reads integrity "ok" and Room **version 3**.
+- It still holds the same 79 sessions, 79 sets, 258 repetitions, 4 holds and 1 baseline.
+- The new `form` column exists, and is empty on all 258 old repetitions: no form summary, not
+  zero.
+- This is `MIGRATION_2_3`'s first run on real data. It stands in for the on-device migration test
+  (P3-44), which would have uninstalled the app.
+- **The log since the install shows no crash.** It shows only the system messages earlier builds
+  also showed: graphics, and Google Play services' "Unknown calling package name".
+
+**Still owed on the phone (P4, `docs/P4_TOMORROW.md`),** for when the owner is ready to exercise:
+- tests 3–12;
+- the side-on sit-up with recalibration and the crunch check (P3-46);
+- the side-on checks the Layer 2 rules wait for (P3-43, P3-44).
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
