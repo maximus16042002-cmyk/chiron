@@ -10029,6 +10029,120 @@ accuracy figure and not a false-alarm rate. `techniqueStudy` ran on P3-33's deve
 
 ---
 
+## P3-44 — Layer 2 step B: a per-repetition form summary in the record, and three more rules
+
+*2026-10-02. Written before code. P3-43's step B, and an architecture change: `RepRecord` gains a
+field.*
+
+### Why the record changes
+
+- **What the step B rules need.** Each one judges a joint other than the driving one:
+  - the curl's upper arm against the trunk;
+  - the push-up's hip against the line from shoulder to ankle;
+  - the squat's trunk against its shin.
+
+  The record keeps only the driving angle.
+- **Where those numbers belong.** They are measurements, so they go in the record, not in a
+  finding. CLAUDE.md §15 keeps measurement and interpretation apart, so that old repetitions can
+  be judged again when a rule changes.
+- **P3-34 anticipated this kind of summary** for the exercise verifier, which this structure can
+  carry later.
+
+### The form summary
+
+**`FormMeasure`**, in `:core:domain`, is a closed set of named measures, in degrees, each per side:
+
+| Measure (id) | What it is | Over the repetition |
+|---|---|---|
+| `upper_arm_trunk_max_deg` | the angle at the shoulder between hip and elbow: the upper arm against the trunk | the largest |
+| `body_line_sag_max_deg` | how far the hip bends below the shoulder–ankle line, 180° minus the angle at the hip, when the hip is lower in the image than the line | the largest, 0 if never below |
+| `body_line_hike_max_deg` | the same, with the hip above the line | the largest, 0 if never above |
+| `trunk_minus_shin_lean_deg` | the trunk's lean from vertical (hip→shoulder) minus the shin's (ankle→knee), each unsigned | at the deepest frame |
+
+**How each measure is defined:**
+- "Below" and "above" use image y, which runs down the frame (CONTRACTS.md §4, and the pose
+  adapter turns the frame upright).
+- **The deepest frame** is the one where the raw driving angle is furthest towards the far zone
+  inside the repetition's own window.
+
+**`FormMeasures`** holds one `BilateralSignal` per measure the profile asked for. An unmeasured
+side is `NaN`, as everywhere (CLAUDE.md §3).
+
+**Which profiles ask, and nothing else pays:**
+
+| Profile | Measures |
+|---|---|
+| bicep curl | upper arm against trunk |
+| push-up | sag, hike |
+| squat (and the goblet squat, through its parent) | trunk minus shin |
+
+Every other profile asks for none, and computes none.
+
+**How it is computed:**
+- **Per frame** (O(1), and no allocation; the P2 budget guards must pass): for each side, the
+  asked-for angles from the frame's landmarks, under the visibility policy the driving angle
+  uses. They are pushed into fixed-size ring buffers beside the raw driving angle.
+- **Per repetition** (post-rep): each measure is reduced over the samples inside that side's
+  repetition window. A per-limb or near-side record carries only its own side.
+
+**Where it goes:**
+- **`RepRecord.form`.** It defaults to none, so every existing record and constructor is unchanged
+  in meaning.
+- **The facade's record JSON** gains `"form": {id: {"left", "right"}}`, so the export's JSON does
+  too (CONTRACTS.md §10: records are what the facade returns). The CSV is unchanged: the form, like
+  the resampled curves, is in the JSON only.
+- **`formatVersion` rises to 2,** as §10 requires, and the golden files are regenerated with it.
+- **The app:**
+  - Room's `reps` table gains a nullable `formJson` column (migration 2 → 3);
+  - Firestore's rep map gains a `form` field;
+  - records stored before this reload with no form, so they are unmeasured, not zero.
+- **The MM-Fit harness** reads `form` when present.
+
+### The three rules (rule version `p8-layer2-2`)
+
+Same discipline as P3-43:
+- one tolerance of 20°, the app's own;
+- per side;
+- VALID repetitions only;
+- the sources are quoted in the code.
+
+| Rule | Fires when | Source |
+|---|---|---|
+| `curl_upper_arm_moved_forward` | on the working arm, the upper arm's largest angle to the trunk exceeds 0° + 20° | S5 (NSCA Coach 7(4), Table 4): "Hold the upper arms close to the ribs and do not let them move forward." |
+| `pushup_hips_sagged` / `pushup_hips_raised` | the hip's largest bend below / above the shoulder–ankle line exceeds 20° | S3 (ACE Push-Ups): "Do not allow your low back to sag or your hips to hike upwards" |
+| `squat_trunk_ahead_of_shin` | at the deepest frame, the trunk leans more than 20° further from vertical than the shin | S4 (ACE Bodyweight Squat): "From the side, the position of the tibia (shinbone) and torso should be parallel with each other" |
+
+**Notes on the rules:**
+- **The curl measures a position, not a movement.** S5 describes the arms close to the ribs, so
+  the rule takes the largest angle, not its change from the start.
+- **The squat rule judges one direction only:** the trunk ahead of the shin. A shin leaning more
+  than the trunk is not judged. S4 asks for them parallel, so this is a stated subset.
+- **The squat's depth is not a Layer 2 rule.** S4 stops the descent at the first of three points:
+  - "until your thighs are parallel or almost parallel with the floor";
+  - "until your heels begin to lift off the floor";
+  - "until your torso begins to round or flex forward".
+
+  Kinesis cannot see rounding, so a squat that stopped above parallel may be doing exactly what
+  S4 says. A Level 3 claim there would outrun the source.
+
+### Checks, before any MM-Fit number
+
+- Tests first:
+  - each measure on synthetic landmarks, in both image directions;
+  - the tracker carrying it into the record, for each semantics;
+  - each rule either side of its limit.
+- The allocation guards unchanged and passing.
+- Golden files regenerated deliberately. The diff may add the `form` key and the format version,
+  and nothing else.
+- Mutations.
+- The app's mapping, migration and sync tests.
+- Then the descriptive rates on MM-Fit's development subjects, as for step A. MM-Fit's squat is
+  face-on, so no squat number from MM-Fit says anything about the app's side-on squat.
+
+**Not wired into the app,** and **not claimed:** as P3-43.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
