@@ -4,7 +4,10 @@ For each development subject with sit-ups, the share of MM-Fit's labelled repeti
 under each driver, and every set that counts above its label. The trunk driver passes only if every
 subject's share is at least the hip driver's, the total is higher, and no set counts above its label.
 
-Usage: python situp_driver_compare.py <hip harness dir> <trunk harness dir>
+With `--held-out` (DECISIONS.md P3-46, approved by the owner for one run) it reads the held-out
+workouts instead, and refuses development ones.
+
+Usage: python situp_driver_compare.py <hip harness dir> <trunk harness dir> [--held-out]
 """
 import csv
 import json
@@ -16,16 +19,16 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import subjects  # noqa: E402
 
 
-def counts(harness):
+def counts(harness, held_out):
     base = os.path.join(harness, "primary")
     rows = [r for r in csv.DictReader(open(os.path.join(base, "sets.csv"), newline=""))
             if r["status"] == "evaluated" and r["profileId"] == "situp"]
-    development = set(subjects.DEVELOPMENT)
+    allowed = set(subjects.HELD_OUT if held_out else subjects.DEVELOPMENT)
     out, exports = {}, {}
     for r in rows:
         w = r["workout"]
-        if w not in development:
-            sys.exit(f"refusing: {w} is not a development workout (DECISIONS.md P3-45)")
+        if w not in allowed:
+            sys.exit(f"refusing: {w} is not a {'held-out' if held_out else 'development'} workout (DECISIONS.md P3-45, P3-46)")
         if w not in exports:
             exports[w] = json.load(open(os.path.join(base, w + ".export.json")))["sessions"][0]["sets"]
         s = exports[w][int(r["exportSetIndex"]) - 1]
@@ -34,8 +37,8 @@ def counts(harness):
     return out
 
 
-def main(hip_dir, trunk_dir):
-    hip, trunk = counts(hip_dir), counts(trunk_dir)
+def main(hip_dir, trunk_dir, held_out=False):
+    hip, trunk = counts(hip_dir, held_out), counts(trunk_dir, held_out)
     assert hip.keys() == trunk.keys(), "the two runs evaluated different sets"
     per = defaultdict(lambda: [0, 0, 0, 0, 0])  # labelled, hip, trunk, hip sets over, trunk sets over
     over = []
@@ -65,6 +68,7 @@ def main(hip_dir, trunk_dir):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        sys.exit("usage: python situp_driver_compare.py <hip harness dir> <trunk harness dir>")
-    main(sys.argv[1], sys.argv[2])
+    args = [a for a in sys.argv[1:] if a != "--held-out"]
+    if len(args) != 2:
+        sys.exit("usage: python situp_driver_compare.py <hip harness dir> <trunk harness dir> [--held-out]")
+    main(args[0], args[1], held_out="--held-out" in sys.argv[1:])

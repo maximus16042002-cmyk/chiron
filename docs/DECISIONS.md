@@ -10408,6 +10408,56 @@ Until then the app's sit-up keeps its hip angle, and nothing shipped has changed
 
 ---
 
+## P3-46 — The sit-up's trunk driver, tested once on the held-out people
+
+*2026-10-02. Written, committed and tagged `p3-46-frozen` before any held-out sit-up is counted with
+the trunk driver.*
+
+**The owner's decision, 2026-10-02.** Asked whether the app's sit-up should switch to P3-45's trunk
+driver, the owner chose: "Check on held-out, then adopt".
+
+**The data.**
+- **P3-42 read the held-out people once, for Layer 1.** This is a separate question about counting
+  sit-ups, and it is asked once.
+- **The development thresholds were fitted to other people,** and none comes from the held-out
+  ones.
+
+### Frozen
+
+- **The driver:** `SegmentInclination.TRUNK`, 2D.
+  - top threshold 11.9°, bottom threshold 75.0°, hysteresis 8°;
+  - minimum repetition 500 ms, maximum 12 s;
+  - near side only, exactly as P3-45 measured it.
+- **The comparison:** the six held-out workouts (w12, w13, w16, w17, w18, w20).
+  - `runHarness -Psplit=held-out`, once with the shipped sit-up and once with
+    `-PsitupTrunk=11.9,75.0`;
+  - the current engine at 30 a second;
+  - everything else identical.
+- **The pass rule, P3-45's unchanged** (`situp_driver_compare.py --held-out`):
+  - for every held-out subject with sit-ups, the share of labelled repetitions counted VALID is at
+    least the hip driver's;
+  - the total is higher;
+  - no set counts above its label.
+- **Reported beside it, deciding nothing:** each subject's share under both drivers, and every
+  set's count against its label.
+
+### What follows
+
+**If it passes, the trunk driver goes into the app**, in this entry's follow-up commits, test-first:
+1. **`SitUpProfile.repSignal`** becomes the frozen trunk driver. Its pinning tests change with it,
+   deliberately, citing this entry.
+2. **Stored sit-up baselines are retired.** The sit-up's calibration key gains a revision, so a
+   baseline stored under the old key is never used to judge a trunk-driven repetition. The app
+   shows the sit-up as not calibrated until it is recalibrated.
+3. **The sit-up's personal start zone (P3-30) is retired.** It is defined on the hip angle, and the
+   trunk driver needs none. The push-up keeps its own.
+4. **The phone:** a side-on sit-up count joins P4's tests.
+
+**If it fails, the app's sit-up keeps its hip angle.** The trunk driver stays in the engine, unused,
+and there is no second attempt on these people.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
