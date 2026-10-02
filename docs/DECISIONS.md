@@ -10561,6 +10561,101 @@ The test ran once, after the tagged commit (`85660ed`, `p3-46-frozen`):
 
 ---
 
+## P3-48 — FEATURE_PLAN Batch 1: the new look, five pages, and onboarding
+
+*2026-10-02. Written before the code. P3-38's order, step 3. The owner: "do whatever you want..but
+i just want the app perfect and complete".*
+
+**The owner's decision this records.** FEATURE_PLAN, "Owner decisions", 2026-09-23:
+- a modern dark fitness style: dark background, rounded cards, one bright accent, a normal
+  (non-monospace) font, big numbers;
+- it "replaces the P3-12 phosphor-green terminal theme and must be recorded as a new owner decision
+  that supersedes it".
+
+This entry is that record. **P3-12's theme is superseded.** P3-12's legibility rules for the skeleton
+overlay are not: `OverlayState`, its four states, amber, the wider stroke, the pulse and
+`SkeletonPaletteLegibilityTest` stay exactly as they are (FEATURE_PLAN rule 7).
+
+### Step 1 — the design system
+
+**The colours, as tokens in one place** (`KinesisPalette`, plain `Long`s so they can be tested
+without Compose):
+
+| Token | Value | For |
+|---|---|---|
+| canvas | `#0E0F12` | the background |
+| card | `#1A1C21` | cards |
+| raised | `#23262D` | a card on a card, the bottom bar |
+| ink | `#F2F3F5` | text |
+| ink secondary | `#A0A4AD` | secondary text |
+| ink faint | lightest grey to pass on every surface | labels, outlines |
+| accent | `#FF6B35` | the one bright colour: selection, the main button, the streak |
+| attention | `#FFB000` | amber, as before: something needs the user's eye |
+
+The values are FEATURE_PLAN's.
+
+**A contrast test, as the overlay's** (`KinesisPaletteContrastTest`). On canvas, card and raised:
+- ink, ink secondary and ink faint reach 4.5:1 (WCAG AA for text);
+- the accent reaches 3:1 (non-text: selection marks, icons);
+- canvas-coloured text on an accent button reaches 4.5:1.
+
+If a value fails, the value changes, not the test.
+
+**Type:**
+- the platform's sans-serif, replacing monospace;
+- every style that shows a changing number uses **tabular figures** (`tnum`), so a count going
+  9 → 10 does not shift sideways. That was the reason P3-12 chose monospace.
+
+### Step 2 — five pages, with a bottom bar and no new dependency
+
+- **The pages:** **Home**, **Workouts**, **Train**, **Progress**, **Profile**, as FEATURE_PLAN
+  lays them out. Batch 3 and 4 features appear as placeholders that say so.
+- **Navigation stays hand-rolled,** as P3-12 chose. No navigation library, so there is no §17
+  check to make. The back button is handled.
+- **What each page holds:**
+  - **Home:** the streak (P3-10's rule, from the core) with its count, this week's workouts, a
+    "quick start" into the last exercise, and the last session.
+  - **Workouts:** the 17 library entries, filterable by repetitions or holds.
+  - **Train:** the existing exercise, calibration and live screens, restyled. No change to the
+    live path: rendering stays off Compose recomposition (CLAUDE.md §6).
+  - **Progress:**
+    - the session history, with a detail page per session: sets, repetitions, validity, left and
+      right range of motion side by side, never averaged (CLAUDE.md §3), and tempo;
+    - the streak calendar is Batch 3's.
+  - **Profile:** the account (email, sign out), the export (P3-25), Health Connect, the licences
+    (P3-17), what stays on the phone and what syncs (P3-14), and about.
+- **Settings use SharedPreferences, not DataStore,** as FEATURE_PLAN prefers: no new dependency.
+
+### Step 3 — onboarding, the first time only
+
+Three short screens:
+1. what Kinesis does, and what it is not: not medical, and "form feedback", never "diagnosis";
+2. what stays on the phone and what syncs;
+3. how to place the phone: the whole body in frame, the head visible, one person, within about
+   4 m, from the model card's out-of-scope list (P3-17).
+
+A SharedPreferences flag shows them once.
+
+### Kept, whatever the look
+
+- **No analysis in UI code** (CLAUDE.md §2). Every sentence about movement is composed in the
+  core.
+- **Left and right shown apart.**
+- **Offline-first.** No new network capability, and `OfflineManifestGuardTest` must pass.
+- **Not in this batch:**
+  - the skeleton redesign and the focus zoom, listed with Batch 1 but placed after the
+    evaluation work (CLAUDE.md §21);
+  - the form-feedback screen, which waits for the phone's checks (P3-43, P3-44).
+
+**Checks:**
+- the contrast test;
+- the existing app unit tests;
+- a debug build;
+- each page seen on the phone through `adb` screenshots kept in `local/phase-b/`, not in git, and
+  described here rather than committed.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
