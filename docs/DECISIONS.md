@@ -10257,6 +10257,80 @@ Repetitions assumed normal, with no labels: not accuracy, and not false alarms.
 
 ---
 
+## P3-45 — The sit-up's trunk-angle driver: the method and the test, before any measurement
+
+*2026-10-02. P3-30's addendum, decision 4: "a knee-independent trunk-angle driver for the sit-up".
+To be evaluated on the development subjects only, and to become a profile change only through its
+own entry. Written before any trunk angle has been computed.*
+
+### Why
+
+- **The sit-up counts badly on MM-Fit.** On the development workouts at 30 a second (P3-33's
+  exports), it counts 150 of 451 labelled repetitions.
+- **P3-29 traced it to the start zone.** The lying-back hip angle (shoulder–hip–knee) runs from
+  about 108° to 139° between people, most plausibly with how bent the knees are. The profile's
+  start zone, at or above 132°, misses most of them.
+- **P3-30's floor did not settle it.** Even its personal floor, 114.4°, holds back 46% of subject
+  A's returns.
+- **The trunk's inclination does not depend on the knees.** It is the hip-to-shoulder line's angle
+  above horizontal in the image, near 0° lying back and near 90° sitting upright.
+
+### The engine change (built test-first, used by no shipped profile)
+
+- **A driving signal can be a segment's inclination as well as a joint angle.**
+  - `RepSignalSpec.joint` becomes a `DrivingSignal`;
+  - `JointAngleId` is one kind, so every existing profile is unchanged;
+  - `SegmentInclination.TRUNK` is the other: atan2(hip y − shoulder y, |shoulder x − hip x|) in
+    degrees, per side, so the two sides are never combined. It is `NaN` when either landmark is
+    below the marginal visibility.
+- **The app's sit-up keeps its hip angle** until a later entry changes it.
+
+### The thresholds, by a method fixed here
+
+`trunk_driver_thresholds.py` derives them from **development workouts only**, and refuses any other
+input:
+1. **Each evaluated sit-up set's window, on its near side:** the side whose shoulder and hip are
+   both measurable in more frames.
+2. **The trunk inclination per frame,** in CONTRACTS.md §4's square-pixel frame, with landmarks at
+   visibility ≥ 0.4 as P3-29's script used.
+3. **Excursions:** maximal runs above 45°, halfway between flat and upright. An excursion's **up**
+   value is its maximum.
+4. **Returns:** the minimum between two consecutive excursions. One counts only if it falls below
+   45° − 2 × 8° = 29°, the hysteresis twice over, P3-29's rule against jitter.
+5. **The start edge** is the 95th percentile of returns + 3°. **The far edge** is the 5th percentile
+   of up values − 3°. With the hysteresis at 8°, as the hip driver's:
+   - the top threshold is the start edge − 8°;
+   - the bottom threshold is the far edge + 8°.
+6. **The sweep between the two edges must be at least 30°,** so that a crunch is not counted. If it
+   is less, the work stops here and is reported.
+
+The other settings are the hip driver's: minimum repetition 500 ms, maximum 12 s, and near side
+only.
+
+### The test (development only)
+
+The harness runs the development workouts twice: with the current sit-up, and with the trunk driver
+in its place. Everything else is identical. **The trunk driver passes if both hold:**
+1. **More of each subject's labelled sit-ups are counted.** For every development subject with
+   sit-ups, the share of labelled repetitions counted VALID is at least as high as with the hip
+   driver, and the total is higher.
+2. **No set counts above its label.**
+
+**What follows:**
+- **If it passes,** a profile-change entry proposes it to the owner. That entry also has to deal
+  with:
+  - **stored sit-up baselines.** A baseline made on hip angles cannot judge trunk angles, so the
+    change has to make old baselines unusable rather than wrong;
+  - **the sit-up's personal start zone** (P3-30), which is defined on the hip angle.
+
+  A held-out confirmation runs only with the owner's approval.
+- **If it fails,** the hip driver stays, and the result is reported.
+
+**Not claimed:** anything beyond MM-Fit's development subjects, its camera and 30 a second. The
+thresholds are fitted to the same subjects they are tested on, so this test is in-sample by design.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
