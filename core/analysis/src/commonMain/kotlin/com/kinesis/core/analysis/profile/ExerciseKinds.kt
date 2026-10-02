@@ -1,5 +1,6 @@
 package com.kinesis.core.analysis.profile
 
+import com.kinesis.core.analysis.kinematics.DrivingSignal
 import com.kinesis.core.analysis.kinematics.JointAngleId
 import com.kinesis.core.analysis.kinematics.MeasurementPlane
 import com.kinesis.core.domain.profile.AnalysisMode
@@ -96,8 +97,11 @@ enum class Contraction {
  */
 data class RepSignalSpec(
 
-    /** The joint whose angle defines the movement. */
-    val joint: JointAngleId,
+    /**
+     * What defines the movement: a joint angle, or a segment's inclination (DECISIONS.md P3-45).
+     * The name stays `joint`, for the joint angles every profile but an experimental one uses.
+     */
+    val joint: DrivingSignal,
 
     val plane: MeasurementPlane,
 

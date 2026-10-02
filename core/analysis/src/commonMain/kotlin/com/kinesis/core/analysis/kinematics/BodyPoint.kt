@@ -50,7 +50,7 @@ enum class JointAngleId(
     val proximal: BodyPoint,
     val vertex: BodyPoint,
     val distal: BodyPoint,
-) {
+) : DrivingSignal {
     /** Shoulder → elbow ← wrist. */
     ELBOW(BodyPoint.SHOULDER, BodyPoint.ELBOW, BodyPoint.WRIST),
 
@@ -62,6 +62,33 @@ enum class JointAngleId(
 
     /** Hip → knee ← ankle. */
     KNEE(BodyPoint.HIP, BodyPoint.KNEE, BodyPoint.ANKLE),
+    ;
+
+    override val points: List<BodyPoint> get() = listOf(proximal, vertex, distal)
+}
+
+/**
+ * What drives a repetition count: a joint angle, or a body segment's inclination - DECISIONS.md
+ * P3-45. Sealed, so every consumer handles both; each is computed per side.
+ */
+sealed interface DrivingSignal {
+    /** The body points the signal is computed from, so a profile can be checked to require them. */
+    val points: List<BodyPoint>
+}
+
+/**
+ * A body segment's angle above horizontal in the image, per side, in degrees: 0 with the segment
+ * level, 90 with its [upper] end straight above its [lower] end. Which way along the image it
+ * points does not matter, so a subject facing either way reads the same. Always in the image
+ * plane: an inclination is defined against the image's horizontal. DECISIONS.md P3-45.
+ */
+enum class SegmentInclination(val lower: BodyPoint, val upper: BodyPoint) : DrivingSignal {
+
+    /** Hip to shoulder: near 0 lying back, near 90 sitting upright, whatever the knees do. */
+    TRUNK(BodyPoint.HIP, BodyPoint.SHOULDER),
+    ;
+
+    override val points: List<BodyPoint> get() = listOf(lower, upper)
 }
 
 /**

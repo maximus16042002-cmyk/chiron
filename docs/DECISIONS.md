@@ -10329,6 +10329,83 @@ in its place. Everything else is identical. **The trunk driver passes if both ho
 **Not claimed:** anything beyond MM-Fit's development subjects, its camera and 30 a second. The
 thresholds are fitted to the same subjects they are tested on, so this test is in-sample by design.
 
+### Built and run (2026-10-02)
+
+**The engine:**
+- **The types:**
+  - `DrivingSignal` is a sealed interface, with a `points` list so a profile can be checked to
+    require them;
+  - `JointAngleId` implements it, unchanged;
+  - `SegmentInclination.TRUNK` is the new kind;
+  - `JointAngles.compute` takes either.
+- **No shipped profile changes.**
+- **`ViewAndSideContractTest` uses `points`.** It still checks that each profile requires the
+  landmarks its driver uses: a joint angle's three points, a segment's two.
+- **Tests:**
+  - **`TrunkInclinationTest`, 5:**
+    - flat 0°, upright 90°, and an angle between;
+    - facing either way reads the same;
+    - a shoulder below the hip reads negative;
+    - an unseen hip leaves only its own side unmeasured;
+    - a trunk-driven profile counts a sit-up through `LiveRepetitionAnalysis`.
+  - **Mutations, 2 of 2 caught:** the rise measured the wrong way up, and the facing direction
+    counted.
+  - **`:core:analysis`:** JVM 493 plus 5 allocation guards, JS 482, Android debug 482, Android
+    release 482. None failed.
+  - **Android debug's first try** failed on a Windows file lock held by a Gradle daemon. It passed
+    once the daemons were stopped.
+
+**The thresholds,** from `trunk_driver_thresholds.py` on the 45 development sit-up sets (420
+returns, 465 ups):
+
+| | Returns (lying back), median | Ups (sitting up), median |
+|---|---|---|
+| A | 13.6° | 79.6° |
+| B | −3.0° | 79.7° |
+| C | 0.8° | 89.5° |
+| S19 | −5.9° | 77.7° |
+
+- **The start edge is 19.9°:** the returns' 95th percentile, 16.9°, plus 3.
+- **The far edge is 67.0°:** the ups' 5th percentile, 70.0°, minus 3.
+- **So the thresholds are top 11.9° and bottom 75.0°,** with hysteresis 8°.
+- **The sweep between the edges is 47.1°,** above the 30° minimum.
+
+The lying-back trunk sits within about 20° of flat for everyone. This is the knee-independence
+P3-29 was looking for; the hip angle varied from 108° to 139°.
+
+**The test,** `situp_driver_compare.py`. The harness was run with `-PsitupTrunk=11.9,75.0`;
+everything else stayed the same.
+
+| Subject | Labelled | Hip driver (now) | Trunk driver |
+|---|---|---|---|
+| A | 182 | 0 (0.0%) | **160 (87.9%)** |
+| B | 180 | 141 (78.3%) | **169 (93.9%)** |
+| C | 59 | 0 (0.0%) | **56 (94.9%)** |
+| S19 | 30 | 9 (30.0%) | **28 (93.3%)** |
+| **All** | 451 | 150 (33.3%) | **413 (91.6%)** |
+
+- **No set counts above its label** with either driver.
+- **Every other exercise is identical,** count for count and field for field. Only the sit-up's
+  records changed.
+- **The verdict is PASS,** in-sample, as stated above.
+
+### For the owner: the profile change
+
+Adopting the trunk driver for the app's sit-up needs:
+1. **The owner's decision to adopt it.**
+2. **A held-out confirmation,** with the owner's approval:
+   - the six held-out people's sit-ups, once, with these frozen thresholds and the same pass
+     rule;
+   - P3-42 read those people once, for Layer 1. This would be a separate question, asked once.
+3. **Stored sit-up baselines made unusable rather than wrong.** A baseline on hip angles cannot
+   judge trunk angles. The change would refuse a sit-up baseline from before it, and ask for
+   recalibration.
+4. **The sit-up's personal start zone (P3-30),** which is defined on the hip angle. It is retired
+   for the sit-up, since the trunk driver needs none.
+5. **The phone:** a side-on sit-up check, among P4's tests.
+
+Until then the app's sit-up keeps its hip angle, and nothing shipped has changed.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

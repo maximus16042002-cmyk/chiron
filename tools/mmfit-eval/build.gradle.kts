@@ -38,6 +38,8 @@ tasks.register<JavaExec>("runHarness") {
     // diagnostics (P3-33). Unset, the phone's own settings.
     project.findProperty("gate")?.let { systemProperty("kinesis.gate", it.toString()) }
     project.findProperty("bridge")?.let { systemProperty("kinesis.bridge", it.toString()) }
+    // -PsitupTrunk=<top>,<bottom>: the sit-up driven by the trunk's inclination (P3-45), for evaluation.
+    project.findProperty("situpTrunk")?.let { systemProperty("kinesis.situpTrunk", it.toString()) }
     args = listOf(
         project.findProperty("landmarks")?.toString() ?: "../../data/mm-fit-mediapipe",
         project.findProperty("labels")?.toString() ?: "../../data/mm-fit",

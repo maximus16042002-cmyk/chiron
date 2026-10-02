@@ -5,6 +5,9 @@ import com.kinesis.core.domain.bilateral.BilateralSignal
 import com.kinesis.core.domain.landmark.LandmarkId
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
+import kotlin.math.PI
+import kotlin.math.abs
+import kotlin.math.atan2
 
 /**
  * Current-frame joint angles, computed from anatomical landmarks.
@@ -59,6 +62,45 @@ object JointAngles {
             policy,
         ),
     )
+
+    /**
+     * The value of whichever [DrivingSignal] a profile names, on both sides - DECISIONS.md P3-45.
+     * A segment's inclination is always measured in the image plane.
+     */
+    fun compute(
+        landmarks: Landmarks,
+        signal: DrivingSignal,
+        plane: MeasurementPlane,
+        policy: VisibilityPolicy,
+    ): BilateralSignal = when (signal) {
+        is JointAngleId -> compute(landmarks, signal, plane, policy)
+        is SegmentInclination -> BilateralSignal(
+            left = inclinationFor(landmarks, signal.lower.leftId, signal.upper.leftId, policy),
+            right = inclinationFor(landmarks, signal.lower.rightId, signal.upper.rightId, policy),
+        )
+    }
+
+    /**
+     * The angle above horizontal of the segment from [lower] to [upper], for one side: image y
+     * runs down the frame (CONTRACTS.md section 4), so [upper] above [lower] is a positive rise.
+     */
+    private fun inclinationFor(
+        landmarks: Landmarks,
+        lower: LandmarkId,
+        upper: LandmarkId,
+        policy: VisibilityPolicy,
+    ): Double {
+        if (!policy.isMeasurable(landmarks.visibility(lower))) return Double.NaN
+        if (!policy.isMeasurable(landmarks.visibility(upper))) return Double.NaN
+        val across = abs(landmarks.x(upper) - landmarks.x(lower))
+        val rise = landmarks.y(lower) - landmarks.y(upper)
+        if (!across.isFinite() || !rise.isFinite()) return Double.NaN
+        if (across < SEGMENT_EPSILON && abs(rise) < SEGMENT_EPSILON) return Double.NaN
+        return atan2(rise, across) * 180.0 / PI
+    }
+
+    /** Below this, in image widths, a segment has no direction worth measuring. */
+    private const val SEGMENT_EPSILON: Double = 1e-6
 
     /**
      * The angle at [vertex] between [proximal] and [distal], for one side.

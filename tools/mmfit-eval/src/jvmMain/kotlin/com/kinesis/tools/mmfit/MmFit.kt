@@ -14,6 +14,8 @@ import java.io.BufferedOutputStream
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
+import com.kinesis.core.analysis.kinematics.MeasurementPlane
+import com.kinesis.core.analysis.kinematics.SegmentInclination
 
 /**
  * The pieces of P7's MM-Fit harness - DECISIONS.md P3-27.
@@ -75,8 +77,32 @@ object MmFitExercises {
         val id = PROFILES[name] ?: return ExerciseMapping.Excluded("unknown MM-Fit exercise: $name")
         val profile = ExerciseLibrary.all.single { it.id == id }
         check(profile is RepetitionExercise) { "$id is not a repetition exercise" }
+        if (id == "situp" && SITUP_TRUNK != null) return ExerciseMapping.Evaluated(trunkSitUp(profile, SITUP_TRUNK))
         return ExerciseMapping.Evaluated(profile)
     }
+
+    /**
+     * DECISIONS.md P3-45: `-PsitupTrunk=<top>,<bottom>` runs the sit-up with the trunk's
+     * inclination as its driver and those thresholds, everything else the shipped profile's.
+     * Unset - the default - the shipped sit-up. An evaluation only; no shipped profile uses it.
+     */
+    private val SITUP_TRUNK: Pair<Double, Double>? = System.getProperty("kinesis.situpTrunk")
+        ?.takeIf { it.isNotBlank() }
+        ?.split(",")
+        ?.let { it[0].toDouble() to it[1].toDouble() }
+
+    private fun trunkSitUp(situp: RepetitionExercise, thresholds: Pair<Double, Double>): RepetitionExercise =
+        object : RepetitionExercise by situp {
+            override val repSignal: RepSignalSpec = RepSignalSpec(
+                joint = SegmentInclination.TRUNK,
+                plane = MeasurementPlane.IMAGE_2D,
+                topThreshold = thresholds.first,
+                bottomThreshold = thresholds.second,
+                hysteresis = situp.repSignal.hysteresis,
+                minRepDurationMs = situp.repSignal.minRepDurationMs,
+                maxRepDurationMs = situp.repSignal.maxRepDurationMs,
+            )
+        }
 }
 
 /**

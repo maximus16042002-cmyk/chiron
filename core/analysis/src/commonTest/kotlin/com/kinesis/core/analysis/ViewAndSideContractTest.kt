@@ -114,8 +114,9 @@ class ViewAndSideContractTest {
 
         for (profile in repetitionProfiles) {
             val joint = profile.repSignal.joint
-            val bothSides = listOf(joint.proximal, joint.vertex, joint.distal)
-                .flatMap { listOf(it.leftId, it.rightId) }
+            // DECISIONS.md P3-45: every point the driving signal uses, a joint angle's three or a
+            // segment's two.
+            val bothSides = joint.points.flatMap { listOf(it.leftId, it.rightId) }
             val declared = profile.requiredLandmarks.toList()
 
             when (profile.analysedSides) {
