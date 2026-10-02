@@ -84,6 +84,7 @@ interface SessionDao {
  * |---|---|
  * | 1 | Sessions, sets, repetitions, holds (P3-12) |
  * | 2 | `baselines` (P3-22); two hold columns, `meanHeldValue` and `heldValueSd` |
+ * | 3 | one repetition column, `form`: the form summary (P3-44) |
  */
 @Database(
     entities = [SessionEntity::class, SetEntity::class, RepEntity::class, HoldEntity::class, BaselineEntity::class],
@@ -98,7 +99,7 @@ abstract class KinesisDatabase : RoomDatabase() {
 
     companion object {
 
-        const val VERSION: Int = 2
+        const val VERSION: Int = 3
 
         const val NAME: String = "kinesis.db"
 
@@ -123,8 +124,18 @@ abstract class KinesisDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * Adds the repetitions' form summary column - DECISIONS.md P3-44. Every existing row stays
+         * as it was and reads `NULL`: no form summary, not measured, never zero.
+         */
+        val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `reps` ADD COLUMN `form` TEXT")
+            }
+        }
+
         /** Every migration, oldest first. A version bump adds one here. */
-        val MIGRATIONS: List<Migration> = listOf(MIGRATION_1_2)
+        val MIGRATIONS: List<Migration> = listOf(MIGRATION_1_2, MIGRATION_2_3)
 
         @Volatile
         private var instance: KinesisDatabase? = null

@@ -8,6 +8,7 @@ import com.kinesis.core.domain.profile.CameraView
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.core.domain.profile.Posture
 import com.kinesis.core.domain.profile.TierAProfile
+import com.kinesis.core.domain.rep.FormMeasure
 
 /**
  * Every exercise profile that exists, in one place.
@@ -224,6 +225,12 @@ class PushUpProfile : TierAProfile(), RepetitionExercise {
 
     /** Moving away from the start is the lowering - DECISIONS.md P3-30. */
     override val awayFromStart: Contraction = Contraction.ECCENTRIC
+
+    /**
+     * DECISIONS.md P3-44: the hip's bend off the line from shoulder to ankle, both ways, for
+     * Layer 2's rule against the low back sagging or the hips hiking (ACE, Push-Ups).
+     */
+    override val formMeasures: List<FormMeasure> = listOf(FormMeasure.BODY_LINE_SAG_MAX, FormMeasure.BODY_LINE_HIKE_MAX)
 
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.ELBOW,

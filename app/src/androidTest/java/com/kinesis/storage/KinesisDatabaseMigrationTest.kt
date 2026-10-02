@@ -159,6 +159,26 @@ class KinesisDatabaseMigrationTest {
         }
     }
 
+    /**
+     * DECISIONS.md P3-44: version 3 adds the repetitions' form summary column. Every stored
+     * repetition keeps its measurements and reads no form summary - not measured, never zero.
+     */
+    @Test
+    fun migrating_to_version_3_keeps_every_repetition_and_invents_no_form_summary() = runBlocking {
+        createVersion1()
+        helper.runMigrationsAndValidate(name, 3, true, KinesisDatabase.MIGRATION_1_2, KinesisDatabase.MIGRATION_2_3).close()
+
+        val database = KinesisDatabase.build(context, name)
+        try {
+            val reps = (RoomSessionRepository(database.sessionDao()).allSessions().single().sets[0] as RepetitionSetRecord).reps
+            assertEquals(listOf(1, 2), reps.map { it.repIndex })
+            assertEquals(96.5, reps[0].rangeOfMotion.left, 0.0)
+            assertTrue(reps.all { it.form.isEmpty })
+        } finally {
+            database.close()
+        }
+    }
+
     /** No migration step is skipped: the production builder alone carries version 1 across. */
     @Test
     fun the_apps_own_builder_migrates_a_version_1_database_without_losing_it() = runBlocking {

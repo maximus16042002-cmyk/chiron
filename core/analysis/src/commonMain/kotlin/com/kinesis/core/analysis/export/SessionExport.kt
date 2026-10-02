@@ -49,8 +49,11 @@ object SessionExport {
 
     const val FORMAT: String = "kinesis-export"
 
-    /** Raised whenever a field is added, removed, renamed or changes meaning. */
-    const val FORMAT_VERSION: Int = 1
+    /**
+     * Raised whenever a field is added, removed, renamed or changes meaning. 2: each repetition
+     * record carries its form summary - DECISIONS.md P3-44.
+     */
+    const val FORMAT_VERSION: Int = 2
 
     /** The whole history as one JSON document. */
     fun json(sessions: List<SessionRecord>, baselines: List<CalibrationBaseline>, exportedAtEpochMs: Double): String =

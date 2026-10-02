@@ -9,6 +9,7 @@ import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.core.domain.profile.Posture
 import com.kinesis.core.domain.profile.TierAProfile
 import com.kinesis.core.domain.profile.TierCProfile
+import com.kinesis.core.domain.rep.FormMeasure
 
 /**
  * The three archetype profiles - CLAUDE.md section 9.
@@ -103,6 +104,13 @@ class SquatProfile : TierAProfile(), RepetitionExercise {
     /** Moving away from the start is the lowering - DECISIONS.md P3-30. */
     override val awayFromStart: Contraction = Contraction.ECCENTRIC
 
+    /**
+     * DECISIONS.md P3-44: the trunk's lean against the shin's at the deepest frame, for Layer 2's
+     * rule that they stay parallel (ACE, Bodyweight Squat). The goblet squat asks for it too,
+     * through its parent.
+     */
+    override val formMeasures: List<FormMeasure> = listOf(FormMeasure.TRUNK_MINUS_SHIN_LEAN)
+
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.KNEE,
         plane = MeasurementPlane.IMAGE_2D,
@@ -164,6 +172,12 @@ class BicepCurlProfile : TierAProfile(), RepetitionExercise {
 
     /** Moving away from the start is the lifting - DECISIONS.md P3-30. */
     override val awayFromStart: Contraction = Contraction.CONCENTRIC
+
+    /**
+     * DECISIONS.md P3-44: the upper arm against the trunk, for Layer 2's rule that the upper
+     * arms stay close to the ribs (NSCA Coach 7(4), Table 4).
+     */
+    override val formMeasures: List<FormMeasure> = listOf(FormMeasure.UPPER_ARM_TRUNK_MAX)
 
     override val repSignal: RepSignalSpec = RepSignalSpec(
         joint = JointAngleId.ELBOW,

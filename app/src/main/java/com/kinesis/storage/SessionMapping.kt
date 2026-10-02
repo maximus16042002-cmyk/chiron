@@ -12,6 +12,8 @@ import com.kinesis.core.domain.session.SessionRecord
 import com.kinesis.core.domain.session.SetRecord
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import com.kinesis.core.domain.rep.FormMeasure
+import com.kinesis.core.domain.rep.FormMeasures
 
 /**
  * Converts between domain records and stored rows - DECISIONS.md P3-12.
@@ -92,6 +94,7 @@ object SessionMapping {
         ascentMs = nullIfNaN(rep.ascentMs),
         resampledLeft = encode(rep.resampledLeft),
         resampledRight = encode(rep.resampledRight),
+        form = encodeForm(rep.form),
     )
 
     private fun toEntity(hold: HoldRecord): HoldEntity = HoldEntity(
@@ -147,6 +150,7 @@ object SessionMapping {
         ascentMs = nanIfNull(entity.ascentMs),
         resampledLeft = decode(entity.resampledLeft),
         resampledRight = decode(entity.resampledRight),
+        form = decodeForm(entity.form),
     )
 
     private fun toDomain(entity: HoldEntity): HoldRecord = HoldRecord(
@@ -195,6 +199,34 @@ object SessionMapping {
      * unchanged, which is the one thing SQLite's REAL columns cannot do - so the
      * arrays need no null-mapping and keep their unmeasured points exactly.
      */
+    /**
+     * The form summary as one line of text - DECISIONS.md P3-44: `id=left,right` per measure,
+     * joined by `;`, each number by Kotlin's own `toString`, which reads back to the same double
+     * and writes `NaN` for a side not measured. `null` for a repetition with no form summary.
+     */
+    internal fun encodeForm(form: FormMeasures): String? =
+        if (form.isEmpty) {
+            null
+        } else {
+            form.measures.joinToString(";") { measure ->
+                val value = form.on(measure)
+                measure.id + "=" + value.left.toString() + "," + value.right.toString()
+            }
+        }
+
+    /** As [encodeForm] writes it. A measure this version does not know is skipped, not guessed. */
+    internal fun decodeForm(text: String?): FormMeasures {
+        if (text.isNullOrEmpty()) return FormMeasures.NONE
+        val values = LinkedHashMap<FormMeasure, BilateralSignal>()
+        for (entry in text.split(';')) {
+            val measure = FormMeasure.ofId(entry.substringBefore('=')) ?: continue
+            val sides = entry.substringAfter('=').split(',')
+            if (sides.size != 2) continue
+            values[measure] = BilateralSignal(sides[0].toDouble(), sides[1].toDouble())
+        }
+        return FormMeasures(values)
+    }
+
     internal fun encode(values: DoubleArray): ByteArray {
         val buffer = ByteBuffer.allocate(values.size * Double.SIZE_BYTES)
             .order(ByteOrder.LITTLE_ENDIAN)

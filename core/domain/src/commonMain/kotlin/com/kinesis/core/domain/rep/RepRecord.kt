@@ -64,6 +64,13 @@ class RepRecord(
      */
     val resampledLeft: DoubleArray,
     val resampledRight: DoubleArray,
+
+    /**
+     * Joints other than the driving one, summarised over the repetition - DECISIONS.md P3-44.
+     * Only the measures the exercise asked for; none for a record stored before P3-44, which
+     * reads as not measured, never as zero.
+     */
+    val form: FormMeasures = FormMeasures.NONE,
 ) {
 
     val durationMs: Double get() = endMs - startMs

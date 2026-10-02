@@ -277,6 +277,43 @@ class SessionMappingTest {
         assertEquals(0, restored.completedUnits)
     }
 
+    // --- The form summary - DECISIONS.md P3-44 ------------------------------------------------
+
+    @Test
+    fun a_form_summary_survives_the_round_trip_side_by_side_with_nan_kept() {
+        val form = com.kinesis.core.domain.rep.FormMeasures(
+            linkedMapOf(
+                com.kinesis.core.domain.rep.FormMeasure.BODY_LINE_SAG_MAX to BilateralSignal(0.1 + 0.2, Double.NaN),
+                com.kinesis.core.domain.rep.FormMeasure.BODY_LINE_HIKE_MAX to BilateralSignal(0.0, Double.NaN),
+            ),
+        )
+        val original = rep(1).let {
+            RepRecord(
+                it.repIndex, it.attributedSide, it.startMs, it.endMs, it.validity, it.rangeOfMotion, it.peakValue,
+                it.troughValue, it.descentMs, it.ascentMs, it.resampledLeft, it.resampledRight, form,
+            )
+        }
+        val back = firstRep(roundTrip(session(RepetitionSetRecord("pushup", 0.0, listOf(original)))))
+        assertEquals(form, back.form)
+        // Exactly the same double, not one rounded through text.
+        assertEquals(0.1 + 0.2, back.form.on(com.kinesis.core.domain.rep.FormMeasure.BODY_LINE_SAG_MAX).left, 0.0)
+        org.junit.Assert.assertTrue(back.form.on(com.kinesis.core.domain.rep.FormMeasure.BODY_LINE_SAG_MAX).right.isNaN())
+    }
+
+    @Test
+    fun a_repetition_without_a_form_stores_null_and_reloads_with_none() {
+        val stored = SessionMapping.toEntities(session(RepetitionSetRecord("squat", 0.0, listOf(rep(1)))))
+        assertEquals(null, stored.sets.single().reps.single().form)
+        org.junit.Assert.assertTrue(firstRep(roundTrip(session(RepetitionSetRecord("squat", 0.0, listOf(rep(1)))))).form.isEmpty)
+    }
+
+    /** A row written by a later version, with a measure this one does not know: skipped, not guessed. */
+    @Test
+    fun an_unknown_form_measure_is_skipped() {
+        val form = SessionMapping.decodeForm("upper_arm_trunk_max_deg=12.5,NaN;a_later_measure_deg=3.0,4.0")
+        assertEquals(listOf(com.kinesis.core.domain.rep.FormMeasure.UPPER_ARM_TRUNK_MAX), form.measures)
+    }
+
     // --- Round trip, without a database ----------------------------------------------------
 
     /**

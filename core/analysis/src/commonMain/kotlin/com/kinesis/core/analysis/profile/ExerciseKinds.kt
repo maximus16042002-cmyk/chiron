@@ -4,6 +4,7 @@ import com.kinesis.core.analysis.kinematics.JointAngleId
 import com.kinesis.core.analysis.kinematics.MeasurementPlane
 import com.kinesis.core.domain.profile.AnalysisMode
 import com.kinesis.core.domain.profile.ExerciseProfile
+import com.kinesis.core.domain.rep.FormMeasure
 
 /**
  * How a set of an exercise turns into repetitions - CLAUDE.md section 11.
@@ -188,6 +189,13 @@ interface RepetitionExercise : ExerciseProfile {
     val awayFromStart: Contraction
 
     val repSignal: RepSignalSpec
+
+    /**
+     * Joints other than the driving one that each repetition records - DECISIONS.md P3-44.
+     * None by default: an exercise that asks for nothing computes nothing per frame. A variant
+     * asks for its parent's, through delegation.
+     */
+    val formMeasures: List<FormMeasure> get() = emptyList()
 }
 
 /**

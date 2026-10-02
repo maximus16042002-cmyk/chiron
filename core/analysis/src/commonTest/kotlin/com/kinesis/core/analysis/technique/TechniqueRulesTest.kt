@@ -4,6 +4,8 @@ import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.domain.bilateral.BilateralSignal
 import com.kinesis.core.domain.bilateral.Side
 import com.kinesis.core.domain.finding.ClaimLevel
+import com.kinesis.core.domain.rep.FormMeasure
+import com.kinesis.core.domain.rep.FormMeasures
 import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.core.domain.rep.RepValidity
 import kotlin.test.Test
@@ -107,6 +109,73 @@ class TechniqueRulesTest {
         assertEquals(emptyList(), TechniqueRules.evaluate(pushUp.techniqueAuthority, pushUp, rep(BilateralSignal(176.0, nan), BilateralSignal(78.0, nan))))
     }
 
+    // --- Step B: joints beside the driving one (P3-44) --------------------------------------------
+
+    private fun withForm(rep: RepRecord, vararg measures: Pair<FormMeasure, BilateralSignal>) = RepRecord(
+        repIndex = rep.repIndex, attributedSide = rep.attributedSide, startMs = rep.startMs, endMs = rep.endMs,
+        validity = rep.validity, rangeOfMotion = rep.rangeOfMotion, peakValue = rep.peakValue, troughValue = rep.troughValue,
+        descentMs = rep.descentMs, ascentMs = rep.ascentMs, resampledLeft = rep.resampledLeft, resampledRight = rep.resampledRight,
+        form = FormMeasures(mapOf(*measures)),
+    )
+
+    @Test
+    fun a_curl_whose_upper_arm_swung_past_20_degrees_is_said_for_the_working_arm_only() {
+        val rep = withForm(
+            rep(BilateralSignal(nan, 170.0), BilateralSignal(nan, 45.0), Side.RIGHT),
+            FormMeasure.UPPER_ARM_TRUNK_MAX to BilateralSignal(nan, 34.0),
+        )
+        val fault = TechniqueRules.evaluate(curl.techniqueAuthority, curl, rep).single()
+        assertEquals(TechniqueRules.CURL_UPPER_ARM_MOVED_FORWARD, fault.faultId)
+        assertEquals(TechniqueRules.SOURCE_CURL_UPPER_ARM, fault.sourceRef)
+        assertEquals(TechniqueRules.RULE_VERSION_FORM, fault.ruleVersion)
+        assertTrue(fault.displayText.startsWith("Right upper arm") && "34°" in fault.displayText && "20°" in fault.displayText, fault.displayText)
+        val still = withForm(rep(BilateralSignal(nan, 170.0), BilateralSignal(nan, 45.0), Side.RIGHT), FormMeasure.UPPER_ARM_TRUNK_MAX to BilateralSignal(nan, 20.0))
+        assertEquals(emptyList(), TechniqueRules.evaluate(curl.techniqueAuthority, curl, still))
+    }
+
+    @Test
+    fun a_push_up_hip_past_20_degrees_off_the_line_is_said_as_a_sag_or_a_raise() {
+        val sag = withForm(
+            rep(BilateralSignal(nan, 172.0), BilateralSignal(nan, 80.0)),
+            FormMeasure.BODY_LINE_SAG_MAX to BilateralSignal(nan, 26.0),
+            FormMeasure.BODY_LINE_HIKE_MAX to BilateralSignal(nan, 4.0),
+        )
+        val fault = TechniqueRules.evaluate(pushUp.techniqueAuthority, pushUp, sag).single()
+        assertEquals(TechniqueRules.PUSHUP_HIPS_SAGGED, fault.faultId)
+        assertEquals(TechniqueRules.SOURCE_PUSHUP_LINE, fault.sourceRef)
+        assertTrue(fault.displayText.startsWith("Right side") && "26°" in fault.displayText && "sagged" in fault.displayText, fault.displayText)
+        val raised = withForm(
+            rep(BilateralSignal(nan, 172.0), BilateralSignal(nan, 80.0)),
+            FormMeasure.BODY_LINE_SAG_MAX to BilateralSignal(nan, 0.0),
+            FormMeasure.BODY_LINE_HIKE_MAX to BilateralSignal(nan, 23.0),
+        )
+        assertEquals(TechniqueRules.PUSHUP_HIPS_RAISED, TechniqueRules.evaluate(pushUp.techniqueAuthority, pushUp, raised).single().faultId)
+    }
+
+    @Test
+    fun a_squat_torso_more_than_20_degrees_ahead_of_the_shin_is_said_per_side() {
+        val squat = ExerciseLibrary.squat
+        val rep = withForm(
+            rep(BilateralSignal(170.0, 170.0), BilateralSignal(80.0, 80.0)),
+            FormMeasure.TRUNK_MINUS_SHIN_LEAN to BilateralSignal(28.0, 12.0),
+        )
+        val fault = TechniqueRules.evaluate(squat.techniqueAuthority, squat, rep).single()
+        assertEquals(TechniqueRules.SQUAT_TRUNK_AHEAD_OF_SHIN, fault.faultId)
+        assertEquals(TechniqueRules.SOURCE_SQUAT_TRUNK, fault.sourceRef)
+        assertTrue(fault.displayText.startsWith("Left side") && "28°" in fault.displayText, fault.displayText)
+        // P3-44: the other direction - the shin ahead of the trunk - is not judged.
+        val upright = withForm(rep(BilateralSignal(170.0, 170.0), BilateralSignal(80.0, 80.0)), FormMeasure.TRUNK_MINUS_SHIN_LEAN to BilateralSignal(-35.0, -35.0))
+        assertEquals(emptyList(), TechniqueRules.evaluate(squat.techniqueAuthority, squat, upright))
+    }
+
+    /** A record stored before P3-44 has no form: the step B rules say nothing, never as if it were 0. */
+    @Test
+    fun a_record_without_a_form_is_not_judged_by_the_step_b_rules() {
+        val squat = ExerciseLibrary.squat
+        assertEquals(emptyList(), TechniqueRules.evaluate(squat.techniqueAuthority, squat, rep(BilateralSignal(170.0, 170.0), BilateralSignal(80.0, 80.0))))
+        assertEquals(emptyList(), TechniqueRules.evaluate(curl.techniqueAuthority, curl, rep(BilateralSignal(170.0, nan), BilateralSignal(45.0, nan), Side.LEFT)))
+    }
+
     // --- What is never judged --------------------------------------------------------------------
 
     @Test
@@ -117,11 +186,9 @@ class TechniqueRulesTest {
         }
     }
 
-    /** P3-43: the squat and the glute bridge have no step A rule; they say nothing yet. */
+    /** P3-43: the glute bridge has no rule; it says nothing. */
     @Test
     fun a_tier_a_exercise_without_a_rule_says_nothing() {
-        val squat = ExerciseLibrary.squat
-        assertEquals(emptyList(), TechniqueRules.evaluate(squat.techniqueAuthority, squat, rep(BilateralSignal(150.0, 150.0), BilateralSignal(60.0, 60.0))))
         val bridge = ExerciseLibrary.gluteBridge
         assertEquals(emptyList(), TechniqueRules.evaluate(bridge.techniqueAuthority, bridge, rep(BilateralSignal(120.0, 120.0), BilateralSignal(165.0, 165.0))))
     }
@@ -136,8 +203,11 @@ class TechniqueRulesTest {
     /** The words a rule rests on are in the code, not only in the report (ZERO_DATASET_BUILD_PLAN). */
     @Test
     fun every_rule_names_its_source() {
-        for (source in listOf(TechniqueRules.SOURCE_LATERAL_RAISE, TechniqueRules.SOURCE_CURL, TechniqueRules.SOURCE_PUSHUP)) {
-            assertTrue(source.contains("acefitness.org"), source)
+        for (source in listOf(
+            TechniqueRules.SOURCE_LATERAL_RAISE, TechniqueRules.SOURCE_CURL, TechniqueRules.SOURCE_PUSHUP,
+            TechniqueRules.SOURCE_CURL_UPPER_ARM, TechniqueRules.SOURCE_PUSHUP_LINE, TechniqueRules.SOURCE_SQUAT_TRUNK,
+        )) {
+            assertTrue(source.contains("acefitness.org") || source.contains("NSCA Coach"), source)
             assertTrue(source.contains("\""), "the source quotes the description it implements: $source")
         }
     }

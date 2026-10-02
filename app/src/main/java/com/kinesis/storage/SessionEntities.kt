@@ -104,6 +104,12 @@ data class RepEntity(
     /** 64 doubles each, encoded by [SessionMapping]. `NaN` survives. */
     val resampledLeft: ByteArray,
     val resampledRight: ByteArray,
+
+    /**
+     * The form summary, encoded by [SessionMapping]; `NULL` when the repetition has none,
+     * which every repetition stored before version 3 reads as - DECISIONS.md P3-44.
+     */
+    val form: String? = null,
 ) {
     // Room generates equals/hashCode warnings for ByteArray fields; these are
     // stored blobs compared by content, and nothing relies on entity equality.

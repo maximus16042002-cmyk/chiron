@@ -10141,6 +10141,120 @@ Same discipline as P3-43:
 
 **Not wired into the app,** and **not claimed:** as P3-43.
 
+### Built (2026-10-02)
+
+**As designed, with one change.** The Room column is named `form`, not `formJson`. It holds
+`id=left,right;...`, each number written by Kotlin's own `toString`, which reads back to the same
+double and keeps `NaN`. The core's JSON helpers are internal to it, and the app's JVM tests cannot
+use Android's `org.json`.
+
+**Where the change landed:**
+- **Domain:** `FormMeasure` and `FormMeasures`; `RepRecord.form`, which defaults to none.
+- **Profiles:** `RepetitionExercise.formMeasures`. The curl, push-up and squat ask; the goblet
+  squat inherits through delegation, pinned by a test.
+- **Engine:**
+  - **`FormTracker`,** in `rep/` and classed as real-time path in `SharedCoreSourceGuardTest`.
+    Per frame, doubles go into ring buffers. Per repetition, they are reduced over each side's
+    own window.
+  - **`BilateralRepTracker`** pushes before the machines step, so the completing frame is inside
+    the window, and fills `form` for each semantics: per-limb, near-side, paired and orphaned.
+- **Facade JSON:**
+  - records gain `"form"`;
+  - `readRep` reads it, and an older record with no `form` reads as none;
+  - the export is `formatVersion` 2, and CONTRACTS.md §10 is updated.
+- **App:**
+  - Room is version 3, with `MIGRATION_2_3` (`ALTER TABLE reps ADD COLUMN form TEXT`) and the
+    exported `3.json`;
+  - `SessionMapping` encodes and decodes the form;
+  - `SessionDocument` writes `form` only when a repetition has one, so an older repetition
+    re-uploads byte for byte (the P3-22 rule);
+  - the Firestore rules check only top-level keys and are unchanged.
+- **Harness:** `StudyInput` reads `form`.
+- **Rules:** `TechniqueRules` holds the three step B rules, under `p8-layer2-2`. Step A's rules
+  are unchanged and keep `p8-layer2-1`.
+
+**Tests:**
+- **New tests:**
+  - `FormMeasuresTest`, 4;
+  - `FormTrackerTest`, 8: each measure in both image directions, the window, an unseen joint, the
+    goblet squat, and a full curl through `LiveRepetitionAnalysis`;
+  - `TechniqueRulesTest`, 4 more: each rule either side of its limit, the squat's other direction
+    not judged, and an old record not judged;
+  - `FormJsonTest`, 3;
+  - app: `SessionDocumentFormTest`, 3, and `SessionMappingTest`, 3 more;
+  - the on-device migration test gains a version 3 case. It is compiled but not run: running it
+    installs a debug build over the phone's app, which waits for the owner.
+- **Golden files regenerated:**
+  - `EngineParityGolden` changed on 43 lines and `SessionExportGolden` on 1;
+  - a script checked that every changed line differs from the old one only by the record's
+    `form` key and the format version.
+- **Results:**
+  - **`:core:analysis`:** JVM 488 plus 5 allocation guards, JS 477, Android debug 477, Android
+    release 477;
+  - **`:core:domain`:** 37 on each of its 4 targets;
+  - **app:** 187 debug and 175 release unit tests;
+  - **harness:** 25.
+
+  None failed. The allocation guards, which run a whole squat session, pass with its form
+  tracked.
+- **Mutations, 5 of 5 caught,** with files restored byte for byte:
+  - sag and hike swapped;
+  - the shallowest frame taken for the deepest;
+  - one side's form put on the other;
+  - the squat rule judging both directions;
+  - the form not read back from JSON.
+- **MM-Fit development exports, regenerated:** every count and every field identical to P3-33's,
+  except the added form.
+
+**A build incident, recorded because it would mislead again.** The on-device tests failed to
+compile:
+- **The symptom:** the app's top-level functions were "unresolved", while its classes were not.
+- **The cause:** the build cache held an app compile whose Kotlin module file was incomplete, 24
+  bytes naming no package. It was an incremental-compile artefact.
+- **The checks:** a clean worktree at the previous commit compiled, and a full, non-incremental,
+  uncached recompile fixed it (519 bytes).
+- **Nothing in the source was wrong.**
+
+**The debug APK built from this state:** `app-debug.apk`, SHA-256 `40595ee5…bca5a3`. Not
+installed. The phone still carries P3-29's build (P3-35).
+
+### How often step B would speak on MM-Fit's development subjects (descriptive)
+
+Repetitions assumed normal, with no labels: not accuracy, and not false alarms.
+
+| Rule | A | B | C | S19 |
+|---|---|---|---|---|
+| Curl: upper arm moved forward | 90 of 181 | 98 of 154 | 61 of 61 | 7 of 40 |
+| Push-up: hips sagged | 0 of 62 | — | 5 of 5 | 25 of 25 |
+| Push-up: hips raised | 0 | — | 0 | 0 |
+
+**Median per side** (degrees):
+- curl upper arm against trunk: A 14 left and 25 right; B 19 and 28; C 29 on both sides; S19 19
+  and 14;
+- push-up sag: A 15 left and 8 right; C 23; S19 51.
+
+**Why these numbers say little about the app:**
+- **The curl numbers do not describe the app's curl.** MM-Fit films its curl face-on. From the
+  front, the angle at the shoulder between hip and elbow is the arm moving out to the side, not
+  forward. The rule judges a side-on curl (P3-32), which MM-Fit does not have.
+- **The push-up sag of 51° (S19) is not a plausible bend of a body in a push-up.** It points at
+  the view or the landmarks:
+  - MM-Fit's push-up camera is not side-on to every subject;
+  - a knee push-up bends the shoulder–hip–ankle line by design.
+
+  Which one applies cannot be told from the numbers. **The rule needs the phone's side-on check
+  before it is shown,** as P3-43 already said of the push-up's step A rule.
+- **The squat has no MM-Fit number at all.** MM-Fit's squats are face-on, and P3-27 excluded them.
+
+**P8 now:**
+- **Layer 1:** built, not shipped (P3-42).
+- **Layer 2:** six cited rules across four Tier A exercises. They are not wired, and wait for
+  the phone's check.
+- **The glute bridge:** no rule, and no source that fits it.
+- **Left:**
+  - the sit-up's trunk-angle driver;
+  - wiring, after the phone.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

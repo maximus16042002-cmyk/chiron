@@ -385,6 +385,9 @@ class SharedCoreSourceGuardTest {
             // P3-16: the hold path's reducer and orchestrator, likewise per frame.
             "HoldReading.kt",
             "LiveHoldAnalysis.kt",
+            // P3-44: the form summary's per-frame half pushes into ring buffers every frame.
+            // Its post-rep reductions live in the same class and are held to the same scan.
+            "FormTracker.kt",
         )
 
         /**

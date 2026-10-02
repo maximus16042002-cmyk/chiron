@@ -31,6 +31,8 @@ import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.core.domain.rep.RepValidity
 import kotlin.js.ExperimentalJsExport
 import kotlin.js.JsExport
+import com.kinesis.core.domain.rep.FormMeasure
+import com.kinesis.core.domain.rep.FormMeasures
 
 /**
  * The engine facade - CONTRACTS.md section 5, DECISIONS.md P0-2 and P3-19.
@@ -250,6 +252,8 @@ internal object EngineJson {
         field("ascentMs", record.ascentMs)
         array("resampledLeft", record.resampledLeft)
         array("resampledRight", record.resampledRight)
+        // DECISIONS.md P3-44: the form summary, one {left, right} per measure; {} when none.
+        raw("form", obj { for (measure in record.form.measures) bilateral(measure.id, record.form.on(measure)) })
     }
 
     fun hold(record: HoldRecord): String = obj {
@@ -285,7 +289,23 @@ internal object EngineJson {
             ascentMs = JsonText.double(map, "ascentMs"),
             resampledLeft = JsonText.doubles(map, "resampledLeft"),
             resampledRight = JsonText.doubles(map, "resampledRight"),
+            form = readForm(map),
         )
+    }
+
+    /**
+     * The form summary, as [rep] writes it - DECISIONS.md P3-44. A record written before P3-44
+     * has no `form` and reads as none; a measure this version does not know is skipped.
+     */
+    private fun readForm(map: Map<String, Any?>): FormMeasures {
+        if (!map.containsKey("form")) return FormMeasures.NONE
+        val form = JsonText.obj(map["form"], "form")
+        val values = LinkedHashMap<FormMeasure, BilateralSignal>()
+        for (key in form.keys) {
+            val measure = FormMeasure.ofId(key) ?: continue
+            values[measure] = readBilateral(form, key)
+        }
+        return FormMeasures(values)
     }
 
     /** A hold record, as [hold] writes it. */

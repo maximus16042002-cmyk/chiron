@@ -10,6 +10,8 @@ import com.kinesis.core.domain.session.HoldSetRecord
 import com.kinesis.core.domain.session.RepetitionSetRecord
 import com.kinesis.core.domain.session.SessionRecord
 import com.kinesis.core.domain.session.SetRecord
+import com.kinesis.core.domain.rep.FormMeasure
+import com.kinesis.core.domain.rep.FormMeasures
 
 /**
  * A session as a Firestore document - DECISIONS.md P3-14.
@@ -101,7 +103,38 @@ object SessionDocument {
         "ascentMs" to nullIfNaN(rep.ascentMs),
         "resampledLeft" to rep.resampledLeft.map(::nullIfNaN),
         "resampledRight" to rep.resampledRight.map(::nullIfNaN),
-    )
+    ) + formOnly(rep.form)
+
+    /**
+     * The form summary, only when the repetition has one - DECISIONS.md P3-44, for the reason
+     * [measuredOnly] gives: a repetition recorded before P3-44 must upload byte for byte as it
+     * always did, or an identical retry would be refused. Each measure is `{left, right}`, an
+     * unmeasured side `null`.
+     */
+    private fun formOnly(form: FormMeasures): Map<String, Any?> =
+        if (form.isEmpty) {
+            emptyMap()
+        } else {
+            mapOf(
+                "form" to form.measures.associate { measure ->
+                    val value = form.on(measure)
+                    measure.id to mapOf("left" to nullIfNaN(value.left), "right" to nullIfNaN(value.right))
+                },
+            )
+        }
+
+    /** As [formOnly] writes it; absent from repetitions synced before P3-44, which have none. */
+    @Suppress("UNCHECKED_CAST")
+    private fun formFromMap(value: Any?): FormMeasures {
+        val map = value as? Map<String, Any?> ?: return FormMeasures.NONE
+        val values = LinkedHashMap<FormMeasure, BilateralSignal>()
+        for ((id, sides) in map) {
+            val measure = FormMeasure.ofId(id) ?: continue
+            val pair = sides as? Map<String, Any?> ?: continue
+            values[measure] = BilateralSignal(number(pair["left"]), number(pair["right"]))
+        }
+        return FormMeasures(values)
+    }
 
     @Suppress("UNCHECKED_CAST")
     private fun repFromMap(data: Map<String, Any?>): RepRecord? {
@@ -125,6 +158,7 @@ object SessionDocument {
             ascentMs = number(data["ascentMs"]),
             resampledLeft = doubles(data["resampledLeft"]),
             resampledRight = doubles(data["resampledRight"]),
+            form = formFromMap(data["form"]),
         )
     }
 

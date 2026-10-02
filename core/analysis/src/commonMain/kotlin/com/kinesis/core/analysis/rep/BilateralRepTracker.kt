@@ -13,6 +13,7 @@ import com.kinesis.core.domain.landmark.VisibilityPolicy
 import com.kinesis.core.domain.rep.MovementPhase
 import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.core.domain.rep.RepValidity
+import com.kinesis.core.domain.rep.FormMeasures
 
 /** Receives repetitions as they complete. A `fun interface`, so a lambda boxes nothing. */
 fun interface RepSink {
@@ -62,6 +63,9 @@ class BilateralRepTracker(
     // DECISIONS.md P3-23: each side carries a repetition across a short gap.
     private val leftFsm = RepFsm(profile.repSignal, bufferCapacity, temporalConfig.resampleLength, temporalConfig.maxBridgedGapMs)
     private val rightFsm = RepFsm(profile.repSignal, bufferCapacity, temporalConfig.resampleLength, temporalConfig.maxBridgedGapMs)
+
+    // DECISIONS.md P3-44: the joints the profile's form measures need, per side, every frame.
+    private val form = FormTracker(profile, bufferCapacity)
 
     /** Repetitions counted so far, by this profile's own definition. */
     var repetitionCount: Int = 0
@@ -145,6 +149,8 @@ class BilateralRepTracker(
         )
         rawAngleLeft = angle.left
         rawAngleRight = angle.right
+        // Before the machines step, so the frame that completes a repetition is inside its window.
+        form.push(timestampMs, landmarks, policy, angle.left, angle.right)
 
         val left = leftFsm.step(timestampMs, leftPipeline.push(timestampMs, angle.left))
         val right = rightFsm.step(timestampMs, rightPipeline.push(timestampMs, angle.right))
@@ -209,6 +215,7 @@ class BilateralRepTracker(
         recordsReported = 0
         rawAngleLeft = Double.NaN
         rawAngleRight = Double.NaN
+        form.reset()
         pendingLeft = null
         pendingRight = null
         lastNearSideCountedEndMs = Double.NaN
@@ -276,8 +283,20 @@ class BilateralRepTracker(
                 ascentMs = cycle.ascentMs,
                 resampledLeft = if (side == Side.LEFT) cycle.resampled else blank,
                 resampledRight = if (side == Side.RIGHT) cycle.resampled else blank,
+                form = if (side == Side.LEFT) formOf(cycle, null) else formOf(null, cycle),
             ),
         )
+    }
+
+    /**
+     * The form summary for a record: each side over its own cycle's window, the side with no
+     * cycle not measured - DECISIONS.md P3-44. Never one side's values on the other's.
+     */
+    private fun formOf(left: RepCycle?, right: RepCycle?): FormMeasures {
+        if (profile.formMeasures.isEmpty()) return FormMeasures.NONE
+        val l = if (left != null) form.summarise(Side.LEFT, left.startMs, left.endMs) else emptyMap()
+        val r = if (right != null) form.summarise(Side.RIGHT, right.startMs, right.endMs) else emptyMap()
+        return FormMeasures(profile.formMeasures.associateWith { BilateralSignal(l[it] ?: Double.NaN, r[it] ?: Double.NaN) })
     }
 
     /**
@@ -340,6 +359,7 @@ class BilateralRepTracker(
                 ascentMs = longerOf(left.ascentMs, right.ascentMs),
                 resampledLeft = left.resampled,
                 resampledRight = right.resampled,
+                form = formOf(left, right),
             ),
         )
     }
@@ -389,6 +409,7 @@ class BilateralRepTracker(
                 ascentMs = orphan.ascentMs,
                 resampledLeft = if (side == Side.LEFT) orphan.resampled else blank,
                 resampledRight = if (side == Side.RIGHT) orphan.resampled else blank,
+                form = if (side == Side.LEFT) formOf(orphan, null) else formOf(null, orphan),
             ),
         )
     }

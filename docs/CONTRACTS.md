@@ -279,7 +279,7 @@ the share sheet; P7's harness can call it directly on the JVM.
 **JSON:**
 
 ```
-{ "format": "kinesis-export", "formatVersion": 1, "exportedAtEpochMs": <number>,
+{ "format": "kinesis-export", "formatVersion": 2, "exportedAtEpochMs": <number>,
   "sessions": [ { "sessionId", "startedAtEpochMs", "utcOffsetMinutes",
                   "sets": [ { "setIndex", "exerciseId", "mode", "startedAtEpochMs",
                               "recordCount", "validCount",
@@ -307,7 +307,12 @@ there are no rows.
 | reps | repetition | `sessionId, setIndex, exerciseId, repIndex, attributedSide, validity, startMs, endMs, rangeOfMotionLeft, rangeOfMotionRight, peakValueLeft, peakValueRight, troughValueLeft, troughValueRight, descentMs, ascentMs` |
 | holds | hold | `sessionId, setIndex, exerciseId, holdIndex, validity, startMs, endMs, totalHoldMs, longestUnbrokenMs, breakCount, meanAbsDeviation, maxAbsDeviation, coverage, meanHeldValue, heldValueSd` |
 
-The 64-point resampled curves are in the JSON only.
+The 64-point resampled curves and the form summary are in the JSON only.
+
+**The form summary** (`formatVersion` 2, `DECISIONS.md` P3-44). Each repetition record carries
+`"form": { <measure id>: {"left", "right"} }`, one entry for each `FormMeasure` its exercise asks
+for, and `{}` for an exercise that asks for none. A record exported at version 1 has no `form` and
+reads as having none, so it is not measured, never zero.
 
 **Rules:**
 

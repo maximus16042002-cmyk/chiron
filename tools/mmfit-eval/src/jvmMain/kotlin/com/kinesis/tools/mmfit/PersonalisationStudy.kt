@@ -19,6 +19,8 @@ import com.kinesis.core.domain.bilateral.Side
 import com.kinesis.core.domain.calibration.RepetitionBaseline
 import com.kinesis.core.domain.calibration.RobustStatistic
 import com.kinesis.core.domain.profile.TierAProfile
+import com.kinesis.core.domain.rep.FormMeasure
+import com.kinesis.core.domain.rep.FormMeasures
 import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.core.domain.rep.RepValidity
 import java.io.File
@@ -459,7 +461,20 @@ internal object StudyInput {
         ascentMs = d(m["ascentMs"]),
         resampledLeft = curve(m["resampledLeft"]),
         resampledRight = curve(m["resampledRight"]),
+        form = form(m["form"]),
     )
+
+    /** DECISIONS.md P3-44: the form summary, absent from exports written before it. */
+    @Suppress("UNCHECKED_CAST")
+    private fun form(value: Any?): FormMeasures {
+        val map = value as? Map<String, Any?> ?: return FormMeasures.NONE
+        val values = LinkedHashMap<FormMeasure, BilateralSignal>()
+        for ((id, sides) in map) {
+            val measure = FormMeasure.ofId(id) ?: continue
+            values[measure] = bilateral(sides)
+        }
+        return FormMeasures(values)
+    }
 
     private fun d(value: Any?): Double = (value as Double?) ?: Double.NaN
 
