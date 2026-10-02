@@ -251,15 +251,40 @@ class CalibrationTest {
         assertEquals("s1", baseline.sourceSessionId)
     }
 
-    /** CONTRACTS.md section 3: a variant shares its parent's calibration. */
+    /**
+     * CONTRACTS.md section 3: a variant shares its parent's calibration. Every key belongs to its
+     * exercise (or its parent); the sit-up's alone carries a revision (DECISIONS.md P3-46).
+     */
     @Test
     fun every_variant_uses_its_parents_baseline_and_every_profile_its_own() {
         for (entry in ExerciseLibrary.all) {
             val expected = if (entry is ExerciseVariant) entry.parent.id else entry.id
-            assertEquals(expected, CalibrationKey.of(entry), entry.id)
+            assertEquals(expected, CalibrationKey.exerciseIdOf(CalibrationKey.of(entry)), entry.id)
+            if (expected != "situp") assertEquals(expected, CalibrationKey.of(entry), entry.id)
         }
         val fromGoblet = repetitionBaseline(calibrate(ExerciseLibrary.gobletSquat, eightSquats()))
         assertEquals("squat", fromGoblet.calibrationId)
+    }
+
+    /**
+     * DECISIONS.md P3-46: the sit-up changed driver, so its key changed with it. A baseline stored
+     * under the old key is never used on a trunk-driven repetition: it is refused, not reinterpreted.
+     */
+    @Test
+    fun a_sit_up_baseline_from_the_hip_angle_driver_is_not_used() {
+        assertEquals("situp@trunk", CalibrationKey.of(ExerciseLibrary.situp))
+        assertEquals("situp", CalibrationKey.exerciseIdOf("situp@trunk"))
+        val old = repetitionBaseline(calibrate(squat, eightSquats()))
+        val stale = com.kinesis.core.domain.calibration.RepetitionBaseline(
+            calibrationId = "situp", estimatorVersion = old.estimatorVersion, createdAtEpochMs = old.createdAtEpochMs,
+            sourceSessionId = old.sourceSessionId, rangeOfMotion = old.rangeOfMotion, peakValue = old.peakValue,
+            troughValue = old.troughValue, descentMs = old.descentMs, ascentMs = old.ascentMs, asymmetry = old.asymmetry,
+            meanCurveLeft = old.meanCurveLeft, meanCurveRight = old.meanCurveRight, curveSpread = old.curveSpread,
+        )
+        val anyRep = eightSquats().first()
+        kotlin.test.assertFailsWith<IllegalArgumentException> {
+            com.kinesis.core.analysis.deviation.DeviationRules.deviations(ExerciseLibrary.situp, anyRep, stale)
+        }
     }
 
     @Test

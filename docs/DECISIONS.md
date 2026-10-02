@@ -10456,6 +10456,68 @@ driver, the owner chose: "Check on held-out, then adopt".
 **If it fails, the app's sit-up keeps its hip angle.** The trunk driver stays in the engine, unused,
 and there is no second attempt on these people.
 
+### Result (2026-10-02): PASS
+
+The test ran once, after the tagged commit (`85660ed`, `p3-46-frozen`):
+
+| Held-out subject | Labelled | Hip driver | Trunk driver |
+|---|---|---|---|
+| S12 | 30 | 26 (86.7%) | 27 (90.0%) |
+| S13 | 31 | 27 (87.1%) | 28 (90.3%) |
+| S16 | 36 | 0 (0.0%) | **31 (86.1%)** |
+| S17 | 32 | 26 (81.2%) | **31 (96.9%)** |
+| S18 | 30 | 29 (96.7%) | 29 (96.7%) |
+| S20 | 30 | 0 (0.0%) | 0 (0.0%) |
+| **All** | 189 | 108 (57.1%) | **146 (77.2%)** |
+
+**What the table shows:**
+- **No set counts above its label** with either driver.
+- **Every subject counts at least as many,** and the total is higher. That passes.
+- **S20 counts nothing with either driver,** and decides nothing.
+  - Across S20's three sets the trunk never rose past 10–21° (the 95th percentile was 8–15°), with
+    pose in every frame and both sides measured.
+  - So the trunk barely lifted: crunches, or a view that foreshortens them. Neither driver can
+    count that, and the trunk driver is designed not to count a crunch.
+- **In-sample and out:** the development figure (92%) was fitted; this one (77%, or 87–97% for the
+  five subjects whose trunks rose) was not.
+
+### Adopted, as frozen
+
+- **`SitUpProfile.repSignal`** is `SegmentInclination.TRUNK`, 11.9 / 75.0, hysteresis 8°, 500 ms
+  to 12 s. Its documentation gives both results.
+- **`CalibrationKey`:**
+  - the sit-up's key is now `situp@trunk`, so a baseline stored as `situp` is never used. A test
+    shows Layer 1 refuses it;
+  - `exerciseIdOf` maps the key back to `situp` for display, which the app's `displayNameOf` now
+    uses;
+  - every other exercise's key is unchanged, which a test pins.
+- **`PersonalStartZone`** serves the push-up alone, and its tests changed to say so.
+- **The contract check is narrowed, not dropped.** `ViewAndSideContractTest` stops near-side
+  profiles from requiring their driver's landmarks on both sides, and now lets one through: a
+  driver made of the torso alone.
+  - On the 45 development sit-up sets the far shoulder and hip were measured in every frame.
+  - The rule exists for the far knee or wrist (P3-28), and holds unchanged for every other driver.
+- **Tests changed with the profile, deliberately:**
+  - `TierBProfileTest` pins the trunk, and counts ten sit-ups on a moving trunk;
+  - `ViewAndSideContractTest` counts the near-side sit-up from 5° to 85° of trunk.
+- **Docs:**
+  - `docs/EXERCISE_GUIDE.md`'s sit-up section and table give the new angles, and the advice to
+    recalibrate;
+  - `docs/P4_TOMORROW.md`'s sit-up test asks for a recalibration, and 3 crunches that must not
+    count.
+
+**Checks:**
+- **`:core:analysis`:** JVM 494 plus 5 allocation guards, JS 483, Android debug 483, Android
+  release 483.
+- **App:** 187 debug and 175 release unit tests. The debug APK builds, and the on-device tests
+  compile.
+- **Harness:** 25.
+- None failed. The parity golden file did not move, because no scenario is a sit-up.
+- **The release build failed once** with in-module references "unresolved". It was the same
+  build-cache artefact as P3-44's, and a full uncached recompile fixed it.
+
+**Not claimed:** anything about the phone. The phone's side-on sit-up check is P4's.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

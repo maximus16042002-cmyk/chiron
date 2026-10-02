@@ -29,7 +29,23 @@ import com.kinesis.core.domain.session.SetRecord
  * turn out to differ.
  */
 object CalibrationKey {
-    fun of(profile: ExerciseProfile): String = if (profile is ExerciseVariant) profile.parent.id else profile.id
+    fun of(profile: ExerciseProfile): String {
+        val id = if (profile is ExerciseVariant) profile.parent.id else profile.id
+        return REVISIONS[id] ?: id
+    }
+
+    /**
+     * Exercises whose driving signal has changed, keyed afresh so that a baseline made on the old
+     * signal is never used to judge the new one. It stays stored, unused, and the exercise reads
+     * as not calibrated until it is recalibrated.
+     *
+     * The sit-up: the hip angle until DECISIONS.md P3-46, the trunk's inclination since.
+     */
+    private val REVISIONS: Map<String, String> = mapOf("situp" to "situp@trunk")
+
+    /** The exercise a calibration key belongs to, for showing its name. */
+    fun exerciseIdOf(calibrationId: String): String =
+        REVISIONS.entries.firstOrNull { it.value == calibrationId }?.key ?: calibrationId
 }
 
 /** What a calibration set produced: a baseline, or the plain reason there is none. */

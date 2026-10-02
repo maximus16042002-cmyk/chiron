@@ -7,6 +7,7 @@ import com.kinesis.core.domain.landmark.RequiredLandmarks
 import com.kinesis.core.domain.profile.CameraView
 import com.kinesis.core.domain.profile.Posture
 import com.kinesis.core.domain.profile.TierBProfile
+import com.kinesis.core.analysis.kinematics.SegmentInclination
 
 /*
  * The Tier B lower-body and trunk profiles - CONTRACTS.md section 3,
@@ -272,12 +273,21 @@ class SitUpProfile : TierBProfile(), RepetitionExercise {
     /** Moving away from the start is the lifting - DECISIONS.md P3-30. */
     override val awayFromStart: Contraction = Contraction.CONCENTRIC
 
+    /**
+     * The trunk's inclination above horizontal, not the hip angle - DECISIONS.md P3-45, P3-46.
+     *
+     * The hip angle carries the knees' bend: lying back it ran from about 108 to 139 degrees
+     * between people, and the old start zone (at or above 132) missed most of them (P3-29). The
+     * trunk lies within about 20 degrees of flat for everyone. The thresholds come from the
+     * development subjects by P3-45's fixed method: lying back at or below 19.9, sitting up at or
+     * above 67.0. On MM-Fit they counted 413 of 451 development sit-ups (the hip angle, 150) and
+     * 146 of 189 held-out ones (108), with no set over its label. A crunch, which never lifts the
+     * trunk that far, is not counted.
+     */
     override val repSignal: RepSignalSpec = RepSignalSpec(
-        joint = JointAngleId.HIP,
+        joint = SegmentInclination.TRUNK,
         plane = MeasurementPlane.IMAGE_2D,
-        // Lying back with the knees bent leaves trunk and thigh well short of
-        // straight; sitting up closes the angle sharply. Provisional.
-        topThreshold = 140.0,
+        topThreshold = 11.9,
         bottomThreshold = 75.0,
         hysteresis = 8.0,
         minRepDurationMs = 500.0,

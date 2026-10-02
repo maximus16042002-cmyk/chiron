@@ -18,6 +18,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import com.kinesis.core.analysis.kinematics.BodyPoint
 
 /**
  * Permanent guard - CLAUDE.md sections 3, 9 and 10; CONTRACTS.md section 8;
@@ -129,11 +130,19 @@ class ViewAndSideContractTest {
                 }
 
                 AnalysedSides.NEAR_SIDE_ONLY -> {
-                    assertFalse(
-                        declared.containsAll(bothSides),
-                        profile.id + " can only see one side but requires " + joint +
-                            " on both, which makes every frame INVALID by construction",
-                    )
+                    // DECISIONS.md P3-46: a driver made of the torso alone - shoulders and hips,
+                    // which every frame's torso check reads anyway - is the one exception. On
+                    // MM-Fit's 45 side-on development sit-ups the far shoulder and hip were
+                    // measurable in every frame; it is the far knee or wrist that a side-on view
+                    // loses (P3-28).
+                    val torsoOnly = joint.points.all { it == BodyPoint.SHOULDER || it == BodyPoint.HIP }
+                    if (!torsoOnly) {
+                        assertFalse(
+                            declared.containsAll(bothSides),
+                            profile.id + " can only see one side but requires " + joint +
+                                " on both, which makes every frame INVALID by construction",
+                        )
+                    }
                     assertTrue(
                         declared.isNotEmpty(),
                         profile.id + " requires no landmarks at all, so the gate checks nothing",
@@ -236,10 +245,14 @@ class ViewAndSideContractTest {
         }
     }
 
-    /** Driven off the hip - shoulder, hip, knee - so it needs the trunk chain staged, not the leg. */
+    /**
+     * Driven off the trunk's inclination since DECISIONS.md P3-46, so it needs the trunk chain
+     * staged. With the thigh along the floor, a hip angle of d puts the trunk 180 - d above it:
+     * 175 is lying back at 5 degrees, 95 sitting up at 85.
+     */
     @Test
     fun a_side_on_sit_up_counts_every_repetition_from_the_near_side_alone() {
-        val counted = run(ExerciseLibrary.situp, oneArmedTrack(reps = 10, start = 160.0, far = 60.0, frameAt = ::hipFrame))
+        val counted = run(ExerciseLibrary.situp, oneArmedTrack(reps = 10, start = 175.0, far = 95.0, frameAt = ::hipFrame))
         assertEquals(10, counted.count { it.validity == RepValidity.VALID }, counted.map { it.validity }.toString())
         for (record in counted) {
             assertTrue(record.rangeOfMotion.asymmetry().isNaN(), "a near-side sit-up reported a symmetry number")

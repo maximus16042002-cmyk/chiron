@@ -35,8 +35,11 @@ class StartZone(val edge: Double, val source: StartZoneSource)
  */
 object PersonalStartZone {
 
-    /** The two profiles P3-29 proposed it for. */
-    val PROFILE_IDS: Set<String> = setOf("pushup", "situp")
+    /**
+     * The profiles it serves. P3-29 proposed it for the push-up and the sit-up; the sit-up left in
+     * DECISIONS.md P3-46, when its trunk-angle driver made a start zone on the hip angle moot.
+     */
+    val PROFILE_IDS: Set<String> = setOf("pushup")
 
     /**
      * The floors, degrees - DECISIONS.md P3-30, derived from the development subjects
@@ -45,7 +48,7 @@ object PersonalStartZone {
      * sweep. Push-up: 95 + 62.1 / 2 (subject B). Sit-up: 83 + 62.9 / 2 (subject A).
      * Provisional, as every threshold here is.
      */
-    private val FLOOR_EDGE: Map<String, Double> = mapOf("pushup" to 126.0, "situp" to 114.4)
+    private val FLOOR_EDGE: Map<String, Double> = mapOf("pushup" to 126.0)
 
     /** The loosest start edge the profile may have. */
     fun floorEdge(profile: RepetitionExercise): Double =

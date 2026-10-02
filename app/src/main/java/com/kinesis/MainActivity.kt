@@ -461,6 +461,8 @@ private fun NavItem(label: String, selected: Boolean, onClick: () -> Unit) {
     )
 }
 
-/** A calibration id's display name, from the library. */
-private fun displayNameOf(calibrationId: String): String =
-    ExerciseLibrary.all.firstOrNull { it.id == calibrationId }?.displayName ?: calibrationId
+/** A calibration id's display name, from the library. A revised key (P3-46) names its exercise. */
+private fun displayNameOf(calibrationId: String): String {
+    val exerciseId = CalibrationKey.exerciseIdOf(calibrationId)
+    return ExerciseLibrary.all.firstOrNull { it.id == exerciseId }?.displayName ?: calibrationId
+}

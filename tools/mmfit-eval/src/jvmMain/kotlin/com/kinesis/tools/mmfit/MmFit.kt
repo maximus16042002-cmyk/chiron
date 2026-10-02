@@ -84,7 +84,8 @@ object MmFitExercises {
     /**
      * DECISIONS.md P3-45: `-PsitupTrunk=<top>,<bottom>` runs the sit-up with the trunk's
      * inclination as its driver and those thresholds, everything else the shipped profile's.
-     * Unset - the default - the shipped sit-up. An evaluation only; no shipped profile uses it.
+     * Unset - the default - the shipped sit-up, which since P3-46 is itself trunk-driven at
+     * 11.9 / 75.0; the option stays for evaluating other thresholds.
      */
     private val SITUP_TRUNK: Pair<Double, Double>? = System.getProperty("kinesis.situpTrunk")
         ?.takeIf { it.isNotBlank() }

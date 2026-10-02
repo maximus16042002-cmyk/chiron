@@ -228,16 +228,21 @@ control."*
 ### 9. Sit-up — Tier B, **near side only**
 
 - **Camera:** **side-on**, phone **at floor level**. Lying on your back.
-- **Watches:** the hip angle on the side **nearer the phone**.
-- **Start:** lying back, hip angle **132° or more**.
-- **One repetition:** sit up until the hip angle reaches **83° or less**, then lie back down to **132°
-  or more**.
-- **Counts as:** one sit-up, one repetition.
+- **Watches:** the **trunk's angle above the floor** (hip to shoulder) on the side **nearer the
+  phone**. It changed from the hip angle in DECISIONS.md P3-46, because the hip angle depends on how
+  bent your knees are and the trunk's does not.
+- **Start:** lying back, trunk **20° or less** above the floor.
+- **One repetition:** sit up until the trunk is **67° or more** above the floor, then lie back down
+  to **20° or less**.
+- **Counts as:** one sit-up, one repetition. A crunch, which lifts the trunk only part of the way,
+  does not count.
 - **Time per repetition:** 0.5–12 s.
-- **Keep in view:** both shoulders and hips, and the near knee.
-- **Known problem:** many people don't open their hips to 132° when they lie back, so their sit-ups
-  don't count. MM-Fit's unseen people: 108 of 189; two of them counted nothing. **Lie all the way
-  back.** The same personal start-zone fix as the push-up is waiting.
+- **Keep in view:** both shoulders and hips.
+- **On MM-Fit:**
+  - **counted:** 413 of 451 sit-ups by the development people (the old hip angle: 150), and 146 of
+    189 by the unseen people (108);
+  - **one unseen person counted nothing with either:** their trunk never rose past about 21°.
+- **Recalibrate:** a sit-up calibration made before P3-46 is not used.
 
 ### 10. Shoulder Press — Tier B, both arms together, **seated**
 
@@ -335,7 +340,7 @@ A hold is timed, not counted.
 | 6 | Lunge (+ Reverse) | side-on | standing | knee | ≥ 160° | ≤ 105° | both knees together |
 | 7 | Hip abduction | front-on | standing | hip | ≥ 167° | ≤ 145° | each leg |
 | 8 | Knee raise | side-on | standing | hip | ≥ 164° | ≤ 106° | each leg |
-| 9 | Sit-up | side-on, floor level | on back | hip | ≥ 132° | ≤ 83° | near side |
+| 9 | Sit-up | side-on, floor level | on back | **trunk above floor** | ≤ 20° | ≥ 67° | near side |
 | 10 | Shoulder press | front-on | **seated** | shoulder | ≤ 108° | ≥ 152° | both arms together |
 | 11 | Bent-over row | side-on | hinged | elbow | ≥ 152° | ≤ 83° | near arm |
 | 12 | Leg raise | side-on, floor level | on back | hip | ≥ 160° | ≤ 108° | both together |
@@ -345,6 +350,7 @@ A hold is timed, not counted.
 
 **Tested enough to rely on:** the bicep curl filmed **sideways** (on the phone), and the shoulder press
 and lateral raise (on MM-Fit).
-**Known weak until the personal start zone reaches the app:** push-up, sit-up.
+**Known weak until the personal start zone reaches the app:** push-up. (The sit-up's trunk driver,
+P3-46, replaced its start-zone problem.)
 **Untested or unproven:** everything else. Treat their counts as something to check, not something
 to trust.

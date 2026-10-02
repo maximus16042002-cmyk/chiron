@@ -152,7 +152,10 @@ nearer the camera. 8 push-ups, all the way down and all the way up.
 ## 5. Sit-ups, side-on — 8
 
 **What to do.** As push-ups: floor-height, side-on, whole body in frame. 8
-sit-ups.
+sit-ups. Since DECISIONS.md P3-46 the sit-up counts on the trunk's angle (lying
+back 20° or less, up 67° or more), not the hip: **recalibrate the sit-up first**
+if it was calibrated before, and do 3 crunches at the end. They should not
+count.
 
 **Pass.** Count **8**, never above; amber flashes noted as in item 4.
 

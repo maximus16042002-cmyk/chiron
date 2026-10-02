@@ -35,10 +35,9 @@ class PersonalStartZoneTest {
 
     @Test
     fun the_floors_are_the_values_derived_from_the_development_subjects() {
-        // Depth edge + half the smallest development subject's median sweep (P3-30):
-        // push-up 95 + 31.0, sit-up 83 + 31.4.
+        // Depth edge + half the smallest development subject's median sweep (P3-30): push-up
+        // 95 + 31.0. The sit-up's (114.4) left with its hip-angle driver - DECISIONS.md P3-46.
         assertEquals(126.0, PersonalStartZone.floorEdge(pushUp))
-        assertEquals(114.4, PersonalStartZone.floorEdge(ExerciseLibrary.situp))
     }
 
     @Test
@@ -71,8 +70,12 @@ class PersonalStartZoneTest {
     }
 
     @Test
-    fun only_the_push_up_and_the_sit_up_have_one() {
-        assertEquals(setOf("pushup", "situp"), PersonalStartZone.PROFILE_IDS)
+    fun only_the_push_up_has_one() {
+        // DECISIONS.md P3-46: the sit-up counts on the trunk's inclination, which needs no personal
+        // start zone; one defined on the hip angle would judge the wrong signal.
+        assertEquals(setOf("pushup"), PersonalStartZone.PROFILE_IDS)
+        assertFailsWith<IllegalArgumentException> { PersonalStartZone.of(ExerciseLibrary.situp, null) }
+        assertFailsWith<IllegalArgumentException> { PersonalStartZone.floorEdge(ExerciseLibrary.situp) }
         assertFailsWith<IllegalArgumentException> { PersonalStartZone.of(ExerciseLibrary.squat, null) }
         assertFailsWith<IllegalArgumentException> { PersonalStartZone.floorEdge(ExerciseLibrary.squat) }
     }
@@ -92,7 +95,6 @@ class PersonalStartZoneTest {
     @Test
     fun a_calibration_set_counts_with_the_floor_zone() {
         assertEquals(126.0 + 5.0, PersonalStartZone.forCalibration(pushUp).repSignal.topThreshold, 1e-12)
-        assertEquals(114.4 + 8.0, PersonalStartZone.forCalibration(ExerciseLibrary.situp).repSignal.topThreshold, 1e-12)
     }
 
     // --- What it changes in counting ----------------------------------------------------

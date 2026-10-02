@@ -25,6 +25,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import com.kinesis.core.analysis.kinematics.SegmentInclination
 
 /**
  * The Tier B lower-body and trunk profiles - CONTRACTS.md section 3,
@@ -185,7 +186,8 @@ class TierBProfileTest {
         assertEquals(JointAngleId.KNEE, ExerciseLibrary.lunge.repSignal.joint)
         assertEquals(JointAngleId.HIP, ExerciseLibrary.hipAbduction.repSignal.joint)
         assertEquals(JointAngleId.HIP, ExerciseLibrary.kneeRaise.repSignal.joint)
-        assertEquals(JointAngleId.HIP, ExerciseLibrary.situp.repSignal.joint)
+        // DECISIONS.md P3-46: the sit-up counts on the trunk's inclination, not the hip angle.
+        assertEquals(SegmentInclination.TRUNK, ExerciseLibrary.situp.repSignal.joint)
         assertEquals(JointAngleId.HIP, ExerciseLibrary.legRaise.repSignal.joint)
 
         // Shoulder abduction, not the elbow: FINAL_ARCHITECTURE section 4 warns
@@ -319,7 +321,8 @@ class TierBProfileTest {
     fun ten_situps_count_as_ten_repetitions_and_not_twenty() {
         val counted = run(
             ExerciseLibrary.situp,
-            track(reps = 10, start = 142.0, far = 62.0) { l, r -> hipFrame(l, r) },
+            // DECISIONS.md P3-46: the trunk lying back at 5 degrees, sitting up to 85.
+            track(reps = 10, start = 5.0, far = 85.0) { l, r -> trunkFrame(l, r) },
         )
         assertEquals(10, counted.count { it.validity == RepValidity.VALID })
         assertTrue(counted.all { it.attributedSide == null })
@@ -497,6 +500,21 @@ class TierBProfileTest {
     }
 
     /** Shoulder - hip - knee on both sides: trunk to thigh. */
+    /** The trunk at [leftDeg] and [rightDeg] above the floor, the thighs along it - DECISIONS.md P3-46. */
+    private fun trunkFrame(leftDeg: Double, rightDeg: Double): Landmarks {
+        val packed = DoubleArray(Landmarks.PACKED_SIZE)
+        for ((ids, x, deg) in listOf(
+            Triple(Triple(LandmarkId.LEFT_SHOULDER, LandmarkId.LEFT_HIP, LandmarkId.LEFT_KNEE), 0.46, leftDeg),
+            Triple(Triple(LandmarkId.RIGHT_SHOULDER, LandmarkId.RIGHT_HIP, LandmarkId.RIGHT_KNEE), 0.54, rightDeg),
+        )) {
+            put(packed, ids.second, x, 0.55)
+            put(packed, ids.third, x + 0.20, 0.55)
+            val radians = deg * PI / 180.0
+            put(packed, ids.first, x - 0.25 * cos(radians), 0.55 - 0.25 * sin(radians))
+        }
+        return Landmarks.fromPacked(packed)
+    }
+
     private fun hipFrame(leftDeg: Double, rightDeg: Double): Landmarks {
         val packed = DoubleArray(Landmarks.PACKED_SIZE)
         joint(
