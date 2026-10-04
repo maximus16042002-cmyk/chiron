@@ -1,5 +1,6 @@
 package com.kinesis.ui.live
 
+import com.kinesis.core.analysis.fps.FrameRateHealth
 import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.profile.CameraView
@@ -276,5 +277,44 @@ class LiveAnalysisBridgeTest {
             bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, setupVerdict = SetupVerdict.Ready(CameraView.FRONT_ON, 0.95))
         }
         assertEquals(countAfterFirst + 1, bridge.publishCount)
+    }
+
+    @Test
+    fun frame_rate_health_transition_recomposes_once_and_throttles() {
+        val (bridge, seen) = bridge()
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, frameRateHealth = FrameRateHealth.HEALTHY)
+        val initialCount = bridge.publishCount
+
+        // 30 frames with continuous FPS updates but same HEALTHY health level do not recompose
+        repeat(30) { i ->
+            bridge.onFrame(
+                MovementPhase.TOP, 0, FrameValidity.VALID, null,
+                frameRateHealth = FrameRateHealth.HEALTHY,
+                currentFps = 28.0 + (i % 3),
+            )
+        }
+        assertEquals(initialCount, bridge.publishCount)
+
+        // Health degrades: Compose is notified exactly once
+        bridge.onFrame(
+            MovementPhase.TOP, 0, FrameValidity.VALID, null,
+            frameRateHealth = FrameRateHealth.DEGRADED,
+            currentFps = 9.5,
+            fpsWarningMessage = "Camera frame rate low (10 FPS) — tracking accuracy reduced",
+        )
+        assertEquals(initialCount + 1, bridge.publishCount)
+        assertEquals(FrameRateHealth.DEGRADED, seen.last().frameRateHealth)
+        assertEquals("Camera frame rate low (10 FPS) — tracking accuracy reduced", seen.last().fpsWarningMessage)
+
+        // 30 subsequent degraded frames with slight FPS fluctuations do not recompose
+        repeat(30) { i ->
+            bridge.onFrame(
+                MovementPhase.TOP, 0, FrameValidity.VALID, null,
+                frameRateHealth = FrameRateHealth.DEGRADED,
+                currentFps = 9.0 + (i % 2),
+                fpsWarningMessage = "Camera frame rate low (10 FPS) — tracking accuracy reduced",
+            )
+        }
+        assertEquals(initialCount + 1, bridge.publishCount)
     }
 }

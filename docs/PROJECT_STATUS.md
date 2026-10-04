@@ -10,7 +10,22 @@ read it first if you are new.*
 
 ## Next session starts here
 
-**Latest, P3-55 (2026-10-04): Camera-View Setup Assistant and Framing Gate built and verified.**
+**Latest, P3-56 (2026-10-05): Low Frame-Rate Warning Gate and Skeleton Visual Redesign built and verified.**
+- **Low Frame-Rate Gate & FPS Telemetry (`core/analysis`, `app`):**
+  - Resolves HANDOVER.md §8.2 item 4 and implements FEATURE_PLAN Batch 1 skeleton redesign.
+  - $O(1)$ sliding-window frame rate monitor (`FrameRateMonitor`) in shared core with zero per-frame heap allocations.
+  - 8-frame hysteresis debouncing for categorical health states (`HEALTHY` $\ge 20$, `MODERATE` $12\text{--}20$, `DEGRADED` $< 12$ FPS).
+  - Wired into `LiveRepetitionAnalysis`, `LiveHoldAnalysis`, `LiveAnalysisBridge`, and `LiveHoldBridge`.
+  - Recomposition budget guard: Compose is notified only on health level transition (0 recompositions for ongoing FPS fluctuations).
+  - Live pill warning displayed in `LiveCameraLayout` when camera FPS is degraded.
+- **Skeleton Overlay Visual Redesign (`SkeletonOverlayView`):**
+  - Soft glowing halos around tracked joints (25% alpha, 2.2x radius).
+  - Head position alignment circle at nose landmark with state border.
+  - Subtle safe-zone framing brackets rendered when tracking is unready or degraded.
+  - Zero heap allocations in `onDraw`.
+- **Suite:** 100% passing across `:core:domain:allTests`, `:core:analysis:allTests` (JVM + JS), and `:app:testDebugUnitTest`.
+
+**Before that, P3-55 (2026-10-04): Camera-View Setup Assistant and Framing Gate built and verified.**
 - **Camera-View Setup Assistant & Framing Gate (`core/analysis`, `app`):**
   - Resolves CLAUDE.md §10, CONTRACTS.md §8, and HANDOVER.md §8.2 item 9.
   - Deterministic geometry over ML: aspect ratio computed directly from torso-normalized shoulder and hip span relative to torso length.

@@ -1,5 +1,7 @@
 package com.kinesis.core.analysis.live
 
+import com.kinesis.core.analysis.fps.FrameRateHealth
+import com.kinesis.core.analysis.fps.FrameRateMonitor
 import com.kinesis.core.analysis.landmark.LandmarkNormalizer
 import com.kinesis.core.analysis.landmark.ValidityGate
 import com.kinesis.core.analysis.profile.RepetitionExercise
@@ -62,9 +64,14 @@ class LiveRepetitionAnalysis(
 
     private val tracker = BilateralRepTracker(profile, temporalConfig)
     private val setupGate = SetupGate(profile, policy)
+    private val fpsMonitor = FrameRateMonitor()
 
     val setupVerdict: SetupVerdict get() = setupGate.latestVerdict
     val isSetupReady: Boolean get() = setupGate.isReady
+
+    val frameRateHealth: FrameRateHealth get() = fpsMonitor.health
+    val currentFps: Double get() = fpsMonitor.currentFps
+    val fpsWarningMessage: String? get() = fpsMonitor.warningMessage
 
     /** Nothing has been seen before the first frame, so nothing is valid. */
     var frameValidity: FrameValidity = FrameValidity.INVALID
@@ -108,6 +115,7 @@ class LiveRepetitionAnalysis(
 
     /** One frame of anatomical landmarks, from the platform pose adapter. */
     fun onFrame(timestampMs: Double, landmarks: Landmarks) {
+        fpsMonitor.onFrame(timestampMs)
         setupGate.onFrame(landmarks)
         frameValidity = if (!LandmarkNormalizer.hasMeasurableTorso(landmarks)) {
             FrameValidity.INVALID
@@ -126,6 +134,7 @@ class LiveRepetitionAnalysis(
      * later as though no time had passed.
      */
     fun onNothingSeen(timestampMs: Double) {
+        fpsMonitor.onFrame(timestampMs)
         setupGate.onNothingSeen()
         frameValidity = FrameValidity.INVALID
         tracker.onFrame(timestampMs, NOTHING_SEEN, policy, sink)
@@ -135,7 +144,10 @@ class LiveRepetitionAnalysis(
      * Ends the set. A repetition still under way is reported `INCOMPLETE` - not
      * counted, not dropped - through the same sink as every other record.
      */
-    fun finish(timestampMs: Double) = tracker.finish(timestampMs, sink)
+    fun finish(timestampMs: Double) {
+        fpsMonitor.reset()
+        tracker.finish(timestampMs, sink)
+    }
 
     private companion object {
         /**

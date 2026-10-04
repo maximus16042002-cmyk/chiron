@@ -61,5 +61,8 @@ class LiveHoldEngine(
         holdState = analysis.holdState,
         frameValidity = analysis.frameValidity,
         setupVerdict = analysis.setupVerdict,
+        frameRateHealth = analysis.frameRateHealth,
+        currentFps = analysis.currentFps,
+        fpsWarningMessage = analysis.fpsWarningMessage,
     )
 }

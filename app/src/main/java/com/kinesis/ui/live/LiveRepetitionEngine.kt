@@ -79,5 +79,8 @@ class LiveRepetitionEngine(
         recordsReported = analysis.recordsReported,
         timestampMs = lastTimestampMs,
         setupVerdict = analysis.setupVerdict,
+        frameRateHealth = analysis.frameRateHealth,
+        currentFps = analysis.currentFps,
+        fpsWarningMessage = analysis.fpsWarningMessage,
     )
 }

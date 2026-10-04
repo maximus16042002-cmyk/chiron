@@ -1,5 +1,7 @@
 package com.kinesis.core.analysis.live
 
+import com.kinesis.core.analysis.fps.FrameRateHealth
+import com.kinesis.core.analysis.fps.FrameRateMonitor
 import com.kinesis.core.analysis.hold.HoldAnalyser
 import com.kinesis.core.analysis.hold.HoldReading
 import com.kinesis.core.analysis.hold.HoldState
@@ -48,9 +50,14 @@ class LiveHoldAnalysis(
     private val leftPipeline = RealTimeSignalPipeline(temporalConfig, BilateralRepTracker.DEFAULT_BUFFER_CAPACITY)
     private val rightPipeline = RealTimeSignalPipeline(temporalConfig, BilateralRepTracker.DEFAULT_BUFFER_CAPACITY)
     private val setupGate = SetupGate(profile, policy)
+    private val fpsMonitor = FrameRateMonitor()
 
     val setupVerdict: SetupVerdict get() = setupGate.latestVerdict
     val isSetupReady: Boolean get() = setupGate.isReady
+
+    val frameRateHealth: FrameRateHealth get() = fpsMonitor.health
+    val currentFps: Double get() = fpsMonitor.currentFps
+    val fpsWarningMessage: String? get() = fpsMonitor.warningMessage
 
     /** Nothing has been seen before the first frame, so nothing is valid. */
     var frameValidity: FrameValidity = FrameValidity.INVALID
@@ -70,6 +77,7 @@ class LiveHoldAnalysis(
         private set
 
     fun onFrame(timestampMs: Double, landmarks: Landmarks) {
+        fpsMonitor.onFrame(timestampMs)
         setupGate.onFrame(landmarks)
         frameValidity = if (!LandmarkNormalizer.hasMeasurableTorso(landmarks)) {
             FrameValidity.INVALID
@@ -88,6 +96,7 @@ class LiveHoldAnalysis(
 
     /** A frame in which the pose estimator found nobody: unseen, not broken. */
     fun onNothingSeen(timestampMs: Double) {
+        fpsMonitor.onFrame(timestampMs)
         setupGate.onNothingSeen()
         frameValidity = FrameValidity.INVALID
         rawAngleLeft = Double.NaN
@@ -98,5 +107,8 @@ class LiveHoldAnalysis(
     }
 
     /** Ends the attempt and reports it. */
-    fun finish(): HoldRecord = analyser.finish()
+    fun finish(): HoldRecord {
+        fpsMonitor.reset()
+        return analyser.finish()
+    }
 }

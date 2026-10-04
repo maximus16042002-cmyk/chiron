@@ -325,7 +325,7 @@ fun LiveAnalysisScreen(
 ) {
     LiveCameraLayout(
         state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
-        switchModelLabel, onSwitchModel, modeLabel, state.setupVerdict,
+        switchModelLabel, onSwitchModel, modeLabel, state.setupVerdict, state.fpsWarningMessage,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -364,7 +364,7 @@ fun LiveHoldScreen(
 ) {
     LiveCameraLayout(
         state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
-        switchModelLabel, onSwitchModel, modeLabel, state.setupVerdict,
+        switchModelLabel, onSwitchModel, modeLabel, state.setupVerdict, state.fpsWarningMessage,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -422,6 +422,7 @@ private fun LiveCameraLayout(
     /** A calibration set says so on screen (DECISIONS.md P3-22); `null` otherwise. */
     modeLabel: String?,
     setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
+    fpsWarningMessage: String? = null,
     readout: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
@@ -473,6 +474,29 @@ private fun LiveCameraLayout(
                         Text("⚠️", style = MaterialTheme.typography.bodySmall)
                         Text(
                             setupVerdict.coachingMessage,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Attention,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+            } else if (fpsWarningMessage != null) {
+                Surface(
+                    color = Card.copy(alpha = 0.92f),
+                    shape = RoundedCornerShape(20.dp),
+                    border = BorderStroke(1.dp, Attention.copy(alpha = 0.8f)),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 16.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("⏱️", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            fpsWarningMessage,
                             style = MaterialTheme.typography.labelMedium,
                             color = Attention,
                             fontWeight = FontWeight.Medium,

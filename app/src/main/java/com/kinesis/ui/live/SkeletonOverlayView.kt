@@ -83,6 +83,21 @@ class SkeletonOverlayView @JvmOverloads constructor(
         }
     }
 
+    private val jointHaloPaints: Map<OverlayState, Paint> = OverlayState.entries.associateWith { state ->
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            val base = state.argb.toInt()
+            color = Color.argb(55, Color.red(base), Color.green(base), Color.blue(base))
+            style = Paint.Style.FILL
+        }
+    }
+
+    private val framingGuidePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(45, 255, 255, 255)
+        style = Paint.Style.STROKE
+        strokeWidth = 2.5f * resources.displayMetrics.density
+        strokeCap = Paint.Cap.ROUND
+    }
+
     /** Frames drawn. Instrumentation for Phase B's frame-rate check. */
     var framesSubmitted: Long = 0
         private set
@@ -125,10 +140,36 @@ class SkeletonOverlayView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         canvas.drawColor(Color.TRANSPARENT)
+        val w = width.toFloat()
+        val h = height.toFloat()
+        if (overallState != OverlayState.TRACKED) {
+            drawFramingGuides(canvas, w, h)
+        }
         synchronized(lock) { drawFigure(canvas) }
         // Keep animating while the figure pulses, so the pulse does not freeze if
         // pose results stall. Stops by itself when the state changes.
         if (overallState.pulses) postInvalidateOnAnimation()
+    }
+
+    private fun drawFramingGuides(canvas: Canvas, w: Float, h: Float) {
+        val left = w * 0.08f
+        val right = w * 0.92f
+        val top = h * 0.05f
+        val bottom = h * 0.95f
+        val arm = w * 0.07f
+
+        // Top-left
+        canvas.drawLine(left, top, left + arm, top, framingGuidePaint)
+        canvas.drawLine(left, top, left, top + arm, framingGuidePaint)
+        // Top-right
+        canvas.drawLine(right, top, right - arm, top, framingGuidePaint)
+        canvas.drawLine(right, top, right, top + arm, framingGuidePaint)
+        // Bottom-left
+        canvas.drawLine(left, bottom, left + arm, bottom, framingGuidePaint)
+        canvas.drawLine(left, bottom, left, bottom - arm, framingGuidePaint)
+        // Bottom-right
+        canvas.drawLine(right, bottom, right - arm, bottom, framingGuidePaint)
+        canvas.drawLine(right, bottom, right, bottom - arm, framingGuidePaint)
     }
 
     private fun drawFigure(canvas: Canvas) {
@@ -157,15 +198,24 @@ class SkeletonOverlayView @JvmOverloads constructor(
             )
         }
 
+        // Head indicator circle at nose position
+        if (landmarks.visibility(LandmarkId.NOSE) >= policy.marginal) {
+            val noseState = jointState(landmarks, LandmarkId.NOSE)
+            val headRadius = paints.getValue(noseState).strokeWidth * 2.2f
+            val noseX = screenX(landmarks, LandmarkId.NOSE, w)
+            val noseY = screenY(landmarks, LandmarkId.NOSE, w)
+            canvas.drawCircle(noseX, noseY, headRadius * 1.35f, jointHaloPaints.getValue(noseState))
+            canvas.drawCircle(noseX, noseY, headRadius, paints.getValue(noseState))
+        }
+
         for (id in DRAWN_JOINTS) {
             val state = jointState(landmarks, id)
-            val radius = paints.getValue(state).strokeWidth * 0.8f
-            canvas.drawCircle(
-                screenX(landmarks, id, w),
-                screenY(landmarks, id, w),
-                radius,
-                jointPaints.getValue(state),
-            )
+            val strokeW = paints.getValue(state).strokeWidth
+            val radius = strokeW * 0.85f
+            val x = screenX(landmarks, id, w)
+            val y = screenY(landmarks, id, w)
+            canvas.drawCircle(x, y, radius * 2.2f, jointHaloPaints.getValue(state))
+            canvas.drawCircle(x, y, radius, jointPaints.getValue(state))
         }
     }
 

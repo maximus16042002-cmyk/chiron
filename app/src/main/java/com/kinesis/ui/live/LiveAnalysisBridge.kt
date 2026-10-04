@@ -1,5 +1,6 @@
 package com.kinesis.ui.live
 
+import com.kinesis.core.analysis.fps.FrameRateHealth
 import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.rep.MovementPhase
@@ -27,6 +28,9 @@ data class LiveUiState(
      */
     val showingAttention: Boolean = false,
     val setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
+    val frameRateHealth: FrameRateHealth = FrameRateHealth.HEALTHY,
+    val currentFps: Double = Double.NaN,
+    val fpsWarningMessage: String? = null,
 ) {
     /**
      * How the skeleton should be drawn, derived rather than stored so the
@@ -118,6 +122,9 @@ class LiveAnalysisBridge(
         /** This frame's time, which the attention flash is measured against. */
         timestampMs: Double = 0.0,
         setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
+        frameRateHealth: FrameRateHealth = FrameRateHealth.HEALTHY,
+        currentFps: Double = Double.NaN,
+        fpsWarningMessage: String? = null,
     ) {
         frameCount++
 
@@ -141,7 +148,8 @@ class LiveAnalysisBridge(
             frameValidity == current.frameValidity &&
             lastRepValidity == current.lastRepValidity &&
             attention == current.showingAttention &&
-            setupVerdict == current.setupVerdict
+            setupVerdict == current.setupVerdict &&
+            frameRateHealth == current.frameRateHealth
         if (unchanged) return
 
         publish(
@@ -153,6 +161,9 @@ class LiveAnalysisBridge(
                 lastRepValidity = lastRepValidity,
                 showingAttention = attention,
                 setupVerdict = setupVerdict,
+                frameRateHealth = frameRateHealth,
+                currentFps = currentFps,
+                fpsWarningMessage = fpsWarningMessage,
             ),
         )
     }

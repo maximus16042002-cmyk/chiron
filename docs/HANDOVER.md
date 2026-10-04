@@ -765,7 +765,7 @@ The engineering is far ahead of the thesis: the remaining work is mostly evaluat
 | 1 | **The calibration count.** 5–8 valid repetitions per side now; the convergence study says about 12–20 | P3-30 S4, P3-40, P3-42 |
 | 2 | **The push-up personal start zone:** adopt or not (the sit-up's was retired with the trunk driver) | P3-29, P3-30 |
 | 3 | **Squats side-on:** count the near knee only (as the row does), use an angled camera, or accept squats as untested. The far knee is often untracked side-on, and a squat counts only when both knees complete | P3-23 "For the owner" item 1; still untouched (P3-29, P3-30) |
-| 4 | **A low frame rate:** a gate weighted by time, or a warning when results fall below about 10 a second | P3-33 |
+| 4 | **A low frame rate:** warning gate when results fall below 12 FPS | Resolved by P3-56 |
 | 5 | **The AGP 8.9.1 and compileSdk 36 batch** (needed for the stable Health Connect 1.1.0; probably also the way out of P1-1's lint exclusion) | P3-19, P3-21 ("its own small batch, later") |
 | 6 | **Per-side tempo for simultaneous exercises** (squat, push-up…): needs `RepRecord` to keep each side's phase times, a change touching Room, sync and the golden file | P3-22 |
 | 7 | **Local sessions are not partitioned by account:** on a phone shared by two accounts, one account's sessions would be uploaded to the other's | P3-22, P3-25 |

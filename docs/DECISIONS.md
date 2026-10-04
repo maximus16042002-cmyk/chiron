@@ -11748,6 +11748,40 @@ In the 2026-09-29 phone session (DECISIONS.md P3-31), doing bicep curls facing t
 
 ---
 
+## P3-56 — Low Frame-Rate Warning Gate and Skeleton Visual Redesign
+
+*Decided 2026-10-05. Implements HANDOVER.md §8.2 item 4, CLAUDE.md §6 & §21, and FEATURE_PLAN Batch 1 skeleton redesign.*
+
+### Context and Motivation
+
+1. **Low Frame Rate Risk:** In the P3-33 investigation and `HANDOVER.md §8.2 item 4`, frame rate drops on mid-range devices under thermal throttling or background battery savings were identified. At $<12.0$ FPS, MediaPipe pose landmarking cannot reliably track inflection points of brisk repetitions (e.g. 1.2s squats or curls sampled with $<7$ frames), and VBT concentric velocity calculations lose precision.
+2. **Skeleton Aesthetic Modernisation:** `FEATURE_PLAN.md` Batch 1 called for an overlay redesign: soft halos around joints, an explicit head alignment indicator, and subtle safe-zone framing brackets without cluttering the screen or conveying state by colour alone.
+
+### Principles and Guardrails (Non-Negotiables)
+
+1. **$O(1)$ Real-Time Path & Zero Allocation:** The `FrameRateMonitor` maintains a fixed-capacity primitive `DoubleArray` ring buffer (capacity 15, ~500ms at 30 FPS) with zero heap allocations per frame.
+2. **Debounce Hysteresis:** Health transitions (`HEALTHY` $\ge 20$, `MODERATE` $12\text{--}20$, `DEGRADED` $< 12$) require an 8-consecutive-frame threshold to transition into or out of `DEGRADED`.
+3. **Strict Compose Recomposition Budget:** `LiveAnalysisBridge` and `LiveHoldBridge` compare `frameRateHealth == current.frameRateHealth`. Ongoing continuous FPS fluctuations produce **0 recompositions**; Compose is only notified upon categorical health transition.
+4. **Core-Composed Coaching Text:** Warning text ("Camera frame rate low (X FPS) — tracking accuracy reduced") is composed in the shared core.
+5. **Overlay Zero-Allocation Drawing:** All paint objects (`jointHaloPaints`, `framingGuidePaint`) are pre-allocated at `SkeletonOverlayView` instantiation. Zero allocations occur in `onDraw`.
+
+### What Was Built
+
+1. **`FrameRateMonitor` (`core/analysis/.../fps/FrameRateMonitor.kt`):**
+   - Computes rolling FPS and classifies health.
+   - Tested in `FrameRateMonitorTest.kt` across JVM and JS targets.
+2. **Analysis Pipeline Integration:**
+   - Integrated into `LiveRepetitionAnalysis` and `LiveHoldAnalysis`.
+3. **Bridge & UI Throttling:**
+   - Wired into `LiveAnalysisBridge` and `LiveHoldBridge`. Verified in `LiveAnalysisBridgeTest.kt`.
+   - Live pill banner rendered in `Screens.kt` (`LiveCameraLayout`) when FPS is degraded.
+4. **`SkeletonOverlayView` Visual Redesign:**
+   - Added soft glow joint halos (25% alpha, 2.2x radius).
+   - Added geometric head position indicator at `NOSE` with halo and state border.
+   - Added subtle boundary framing brackets when tracking is unready or degraded.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

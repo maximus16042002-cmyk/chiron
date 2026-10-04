@@ -1,5 +1,6 @@
 package com.kinesis.ui.live
 
+import com.kinesis.core.analysis.fps.FrameRateHealth
 import com.kinesis.core.analysis.hold.HoldState
 import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.domain.landmark.FrameValidity
@@ -17,6 +18,9 @@ data class LiveHoldUiState(
     val holdState: HoldState,
     val frameValidity: FrameValidity,
     val setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
+    val frameRateHealth: FrameRateHealth = FrameRateHealth.HEALTHY,
+    val currentFps: Double = Double.NaN,
+    val fpsWarningMessage: String? = null,
 ) {
     /**
      * Derived, as in [LiveUiState], so the overlay and the readout cannot
@@ -63,15 +67,30 @@ class LiveHoldBridge(
         holdState: HoldState,
         frameValidity: FrameValidity,
         setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
+        frameRateHealth: FrameRateHealth = FrameRateHealth.HEALTHY,
+        currentFps: Double = Double.NaN,
+        fpsWarningMessage: String? = null,
     ) {
         frameCount++
         val heldSeconds = (heldMs / 1000.0).toInt()
         val unchanged = heldSeconds == current.heldSeconds &&
             holdState == current.holdState &&
             frameValidity == current.frameValidity &&
-            setupVerdict == current.setupVerdict
+            setupVerdict == current.setupVerdict &&
+            frameRateHealth == current.frameRateHealth
         if (unchanged) return
-        publish(LiveHoldUiState(exerciseId, heldSeconds, holdState, frameValidity, setupVerdict))
+        publish(
+            LiveHoldUiState(
+                exerciseId = exerciseId,
+                heldSeconds = heldSeconds,
+                holdState = holdState,
+                frameValidity = frameValidity,
+                setupVerdict = setupVerdict,
+                frameRateHealth = frameRateHealth,
+                currentFps = currentFps,
+                fpsWarningMessage = fpsWarningMessage,
+            ),
+        )
     }
 
     private fun publish(state: LiveHoldUiState) {

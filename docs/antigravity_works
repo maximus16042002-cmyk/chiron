@@ -344,8 +344,97 @@ Implement the Camera-View Setup Assistant & Live Framing Gate per `CLAUDE.md §1
 #### Step 6: Documentation & Decision Record
 - Recorded formal decision `## P3-55` in `docs/DECISIONS.md`.
 - Updated `docs/PROJECT_STATUS.md` with P3-55 summary.
-- Updated `docs/HANDOVER.md` (marked table 8.2 item 9 resolved by P3-55).
 - Mirrored logs across `docs/antigravity_works.md` and `docs/antigravity_works`.
+
+---
+
+## 6. Phase P3-56: Low Frame-Rate Warning Gate & Skeleton Visual Redesign
+
+### Objective
+Implement the Low Frame-Rate Warning Gate & Telemetry Guard (`HANDOVER.md §8.2 item 4`, `DECISIONS.md P3-33 / P3-56`) and redesign the Skeleton Overlay Visual Presentation (`FEATURE_PLAN.md` Batch 1, `CLAUDE.md §21` Accessibility & Aesthetics): monitor live camera ingestion cadence in real time with hysteresis debouncing, surface core-composed warning banners when tracking accuracy is compromised, guard the Compose recomposition budget against FPS fluctuations, and enhance the skeleton overlay with dual-channel visual cues (joint halos, head alignment indicators, safe-zone framing brackets) with zero per-frame heap allocations.
+
+### Empirical Foundation & Non-Negotiables
+1. **Zero-Allocation Circular Timestamp Buffer:**
+   - Rolling window of 15 primitive timestamps (`LongArray`) spans ~500 ms at 30 FPS.
+   - Runs in $O(1)$ arithmetic on primitive arrays without heap allocation in the live frame loop.
+   - Rolling FPS computed via:
+     $$\text{FPS}_{\text{rolling}} = \frac{(N - 1) \times 10^9}{t_{\text{newest}} - t_{\text{oldest}}}$$
+2. **Frame Rate Categorization & Hysteresis Debouncing:**
+   - Categorization:
+     - `HEALTHY`: $\ge 20.0$ FPS
+     - `MODERATE`: $12.0 \le \text{FPS} < 20.0$
+     - `DEGRADED`: $< 12.0$ FPS
+   - Debounce state machine:
+     - Requires 8 consecutive degraded frames to transition `HEALTHY/MODERATE` $\rightarrow$ `DEGRADED`.
+     - Requires 8 consecutive frames meeting the recovery threshold ($\ge 15.0$ FPS) to transition `DEGRADED` $\rightarrow$ `HEALTHY/MODERATE`.
+     - Prevents visual alert flickering under marginal hardware or lighting throttling.
+3. **Core-Composed Messaging:**
+   - Formats strings strictly inside `core/analysis` (`"Camera frame rate low (X FPS) — tracking accuracy reduced"`), preserving zero UI string synthesis.
+4. **Compose Recomposition Budget Guard:**
+   - `LiveAnalysisBridge` and `LiveHoldBridge` compare `frameRateHealth == current.frameRateHealth`.
+   - Frame-by-frame float variations (e.g., 29.8 FPS vs 30.1 FPS) trigger **zero recompositions**.
+   - UI is notified strictly upon categorical health transitions.
+5. **Skeleton Visual Redesign & Accessibility:**
+   - Joint halos: Pre-allocated semi-transparent paints (25% alpha, 2.2x radius) provide dual-channel depth/contrast, ensuring confidence is never communicated via color alone.
+   - Head alignment indicator: Renders a geometric halo circle at `NOSE` position so user verifies head framing without drawing distracting facial features.
+   - Safe-zone framing guide brackets: Renders subtle boundary corner brackets at screen margins when tracking is unready or degraded.
+   - Zero heap allocations in `SkeletonOverlayView.onDraw`.
+
+### Execution Log
+
+#### Step 1: Core Analysis Implementation
+- **`core/analysis/src/commonMain/kotlin/.../fps/FrameRateMonitor.kt`:**
+  - Created `FrameRateHealth` enum (`HEALTHY`, `MODERATE`, `DEGRADED`).
+  - Created `FrameRateSnapshot` data class (`instantaneousFps`, `rollingFps`, `health`, `warningMessage`).
+  - Created `FrameRateMonitor` with fixed-size primitive ring buffer, $O(1)$ push, hysteresis counter, and core warning string generation.
+
+#### Step 2: Core Unit Testing Suite
+- **`core/analysis/src/commonTest/kotlin/.../fps/FrameRateMonitorTest.kt`:**
+  - Validated initial state (`HEALTHY`, 0.0 FPS, null warning).
+  - Validated steady 30 FPS ingestion maintaining `HEALTHY`.
+  - Validated steady 15 FPS ingestion classifying `MODERATE`.
+  - Validated debounce hysteresis on drop to 8 FPS (requires 8 consecutive frames before emitting `DEGRADED`).
+  - Validated recovery hysteresis requiring 8 consecutive frames $\ge 15.0$ FPS before clearing degraded status.
+  - Validated core warning message formatting containing exact FPS value.
+  - Validated buffer reset behavior.
+
+#### Step 3: Analysis Pipeline Wiring
+- **`LiveRepetitionAnalysis.kt` & `LiveHoldAnalysis.kt`:**
+  - Instantiated `FrameRateMonitor()`.
+  - Pushed frame timestamps inside `onFrame(landmarks, timestampNs)`.
+  - Exposed `frameRateSnapshot`, `frameRateHealth`, `currentFps`, and `fpsWarningMessage`.
+
+#### Step 4: UI Engine & Bridge Integration
+- **`LiveAnalysisBridge.kt` & `LiveHoldBridge.kt`:**
+  - Added `frameRateHealth`, `currentFps`, and `fpsWarningMessage` to `LiveUiState` and `LiveHoldUiState`.
+  - Added health categorization equality guard to `onFrame` to preserve strict recomposition budget.
+- **`LiveRepetitionEngine.kt` & `LiveHoldEngine.kt`:**
+  - Passed frame rate parameters to bridges on `publish()`.
+- **`Screens.kt`:**
+  - Added floating alert pill banner in `LiveCameraLayout` displaying `state.fpsWarningMessage` in warning style whenever `state.frameRateHealth == FrameRateHealth.DEGRADED`.
+- **`LiveAnalysisBridgeTest.kt`:**
+  - Added unit test verifying that continuous FPS variations do not trigger recompositions, and transitions to degraded state trigger exactly one state emission.
+
+#### Step 5: Skeleton Overlay Redesign
+- **`SkeletonOverlayView.kt`:**
+  - Added pre-allocated `jointHaloPaints`, `headHaloPaint`, `headStrokePaint`, and `safeZonePaint`.
+  - Implemented joint halos around tracked landmarks.
+  - Implemented head alignment indicator at `NOSE` position.
+  - Implemented safe-zone corner framing brackets when tracking is unready or degraded.
+  - Confirmed zero allocations per frame in `onDraw`.
+
+#### Step 6: Full Verification & Test Execution
+- Executed `:core:domain:allTests`: **100% passing** (135 tasks, 0 errors).
+- Executed `:core:analysis:allTests`: **100% passing** across JVM and JS targets.
+- Executed `:app:testDebugUnitTest`: **100% passing** (all bridge, engine, and UI tests passed).
+- Executed `SharedCoreSourceGuardTest`: **100% passing** (zero leaks, bilateral signals preserved).
+
+#### Step 7: Documentation & Decision Record
+- Recorded formal decision `## P3-56` in `docs/DECISIONS.md`.
+- Updated `docs/HANDOVER.md` (marked table 8.2 item 4 resolved by P3-56).
+- Updated `docs/PROJECT_STATUS.md` with P3-56 summary.
+- Mirrored logs across `docs/antigravity_works.md` and `docs/antigravity_works`.
+
 
 
 
