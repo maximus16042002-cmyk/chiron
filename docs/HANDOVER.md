@@ -90,7 +90,7 @@ Give it access, then paste this:
 
 ```text
 You are taking over "Kinesis": a camera-based personal movement-analysis Android app (Kotlin
-Multiplatform engine + MediaPipe Pose) that is also an MSc research project. It is NOT a medical
+Multiplatform engine + MediaPipe Pose) that is also a BCA final-year research project. It is NOT a medical
 or diagnostic system and must never be described or built as one.
 
 Before doing anything:
@@ -123,9 +123,9 @@ Current state and the to-do list are in HANDOVER sections 7 and 8.
 | | |
 |---|---|
 | **What** | Kinesis: a camera-based personal movement-analysis app for Android. The phone camera watches you exercise. MediaPipe Pose turns each frame into 33 body landmarks. A shared Kotlin engine counts repetitions, times holds, and measures range of motion, tempo and left/right symmetry. |
-| **Why** | An MSc project. The research question: **do personal baselines outperform population thresholds for flagging movement deviation?** |
+| **Why** | A BCA final-year project (Bachelor of Computer Applications); the report calls the app **Chiron**. The research question: **do personal baselines outperform population thresholds for flagging movement deviation?** |
 | **What it is not** | **Not a medical or diagnostic system.** Feedback is "form feedback", never "diagnosis", "injury" or "correct posture guaranteed". |
-| **Owner** | Nitish Amritraj B, an MSc student. They delegate heavily ("do whatever you want… I just want the app perfect and complete") but keep certain decisions (section 8.2). They said the due date is not a worry. |
+| **Owner** | Nitish Amritraj B, a BCA final-year student. The September progress report (`docs/Chiron_Project_Report.docx`, not in git) lists Nitish and Dominic as its authors. They delegate heavily ("do whatever you want… I just want the app perfect and complete") but keep certain decisions (section 8.2). They said the due date is not a worry. |
 | **Repository** | `E:\kinesis` on the owner's Windows 11 PC. Remote: private GitHub `maximus16042002-cmyk/chiron`, branch `master`. See `git log` for history; tags `p3-42-frozen` and `p3-46-frozen` mark frozen pre-test states. |
 | **Phone** | The owner's Nothing Phone (2a), model A142, Android 16, over USB with `adb`. It holds real data (79 sessions, 79 sets, 258 repetitions, 4 holds and 1 baseline as of P3-47). |
 | **Dataset** | **MM-Fit** (public, CC BY 4.0; Zenodo record 7607736, 40.8 GB with video and depth; project site mmfit.github.io; paper at vradu.uk/UbiComp2021.pdf; starter code MIT at github.com/KDMStromback/mm-fit): 10 people, 10 exercises, 616 labelled sets, 6,160 repetitions, set and repetition-count labels, **no form-quality labels**. The pipeline: MM-Fit video → MediaPipe → Kinesis engine → compare with MM-Fit's counts. **No self-collected or self-labelled data exists or may be created.** Two form-labelled datasets (FLEX, M3GYM) exist behind non-commercial licence agreements and are not used. |
@@ -735,7 +735,7 @@ duration), trained on MM-Fit's development people with one person left out at a 
 P3-52 to P3-58 raised this to 79%, 88% and ~90% in different documents by counting P9 and P10 as
 done; P3-59 returned it to 75%: the verifier is evaluated but not shipped, and nothing since P3-47
 has been seen on the phone.
-The engineering is far ahead of the thesis: the remaining work is mostly evaluation and the write-up.
+The engineering is far ahead of the report: the remaining work is mostly evaluation and the write-up.
 
 ### 7.2 Proven on the phone vs built only
 
@@ -824,7 +824,9 @@ The engineering is far ahead of the thesis: the remaining work is mostly evaluat
 
 ### 8.3 Engineering work that needs no phone (in order)
 
-1. **P12, the evaluation studies and the report** (section 1.1): consolidate the repetition-detection
+1. **P12, the evaluation studies and the report** (section 1.1). **A draft of the evaluation
+   chapter exists: `docs/report/EVALUATION.md`** (2026-10-05), every figure traced to its
+   DECISIONS entry. It still needs the device studies (4, 5) and the owner's review. Consolidate the repetition-detection
    study; the verifier (P3-52's folds and P3-59's per-exercise breakdown,
    `tools/mmfit-eval/verifier_breakdown.py`); the personalisation write-up (including Layer 1's
    held-out failure and Layer 4's null result, reported honestly); device performance and pose

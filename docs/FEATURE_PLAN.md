@@ -136,7 +136,7 @@ decisions in DECISIONS.md (next `P3-` number) before it is considered done.*
 
 ## Batch 2 — Form feedback: the main feature (calibration + form engine, P6 + P8)
 
-This batch is also the core of the MSc work, so it gets the most care.
+This batch is also the core of the final-year research work, so it gets the most care.
 
 **Calibration (P6)**
 - A short calibration flow per exercise: the user does a few normal reps
@@ -249,6 +249,6 @@ This batch is also the core of the MSc work, so it gets the most care.
 - P9: personal anomaly detection, then the exercise verifier. In scope since DECISIONS.md P3-34.
 - P12: the six evaluation studies and the final report.
 
-These are what the MSc report rests on. The app features above make Kinesis a
+These are what the final-year report rests on. The app features above make Kinesis a
 better product and demo, but they must not push the evaluation out of the
 schedule — CLAUDE.md §21 puts evaluation above Android polish.

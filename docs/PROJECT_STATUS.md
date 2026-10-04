@@ -244,7 +244,7 @@ mostly the front camera, so the device reality check (P4) is still only partly
 done. **P7 is done**: MM-Fit's 616 sets through the phone's own pipeline, with
 repetition counts measured per exercise (P3-27 to P3-29). What is left is the
 research core — the form engine (P8), the ML layer (P9, in scope since P3-34) and the six
-evaluation studies (P12), the parts the MSc report actually rests on.
+evaluation studies (P12), the parts the BCA final-year report actually rests on.
 
 ---
 
@@ -290,7 +290,7 @@ done.
 Treat that as an estimate, not a measurement. Phases are not equal in size, and
 the unfinished half contains the heaviest academic work — the form engine, the
 ML layer and all six evaluation studies. The engineering foundation is well
-past half; the thesis is well short of it.
+past half; the report is well short of it.
 
 ### Test suite
 
