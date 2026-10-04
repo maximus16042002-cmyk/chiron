@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The theme's canvas (P3-48), behind the launcher icon (P3-62). -->
+    <color name="ic_launcher_background">#FF0E0F12</color>
+</resources>

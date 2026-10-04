@@ -300,12 +300,12 @@ past half; the report is well short of it.
 
 ### Test suite
 
-Last full run (DECISIONS.md P3-60, 2026-10-05): **3,081 test executions, 0 failures, 0
+Last full run (DECISIONS.md P3-62, 2026-10-05): **3,089 test executions, 0 failures, 0
 errors, 0 skipped**, via `gradlew assemble allTests :app:testDebugUnitTest
 :app:testReleaseUnitTest` (plus `:app:compileDebugAndroidTestKotlin`). Core tests count once per
 target (JVM, JS, both Android variants), so this is executions, not distinct tests. By module and
 target: `core/analysis` 623 JVM (+5 allocation), 612 JS, 612 debug, 612 release; `core/domain` 40
-on each of the four; `:app` 222 debug and 210 release; the MM-Fit tools (`tools/mmfit-eval`) 25.
+on each of the four; `:app` 226 debug and 214 release; the MM-Fit tools (`tools/mmfit-eval`) 25.
 `test_subjects.py` and `test_anomaly_study.py` add Python tests. Every test is synthetic: none has
 seen a camera frame or a model. What has run on the phone is recorded in DECISIONS.md, entry by
 entry, and is not a test count.

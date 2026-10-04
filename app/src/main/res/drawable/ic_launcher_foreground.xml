@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launcher icon's foreground (DECISIONS.md P3-62): a bent arm - shoulder, elbow and wrist as
+     joints, the angle at the elbow as an arc - in the theme's accent and ink (P3-48). Drawn for
+     this app; no third-party asset. Everything sits inside the adaptive icon's 66 dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:strokeColor="#99FF6B35"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:pathData="M42,53 A18,18 0 0,1 56.75,60.68" />
+    <path
+        android:strokeColor="#FFFF6B35"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M42,35 L42,71 L72,50" />
+    <path
+        android:fillColor="#FFF2F3F5"
+        android:pathData="M37,35a5,5 0 1,0 10,0a5,5 0 1,0 -10,0M37,71a5,5 0 1,0 10,0a5,5 0 1,0 -10,0M67,50a5,5 0 1,0 10,0a5,5 0 1,0 -10,0" />
+</vector>

@@ -67,7 +67,7 @@ operational distillation) > everything else. If `CLAUDE.md` disagrees with the o
 ### 0.3 How work is done here (the pattern every session followed)
 
 1. **Read** the relevant DECISIONS entries before changing anything.
-2. **Write a design entry first** (next number: **P3-62**). It states what will be built and every
+2. **Write a design entry first** (next number: **P3-63**). It states what will be built and every
    choice the source documents leave open. Commit it before any code. For studies, the protocol and
    pass rule are fixed and committed (sometimes tagged, e.g. `p3-42-frozen`) **before** any data is
    looked at.
@@ -104,7 +104,7 @@ Before doing anything:
    - every technique rule cites a published source; no accuracy number may be attached to one;
    - never state a number that was not measured on this system;
    - never use held-out MM-Fit data without the owner's explicit approval and a frozen protocol.
-3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-62),
+3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-63),
    tests first, implement in the core, mutation-check new guard tests, run the full suite
    (HANDOVER 9.2), append a Result section, commit, push.
 4. Ask the owner before: installing anything on their phone (back up first, HANDOVER 9.4), using
@@ -753,9 +753,9 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 
 ### 7.3 Tests
 
-- **The last full run (P3-60, 2026-10-05):** **3,081 test executions, 0 failed, 0 skipped.** By
+- **The last full run (P3-62, 2026-10-05):** **3,089 test executions, 0 failed, 0 skipped.** By
   module and target: `core/analysis` 623 JVM (+5 allocation), 612 JS, 612 debug, 612 release;
-  `core/domain` 40 on each of the four; `:app` 222 debug and 210 release; `tools/mmfit-eval` 25.
+  `core/domain` 40 on each of the four; `:app` 226 debug and 214 release; `tools/mmfit-eval` 25.
   Python tests (`test_subjects.py`, `test_anomaly_study.py`) are separate.
 - **The command:** section 9.2.
 - **Every test is synthetic.** None has seen a camera frame or a model; device evidence is recorded
@@ -821,6 +821,8 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 | 12 | **After the phone checks:** whether to show Layer 2's rules on the set summary. P3-53 showed them early, with Layer 1's messages; P3-59 took all findings off again | P3-43, P3-44, P3-53, P3-59 |
 | 13 | **Before the repository is ever made public:** review `google-services.json`, the API key's restrictions, rotating the key | P3-20 |
 | 14 | The six curl features in P3-30's Decision 3 rule (probably moot while Layer 1 is out) | P3-32, P3-33 |
+| 15 | **The app's name:** the manifest says "Kinesis", the owner's report "Chiron" | P3-62 |
+| 16 | **`android:allowBackup="true"`:** Android's auto backup copies the databases to the user's Google Drive, a path off the phone other than Firebase sync (CLAUDE.md §16). Turn off, exclude the databases, or disclose | P3-62 |
 
 ### 8.3 Engineering work that needs no phone (in order)
 
@@ -1207,6 +1209,6 @@ figure can be regenerated rather than trusted.
 ---
 
 *When you finish a piece of work:*
-1. *add its entry to `docs/DECISIONS.md` (next: **P3-62**);*
+1. *add its entry to `docs/DECISIONS.md` (next: **P3-63**);*
 2. *update `docs/PROJECT_STATUS.md`'s "Next session starts here";*
 3. *update sections 7 and 8 of this file.*

@@ -12317,6 +12317,67 @@ in P3-21. Done now, while the owner is busy with the phone, because it needs nei
 
 ---
 
+## P3-62 — A launcher icon
+
+*2026-10-05. Written before the icon. P3-61's lint found `MissingApplicationIcon`: the manifest
+names no icon, so the phone shows Android's default.*
+
+### The icon
+
+- **What it shows:** a bent arm, the app's own subject. Three joints (shoulder, elbow, wrist) as
+  light dots, the upper arm and forearm as two orange strokes, and an arc marking the angle at the
+  elbow. It echoes the live screen's skeleton and the joint angles the engine measures.
+- **Colours:** the theme's canvas `#0E0F12` behind, and the accent `#FF6B35` (P3-48). The dots are
+  the theme's ink.
+- **Drawn for this app** as a vector, with no third-party asset or font. §17 does not apply.
+- **Formats:**
+  - an adaptive icon (Android 8 and later), with a background colour, a foreground vector inside
+    the 66 dp safe zone, and a monochrome layer for Android 13's themed icons;
+  - a layer-list fallback for Android 7 (minSdk 24).
+
+### Checks
+
+- `IconGuardTest` (JVM, written first): the manifest names `@mipmap/ic_launcher`; the adaptive
+  icon declares a background, a foreground and a monochrome layer; every resource it names exists.
+- Lint no longer reports `MissingApplicationIcon`.
+- A raster preview, drawn from the same coordinates on the PC and looked at. The phone is the
+  final check.
+
+**Not decided here:** the app's displayed name. The manifest says "Kinesis"; the owner's report
+says "Chiron". That is the owner's choice.
+
+### Result (2026-10-05)
+
+- **The resources:**
+  - `drawable/ic_launcher_foreground.xml`, the vector;
+  - `values/ic_launcher_colors.xml`, the background;
+  - `mipmap-anydpi-v26/ic_launcher.xml`, the adaptive icon, with the foreground reused as the
+    monochrome layer;
+  - `mipmap/ic_launcher.xml`, the Android 7 layer-list, its foreground enlarged by 12 dp insets.
+- **The manifest** sets `android:icon="@mipmap/ic_launcher"`.
+- **The coordinates:** shoulder (42, 35), elbow (42, 71), wrist (72, 50) on the 108 dp canvas;
+  strokes 6 dp, joint dots radius 5 dp, the arc radius 18 dp at 60% opacity.
+- **The preview:** the first drawing sat left of centre and hid the arc behind the elbow dot. The
+  joints moved right and the arc grew from 12 to 18 dp, and the second drawing was accepted. The
+  preview was drawn from the same coordinates with PIL, cropped to a launcher circle, at full and
+  launcher size.
+- **Tests:** `IconGuardTest` (4) failed 4 of 4 before the icon existed, and passes now.
+- **Lint:** `MissingApplicationIcon` is gone (84 issues → 83).
+- **The packaged APK:** `aapt2 dump badging` shows `icon='res/mipmap-anydpi-v26/ic_launcher.xml'`
+  at every density.
+- **The full suite:** 3,089 test executions, 0 failed (`:app` 226 debug and 214 release).
+- **Unseen on the phone.** How it looks under the owner's launcher mask and themed icons is the
+  phone's to show.
+
+**Found while reading the manifest, for the owner, not changed:** `android:allowBackup="true"`
+lets Android's auto backup copy the app's databases to the user's Google Drive. That is data
+leaving the phone by a path other than the Firebase sync that CLAUDE.md §16 permits and the UI
+discloses. Turning it off (or excluding the databases) is the owner's decision.
+
+**Next entry: P3-63.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
