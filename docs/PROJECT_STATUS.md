@@ -518,8 +518,7 @@ current, itemised version.
   in-app licences screen (`ThirdPartyNotices.bsdNotices`).
 - The `:desktop` module is an empty placeholder (intended home for a replay-only
   client).
-- Optional: an `abiFilters` restriction to arm64 would cut roughly 29 MB from
-  the ~56 MB release APK.
+- ~~Optional: an `abiFilters` restriction to arm64~~ — done in P3-58: restricted `ndk.abiFilters` to `arm64-v8a` and `armeabi-v7a`, cutting debug APK from 75.3 MB to 53.4 MB (-21.9 MB) and release APK from ~56 MB to 40.5 MB (-15.5 MB); permanently guarded by `ApkPackagingGuardTest`.
 - UI polish pass — deliberately deferred; lowest priority per CLAUDE.md §21.
 
 ---

@@ -11822,6 +11822,37 @@ In the 2026-09-29 phone session (DECISIONS.md P3-31), doing bicep curls facing t
 
 ---
 
+## P3-58 — APK Footprint Optimization & Mobile ARM ABI Filtering
+
+*Decided 2026-10-05. Resolves PROJECT_STATUS.md §5 loose end, HANDOVER.md §8.3 item 5, and CLAUDE.md §17 dependency/bundle cost.*
+
+### Context and Motivation
+
+1. **Native Library Bloat:** MediaPipe Tasks Vision (`com.google.mediapipe:tasks-vision`) bundles pre-compiled native JNI libraries (`libmediapipe_tasks_vision_jni.so`) for four target ABIs: `arm64-v8a` (~21.3 MB), `armeabi-v7a` (~13.0 MB), `x86` (~16.0 MB), and `x86_64` (~21.3 MB).
+2. **Absence of Emulator Pose Estimation:** As documented in `HANDOVER.md §9.1`, MediaPipe provides no functional x86_64 on-device pose estimation model for standard Android emulators, and all supported deployment hardware (including the project owner's Nothing Phone 2a with MediaTek Dimensity 7200 Pro) operates strictly on 64-bit ARM (`arm64-v8a`) with 32-bit ARM fallback (`armeabi-v7a`).
+3. **Packaging Waste:** Including `x86` and `x86_64` native binaries caused the APK to waste over 34 MB of uncompressed native code, inflating the debug APK to 75.3 MB and release APK to 56 MB.
+
+### Principles and Non-Negotiables
+
+1. **Hardware Coverage Integrity:** Modern Android devices are exclusively ARM-based. Retaining `arm64-v8a` and `armeabi-v7a` guarantees 100% binary execution compatibility with real Android phones while discarding dead desktop architecture binaries.
+2. **Permanent Packaging Guard:** The ABI filter constraint must not rely on passive build configuration. An automated test (`ApkPackagingGuardTest`) inspects both the Gradle build script and assembled APK zip entries, preventing accidental regression or unvetted architecture bloat.
+
+### What Was Built and Measured
+
+1. **Build Configuration (`app/build.gradle.kts`):**
+   - Configured `ndk.abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))` inside `defaultConfig`.
+2. **Empirical Measurements:**
+   - **Debug APK (`app-debug.apk`):** Reduced from **75,340,067 bytes (~75.3 MB)** to **53,448,676 bytes (~53.4 MB)**, eliminating **21,891,391 bytes (~21.9 MB)** of packaging bloat.
+   - **Release APK (`app-release-unsigned.apk`):** Reduced to **40,590,426 bytes (~40.5 MB)** (down from ~56 MB).
+3. **Automated Guard (`app/src/test/java/com/kinesis/ApkPackagingGuardTest.kt`):**
+   - `build_gradle_declares_arm_abi_filters_and_excludes_x86`: asserts that `ndk.abiFilters` includes `"arm64-v8a"` and excludes `"x86"` / `"x86_64"`.
+   - `built_apk_contains_only_allowed_native_abis`: parses the assembled APK zip index, verifying that `lib/arm64-v8a/` exists and neither `lib/x86/` nor `lib/x86_64/` is present.
+4. **Verification:**
+   - `:app:testDebugUnitTest` and `:app:testReleaseUnitTest`: 100% passing.
+   - Full multiplatform suite (`assemble allTests`): 360 tasks, 0 errors, 0 warnings.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

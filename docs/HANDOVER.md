@@ -788,7 +788,7 @@ The engineering is far ahead of the thesis: the remaining work is mostly evaluat
    phone); parity as a study. The limitations section must say that Layer 2's rules implement
    thresholds from cited sources and **their agreement with expert human judgement was not measured
    in this work**, and carry every item of section 1.2.
-5. **Deferred app items:** ✅ **Done** in DECISIONS.md P3-56 (skeleton visual redesign) and P3-57 (display-only focus zoom auto-framing with zero per-frame allocations).
+5. **Deferred app items:** ✅ **Done** in DECISIONS.md P3-56 (skeleton visual redesign), P3-57 (display-only focus zoom auto-framing with zero per-frame allocations), and P3-58 (APK footprint reduction from 75.3 MB to 53.4 MB debug and 40.5 MB release via mobile ARM ABI filtering; permanently guarded by `ApkPackagingGuardTest`).
 6. **Housekeeping:** ✅ **Done** in DECISIONS.md P3-57 (`docs/PROGRESS_REPORT.md` fully refreshed; `:desktop` recognized as candidate replay client placeholder).
 
 ---

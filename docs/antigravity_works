@@ -535,3 +535,61 @@ Implement the Display-Only Focus Zoom & Auto-Framing Engine (`FEATURE_PLAN.md` B
 - Executed `:app:testDebugUnitTest`: **100% passing**.
 - Executed `SharedCoreSourceGuardTest`: **100% passing** (zero leaks, bilateral signals preserved, no per-frame allocations).
 - Total: **135 actionable Gradle tasks, 0 failures, 0 regressions**.
+
+---
+
+## 8. Phase P3-58: APK Footprint Optimization & Mobile ARM ABI Filtering
+
+### Objective
+Resolve the repository packaging footprint loose end (`PROJECT_STATUS.md §5`, `HANDOVER.md §8.3 item 5`, `DECISIONS.md P3-58`, `CLAUDE.md §17` bundle cost):
+1. Eliminate over 34 MB of uncompressed dead native code (x86 and x86_64 desktop emulator binaries) bundled by `com.google.mediapipe:tasks-vision` (`libmediapipe_tasks_vision_jni.so`).
+2. Restrict `ndk.abiFilters` strictly to real mobile hardware architectures (`arm64-v8a` for modern 64-bit devices like the Nothing Phone 2a, and `armeabi-v7a` for 32-bit fallback).
+3. Establish a permanent automated regression test (`ApkPackagingGuardTest`) asserting both build configuration and assembled APK zip contents to ensure x86/x86_64 binaries are never re-admitted.
+4. Empirically measure exact APK size savings across both debug and release artifacts.
+
+### Empirical Foundation & Architectural Invariants
+1. **Hardware Invariant & Emulator Reality:**
+   - As documented in `HANDOVER.md §9.1`, MediaPipe provides no functional x86_64 on-device pose estimation model for standard Android emulators; the live camera pipeline cannot run in an emulator anyway.
+   - All physical Android smartphones operate on ARM architectures (`arm64-v8a` or `armeabi-v7a`). The target hardware (Nothing Phone 2a, MediaTek Dimensity 7200 Pro) is 64-bit ARM (`arm64-v8a`).
+2. **Native Library Redundancy:**
+   - Uncompressed size of `libmediapipe_tasks_vision_jni.so`:
+     - `arm64-v8a`: 21,282,336 bytes (~21.3 MB)
+     - `armeabi-v7a`: 13,038,992 bytes (~13.0 MB)
+     - `x86`: 7,984,040 bytes (~8.0 MB)
+     - `x86_64`: 21,282,336 bytes (~21.3 MB)
+   - Retaining x86 and x86_64 wasted ~34 MB of uncompressed native code inside the distribution APK.
+3. **Automated Guard Pattern:**
+   - Inspects `app/build.gradle.kts` for explicit `ndk.abiFilters` declarations.
+   - Directly inspects the zip table of `app-debug.apk` to assert the presence of `lib/arm64-v8a/` and the absolute absence of `lib/x86/` and `lib/x86_64/`.
+
+### Execution Log
+
+#### Step 1: Build Configuration
+- **`app/build.gradle.kts`:**
+  - Added `ndk.abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a"))` to `defaultConfig`.
+
+#### Step 2: Automated Packaging Guard Test
+- **`app/src/test/java/com/kinesis/ApkPackagingGuardTest.kt`:**
+  - `build_gradle_declares_arm_abi_filters_and_excludes_x86`: verifies build script asserts ARM ABIs and excludes desktop x86/x86_64.
+  - `built_apk_contains_only_allowed_native_abis`: verifies the packaged APK zip index has `lib/arm64-v8a/` and zero entries under `lib/x86/` or `lib/x86_64/`.
+
+#### Step 3: Empirical Measurement
+- **Debug APK (`app-debug.apk`):**
+  - Before: 75,340,067 bytes (~75.3 MB)
+  - After: 53,448,676 bytes (~53.4 MB)
+  - **Reduction: -21,891,391 bytes (-21.9 MB, -29.1%)**
+- **Release APK (`app-release-unsigned.apk`):**
+  - Before: ~56,000,000 bytes (~56.0 MB)
+  - After: 40,590,426 bytes (~40.5 MB)
+  - **Reduction: -15,409,574 bytes (-15.4 MB, -27.5%)**
+
+#### Step 4: Documentation & Decisions
+- **`docs/DECISIONS.md`:** Recorded formal decision `## P3-58 — APK Footprint Optimization & Mobile ARM ABI Filtering`.
+- **`docs/PROJECT_STATUS.md`:** Marked `abiFilters` loose end completed with measured numbers.
+- **`docs/HANDOVER.md`:** Updated Table 8.3 item 5 with P3-58 details.
+- **`docs/antigravity_works.md` & `docs/antigravity_works`:** Recorded complete technical log and mirrored.
+
+#### Step 5: Full Verification Suite
+- Executed `assemble allTests :app:testDebugUnitTest :app:testReleaseUnitTest :app:compileDebugAndroidTestKotlin`:
+  - **360 actionable Gradle tasks, 51 executed, 0 failures, 0 errors, 0 warnings**.
+  - All multiplatform tests (JVM, JS Node, Android) and unit tests passing 100%.
