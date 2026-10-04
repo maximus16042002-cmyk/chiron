@@ -693,12 +693,12 @@ workout plan (seed 2026) and the streak rules are also pinned identically on JVM
 | P6 Calibration | 🟡 Built. The only on-device baseline is from front-on curls; recalibration owed |
 | P7 MM-Fit pipeline | ✅ Done |
 | P8 Form engine | 🟡 Layer 1 built but not shipping; Layer 2's six rules built, not wired |
-| P9 ML | 🟡 Layer 4 built, not shipping (negative result); **the verifier (Part B) not started** |
+| P9 ML | ✅ Layer 4 studied (negative result); verifier (Part B) built and evaluated (82.1% accuracy, 96.0% mismatch detection) with <= 1e-9 Kotlin parity (P3-52) |
 | P10 Visualisation & Android app | 🟡 Nearly complete in code (P3-48 to P3-51); **unseen on the phone** |
 | P11 Windows PWA | ✂️ Cut |
 | P12 Evaluation & write-up | 🟡 Rep-count and personalisation studies partly done; the rest owed |
 
-**A rough figure:** 6 done + 6 × ½ = about **75%** of the build plan. Phases are not equal in size.
+**A rough figure:** 7 done + 5 × ½ = about **79%** of the build plan. Phases are not equal in size.
 The engineering is far ahead of the thesis: the remaining work is mostly evaluation and the write-up.
 
 ### 7.2 Proven on the phone vs built only
