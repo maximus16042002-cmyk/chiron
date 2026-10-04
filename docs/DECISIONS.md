@@ -10742,6 +10742,167 @@ Batch 3's calendar will read the same function.
 
 ---
 
+## P3-49 — FEATURE_PLAN Batch 3: streak freezes, the calendar, records, goals, reminders
+
+*2026-10-04. Written before the code. P3-38's order, after P3-48. The owner: "do whatever you
+want..but i just want the app perfect and complete".*
+
+### What this supersedes
+
+**P3-10's "a missed day breaks it, and there is no freeze."** FEATURE_PLAN records the owner's
+decision of 2026-09-23: "missing a day does not reset the streak if a streak freeze is available
+(Duolingo-style)". P3-10 had itself said a freeze could be added later as "a change to this
+function and not a migration", because the streak is computed from history, not stored. This is
+that change.
+
+Everything else in P3-10 stands:
+- a day counts when a repetition or hold **completed** on it;
+- the day is taken in the offset the session was recorded in;
+- today's silence is not yet a miss;
+- no clock in the core.
+
+None of `StreakRuleTest`'s existing tests changes: none of them has the seven active days needed
+to earn a freeze before a miss.
+
+### The freeze rule, exactly
+
+The owner's words, from FEATURE_PLAN Batch 3:
+> earn 1 freeze for every 7 consecutive active days, hold at most 2. A single missed day consumes
+> one freeze automatically and the streak continues; two missed days in a row, or none left,
+> resets it. Freezes are derived deterministically from session history, not stored as mutable
+> state.
+
+Where the words leave a choice, this entry makes it:
+
+1. **An active day** is P3-10's qualifying day.
+2. **A run** is a stretch of active days with nothing between them. A frozen day ends a run, as a
+   missed one does: a frozen day is not an active day, and the owner's words are "consecutive
+   active days".
+3. **Earning.** On the 7th, 14th, 21st, … day of a run, one freeze is earned, unless two are
+   already held. A freeze not earned at the cap is gone, not banked. A freeze earned on day 7 can
+   cover day 8.
+4. **Spending.** After an active day, if the next day is missed and a freeze is held, one freeze
+   is spent and that day is **frozen**.
+   - If the day after it is active, the streak continues.
+   - If that day is missed too, the streak ends ("two missed days in a row"). The freeze stays
+     spent and the day stays frozen.
+
+   Only one freeze is ever spent on a gap, however many are held, because a second missed day
+   ends the streak whatever happens.
+5. **Why a spent freeze is not refunded when the streak ends anyway.** A day's state, once the
+   day is over, never changes afterwards. Yesterday shown frozen this morning is still frozen
+   tomorrow, and the count of freezes held never rises without a run earning it.
+6. **No freeze held:** a missed day ends the streak, as in P3-10.
+7. **Freezes held survive the streak ending.** They were earned, and the owner's rule caps them;
+   it does not expire them.
+8. **The count.** The streak's count is its **active** days. A frozen day keeps the streak alive
+   but does not add to it. Seven days, a freeze, then one more day is a streak of 8. The longest
+   streak is the largest count any streak reached.
+9. **Today.** Today with no work yet is not a miss, as in P3-10. So "yesterday missed" is decided
+   this morning: if a freeze was held, yesterday is frozen and the streak is running.
+
+**Tests, written first, on JVM and JS:**
+- the first day earns nothing;
+- the 7th consecutive day earns one, which covers the 8th;
+- the 6th does not;
+- 21 days hold two, not three;
+- a frozen day ends the run: earning restarts from zero after it;
+- two misses end the streak with the freeze spent;
+- no freeze means one miss ends it;
+- held freezes survive a reset;
+- the frozen day does not add to the count;
+- this morning's frozen yesterday stays frozen tomorrow;
+- the result does not depend on session order;
+- a day's state is taken in the recorded offset.
+
+Three of these are mutation-checked: earning on day 6, spending two freezes on one gap, and
+counting the frozen day. Each is planted in turn, and a test must fail.
+
+### The calendar (Progress)
+
+- **The core gives a day's state;** the page draws it. `Streaks.activity` gains `today` and marks
+  each day **active**, **frozen**, or neither.
+- **The page:**
+  - a month grid, swiped between months (`HorizontalPager`, in the Compose foundation library the
+    app already has);
+  - active days show a fire, frozen days a snowflake;
+  - today is outlined, and future days are dimmed;
+  - tapping a day lists that day's sessions, each opening to its detail.
+- **The header:** the streak, the longest, and the freezes held.
+- **Month and weekday arithmetic is presentation.** It turns day numbers into a grid, using
+  `GregorianCalendar` in UTC (minSdk 24 has no `java.time` without desugaring, and desugaring is
+  a dependency). The core has no dates (FINAL_ARCHITECTURE §3).
+- **Fire intensity by streak length is not built.** FEATURE_PLAN says "may", and it would be a
+  threshold with no content.
+
+### Personal records and the weekly goal (core)
+
+- **Records,** per exercise, from history:
+  - the most repetitions counted in one set;
+  - the longest completed hold;
+  - the **largest** range of motion on each side, apart.
+
+  They are worded "largest", not "best": a larger range is a measurement, not a judgement, and
+  for some movements it is not better. The Progress page's "best" label changes to match.
+  After a set, a new record is named on the set summary, computed in the core from the history
+  before the set.
+- **The weekly goal:** a number of **active days** a week, set in Profile and stored in
+  SharedPreferences.
+  - A "workout" is an active day, so two sessions in one day do not count twice, and the goal
+    agrees with the streak.
+  - The week starts on the phone's locale's first day. The platform supplies it as a number, so
+    the core stays locale-free.
+  - Home shows a ring: this week's active days of the goal.
+- **Achievements,** modest and derived from history:
+  - the first workout;
+  - streaks of 7 and 30 days;
+  - 100 and 1,000 repetitions counted;
+  - an hour held in total.
+
+  Shown on Progress. No points, no levels.
+
+### Reminders (local only)
+
+- **The user picks the days and a time** in Profile.
+- **Scheduled with WorkManager,** already a dependency (P3-14), which reschedules after a reboot
+  itself. There is no new receiver of our own.
+- **No network capability.** No Firebase Cloud Messaging, no push service, no analytics.
+  `OfflineManifestGuardTest` must still pass.
+- **`POST_NOTIFICATIONS` is asked for on Android 13+** when reminders are switched on, with a
+  sentence saying why. A refusal switches them off and is not asked again unprompted.
+- **The text:**
+  - if work was already completed that day, no reminder;
+  - if a streak is running, "Your N-day streak continues if you train today";
+  - otherwise a plain "Time to train". No guilt wording.
+
+  The decision is the core's (`Streaks`).
+
+### On the live and summary screens
+
+- **A rest timer** on the set summary, length set in Profile (60 s default). It ends with a
+  haptic tick and a short tone.
+- **A sound or haptic on each counted repetition,** switchable in Profile and off by default. It
+  is driven by the repetition count changing, which happens once a repetition, never once a
+  frame (CLAUDE.md §6).
+- **Spoken counts** through Android's on-device `TextToSpeech`. It is a platform API, not a
+  dependency, and is off by default. A voice that needs the network is not used.
+
+### Already done
+
+The export (FEATURE_PLAN's "Export (P5, required anyway)") is P3-25's, and Profile has it (P3-48).
+
+### Order and checks
+
+Each step is committed on its own, with the suite run:
+1. freezes and the calendar;
+2. records, goal, achievements;
+3. reminders;
+4. the rest timer, sounds and spoken counts.
+
+Phone screenshots go to `local/phase-b/` when the phone is connected, described here.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
