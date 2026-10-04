@@ -1,6 +1,7 @@
 package com.kinesis.core.analysis
 
 import com.kinesis.core.analysis.live.LiveRepetitionAnalysis
+import com.kinesis.core.analysis.live.SetupEnforcement
 import com.kinesis.core.analysis.profile.ArchetypeProfiles
 import com.kinesis.core.analysis.temporal.TemporalConfig
 import com.kinesis.core.domain.landmark.FrameValidity
@@ -14,6 +15,8 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -197,14 +200,70 @@ class LiveRepetitionAnalysisTest {
         assertTrue(analysis.rawAngleLeft.isNaN() && analysis.rawAngleRight.isNaN())
     }
 
+    /**
+     * DECISIONS.md P3-59: the app blocks scoring on a wrong camera view. This figure's shoulders
+     * span about half its torso, which reads as angled; a squat must be filmed side-on.
+     */
+    @Test
+    fun with_blocking_a_squat_filmed_from_the_wrong_side_counts_nothing_and_says_why() {
+        val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.squat, setupEnforcement = SetupEnforcement.BLOCK_SCORING)
+        squat(analysis, reps = 3)
+
+        assertEquals(0, analysis.repCount)
+        assertTrue(analysis.isScoringBlocked)
+        assertTrue(assertNotNull(analysis.setupMessage).contains("paused"))
+    }
+
+    @Test
+    fun with_blocking_a_squat_filmed_side_on_counts_as_before() {
+        val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.squat, setupEnforcement = SetupEnforcement.BLOCK_SCORING)
+        squat(analysis, reps = 3, lateral = SIDE_ON)
+
+        assertEquals(3, analysis.repCount)
+        assertFalse(analysis.isScoringBlocked)
+    }
+
+    /**
+     * Report-only is what the MM-Fit harness and the JS facade use: MM-Fit films its curls
+     * front-on, so blocking there would erase every published curl figure (P3-27 to P3-46).
+     */
+    @Test
+    fun reporting_only_names_the_wrong_view_and_leaves_counting_untouched() {
+        val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.squat)
+        squat(analysis, reps = 3)
+
+        assertEquals(3, analysis.repCount)
+        assertFalse(analysis.isScoringBlocked)
+        assertTrue(assertNotNull(analysis.setupMessage).contains("side", ignoreCase = true))
+    }
+
+    /** Turning away mid-repetition: the repetition in progress ends uncounted, as an occlusion would. */
+    @Test
+    fun with_blocking_turning_away_mid_repetition_ends_it_uncounted() {
+        val records = ArrayList<RepRecord>()
+        val analysis = LiveRepetitionAnalysis(
+            ArchetypeProfiles.squat,
+            setupEnforcement = SetupEnforcement.BLOCK_SCORING,
+            onRepetition = { records += it },
+        )
+        squat(analysis, reps = 1, lateral = SIDE_ON)
+        for (step in 1..15) analysis.feed(body(knees = 170.0 - 100.0 * step / 30.0, lateral = SIDE_ON))
+        // Turned to face the camera half-way down, and finished the squat facing it.
+        for (step in 16..30) analysis.feed(body(knees = 170.0 - 100.0 * step / 30.0))
+        for (step in 1..30) analysis.feed(body(knees = 70.0 + 100.0 * step / 30.0))
+
+        assertEquals(1, analysis.repCount)
+        assertTrue(records.drop(1).none { it.validity == RepValidity.VALID }, "counted after turning away: " + records)
+    }
+
     // --- Synthetic frames -----------------------------------------------------------------
 
-    private fun squat(analysis: LiveRepetitionAnalysis, reps: Int) {
-        repeat(10) { analysis.feed(body()) }
+    private fun squat(analysis: LiveRepetitionAnalysis, reps: Int, lateral: Double = 1.0) {
+        repeat(10) { analysis.feed(body(lateral = lateral)) }
         repeat(reps) {
-            for (step in 1..30) analysis.feed(body(knees = 170.0 - 100.0 * step / 30.0))
-            for (step in 1..30) analysis.feed(body(knees = 70.0 + 100.0 * step / 30.0))
-            repeat(10) { analysis.feed(body()) }
+            for (step in 1..30) analysis.feed(body(knees = 170.0 - 100.0 * step / 30.0, lateral = lateral))
+            for (step in 1..30) analysis.feed(body(knees = 70.0 + 100.0 * step / 30.0, lateral = lateral))
+            repeat(10) { analysis.feed(body(lateral = lateral)) }
         }
     }
 
@@ -217,6 +276,8 @@ class LiveRepetitionAnalysisTest {
         leftElbow: Double = 170.0,
         rightElbow: Double = 170.0,
         visibilityOf: Map<LandmarkId, Double> = emptyMap(),
+        /** How far apart left and right stand across the frame: 1.0 as drawn, [SIDE_ON] side-on. */
+        lateral: Double = 1.0,
     ): Landmarks {
         val packed = DoubleArray(Landmarks.PACKED_SIZE)
         fun put(id: LandmarkId, x: Double, y: Double) {
@@ -231,14 +292,16 @@ class LiveRepetitionAnalysisTest {
             val radians = deg * PI / 180.0
             put(c, x + 0.15 * sin(radians), by - 0.15 * cos(radians))
         }
-        chain(LandmarkId.LEFT_SHOULDER, LandmarkId.LEFT_ELBOW, LandmarkId.LEFT_WRIST, 0.42, 0.25, 0.40, leftElbow)
-        chain(LandmarkId.RIGHT_SHOULDER, LandmarkId.RIGHT_ELBOW, LandmarkId.RIGHT_WRIST, 0.58, 0.25, 0.40, rightElbow)
-        chain(LandmarkId.LEFT_HIP, LandmarkId.LEFT_KNEE, LandmarkId.LEFT_ANKLE, 0.45, 0.55, 0.72, knees)
-        chain(LandmarkId.RIGHT_HIP, LandmarkId.RIGHT_KNEE, LandmarkId.RIGHT_ANKLE, 0.55, 0.55, 0.72, knees)
+        fun across(x: Double) = 0.5 + (x - 0.5) * lateral
+        chain(LandmarkId.LEFT_SHOULDER, LandmarkId.LEFT_ELBOW, LandmarkId.LEFT_WRIST, across(0.42), 0.25, 0.40, leftElbow)
+        chain(LandmarkId.RIGHT_SHOULDER, LandmarkId.RIGHT_ELBOW, LandmarkId.RIGHT_WRIST, across(0.58), 0.25, 0.40, rightElbow)
+        chain(LandmarkId.LEFT_HIP, LandmarkId.LEFT_KNEE, LandmarkId.LEFT_ANKLE, across(0.45), 0.55, 0.72, knees)
+        chain(LandmarkId.RIGHT_HIP, LandmarkId.RIGHT_KNEE, LandmarkId.RIGHT_ANKLE, across(0.55), 0.55, 0.72, knees)
         return Landmarks.fromPacked(packed)
     }
 
     private companion object {
         const val FRAME_MS = 1000.0 / 30.0
+        const val SIDE_ON = 0.1
     }
 }

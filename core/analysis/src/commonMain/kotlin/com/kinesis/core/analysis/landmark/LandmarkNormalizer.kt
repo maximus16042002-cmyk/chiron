@@ -88,9 +88,10 @@ object LandmarkNormalizer {
      * Mid-shoulder to mid-hip, in the image plane only. MediaPipe's z is a
      * relative depth estimate rather than a measured one, and folding it into the
      * scale would make the unit fluctuate with depth noise on every frame.
-     * `NaN` when any of the four landmarks has no coordinates.
+     * `NaN` when any of the four landmarks has no coordinates. Also the setup assistant's
+     * measure of distance and of the camera's view (P3-59), so the two cannot disagree.
      */
-    private fun torsoScale(landmarks: Landmarks): Double {
+    internal fun torsoScale(landmarks: Landmarks): Double {
         val midShoulderX =
             (landmarks.x(LandmarkId.LEFT_SHOULDER) + landmarks.x(LandmarkId.RIGHT_SHOULDER)) * 0.5
         val midShoulderY =

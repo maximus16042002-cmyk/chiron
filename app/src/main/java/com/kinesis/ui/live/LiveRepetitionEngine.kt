@@ -1,6 +1,7 @@
 package com.kinesis.ui.live
 
 import com.kinesis.core.analysis.live.LiveRepetitionAnalysis
+import com.kinesis.core.analysis.live.SetupEnforcement
 import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
@@ -33,7 +34,13 @@ class LiveRepetitionEngine(
 ) : LiveEngine {
 
     private val reps = ArrayList<RepRecord>()
-    private val analysis = LiveRepetitionAnalysis(profile, policy, onRepetition = { reps += it })
+    // The app blocks scoring on a wrong camera view - CLAUDE.md section 10, DECISIONS.md P3-59.
+    private val analysis = LiveRepetitionAnalysis(
+        profile,
+        policy,
+        setupEnforcement = SetupEnforcement.BLOCK_SCORING,
+        onRepetition = { reps += it },
+    )
 
     private var lastTimestampMs = Double.NaN
     private var sawPose = false
@@ -78,7 +85,7 @@ class LiveRepetitionEngine(
         lastRepValidity = analysis.lastRepValidity,
         recordsReported = analysis.recordsReported,
         timestampMs = lastTimestampMs,
-        setupVerdict = analysis.setupVerdict,
+        setupMessage = analysis.setupMessage,
         frameRateHealth = analysis.frameRateHealth,
         currentFps = analysis.currentFps,
         fpsWarningMessage = analysis.fpsWarningMessage,

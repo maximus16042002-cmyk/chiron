@@ -1,6 +1,7 @@
 package com.kinesis.ui.live
 
 import com.kinesis.core.analysis.live.LiveHoldAnalysis
+import com.kinesis.core.analysis.live.SetupEnforcement
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
@@ -23,7 +24,8 @@ class LiveHoldEngine(
     private val probe: PhaseBProbe? = null,
 ) : LiveEngine {
 
-    private val analysis = LiveHoldAnalysis(profile, policy)
+    // The app blocks scoring on a wrong camera view - CLAUDE.md section 10, DECISIONS.md P3-59.
+    private val analysis = LiveHoldAnalysis(profile, policy, setupEnforcement = SetupEnforcement.BLOCK_SCORING)
 
     private var sawPose = false
     private var ended = false
@@ -60,7 +62,7 @@ class LiveHoldEngine(
         heldMs = analysis.heldMs,
         holdState = analysis.holdState,
         frameValidity = analysis.frameValidity,
-        setupVerdict = analysis.setupVerdict,
+        setupMessage = analysis.setupMessage,
         frameRateHealth = analysis.frameRateHealth,
         currentFps = analysis.currentFps,
         fpsWarningMessage = analysis.fpsWarningMessage,

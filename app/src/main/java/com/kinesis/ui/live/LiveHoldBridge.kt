@@ -2,7 +2,6 @@ package com.kinesis.ui.live
 
 import com.kinesis.core.analysis.fps.FrameRateHealth
 import com.kinesis.core.analysis.hold.HoldState
-import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.ui.theme.OverlayState
 
@@ -17,7 +16,8 @@ data class LiveHoldUiState(
     val heldSeconds: Int,
     val holdState: HoldState,
     val frameValidity: FrameValidity,
-    val setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
+    /** The setup gate's line, or `null`. A constant string, debounced in the core (P3-59). */
+    val setupMessage: String? = null,
     val frameRateHealth: FrameRateHealth = FrameRateHealth.HEALTHY,
     val currentFps: Double = Double.NaN,
     val fpsWarningMessage: String? = null,
@@ -48,7 +48,7 @@ class LiveHoldBridge(
 ) {
 
     // INVALID until a frame says otherwise, as in LiveAnalysisBridge.
-    private var current = LiveHoldUiState(exerciseId, 0, HoldState.NOT_STARTED, FrameValidity.INVALID, SetupVerdict.NoPerson)
+    private var current = LiveHoldUiState(exerciseId, 0, HoldState.NOT_STARTED, FrameValidity.INVALID)
 
     /** How many times Compose has been asked to recompose. Instrumentation. */
     var publishCount: Int = 0
@@ -66,7 +66,7 @@ class LiveHoldBridge(
         heldMs: Double,
         holdState: HoldState,
         frameValidity: FrameValidity,
-        setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
+        setupMessage: String? = null,
         frameRateHealth: FrameRateHealth = FrameRateHealth.HEALTHY,
         currentFps: Double = Double.NaN,
         fpsWarningMessage: String? = null,
@@ -76,7 +76,7 @@ class LiveHoldBridge(
         val unchanged = heldSeconds == current.heldSeconds &&
             holdState == current.holdState &&
             frameValidity == current.frameValidity &&
-            setupVerdict == current.setupVerdict &&
+            setupMessage == current.setupMessage &&
             frameRateHealth == current.frameRateHealth
         if (unchanged) return
         publish(
@@ -85,7 +85,7 @@ class LiveHoldBridge(
                 heldSeconds = heldSeconds,
                 holdState = holdState,
                 frameValidity = frameValidity,
-                setupVerdict = setupVerdict,
+                setupMessage = setupMessage,
                 frameRateHealth = frameRateHealth,
                 currentFps = currentFps,
                 fpsWarningMessage = fpsWarningMessage,

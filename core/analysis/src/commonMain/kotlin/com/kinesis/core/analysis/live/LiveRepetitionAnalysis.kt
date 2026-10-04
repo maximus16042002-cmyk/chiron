@@ -9,7 +9,6 @@ import com.kinesis.core.analysis.rep.BilateralPhase
 import com.kinesis.core.analysis.rep.BilateralRepTracker
 import com.kinesis.core.analysis.rep.RepSink
 import com.kinesis.core.analysis.setup.SetupGate
-import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.analysis.temporal.TemporalConfig
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.landmark.Landmarks
@@ -55,6 +54,8 @@ class LiveRepetitionAnalysis(
     val profile: RepetitionExercise,
     val policy: VisibilityPolicy = VisibilityPolicy.PROVISIONAL,
     temporalConfig: TemporalConfig = TemporalConfig.PROVISIONAL,
+    /** Whether a wrong camera view stops scoring. The app blocks; see [SetupEnforcement]. */
+    val setupEnforcement: SetupEnforcement = SetupEnforcement.REPORT_ONLY,
     /**
      * Every completed repetition record, as it completes - post-rep path, a few
      * times a minute. The platform collects them for the session recorder.
@@ -66,8 +67,12 @@ class LiveRepetitionAnalysis(
     private val setupGate = SetupGate(profile, policy)
     private val fpsMonitor = FrameRateMonitor()
 
-    val setupVerdict: SetupVerdict get() = setupGate.latestVerdict
-    val isSetupReady: Boolean get() = setupGate.isReady
+    /** The setup line for the screen, or `null` when there is nothing to say. Debounced. */
+    val setupMessage: String? get() = setupGate.message
+
+    /** True while scoring is stopped by the setup gate. Always false when only reporting. */
+    val isScoringBlocked: Boolean
+        get() = setupEnforcement == SetupEnforcement.BLOCK_SCORING && setupGate.isScoringBlocked
 
     val frameRateHealth: FrameRateHealth get() = fpsMonitor.health
     val currentFps: Double get() = fpsMonitor.currentFps
@@ -122,7 +127,9 @@ class LiveRepetitionAnalysis(
         } else {
             ValidityGate.evaluate(landmarks, profile.requiredLandmarks, policy)
         }
-        tracker.onFrame(timestampMs, landmarks, policy, sink)
+        // A blocked frame reaches the tracker as one in which nothing was seen, so a repetition
+        // in progress ends as an occlusion would end it, and nothing counts (P3-59).
+        tracker.onFrame(timestampMs, if (isScoringBlocked) NOTHING_SEEN else landmarks, policy, sink)
     }
 
     /**
@@ -161,4 +168,18 @@ class LiveRepetitionAnalysis(
             },
         )
     }
+}
+
+/**
+ * What the live analyses do with the setup gate - DECISIONS.md P3-59, CLAUDE.md section 10.
+ *
+ * - [BLOCK_SCORING] is the app's: while the gate is closed (a wrong camera view, or nobody in
+ *   shot, held for half a second), the tracker and the hold analyser see nothing.
+ * - [REPORT_ONLY] computes the same message and changes nothing else. It is the default because
+ *   the MM-Fit harness and the JS facade must not block: MM-Fit films its curls front-on, and
+ *   blocking there would erase every result P3-27 to P3-46 recorded.
+ */
+enum class SetupEnforcement {
+    REPORT_ONLY,
+    BLOCK_SCORING,
 }

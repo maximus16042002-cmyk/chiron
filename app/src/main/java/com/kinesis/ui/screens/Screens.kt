@@ -41,7 +41,6 @@ import com.kinesis.core.analysis.calibration.CalibrationKey
 import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.analysis.profile.ExerciseVariant
 import com.kinesis.core.analysis.profile.IsometricExercise
-import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.health.ActivityContextResult
 import com.kinesis.health.ContextUnavailable
@@ -325,7 +324,7 @@ fun LiveAnalysisScreen(
 ) {
     LiveCameraLayout(
         state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
-        switchModelLabel, onSwitchModel, modeLabel, state.setupVerdict, state.fpsWarningMessage,
+        switchModelLabel, onSwitchModel, modeLabel, state.setupMessage, state.fpsWarningMessage,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -364,7 +363,7 @@ fun LiveHoldScreen(
 ) {
     LiveCameraLayout(
         state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
-        switchModelLabel, onSwitchModel, modeLabel, state.setupVerdict, state.fpsWarningMessage,
+        switchModelLabel, onSwitchModel, modeLabel, state.setupMessage, state.fpsWarningMessage,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -421,7 +420,8 @@ private fun LiveCameraLayout(
     onSwitchModel: (() -> Unit)?,
     /** A calibration set says so on screen (DECISIONS.md P3-22); `null` otherwise. */
     modeLabel: String?,
-    setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
+    /** The setup gate's line (DECISIONS.md P3-59), or `null` when there is nothing to say. */
+    setupMessage: String? = null,
     fpsWarningMessage: String? = null,
     readout: @Composable ColumnScope.() -> Unit,
 ) {
@@ -457,7 +457,7 @@ private fun LiveCameraLayout(
                     Pill(switchModelLabel, Card, InkSecondary, onClick = onSwitchModel)
                 }
             }
-            if (setupVerdict !is SetupVerdict.Ready) {
+            if (setupMessage != null) {
                 Surface(
                     color = Card.copy(alpha = 0.92f),
                     shape = RoundedCornerShape(20.dp),
@@ -473,7 +473,7 @@ private fun LiveCameraLayout(
                     ) {
                         Text("⚠️", style = MaterialTheme.typography.bodySmall)
                         Text(
-                            setupVerdict.coachingMessage,
+                            setupMessage,
                             style = MaterialTheme.typography.labelMedium,
                             color = Attention,
                             fontWeight = FontWeight.Medium,

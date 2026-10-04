@@ -1,7 +1,6 @@
 package com.kinesis.ui.live
 
 import com.kinesis.core.analysis.fps.FrameRateHealth
-import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.rep.MovementPhase
 import com.kinesis.core.domain.rep.RepValidity
@@ -27,7 +26,8 @@ data class LiveUiState(
      * and while amber the figure said nothing about tracking.
      */
     val showingAttention: Boolean = false,
-    val setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
+    /** The setup gate's line, or `null`. A constant string, debounced in the core (P3-59). */
+    val setupMessage: String? = null,
     val frameRateHealth: FrameRateHealth = FrameRateHealth.HEALTHY,
     val currentFps: Double = Double.NaN,
     val fpsWarningMessage: String? = null,
@@ -121,7 +121,7 @@ class LiveAnalysisBridge(
         recordsReported: Int = 0,
         /** This frame's time, which the attention flash is measured against. */
         timestampMs: Double = 0.0,
-        setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
+        setupMessage: String? = null,
         frameRateHealth: FrameRateHealth = FrameRateHealth.HEALTHY,
         currentFps: Double = Double.NaN,
         fpsWarningMessage: String? = null,
@@ -148,7 +148,7 @@ class LiveAnalysisBridge(
             frameValidity == current.frameValidity &&
             lastRepValidity == current.lastRepValidity &&
             attention == current.showingAttention &&
-            setupVerdict == current.setupVerdict &&
+            setupMessage == current.setupMessage &&
             frameRateHealth == current.frameRateHealth
         if (unchanged) return
 
@@ -160,7 +160,7 @@ class LiveAnalysisBridge(
                 frameValidity = frameValidity,
                 lastRepValidity = lastRepValidity,
                 showingAttention = attention,
-                setupVerdict = setupVerdict,
+                setupMessage = setupMessage,
                 frameRateHealth = frameRateHealth,
                 currentFps = currentFps,
                 fpsWarningMessage = fpsWarningMessage,

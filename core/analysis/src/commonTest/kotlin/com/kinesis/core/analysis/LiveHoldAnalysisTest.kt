@@ -2,6 +2,7 @@ package com.kinesis.core.analysis
 
 import com.kinesis.core.analysis.hold.HoldState
 import com.kinesis.core.analysis.live.LiveHoldAnalysis
+import com.kinesis.core.analysis.live.SetupEnforcement
 import com.kinesis.core.analysis.profile.ArchetypeProfiles
 import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.domain.landmark.FrameValidity
@@ -116,6 +117,26 @@ class LiveHoldAnalysisTest {
         assertTrue(record.coverage < 1.0)
     }
 
+    /** DECISIONS.md P3-59: under blocking, a plank filmed from the wrong side is not credited. */
+    @Test
+    fun with_blocking_a_plank_filmed_from_the_wrong_side_is_not_held() {
+        val analysis = LiveHoldAnalysis(ArchetypeProfiles.plank, setupEnforcement = SetupEnforcement.BLOCK_SCORING)
+        analysis.feed(plank(hipDeg = 178.0, spread = 0.15), frames = 150)
+
+        assertEquals(0.0, analysis.heldMs)
+        assertTrue(analysis.isScoringBlocked)
+    }
+
+    @Test
+    fun with_blocking_a_plank_filmed_side_on_is_held_once_the_gate_opens() {
+        val analysis = LiveHoldAnalysis(ArchetypeProfiles.plank, setupEnforcement = SetupEnforcement.BLOCK_SCORING)
+        analysis.feed(plank(hipDeg = 178.0), frames = 150)
+
+        assertEquals(HoldState.HOLDING, analysis.holdState)
+        // Ten frames, a third of a second, to open the gate.
+        assertTrue(analysis.heldMs in 4_400.0..5_000.0, "held " + analysis.heldMs + " ms")
+    }
+
     @Test
     fun every_hold_profile_in_the_library_can_be_driven_live() {
         for (profile in listOf(ArchetypeProfiles.plank, ExerciseLibrary.wallSit, ExerciseLibrary.sidePlank)) {
@@ -135,6 +156,8 @@ class LiveHoldAnalysisTest {
         hipDeg: Double,
         rightHipDeg: Double = hipDeg,
         farSideVisibility: Double = 0.95,
+        /** Moves the left side this far left and the right side this far right: a camera at the head. */
+        spread: Double = 0.0,
     ): Landmarks {
         val packed = DoubleArray(Landmarks.PACKED_SIZE)
         fun put(id: LandmarkId, x: Double, y: Double, v: Double) {
@@ -142,20 +165,21 @@ class LiveHoldAnalysisTest {
             packed[id.index * Landmarks.STRIDE + 1] = y
             packed[id.index * Landmarks.STRIDE + 3] = v
         }
-        fun side(shoulder: LandmarkId, hip: LandmarkId, knee: LandmarkId, ankle: LandmarkId, deg: Double, v: Double) {
-            put(shoulder, 0.20, 0.60, v)
-            put(hip, 0.50, 0.60, v)
+        fun side(shoulder: LandmarkId, hip: LandmarkId, knee: LandmarkId, ankle: LandmarkId, deg: Double, v: Double, dx: Double) {
+            fun shifted(id: LandmarkId, x: Double, y: Double) = put(id, x + dx, y, v)
+            shifted(shoulder, 0.20, 0.60)
+            shifted(hip, 0.50, 0.60)
             // Hip -> shoulder points along -x; rotate by deg for hip -> knee.
             val r = deg * PI / 180.0
             val kx = 0.50 - 0.25 * cos(r)
             val ky = 0.60 + 0.25 * sin(r)
-            put(knee, kx, ky, v)
-            put(ankle, kx + (kx - 0.50), ky + (ky - 0.60), v)
+            shifted(knee, kx, ky)
+            shifted(ankle, kx + (kx - 0.50), ky + (ky - 0.60))
         }
-        side(LandmarkId.LEFT_SHOULDER, LandmarkId.LEFT_HIP, LandmarkId.LEFT_KNEE, LandmarkId.LEFT_ANKLE, hipDeg, 0.95)
+        side(LandmarkId.LEFT_SHOULDER, LandmarkId.LEFT_HIP, LandmarkId.LEFT_KNEE, LandmarkId.LEFT_ANKLE, hipDeg, 0.95, -spread)
         side(
             LandmarkId.RIGHT_SHOULDER, LandmarkId.RIGHT_HIP, LandmarkId.RIGHT_KNEE, LandmarkId.RIGHT_ANKLE,
-            rightHipDeg, farSideVisibility,
+            rightHipDeg, farSideVisibility, spread,
         )
         return Landmarks.fromPacked(packed)
     }

@@ -1,109 +1,83 @@
 package com.kinesis.core.analysis.setup
 
 import com.kinesis.core.analysis.landmark.LandmarkNormalizer
-import com.kinesis.core.analysis.landmark.ValidityGate
-import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.landmark.LandmarkId
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
 import com.kinesis.core.domain.profile.CameraView
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.core.domain.profile.Posture
-import kotlin.math.sqrt
 
 /**
- * Evaluates camera setup, framing, distance, and view orientation for an exercise profile.
+ * Judges one frame's setup for a profile - DECISIONS.md P3-55, corrected by P3-59.
  *
- * Implements CLAUDE.md section 10 and CONTRACTS.md section 8.
+ * Implements CLAUDE.md section 10 and CONTRACTS.md section 8. The first matching verdict wins:
+ * nobody in shot, then the camera's view (the one check that blocks scoring), then distance,
+ * head and feet, which only advise.
  *
- * Pure, allocating nothing beyond the verdict object.
+ * **Units.** Landmarks arrive with both axes in frame widths (P3-16): y runs from 0 to the
+ * frame's height over its width, about 1.33 on the phone's portrait frame. So nothing here
+ * compares a y against the bottom of the frame - the core does not know where that is. Feet are
+ * judged by whether the ankles are seen, and only the top edge (y = 0) is a position.
  */
 object SetupAssistant {
 
+    /** Torso length bounds, in frame widths. Unmeasured on the phone, so they only advise. */
     const val MIN_TORSO_SCALE: Double = 0.12
     const val MAX_TORSO_SCALE: Double = 0.68
 
+    /** The nose above this y is at the top edge of the frame. */
     const val TOP_MARGIN_Y: Double = 0.03
-    const val BOTTOM_MARGIN_Y: Double = 0.98
 
-    /**
-     * Evaluates whether current [landmarks] satisfy the setup preconditions for [profile].
-     */
     fun evaluate(
         profile: ExerciseProfile,
         landmarks: Landmarks,
         policy: VisibilityPolicy = VisibilityPolicy.PROVISIONAL,
     ): SetupVerdict {
-        // 1. Person presence & torso measurability
-        if (!LandmarkNormalizer.hasMeasurableTorso(landmarks)) {
-            return SetupVerdict.NoPerson
+        if (!LandmarkNormalizer.hasMeasurableTorso(landmarks)) return SetupVerdict.NoPerson
+        val torsoScale = LandmarkNormalizer.torsoScale(landmarks)
+
+        if (viewCanBeJudged(profile)) {
+            val detected = CameraViewEstimator.estimate(landmarks, torsoScale)?.view
+            if (detected != null && !suits(detected, profile.requiredView)) {
+                return SetupVerdict.WrongView(detectedView = detected, requiredView = profile.requiredView)
+            }
         }
 
-        val torsoScale = calculateTorsoScale(landmarks)
-        if (!torsoScale.isFinite() || torsoScale <= 0.0) {
-            return SetupVerdict.NoPerson
-        }
+        if (torsoScale < MIN_TORSO_SCALE) return SetupVerdict.TooFar
+        if (torsoScale > MAX_TORSO_SCALE) return SetupVerdict.TooClose
 
-        // 2. Distance check (torsoScale)
-        if (torsoScale < MIN_TORSO_SCALE) {
-            return SetupVerdict.TooFar
-        }
-        if (torsoScale > MAX_TORSO_SCALE) {
-            return SetupVerdict.TooClose
-        }
-
-        // 3. Head in-frame check
         val noseY = landmarks.y(LandmarkId.NOSE)
-        val noseVis = landmarks.visibility(LandmarkId.NOSE)
-        if (noseY.isFinite() && policy.isMeasurable(noseVis) && noseY < TOP_MARGIN_Y) {
+        if (policy.isMeasurable(landmarks.visibility(LandmarkId.NOSE)) && noseY < TOP_MARGIN_Y) {
             return SetupVerdict.HeadOutOfFrame
         }
 
-        // 4. Standing feet in-frame check
-        if (profile.posture == Posture.STANDING) {
-            val leftAnkleY = landmarks.y(LandmarkId.LEFT_ANKLE)
-            val rightAnkleY = landmarks.y(LandmarkId.RIGHT_ANKLE)
-            if (leftAnkleY.isFinite() && leftAnkleY > BOTTOM_MARGIN_Y ||
-                rightAnkleY.isFinite() && rightAnkleY > BOTTOM_MARGIN_Y) {
-                return SetupVerdict.FeetOutOfFrame
-            }
+        // One hidden ankle is normal side-on; both unseen means the feet are cut off.
+        if (profile.posture == Posture.STANDING &&
+            !policy.isMeasurable(landmarks.visibility(LandmarkId.LEFT_ANKLE)) &&
+            !policy.isMeasurable(landmarks.visibility(LandmarkId.RIGHT_ANKLE))
+        ) {
+            return SetupVerdict.FeetOutOfFrame
         }
 
-        // 5. Required landmarks check
-        val validity = ValidityGate.evaluate(landmarks, profile.requiredLandmarks, policy)
-        if (validity == FrameValidity.INVALID) {
-            return SetupVerdict.LandmarksMissing("required joints occluded")
-        }
-
-        // 6. Camera view angle check
-        val orientation = CameraViewEstimator.estimate(landmarks, torsoScale)
-        if (orientation != null) {
-            val detected = orientation.view
-            val required = profile.requiredView
-
-            val isCompatible = when (required) {
-                CameraView.SIDE_ON -> detected == CameraView.SIDE_ON
-                CameraView.FRONT_ON -> detected == CameraView.FRONT_ON
-                CameraView.ANGLED_45 -> detected == CameraView.ANGLED_45 || orientation.confidence < 0.70
-            }
-
-            if (!isCompatible) {
-                return SetupVerdict.WrongView(detectedView = detected, requiredView = required)
-            }
-
-            return SetupVerdict.Ready(detectedView = detected, confidence = orientation.confidence)
-        }
-
-        return SetupVerdict.Ready(detectedView = profile.requiredView, confidence = 0.5)
+        return SetupVerdict.Ready
     }
 
-    private fun calculateTorsoScale(landmarks: Landmarks): Double {
-        val midShoulderX = (landmarks.x(LandmarkId.LEFT_SHOULDER) + landmarks.x(LandmarkId.RIGHT_SHOULDER)) * 0.5
-        val midShoulderY = (landmarks.y(LandmarkId.LEFT_SHOULDER) + landmarks.y(LandmarkId.RIGHT_SHOULDER)) * 0.5
-        val midHipX = (landmarks.x(LandmarkId.LEFT_HIP) + landmarks.x(LandmarkId.RIGHT_HIP)) * 0.5
-        val midHipY = (landmarks.y(LandmarkId.LEFT_HIP) + landmarks.y(LandmarkId.RIGHT_HIP)) * 0.5
-        val dx = midShoulderX - midHipX
-        val dy = midShoulderY - midHipY
-        return sqrt(dx * dx + dy * dy)
+    /**
+     * The estimator compares the left-right span *across* the frame with the torso. That
+     * separates side-on from front-on for an upright body, and for a body lying side-on to the
+     * camera (MM-Fit's push-ups and sit-ups, P3-55). It cannot see a lying body from the front:
+     * a side plank's shoulders are stacked vertically, so their span across the frame is near
+     * zero whichever way the camera faces. Those profiles are not judged by view (P3-59).
+     */
+    private fun viewCanBeJudged(profile: ExerciseProfile): Boolean =
+        profile.requiredView == CameraView.SIDE_ON || profile.posture in UPRIGHT
+
+    private fun suits(detected: CameraView, required: CameraView): Boolean = when (required) {
+        CameraView.SIDE_ON, CameraView.FRONT_ON -> detected == required
+        // No profile requires it today; an angled view sits between the two thresholds.
+        CameraView.ANGLED_45 -> detected == CameraView.ANGLED_45
     }
+
+    private val UPRIGHT = setOf(Posture.STANDING, Posture.SEATED, Posture.HINGED)
 }

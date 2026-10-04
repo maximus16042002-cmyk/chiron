@@ -90,8 +90,26 @@ class LiveHoldEngineTest {
         assertEquals(OverlayState.UNTRACKED, published.last().overlayState)
     }
 
-    /** A side-on plank; [hipDeg] is the shoulder-hip-knee angle on both sides. */
-    private fun plank(hipDeg: Double): Landmarks {
+    /**
+     * DECISIONS.md P3-59: the app's hold engine blocks scoring on a wrong camera view too. A
+     * plank filmed from the head end is not credited, and the screen says why.
+     */
+    @Test
+    fun a_plank_filmed_from_the_wrong_side_is_not_held_and_the_screen_says_why() {
+        repeat(150) {
+            engine.onLandmarks(plank(178.0, spread = 0.15), clockMs)
+            clockMs += 33
+        }
+
+        assertEquals(0, published.last().heldSeconds)
+        assertTrue(published.last().setupMessage!!.contains("paused"))
+    }
+
+    /**
+     * A side-on plank; [hipDeg] is the shoulder-hip-knee angle on both sides. [spread] moves the
+     * left side left and the right side right, as a camera at the head end would see them.
+     */
+    private fun plank(hipDeg: Double, spread: Double = 0.0): Landmarks {
         val packed = DoubleArray(Landmarks.PACKED_SIZE)
         fun put(id: LandmarkId, x: Double, y: Double) {
             packed[id.index * Landmarks.STRIDE] = x
@@ -101,14 +119,15 @@ class LiveHoldEngineTest {
         val r = hipDeg * PI / 180.0
         val kx = 0.50 - 0.25 * cos(r)
         val ky = 0.60 + 0.25 * sin(r)
-        for ((shoulder, hip, knee, ankle) in listOf(
-            listOf(LandmarkId.LEFT_SHOULDER, LandmarkId.LEFT_HIP, LandmarkId.LEFT_KNEE, LandmarkId.LEFT_ANKLE),
-            listOf(LandmarkId.RIGHT_SHOULDER, LandmarkId.RIGHT_HIP, LandmarkId.RIGHT_KNEE, LandmarkId.RIGHT_ANKLE),
+        for ((ids, dx) in listOf(
+            listOf(LandmarkId.LEFT_SHOULDER, LandmarkId.LEFT_HIP, LandmarkId.LEFT_KNEE, LandmarkId.LEFT_ANKLE) to -spread,
+            listOf(LandmarkId.RIGHT_SHOULDER, LandmarkId.RIGHT_HIP, LandmarkId.RIGHT_KNEE, LandmarkId.RIGHT_ANKLE) to spread,
         )) {
-            put(shoulder, 0.20, 0.60)
-            put(hip, 0.50, 0.60)
-            put(knee, kx, ky)
-            put(ankle, kx + (kx - 0.50), ky + (ky - 0.60))
+            val (shoulder, hip, knee, ankle) = ids
+            put(shoulder, 0.20 + dx, 0.60)
+            put(hip, 0.50 + dx, 0.60)
+            put(knee, kx + dx, ky)
+            put(ankle, kx + (kx - 0.50) + dx, ky + (ky - 0.60))
         }
         return Landmarks.fromPacked(packed)
     }

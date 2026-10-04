@@ -1,13 +1,12 @@
 package com.kinesis.ui.live
 
 import com.kinesis.core.analysis.fps.FrameRateHealth
-import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.domain.landmark.FrameValidity
-import com.kinesis.core.domain.profile.CameraView
 import com.kinesis.core.domain.rep.MovementPhase
 import com.kinesis.core.domain.rep.RepValidity
 import com.kinesis.ui.theme.OverlayState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -255,28 +254,26 @@ class LiveAnalysisBridgeTest {
         assertEquals(OverlayState.TRACKED, seen.last().overlayState)
     }
 
+    /**
+     * DECISIONS.md P3-59: the screen hears the gate's message, a constant string, not P3-55's
+     * verdict, whose per-frame confidence made every set-up frame a recomposition.
+     */
     @Test
-    fun a_change_in_setup_verdict_reaches_compose_and_unchanged_verdict_does_not_recompose() {
+    fun a_change_in_the_setup_message_reaches_compose_once_and_a_repeated_one_never() {
         val (bridge, seen) = bridge()
-        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, setupVerdict = SetupVerdict.NoPerson)
-        val countAfterFirst = bridge.publishCount
+        val turn = "Turn side-on to the camera — counting paused"
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, setupMessage = turn)
+        val afterFirst = bridge.publishCount
+        assertEquals(turn, seen.last().setupMessage)
 
-        // 30 identical frames with NoPerson do not recompose
-        repeat(30) {
-            bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, setupVerdict = SetupVerdict.NoPerson)
-        }
-        assertEquals(countAfterFirst, bridge.publishCount)
+        repeat(30) { bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, setupMessage = turn) }
+        assertEquals(afterFirst, bridge.publishCount)
 
-        // Setup transitions to Ready: Compose is informed once
-        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, setupVerdict = SetupVerdict.Ready(CameraView.FRONT_ON, 0.95))
-        assertEquals(countAfterFirst + 1, bridge.publishCount)
-        assertTrue(seen.last().setupVerdict is SetupVerdict.Ready)
-
-        // 30 identical frames with Ready do not recompose
-        repeat(30) {
-            bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, setupVerdict = SetupVerdict.Ready(CameraView.FRONT_ON, 0.95))
-        }
-        assertEquals(countAfterFirst + 1, bridge.publishCount)
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, setupMessage = null)
+        assertEquals(afterFirst + 1, bridge.publishCount)
+        assertNull(seen.last().setupMessage)
+        repeat(30) { bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, setupMessage = null) }
+        assertEquals(afterFirst + 1, bridge.publishCount)
     }
 
     @Test

@@ -11,7 +11,6 @@ import com.kinesis.core.analysis.landmark.ValidityGate
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.rep.BilateralRepTracker
 import com.kinesis.core.analysis.setup.SetupGate
-import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.analysis.temporal.RealTimeSignalPipeline
 import com.kinesis.core.analysis.temporal.TemporalConfig
 import com.kinesis.core.domain.bilateral.BilateralSignal
@@ -43,6 +42,8 @@ class LiveHoldAnalysis(
     val profile: IsometricExercise,
     val policy: VisibilityPolicy = VisibilityPolicy.PROVISIONAL,
     temporalConfig: TemporalConfig = TemporalConfig.PROVISIONAL,
+    /** Whether a wrong camera view stops scoring. The app blocks; see [SetupEnforcement]. */
+    val setupEnforcement: SetupEnforcement = SetupEnforcement.REPORT_ONLY,
 ) {
 
     private val spec = profile.holdSignal
@@ -52,8 +53,12 @@ class LiveHoldAnalysis(
     private val setupGate = SetupGate(profile, policy)
     private val fpsMonitor = FrameRateMonitor()
 
-    val setupVerdict: SetupVerdict get() = setupGate.latestVerdict
-    val isSetupReady: Boolean get() = setupGate.isReady
+    /** The setup line for the screen, or `null` when there is nothing to say. Debounced. */
+    val setupMessage: String? get() = setupGate.message
+
+    /** True while scoring is stopped by the setup gate. Always false when only reporting. */
+    val isScoringBlocked: Boolean
+        get() = setupEnforcement == SetupEnforcement.BLOCK_SCORING && setupGate.isScoringBlocked
 
     val frameRateHealth: FrameRateHealth get() = fpsMonitor.health
     val currentFps: Double get() = fpsMonitor.currentFps
@@ -84,6 +89,11 @@ class LiveHoldAnalysis(
         } else {
             ValidityGate.evaluate(landmarks, profile.requiredLandmarks, policy)
         }
+        if (isScoringBlocked) {
+            // As unseen: the hold is neither extended nor broken while scoring is blocked (P3-59).
+            stepUnseen(timestampMs)
+            return
+        }
         val angle = JointAngles.compute(landmarks, spec.joint, spec.plane, policy)
         rawAngleLeft = angle.left
         rawAngleRight = angle.right
@@ -99,6 +109,10 @@ class LiveHoldAnalysis(
         fpsMonitor.onFrame(timestampMs)
         setupGate.onNothingSeen()
         frameValidity = FrameValidity.INVALID
+        stepUnseen(timestampMs)
+    }
+
+    private fun stepUnseen(timestampMs: Double) {
         rawAngleLeft = Double.NaN
         rawAngleRight = Double.NaN
         leftPipeline.push(timestampMs, Double.NaN)
