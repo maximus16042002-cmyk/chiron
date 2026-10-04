@@ -11161,6 +11161,96 @@ All of it waits on the phone.
 
 ---
 
+## P3-50 — FEATURE_PLAN Batch 4: the workout generator and guided workouts
+
+*2026-10-04. Written before the code. P3-38's order, after P3-49. The owner: "do whatever you
+want..but i just want the app perfect and complete".*
+
+### What FEATURE_PLAN asks
+
+- **The generator,** "logic in the shared core, deterministic — no ML":
+  - **inputs:** time, focus, level, equipment, exercises to avoid;
+  - **only the 17-entry library,** grouped by camera view so the phone moves as little as possible;
+  - **the same inputs and seed give the same plan;** "shuffle" changes the seed;
+  - **targets are suggestions,** with no medical claims;
+  - **tests:** it fits the time, respects equipment and focus, never repeats an exercise in a row,
+    and is reproducible from its seed.
+- **Guided mode:** the next exercise and its placement tip, the live set (the existing pipeline),
+  the rest timer, then the next. A summary at the end, sets saved as now, favourites, and "Repeat
+  last workout" on Home.
+
+### What this entry decides
+
+**1. What each entry is, for planning.** A table in the core (`WorkoutCatalogue`), one row per
+library entry, tested to cover all 17 and nothing else.
+
+| Body area | Entries |
+|---|---|
+| lower | squat, goblet squat, lunge, reverse lunge, glute bridge, hip abduction, wall sit |
+| upper | push-up, bicep curl, lateral raise, shoulder press, row |
+| core | plank, side plank, sit-up, leg raise, knee raise |
+
+- **Equipment:** **dumbbells** for the bicep curl, lateral raise, shoulder press, row and goblet
+  squat (MM-Fit's are dumbbell exercises; the guide's curl and press say "the weight"). The rest
+  need none.
+- **What the room needs** is said, not filtered: a chair for the two seated exercises (P0-4), a
+  wall for the wall sit.
+- **Full body** draws from all three areas.
+
+**2. The targets are the app's own suggestions, not a source's.** No guideline is cited for them,
+because none was checked; the plan screen calls them suggestions.
+
+| Level | Sets | Repetitions | Hold | Rest |
+|---|---|---|---|---|
+| beginner | 2 | 8 | 20 s | 60 s |
+| intermediate | 3 | 10 | 30 s | 60 s |
+| advanced | 3 | 12 | 45 s | 45 s |
+
+An exercise counted one limb at a time (curl, knee raise, hip abduction) has its target **per
+side**, as it is counted (P3-1).
+
+**3. Time is an estimate, with its assumptions named.**
+- 3 s a repetition, twice that for per-side targets;
+- a hold's own length;
+- the rest after every set except the last;
+- 30 s to set up each exercise, and 30 s more when the camera view changes.
+
+The plan says "about N min".
+
+**4. Building a plan, deterministically.**
+- **The candidates:** the entries matching focus and equipment, minus those avoided. A variant and
+  its parent are never both chosen: they are the same movement.
+- **The order:** a seeded shuffle (Fisher–Yates, a 32-bit xorshift on `Int`, so JVM and JS agree),
+  then added in turn while the estimate stays within the time. With no candidate left that fits,
+  the plan ends.
+- **Grouped by camera view** for as few phone moves as possible: the views in the order they first
+  appear, each exercise once.
+
+**5. Guided mode is a sequence the core lays out** (`GuidedWorkout.steps`): every set of every
+exercise in order. The app walks it:
+- the exercise and its "Setting up" card (P3-48);
+- the live set, saved as every set is saved;
+- the rest timer, started for the user;
+- then the next.
+
+Leaving part-way keeps every set already saved. The summary at the end is the core's totals over
+that workout's sets, and any records it set (P3-49).
+
+**6. Favourites and "Repeat last workout"** are stored as inputs and seed, not as plans. The plan
+is regenerated from them, which the reproducibility test guarantees gives the same one. Local
+SharedPreferences, never synced.
+
+**Not decided by this entry:** reps, holds or rest adapted from calibration or history. That would
+be Level 2 personalisation of a prescription, and nothing in the documents asks for it.
+
+**Checks:** tests first on JVM and JS for every rule above, a mutation check of the reproducibility
+and time-fit tests, the full suite, and commits per step:
+1. the core;
+2. the generator's pages;
+3. guided mode, favourites, repeat.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
