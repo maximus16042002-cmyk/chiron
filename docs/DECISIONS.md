@@ -12378,6 +12378,67 @@ discloses. Turning it off (or excluding the databases) is the owner's decision.
 
 ---
 
+## P3-63 — A set that fails to save is always reported
+
+*2026-10-05. Written before any code. P3-16 stated it as a known gap: "a save that fails after the
+user has left the screen is reported nowhere".*
+
+### The gap
+
+A set ends in one of two ways (`LiveSetSaver`, P3-16):
+- **End set:** the screen awaits the write and shows "Set not saved" if it fails.
+- **Leaving the screen** (back, a tab, switching camera, which replaces the engine): the set is
+  still written, on a process-lifetime scope, but nobody awaits the result. A failed write is
+  silent, and the user believes the set was kept.
+
+**A second gap, found reading the code:** only `SQLiteException` is turned into "not saved". Any
+other exception from the write (Room can also throw `IllegalStateException`) escapes the async
+block. An awaiting screen would then crash, and an unwatched one would lose the set silently.
+
+### The fix
+
+- **Any failure of the write becomes `SetSaveOutcome.Failed`,** whatever its type, except
+  cancellation, which is rethrown as coroutines require.
+- **The saver knows whether a screen is watching.** The end-set control ends the set *watching*.
+  Leaving the screen ends it unwatched, and a watch, once taken, is kept.
+- **An unwatched failure goes to a callback,** and the app shows it as a system toast: "Set not
+  saved: <reason>". A toast outlives the screen that has gone.
+- **A watched failure keeps today's in-screen message,** so a failure is never reported twice.
+
+**Not changed:** a set under way when the app is killed is still lost, because nothing is
+persisted until it ends (P3-16). Fixing that means writing a set while it happens, which is a
+larger change with its own entry.
+
+### Tests first (`LiveSetSaverTest`)
+
+- An unwatched failed write calls the callback once, with the reason, and returns `Failed`.
+- A watched failed write does not call it.
+- A failure of a type other than `SQLiteException` is still `Failed`.
+- A successful write never calls it.
+
+### Result (2026-10-05)
+
+- **`LiveSetSaver`:**
+  - `endSet(watching)` records the watch;
+  - any `Exception` from the write becomes `Failed`, and `CancellationException` is rethrown;
+  - an unwatched failure calls `onUnreportedFailure(reason)`.
+- **`LiveHost`:** End set ends the set watching. The callback shows a long toast, "Set not saved:
+  <reason>".
+- **Tests:** the four above, in `LiveSetSaverTest`. All `:app` tests pass.
+- **Mutation checks, 4 of 4 caught:**
+  - reporting every failure (watched too);
+  - reporting none;
+  - catching only `IllegalArgumentException`, so the test's `IllegalStateException` escapes as
+    before;
+  - never recording the watch.
+- **The full suite:** 3,097 test executions, 0 failed (`:app` 230 debug and 218 release).
+- **Unseen on the phone.** A real write failure is hard to provoke on a phone, so the toast may
+  never be seen there. The tests are its evidence.
+
+**Next entry: P3-64.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

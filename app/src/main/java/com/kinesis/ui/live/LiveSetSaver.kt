@@ -1,9 +1,9 @@
 package com.kinesis.ui.live
 
-import android.database.sqlite.SQLiteException
 import com.kinesis.core.domain.session.SessionRecord
 import com.kinesis.storage.SessionRecorder
 import com.kinesis.storage.SessionRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
@@ -21,7 +21,7 @@ sealed interface SetSaveOutcome {
     /** Nobody was ever seen, so there was no set to write. */
     data object NothingToSave : SetSaveOutcome
 
-    /** The local database refused the write. */
+    /** The local write failed, for whatever reason (DECISIONS.md P3-63). */
     data class Failed(val reason: String) : SetSaveOutcome
 }
 
@@ -48,6 +48,13 @@ sealed interface SetSaveOutcome {
  * [scope], which the app gives a lifetime longer than the screen's - leaving the
  * screen must not cancel the save of the set it just ended.
  *
+ * ### A failure is always reported - DECISIONS.md P3-63
+ *
+ * End set waits for the write and shows a failure on the screen: it ends the set
+ * *watching*. Leaving the screen ends it with nobody watching, so a failure then
+ * goes to [onUnreportedFailure], which the app shows as a toast. A watch, once
+ * taken, is kept, so a failure is never reported twice.
+ *
  * Call from the main thread.
  */
 class LiveSetSaver(
@@ -58,11 +65,18 @@ class LiveSetSaver(
     private val startedAtEpochMs: Double,
     private val utcOffsetMinutes: Int,
     private val onSaved: () -> Unit,
+    /** A failed write no screen was watching, with its reason. Called on [scope]. */
+    private val onUnreportedFailure: (String) -> Unit = {},
 ) {
 
     private var outcome: Deferred<SetSaveOutcome>? = null
 
-    fun endSet(): Deferred<SetSaveOutcome> {
+    @Volatile
+    private var watched = false
+
+    /** @param watching true when the caller will show the outcome itself (End set). */
+    fun endSet(watching: Boolean = false): Deferred<SetSaveOutcome> {
+        if (watching) watched = true
         outcome?.let { return it }
         val recorder = SessionRecorder(sessionId, startedAtEpochMs, utcOffsetMinutes, repository)
         val closed = engine.closeSetInto(recorder, startedAtEpochMs)
@@ -70,8 +84,13 @@ class LiveSetSaver(
             if (!closed) return@async SetSaveOutcome.NothingToSave
             val session = try {
                 recorder.finish()
-            } catch (error: SQLiteException) {
-                return@async SetSaveOutcome.Failed(error.message ?: "the local database refused the write")
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                // Any failure, not only SQLiteException: before P3-63 anything else escaped.
+                val reason = error.message ?: "the local database refused the write"
+                if (!watched) onUnreportedFailure(reason)
+                return@async SetSaveOutcome.Failed(reason)
             } ?: return@async SetSaveOutcome.NothingToSave
             onSaved()
             SetSaveOutcome.Saved(session)

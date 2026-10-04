@@ -6,6 +6,7 @@ import android.content.ContextWrapper
 import android.content.res.Configuration
 import android.view.OrientationEventListener
 import android.view.Surface
+import android.widget.Toast
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -367,6 +368,10 @@ private fun LiveCameraSession(
             startedAtEpochMs = now.toDouble(),
             utcOffsetMinutes = utcOffsetMinutesAt(now),
             onSaved = env.onSessionSaved,
+            // The screen may be gone by now, so the toast, which outlives it (P3-63).
+            onUnreportedFailure = { reason ->
+                Toast.makeText(context.applicationContext, "Set not saved: $reason", Toast.LENGTH_LONG).show()
+            },
         )
     }
     var ending by remember(engine) { mutableStateOf(false) }
@@ -378,7 +383,7 @@ private fun LiveCameraSession(
 
     if (ending) {
         LaunchedEffect(saver) {
-            when (val outcome = saver.endSet().await()) {
+            when (val outcome = saver.endSet(watching = true).await()) {
                 is SetSaveOutcome.Saved -> env.onSetEnded(outcome.session)
                 SetSaveOutcome.NothingToSave -> env.onSetEnded(null)
                 is SetSaveOutcome.Failed -> failure = LiveFailure("Set not saved", outcome.reason, false)
@@ -452,7 +457,7 @@ private fun LiveCameraSession(
             screen(preview) {
                 // Closed now, so nothing after the tap is part of the set; written
                 // on the process scope, awaited above.
-                saver.endSet()
+                saver.endSet(watching = true)
                 ending = true
             }
         }

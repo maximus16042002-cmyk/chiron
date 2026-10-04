@@ -50,6 +50,13 @@ class LiveSetSaverTest {
         }
     }
 
+    /** A local store whose write fails, as a full disk or a closed database would. */
+    private class FailingStore : SessionRepository {
+        override suspend fun allSessions(): List<SessionRecord> = emptyList()
+        override suspend fun save(session: SessionRecord) = throw IllegalStateException("disk full")
+        override suspend fun clear() = Unit
+    }
+
     private object NoSkeleton : SkeletonSink {
         override fun submit(landmarks: Landmarks, state: OverlayState, policy: VisibilityPolicy) = Unit
         override fun clear() = Unit
@@ -61,15 +68,17 @@ class LiveSetSaverTest {
     private val scope = CoroutineScope(Dispatchers.Unconfined)
     private var clockMs = 0L
     private var savedCallbacks = 0
+    private val unreported = mutableListOf<String>()
 
-    private fun saver(engine: LiveEngine) = LiveSetSaver(
+    private fun saver(engine: LiveEngine, store: SessionRepository = repository) = LiveSetSaver(
         engine = engine,
-        repository = repository,
+        repository = store,
         scope = scope,
         sessionId = "set-1",
         startedAtEpochMs = 1_760_000_000_000.0,
         utcOffsetMinutes = 330,
         onSaved = { savedCallbacks++ },
+        onUnreportedFailure = { unreported += it },
     )
 
     private fun squatEngine() = LiveRepetitionEngine(ArchetypeProfiles.squat, LiveAnalysisBridge("squat") { }, NoSkeleton)
@@ -124,6 +133,58 @@ class LiveSetSaverTest {
         assertSame(first, second)
         first.await()
         assertEquals(1, local.saved.size)
+    }
+
+    /**
+     * DECISIONS.md P3-63: leaving the screen ends a set with nobody watching the write. If it
+     * fails, the user must still be told, through the callback the app shows as a toast.
+     */
+    @Test
+    fun a_failed_write_nobody_watches_is_reported_once_with_its_reason() = runBlocking {
+        val engine = squatEngine()
+        engine.squat(reps = 1)
+
+        val outcome = saver(engine, FailingStore()).endSet().await()
+
+        assertTrue(outcome is SetSaveOutcome.Failed)
+        assertEquals(listOf("disk full"), unreported)
+        assertEquals(0, savedCallbacks)
+    }
+
+    /** End set watches the write and shows the failure itself, so it is not reported twice. */
+    @Test
+    fun a_failed_write_the_screen_watches_is_not_reported_again() = runBlocking {
+        val engine = squatEngine()
+        engine.squat(reps = 1)
+        val saver = saver(engine, FailingStore())
+
+        val outcome = saver.endSet(watching = true).await()
+        saver.endSet() // then the screen is left, as it is after End set
+
+        assertTrue(outcome is SetSaveOutcome.Failed)
+        assertTrue("reported twice: $unreported", unreported.isEmpty())
+    }
+
+    /** Before P3-63 only SQLiteException became "not saved"; anything else escaped. */
+    @Test
+    fun a_failure_of_any_type_is_a_failed_outcome_not_an_escaped_exception() = runBlocking {
+        val engine = squatEngine()
+        engine.squat(reps = 1)
+
+        val outcome = saver(engine, FailingStore()).endSet(watching = true).await()
+
+        assertEquals("disk full", (outcome as SetSaveOutcome.Failed).reason)
+    }
+
+    @Test
+    fun a_successful_write_reports_nothing() = runBlocking {
+        val engine = squatEngine()
+        engine.squat(reps = 1)
+
+        saver(engine).endSet().await()
+
+        assertTrue(unreported.isEmpty())
+        assertEquals(1, savedCallbacks)
     }
 
     /** The set ends at the tap: later frames reach neither the readout nor the skeleton. */
