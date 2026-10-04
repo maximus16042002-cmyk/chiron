@@ -67,7 +67,7 @@ operational distillation) > everything else. If `CLAUDE.md` disagrees with the o
 ### 0.3 How work is done here (the pattern every session followed)
 
 1. **Read** the relevant DECISIONS entries before changing anything.
-2. **Write a design entry first** (next number: **P3-60**). It states what will be built and every
+2. **Write a design entry first** (next number: **P3-61**). It states what will be built and every
    choice the source documents leave open. Commit it before any code. For studies, the protocol and
    pass rule are fixed and committed (sometimes tagged, e.g. `p3-42-frozen`) **before** any data is
    looked at.
@@ -104,7 +104,7 @@ Before doing anything:
    - every technique rule cites a published source; no accuracy number may be attached to one;
    - never state a number that was not measured on this system;
    - never use held-out MM-Fit data without the owner's explicit approval and a frozen protocol.
-3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-60),
+3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-61),
    tests first, implement in the core, mutation-check new guard tests, run the full suite
    (HANDOVER 9.2), append a Result section, commit, push.
 4. Ask the owner before: installing anything on their phone (back up first, HANDOVER 9.4), using
@@ -753,9 +753,9 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 
 ### 7.3 Tests
 
-- **The last full run (P3-59, 2026-10-05):** **3,069 test executions, 0 failed, 0 skipped.** By
+- **The last full run (P3-60, 2026-10-05):** **3,081 test executions, 0 failed, 0 skipped.** By
   module and target: `core/analysis` 623 JVM (+5 allocation), 612 JS, 612 debug, 612 release;
-  `core/domain` 40 on each of the four; `:app` 216 debug and 204 release; `tools/mmfit-eval` 25.
+  `core/domain` 40 on each of the four; `:app` 222 debug and 210 release; `tools/mmfit-eval` 25.
   Python tests (`test_subjects.py`, `test_anomaly_study.py`) are separate.
 - **The command:** section 9.2.
 - **Every test is synthetic.** None has seen a camera frame or a model; device evidence is recorded
@@ -813,7 +813,7 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 | 4 | **A low frame rate:** a gate weighted by time, or a warning | P3-56 built a warning below 12 results a second (the Antigravity agent's choice, not the owner's); a gate is still open |
 | 5 | **The AGP 8.9.1 and compileSdk 36 batch** (needed for the stable Health Connect 1.1.0; probably also the way out of P1-1's lint exclusion) | P3-19, P3-21 ("its own small batch, later") |
 | 6 | **Per-side tempo for simultaneous exercises** (squat, push-up…): needs `RepRecord` to keep each side's phase times, a change touching Room, sync and the golden file | P3-22 |
-| 7 | **Local sessions are not partitioned by account:** on a phone shared by two accounts, one account's sessions would be uploaded to the other's | P3-22, P3-25 |
+| 7 | ~~Local sessions are not partitioned by account~~ **Fixed in P3-60:** each account has its own database file on the phone; the existing file stays with the first account signed in after the update (the owner). The app's settings are still per phone | P3-22, P3-25, P3-60 |
 | 8 | **Whether a calibration hold should be one hold or several** (several would give the sway a spread) | P3-22 |
 | 9 | **A setup assistant that enforces each exercise's camera view** (CLAUDE.md §10) | Built in P3-55, corrected in P3-59: a wrong view blocks scoring, everything else only advises. The owner may want it stricter or looser after the phone check |
 | 10 | **The verifier's held-out run, and whether it should ship at all.** Part B was built without the approval this row asked for (P3-52, under "do whatever you want"). P3-59 recommends fixing a shipping rule (for example, a ceiling on any person's false-warning rate) before any held-out run | P3-34, P3-52, P3-59 |
@@ -987,7 +987,7 @@ dataset, which is **not in the repository**.
 - **Before the repository is ever made public,** review the decision to commit `google-services.json`:
   a public repository puts the key in front of automated scanners. At minimum confirm the key's
   restrictions and the rules' behaviour; consider rotating the key and removing the file from history.
-- **Shared phones:** local sessions are not partitioned by account (section 8.2 item 7).
+- **Shared phones:** since P3-60 each account has its own database file on the phone, so one account's sessions never upload to another's. The app's settings (rest length, cues, goal, reminders) are still shared.
 
 ### 11.4 The Git remote
 
@@ -1086,8 +1086,8 @@ figure can be regenerated rather than trusted.
   reported (P3-16).
 - A set ended with the back button during a guided workout is saved but not counted in that workout's
   summary (P3-50).
-- Local sessions are not partitioned by account (P3-22).
-- No setup assistant enforces the camera view; the validity gate only blocks bad frames (P3-23).
+- The app's settings are per phone, not per account; sessions and baselines are per account since P3-60.
+- The setup gate blocks scoring only on a wrong camera view, and its thresholds come from MM-Fit, unmeasured on the phone (P3-55, P3-59).
 - The curl's timing has a known one-frame artefact at some frame rates, pinned by tests, not fixed
   (P3-30, P3-39).
 - On-device frame rate is about 15 results a second and the phone runs hot (P3-31).
@@ -1207,6 +1207,6 @@ figure can be regenerated rather than trusted.
 ---
 
 *When you finish a piece of work:*
-1. *add its entry to `docs/DECISIONS.md` (next: **P3-60**);*
+1. *add its entry to `docs/DECISIONS.md` (next: **P3-61**);*
 2. *update `docs/PROJECT_STATUS.md`'s "Next session starts here";*
 3. *update sections 7 and 8 of this file.*

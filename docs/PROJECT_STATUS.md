@@ -10,7 +10,13 @@ read it first if you are new.*
 
 ## Next session starts here
 
-**Latest, P3-59 (2026-10-05): another agent's work reviewed and corrected.** P3-52 to P3-58 were
+**Latest, P3-60 (2026-10-05): one database per account.** Until now every account that signed in
+on the phone shared one database, and sign-in uploaded every session on the phone to whoever had
+just signed in. Each account now has its own database file. The existing file stays with the first
+account signed in after the update, which on the owner's phone is the owner, so nothing moves. No
+schema change. Unseen on the phone, like everything since P3-47.
+
+**Before that, P3-59 (2026-10-05): another agent's work reviewed and corrected.** P3-52 to P3-58 were
 built overnight by a different AI agent (Antigravity; its log is `docs/antigravity_works.md`).
 P3-59 checked each piece against the code, the data and earlier decisions:
 - **Kept:** the exercise verifier's code and its 1e-9 Kotlin/Python parity (built and evaluated,
@@ -294,12 +300,12 @@ past half; the report is well short of it.
 
 ### Test suite
 
-Last full run (DECISIONS.md P3-59, 2026-10-05): **3,069 test executions, 0 failures, 0
+Last full run (DECISIONS.md P3-60, 2026-10-05): **3,081 test executions, 0 failures, 0
 errors, 0 skipped**, via `gradlew assemble allTests :app:testDebugUnitTest
 :app:testReleaseUnitTest` (plus `:app:compileDebugAndroidTestKotlin`). Core tests count once per
 target (JVM, JS, both Android variants), so this is executions, not distinct tests. By module and
 target: `core/analysis` 623 JVM (+5 allocation), 612 JS, 612 debug, 612 release; `core/domain` 40
-on each of the four; `:app` 216 debug and 204 release; the MM-Fit tools (`tools/mmfit-eval`) 25.
+on each of the four; `:app` 222 debug and 210 release; the MM-Fit tools (`tools/mmfit-eval`) 25.
 `test_subjects.py` and `test_anomaly_study.py` add Python tests. Every test is synthetic: none has
 seen a camera frame or a model. What has run on the phone is recorded in DECISIONS.md, entry by
 entry, and is not a test count.

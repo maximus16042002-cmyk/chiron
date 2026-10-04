@@ -353,6 +353,7 @@ reads as having none, so it is not measured, never zero.
 - **`AnalysisResult`.** It is not stored; it is recomputed from a record and a
   baseline, and both are exported.
 - **When a set ended.** Nothing records that today.
-- **Which account a session belongs to.** Local sessions are not partitioned by
-  account (P3-22). An export is every session on the phone, plus the signed-in
-  user's baselines.
+- **Which account a session belongs to.** Not a field: since `DECISIONS.md` P3-60
+  each account has its own database file on the phone, so an export holds the
+  signed-in account's sessions and baselines only. (Before P3-60 it held every
+  session on the phone.)

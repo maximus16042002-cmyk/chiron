@@ -23,7 +23,9 @@ import com.kinesis.R
 import com.kinesis.core.analysis.history.Reminders
 import com.kinesis.core.domain.session.LocalDay
 import com.kinesis.settings.AppSettings
+import com.kinesis.storage.AccountDatabaseNames
 import com.kinesis.storage.KinesisDatabase
+import com.kinesis.storage.PreferencesAccountRegistry
 import com.kinesis.storage.RoomSessionRepository
 import com.kinesis.storage.utcOffsetMinutesAt
 import java.util.TimeZone
@@ -90,7 +92,11 @@ class ReminderWorker(context: Context, parameters: WorkerParameters) : Coroutine
             val dueAt = inputData.getLong(KEY_DUE_AT, 0L)
             val now = System.currentTimeMillis()
             if (dueAt > 0L && now - dueAt <= LATE_LIMIT_MS) {
-                val sessions = RoomSessionRepository(KinesisDatabase.get(applicationContext).sessionDao()).allSessions()
+                // The most recently signed-in account's sessions (P3-60); none if nobody has signed in.
+                val uid = PreferencesAccountRegistry(applicationContext).read(AccountDatabaseNames.CURRENT_ACCOUNT)
+                val sessions = uid?.let {
+                    RoomSessionRepository(KinesisDatabase.forAccount(applicationContext, it).sessionDao()).allSessions()
+                }.orEmpty()
                 val today = LocalDay.of(now.toDouble(), utcOffsetMinutesAt(now))
                 Reminders.message(sessions, today)?.let { ReminderNotification.show(applicationContext, it) }
             }

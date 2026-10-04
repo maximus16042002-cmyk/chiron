@@ -72,7 +72,9 @@ import com.kinesis.licenses.ThirdPartyNotices
 import com.kinesis.reminders.ReminderNotification
 import com.kinesis.reminders.ReminderScheduler
 import com.kinesis.settings.AppSettings
+import com.kinesis.storage.AccountDatabaseNames
 import com.kinesis.storage.KinesisDatabase
+import com.kinesis.storage.PreferencesAccountRegistry
 import com.kinesis.storage.RoomBaselineRepository
 import com.kinesis.storage.RoomSessionRepository
 import com.kinesis.storage.SessionRepository
@@ -142,26 +144,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val database = KinesisDatabase.get(applicationContext)
-        val local = RoomSessionRepository(database.sessionDao())
         // A reminder the user turned on is waiting, whatever happened to the app since - P3-49.
         ReminderScheduler.ensureScheduled(applicationContext)
-        // Baselines stay on this phone: nothing wraps this repository with sync.
-        // DECISIONS.md P3-22.
-        val calibration = CalibrationCoordinator(RoomBaselineRepository(database.baselineDao()))
         val auth: AuthGateway = FirebaseAuthGateway()
-
-        // Room stays the source of truth; the decorator only schedules an
-        // upload after a local write has already succeeded - P3-14.
-        val repository: SessionRepository = SyncingSessionRepository(
-            delegate = local,
-            queue = WorkManagerSyncQueue(applicationContext) {
-                (auth.state as? AuthState.SignedIn)?.uid
-            },
-            isSignedIn = { auth.state is AuthState.SignedIn },
-        )
-        val merge = SessionMerge(local, FirestoreSessionStore())
         val contextSource = HealthConnectActivityContextSource(applicationContext)
+        val openAccount: (String) -> AccountStorage = { uid -> AccountStorage.open(applicationContext, auth, uid) }
 
         setContent {
             KinesisTheme {
@@ -169,9 +156,43 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    KinesisRoot(auth, merge, repository, contextSource, calibration)
+                    KinesisRoot(auth, openAccount, contextSource)
                 }
             }
+        }
+    }
+}
+
+/**
+ * One account's storage: its own database file, so its sessions and baselines are its own -
+ * DECISIONS.md P3-60. Until then one database served every account, and sign-in uploaded every
+ * session on the phone to whoever had signed in.
+ */
+private class AccountStorage(
+    val repository: SessionRepository,
+    val merge: SessionMerge,
+    val calibration: CalibrationCoordinator,
+) {
+    companion object {
+        fun open(context: Context, auth: AuthGateway, uid: String): AccountStorage {
+            val registry = PreferencesAccountRegistry(context)
+            registry.write(AccountDatabaseNames.CURRENT_ACCOUNT, uid)
+            val database = KinesisDatabase.forAccount(context, uid)
+            val local = RoomSessionRepository(database.sessionDao())
+            // Room stays the source of truth; the decorator only schedules an upload after a
+            // local write has already succeeded - P3-14. The upload goes to this repository's own
+            // account, and only while that account is the one signed in (P3-60).
+            val repository = SyncingSessionRepository(
+                delegate = local,
+                queue = WorkManagerSyncQueue(context) { uid },
+                isSignedIn = { (auth.state as? AuthState.SignedIn)?.uid == uid },
+            )
+            return AccountStorage(
+                repository = repository,
+                merge = SessionMerge(local, FirestoreSessionStore()),
+                // Baselines stay on this phone: nothing wraps this repository with sync. P3-22.
+                calibration = CalibrationCoordinator(RoomBaselineRepository(database.baselineDao())),
+            )
         }
     }
 }
@@ -188,10 +209,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun KinesisRoot(
     auth: AuthGateway,
-    merge: SessionMerge,
-    repository: SessionRepository,
+    openAccount: (String) -> AccountStorage,
     contextSource: ActivityContextSource,
-    calibration: CalibrationCoordinator,
 ) {
     // DECISIONS.md P3-48: three short pages on the first launch, and again on request.
     val appContext = LocalContext.current.applicationContext
@@ -217,14 +236,16 @@ private fun KinesisRoot(
 
     when (val current = state) {
         is AuthState.SignedIn -> {
+            // This account's own database (P3-60), opened once per account.
+            val storage = remember(current.uid) { openAccount(current.uid) }
             LaunchedEffect(current.uid) {
                 if (mergedFor != current.uid) {
-                    runCatching { merge.pullMissing(current.uid) }
-                    runCatching { merge.pushMissing(current.uid) }
+                    runCatching { storage.merge.pullMissing(current.uid) }
+                    runCatching { storage.merge.pushMissing(current.uid) }
                     mergedFor = current.uid
                 }
             }
-            KinesisApp(repository, contextSource, calibration, current.uid, current.email, showIntroduction) {
+            KinesisApp(storage.repository, contextSource, storage.calibration, current.uid, current.email, showIntroduction) {
                 scope.launch {
                     auth.signOut()
                     state = auth.state

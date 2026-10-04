@@ -137,11 +137,17 @@ abstract class KinesisDatabase : RoomDatabase() {
         /** Every migration, oldest first. A version bump adds one here. */
         val MIGRATIONS: List<Migration> = listOf(MIGRATION_1_2, MIGRATION_2_3)
 
-        @Volatile
-        private var instance: KinesisDatabase? = null
+        /** One open database per file, for the life of the process. */
+        private val open = HashMap<String, KinesisDatabase>()
 
-        fun get(context: Context): KinesisDatabase = instance ?: synchronized(this) {
-            instance ?: build(context, NAME).also { instance = it }
+        /**
+         * The database of account [uid] - DECISIONS.md P3-60. There is deliberately no opener
+         * without an account: until P3-60 one shared database leaked every account's sessions
+         * to whoever signed in.
+         */
+        fun forAccount(context: Context, uid: String): KinesisDatabase = synchronized(this) {
+            val name = AccountDatabaseNames.forAccount(uid, PreferencesAccountRegistry(context))
+            open.getOrPut(name) { build(context, name) }
         }
 
         /**

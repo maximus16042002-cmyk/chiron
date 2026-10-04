@@ -43,7 +43,8 @@ class SessionSyncWorker(
     override suspend fun doWork(): Result {
         val uid = inputData.getString(KEY_UID) ?: return Result.success()
 
-        val local = RoomSessionRepository(KinesisDatabase.get(applicationContext).sessionDao())
+        // This account's own database - DECISIONS.md P3-60.
+        val local = RoomSessionRepository(KinesisDatabase.forAccount(applicationContext, uid).sessionDao())
         val merge = SessionMerge(local, FirestoreSessionStore())
 
         return try {
@@ -58,6 +59,7 @@ class SessionSyncWorker(
 
     companion object {
         const val KEY_UID: String = "uid"
+        /** One queue per account (P3-60): another account's queued upload never absorbs or blocks this one. */
         private const val WORK_NAME = "kinesis-session-sync"
 
         /**
@@ -79,7 +81,7 @@ class SessionSyncWorker(
                 .build()
 
             WorkManager.getInstance(context)
-                .enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.KEEP, request)
+                .enqueueUniqueWork(WORK_NAME + "-" + uid, ExistingWorkPolicy.KEEP, request)
         }
     }
 }

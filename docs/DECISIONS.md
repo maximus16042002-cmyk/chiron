@@ -12208,6 +12208,37 @@ update, and stays that account's.
   database without saying whose it is.
 - **Mutation checks:** every account receiving the legacy name; an unsafe id used raw.
 
+### Result (2026-10-05)
+
+**Built as designed:**
+- `storage/AccountDatabases.kt`: `AccountDatabaseNames` (pure) and `PreferencesAccountRegistry`
+  (preferences file `kinesis-accounts`, committed synchronously).
+- `KinesisDatabase.get(context)` is replaced by `forAccount(context, uid)`. One open database is
+  kept per file.
+- `MainActivity` opens an account's storage (sessions, merge, baselines) when that account signs
+  in. Its upload queue names the repository's own account, and it uploads only while that account
+  is the one signed in.
+- The sync worker opens the scheduled account's database. Its unique work is
+  `kinesis-session-sync-<uid>`.
+- The reminder reads the most recently signed-in account's sessions.
+
+**Tests:** `AccountDatabaseNamesTest` (6) was written before the code; it did not compile against
+the old code, which had no per-account naming.
+
+**Mutation checks, 3 of 3 caught:**
+- every account given the legacy file;
+- an unsafe id used raw in the file name;
+- the adoption not recorded, so a second account also adopts the legacy file.
+
+**The full suite:** 3,081 test executions, 0 failed, 0 errors, 0 skipped (`:app` 222 debug and
+210 release; the rest as in P3-59).
+
+**For the phone:** after installing, the owner's history, streak and baselines should look
+exactly as before. A second account, if one is ever tried, should start empty. Neither has been
+seen yet.
+
+**Next entry: P3-61.**
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics
