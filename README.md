@@ -9,29 +9,31 @@ diagnostic system.
 
 ## Status
 
-**P0–P3 complete. P4 — device testing on the owner's phone — is under way.**
-The shared analysis engine, all 15 profiles and 2 variants, the Android app,
-local storage and account sync are built and tested on JVM, JS and Android.
+**P0-P3, P5 and P7 are complete; the app is feature-complete in code; the device check (P4) and the
+research core (P8-P9 remainder, P12) are not.** As of 2026-10-04 (DECISIONS.md P3-51):
 
-On a real phone (Nothing Phone 2a, Android 16) the live screen now runs on both
-cameras, turns with the phone either way up, and saves sets. Sessions sync to
-the signed-in account, and Health Connect's daily context reads. Verified so far:
-the P3-18 launch crash fixed, the live pipeline running, and sync end to end.
-The benchmarks put MediaPipe's pose model at about 55–57 ms a frame on that
-phone. Still owed: the camera session with a person exercising — left and right
-per camera, rep counting, hold timing, heat, frame rate in good light, and
-tuning.
+- The shared analysis engine, all 15 profiles and 2 variants, calibration, the export, the MM-Fit
+  evaluation pipeline, and the Android app (five pages, calendar and streak freezes, records, weekly
+  goal, reminders, workout generator and guided workouts, per-exercise trend charts) are built and
+  tested on JVM, JS and Android: **2,831 test executions, none failing**.
+- On the owner's phone (Nothing Phone 2a, Android 16) the live screen, curl counting, set saving,
+  account sync, Health Connect and the export have run. **Everything built since P3-47 - the whole
+  new look and every feature after it - has not yet been seen on a device.**
+- Still owed: the rest of the phone session (`docs/P4_TOMORROW.md`), the exercise verifier (P9
+  Part B), wiring the cited technique rules, and the evaluation write-up (P12).
 
-`docs/PROJECT_STATUS.md` has the current state, and `docs/DECISIONS.md` —
-P3-18 onward for P4 — has the reasons and every measured number.
+**`docs/HANDOVER.md` is the complete account of the project: history, rules, results, what is
+done and what must be done next. Start there.** `docs/PROJECT_STATUS.md` is the shorter status
+snapshot, and `docs/DECISIONS.md` has the reasons and every measured number.
 
 ## Read in this order
 
 1. **`CLAUDE.md`** — working rules. Every session starts here.
-2. **`docs/DECISIONS.md`** — the dated decision record. Highest authority.
-3. **`docs/CONTRACTS.md`** — the type-level contracts.
-4. **`docs/ZERO_DATASET_BUILD_PLAN.md`** — current scope and evaluation plan.
-5. **`docs/FINAL_ARCHITECTURE.md`** — the architecture review it builds on.
+2. **`docs/HANDOVER.md`** — the complete account of the project, for a newcomer or another AI.
+3. **`docs/DECISIONS.md`** — the dated decision record. Highest authority.
+4. **`docs/CONTRACTS.md`** — the type-level contracts.
+5. **`docs/ZERO_DATASET_BUILD_PLAN.md`** — current scope and evaluation plan.
+6. **`docs/FINAL_ARCHITECTURE.md`** — the architecture review it builds on.
    Contains superseded sections; `DECISIONS.md` P0-8 lists them.
 
 `docs/REPOSITORY_STRUCTURE.md` explains the layout.

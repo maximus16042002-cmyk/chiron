@@ -1,9 +1,10 @@
 # Kinesis — Project Status
 
 *Snapshot updated 2026-10-04, from the repository as it stands at the end of
-DECISIONS.md P3-49. This file summarises. It is not an authority: where it
+DECISIONS.md P3-51. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
-of date.*
+of date. **`docs/HANDOVER.md` is the complete, self-contained account of the project** -
+read it first if you are new.*
 
 ---
 
@@ -270,14 +271,15 @@ past half; the thesis is well short of it.
 
 ### Test suite
 
-Last full run (DECISIONS.md P3-30): **2,078 test executions, 0 failures, 0
+Last full run (DECISIONS.md P3-51, 2026-10-04): **2,831 test executions, 0 failures, 0
 errors, 0 skipped**, via `gradlew assemble allTests :app:testDebugUnitTest
-:app:testReleaseUnitTest` — core tests count once per target (JVM, JS, both
-Android variants), so this is executions, not distinct tests. `:app` holds 181
-of them in the debug variant and 169 in release; the MM-Fit tools
-(`tools/mmfit-eval`) hold 12, and `test_subjects.py` 8 more in Python. Every test is synthetic: none
-has seen a camera frame or a model. What has run on the phone is recorded in
-DECISIONS.md, entry by entry, and is not a test count.
+:app:testReleaseUnitTest` (plus `:app:compileDebugAndroidTestKotlin`). Core tests count once per
+target (JVM, JS, both Android variants), so this is executions, not distinct tests. By module and
+target: `core/analysis` 514 JVM (+5 allocation), 503 JS, 503 debug, 503 release; `core/domain` 37
+on each of the four; `:app` 191 debug and 179 release; the MM-Fit tools (`tools/mmfit-eval`) 25.
+`test_subjects.py` and `test_anomaly_study.py` add Python tests. Every test is synthetic: none has
+seen a camera frame or a model. What has run on the phone is recorded in DECISIONS.md, entry by
+entry, and is not a test count.
 
 ---
 
@@ -296,7 +298,7 @@ DECISIONS.md, entry by entry, and is not a test count.
 | **Streaks** | Consecutive-day tracking over stored session timestamps, timezone-aware (DECISIONS.md P3-10). |
 | **Daily health context** | Steps, active calories and mean heart rate from Health Connect, read-only, shown *beside* Kinesis's own numbers. Every absence is named honestly — not installed, needs update, permission denied, device too old, read failed — with an in-app "grant access" button. |
 | **Cloud backup/sync** | Completed sessions sync to Firestore under the user's account. Local save always happens first; upload is scheduled afterwards by WorkManager and retried with backoff, so training is never lost to a bad connection. Merge on sign-in pulls history to a new device before the dashboard appears. |
-| **Live analysis screen** | Camera preview with the skeleton drawn over it, portrait only, front camera by default with a switch to the back camera (switching starts a new set; the one in progress is saved). Repetition exercises show rep count, movement phase and tracking state; holds (plank, wall sit, side plank) show time held, hold state and tracking state. **[ END SET ]**, or leaving the screen, finishes the set — an unfinished repetition is recorded as incomplete — and saves it locally, then to sync. Missing model, refused camera permission and an unsuitable camera are each shown as themselves. Debug builds add a Phase B readout (frame rate, largest per-frame angle change, landmark visibility, active camera; Logcat tag `KinesisPhaseB`). **Run on the owner's phone since P3-18**; see P4 for what is still owed. |
+| **Live analysis screen** | Camera preview with the skeleton drawn over it, portrait only, front camera by default with a switch to the back camera (switching starts a new set; the one in progress is saved). Repetition exercises show rep count, movement phase and tracking state; holds (plank, wall sit, side plank) show time held, hold state and tracking state. **End set**, or leaving the screen, finishes the set — an unfinished repetition is recorded as incomplete — and saves it locally, then to sync. Missing model, refused camera permission and an unsuitable camera are each shown as themselves. Debug builds add a Phase B readout (frame rate, largest per-frame angle change, landmark visibility, active camera; Logcat tag `KinesisPhaseB`). **Run on the owner's phone since P3-18**; see P4 for what is still owed. |
 | **Licences** | Linked from Profile: the pose model's notice (Apache 2.0, from its model card), the app's direct dependencies with the licence each declares, and the full Apache License 2.0 text. |
 
 ### What the engine can do (built and tested; wired to the camera, run on the owner's phone since P3-18)
@@ -363,11 +365,12 @@ In the order it has to happen.
   `NaN` visibility counted as fully seen, a squat unfinished at the end of a set
   recorded as "aborted", the dashboard ignoring daylight saving, and the
   attention pulse never drawn.
-- **Firestore security rules published** by the project owner (P3-14
-  follow-up). **Not yet tested against a real client**: nothing has shown that a
-  user can reach their own sessions and not anyone else's, or that update and
-  delete are refused. That check belongs with the first Firebase round trip
-  below.
+- **Firestore security rules.** Published by the project owner (P3-14 follow-up), but the
+  published copy was broken: it refused every upload. P3-19 §6 tested the rules on the Firebase
+  emulator (`tools/firestore-rules`, 14 of 14 tests), fixed two defects, and the owner published the
+  fixed file on 2026-09-26. A real session then reached the owner's account, and the owner saw it in
+  the console. **Still unchecked:** the API key's restrictions in the Google Cloud console, and the
+  rules against a second real account (P3-20). See `docs/HANDOVER.md` section 11.
 - **P3-17:**
   - A front/back camera switch, with a permanent guard that both cameras give
     the same anatomical left and right.
@@ -415,8 +418,9 @@ current, itemised version.
    (P3-17), but a movement that stays faster than 20° per frame is still dropped
    while it lasts. Check real sudden changes are re-admitted, and the readout's
    frame rate against the device.
-7. First real Firebase round trip (no Firebase call has ever executed), including
-   the security-rules check above.
+7. ~~First real Firebase round trip~~ - done in P3-19 §6 (a session reached the account after the
+   rules were fixed). Still open: a second real account against the rules, and the API key's
+   restrictions.
 8. Permission dialog, refusal, backgrounding, leaving mid-set — and that the set
    is saved on each exit path.
 9. Tune the provisional constants (`smoothingAlpha`, `VisibilityPolicy`
@@ -460,11 +464,8 @@ current, itemised version.
   fails after leaving the screen is not reported anywhere (P3-16).
 - Normalised coordinates still have no consumer on the real-time path; whether
   normalisation belongs in CONTRACTS.md §7's per-frame order is open (P3-15).
-- **The libyuv licence notice is owed before any build is distributed.**
-  CameraX's `camera-core` bundles libyuv under a BSD licence, which requires its
-  notice in a binary distribution; its text is not yet in the app (P3-17,
-  correcting P3-13). **The same holds for Health Connect's repackaged Protocol
-  Buffers (BSD-3), added with the P3-19 client upgrade.**
+- ~~The libyuv and Protocol Buffers licence notices~~ - done in P3-21: both BSD texts ship on the
+  in-app licences screen (`ThirdPartyNotices.bsdNotices`).
 - The `:desktop` module is an empty placeholder (intended home for a replay-only
   client).
 - Optional: an `abiFilters` restriction to arm64 would cut roughly 29 MB from
@@ -484,7 +485,7 @@ current, itemised version.
 | Android | compileSdk / targetSdk 35, minSdk 24, Java/JVM target 17 |
 | Build | Gradle (wrapper), Android Gradle Plugin 8.7.3, KSP 2.1.21-2.0.1, version catalog in `gradle/libs.versions.toml` |
 | UI | Jetpack Compose (BOM 2024.12.01), Material 3, Activity Compose 1.9.3, Lifecycle 2.8.7. Skeleton drawn on a plain Android `View`/Canvas, not Compose. |
-| Theme | Phosphor green `#39FF14` on near-black `#060A06`, monospace throughout; amber `#FFB000` for attention (never red, for colour-blind users) |
+| Theme | P3-48's dark fitness look: canvas `#0E0F12`, cards `#1A1C21`, one orange accent `#FF6B35`, sans-serif with tabular figures; amber `#FFB000` for attention (never red, for colour-blind users). It replaced P3-12's phosphor-green monospace theme. The skeleton overlay's own four-state palette is unchanged |
 
 ### Libraries
 
@@ -494,7 +495,7 @@ current, itemised version.
 | MediaPipe Tasks Vision | 0.10.21 | On-device pose estimation. Google's telemetry backend is excluded so it adds no network permission. | P3-13 |
 | BlazePose GHUM 3D Lite model | card 2021-04-16 | `pose_landmarker_lite.task`, shipped unmodified. Apache 2.0. | P3-13, P3-17 |
 | Room (+ KSP compiler) | 2.7.1 | Local session storage — the source of truth | P3-12 |
-| Health Connect client | 1.0.0-alpha11 | Read-only steps, active calories, heart rate | P3-11 |
+| Health Connect client | 1.1.0-beta01 | Read-only steps, active calories, heart rate. Upgraded from alpha11 in P3-19 §7; the stable 1.1.0 needs AGP 8.9.1 and compileSdk 36, an owner decision | P3-11, P3-19 |
 | Firebase BoM → Auth, Firestore | 33.7.0 | Account sign-in and session sync (the one deliberate exception to "no cloud") | P3-14 |
 | WorkManager | 2.10.0 | Background, retrying sync uploads | P3-14 |
 | JUnit | 4.13.2 | Android unit tests; `kotlin.test` for the shared core | — |
