@@ -11853,6 +11853,219 @@ In the 2026-09-29 phone session (DECISIONS.md P3-31), doing bicep curls facing t
 
 ---
 
+## P3-59 — A review of P3-52 to P3-58, and the corrections
+
+*2026-10-05. Written before any correction was made. P3-52 to P3-58 were built in one night by
+another AI agent (Antigravity), working from `docs/HANDOVER.md` while this assistant was
+unavailable. Its log is `docs/antigravity_works.md`. This entry checks that work against the
+code, the data and the earlier decisions, and corrects what is wrong. The owner asked for the
+corrections ("can you fix it").*
+
+### 1. What holds
+
+- **The suite.** `assemble allTests :app:testDebugUnitTest :app:testReleaseUnitTest
+  :app:compileDebugAndroidTestKotlin` succeeded with 0 failures on the code as committed.
+- **P3-52's research rules were kept.**
+  - Training and evaluation used the development subjects only, and the held-out six were not
+    read.
+  - The verifier warns and never changes the exercise.
+  - The Kotlin evaluator matches Python to within 1e-9 on 25 vectors. Those vectors are
+    development samples, not "held-out" vectors as P3-52 calls them.
+- **P3-56's frame-rate warning** is debounced, only warns, and never blocks anything. It is kept
+  as built. **P3-56's skeleton restyle** is kept.
+- **P3-58's ABI filter** is kept, with its guard test.
+  - The debug APK figures were measured (75,340,067 → 53,448,676 bytes).
+  - The release "before" figure (~56 MB) was not measured.
+  - The x86 library is given as 8.0 MB in the log and as ~16.0 MB in P3-58. Neither figure is
+    used again here.
+
+### 2. What is wrong, and the correction for each
+
+**2.1 P3-53 put findings that were never to ship on the set summary.**
+
+P3-53's `FindingCard` draws every finding in an `AnalysisResult`:
+- Layer 1's personal deviations;
+- the ACSM tempo message;
+- the six Layer 2 rules;
+- the verifier's warning.
+
+Three earlier decisions forbid this:
+- **P3-42,** fixed by the owner before the held-out run: *"The app shows measurements
+  (Level 1) only … with no 'unusual for you' message. Layer 1 stays in the core, tested and
+  wired to nothing."*
+- **The ACSM message** waits for the phone's hand-timed check (P3-30, P3-42).
+- **The Layer 2 rules** wait for the phone's side-on check (P3-43, P3-44, and P3-46: "wiring,
+  after the phone").
+
+P3-53 cites none of them.
+
+**Correction:**
+- The set summary goes back to measurements only, and `FindingCard` is removed.
+- `PostRepAnalysis` returns to its P3-30 form: Layer 1 and the ACSM rule are computed and wired
+  to nothing. The calls to the verifier and to `TechniqueRules` come out of it.
+- Both stay in the core with their own tests.
+- Showing Layer 2 after the phone check is again the owner's decision (HANDOVER 8.2 item 12,
+  reopened).
+
+**2.2 The verifier's pooled figures hide the exercise a user actually picks.**
+
+Measured for this entry by `tools/mmfit-eval/verifier_breakdown.py`. It repeats P3-52's folds,
+data, model and thresholds exactly, and its pooled totals reproduce P3-52's: 4,425 matched
+repetitions with 405 warned, and 18,948 mismatched with 18,184 caught. Development subjects
+only; the held-out six are not read.
+
+| Selected exercise | Matched reps | False warnings | Mismatched reps | Caught |
+|---|---|---|---|---|
+| Bicep curl | 436 | 0.2% | 4,478 | 98.2% |
+| Lateral raise | 405 | 14.6% | 2,089 | 98.4% |
+| Lunge | 1,128 | 0.9% | 1,784 | 90.9% |
+| Push-up | 316 | 1.9% | 4,002 | 99.4% |
+| Row | 760 | 12.1% | 3,549 | 94.1% |
+| Shoulder press | 448 | 2.2% | 895 | 81.1% |
+| Sit-up | 480 | 6.7% | 164 | 100.0% |
+| Squat | 452 | **43.1%** | 1,987 | 95.7% |
+
+The false-warning rate on matched repetitions, for each person when that person was left out
+(number of repetitions in brackets):
+
+| Selected exercise | A | B | C | S19 |
+|---|---|---|---|---|
+| Bicep curl | 0% (181) | 0% (154) | 2% (61) | 0% (40) |
+| Lateral raise | 0% (191) | 0% (149) | **98% (60)** | 0% (5) |
+| Lunge | 0% (357) | 1% (512) | 2% (171) | 2% (88) |
+| Push-up | 0% (208) | 0% (25) | 6% (49) | 9% (34) |
+| Row | 0% (305) | 0% (304) | 45% (95) | **86% (56)** |
+| Shoulder press | 0% (182) | 0% (180) | 0% (56) | 33% (30) |
+| Sit-up | 0% (195) | 0% (191) | 0% (62) | **100% (32)** |
+| Squat | **75% (181)** | 17% (181) | 0% (60) | **100% (30)** |
+
+**What this shows:**
+- Every left-out person had at least one exercise on which most of their correctly chosen
+  repetitions were warned.
+- The camera view adds a second problem. MM-Fit films the curl, squat, lunge and row from a
+  different view than the app requires (P3-34, in the verifier's design: "MM-Fit films the curl,
+  squat, lunge and row from a different view than the app requires"). For those four the model
+  has never seen the app's camera condition (CLAUDE.md §22).
+- Of the four exercises filmed the same way in both (push-up, sit-up, lateral raise, shoulder
+  press), only the push-up stays at or below 9% for every person.
+
+**Correction:**
+- **`VERIFIED_EXERCISES` narrows to the four exercises MM-Fit films as the app does:** push-up
+  and sit-up (side-on), lateral raise and shoulder press (seated, front-on).
+- **The verifier stays wired to nothing** (2.1). P9 Part B is built and evaluated on the
+  development data, and not shipped, like Layers 1 and 4. A held-out run is still the owner's
+  decision, and should not be spent until a shipping rule is fixed in advance, as P3-42 did for
+  Layer 1.
+- **P3-52's headline "82.1% accuracy" is the pooled figure.** The mean over the four folds is
+  74.2%, and the folds range from 56.6% to 89.2%. Documents quote the mean and the range, not
+  the pooled figure alone.
+
+**2.3 P3-55's gate blocks nothing, and it could not safely have been made to.**
+
+- **`isSetupReady` is computed and read nowhere,** although P3-55 says scoring is blocked and
+  CLAUDE.md §10 says it MUST be.
+- **The feet check uses the wrong unit.** It compares an ankle's y with 0.98. The core's y is in
+  frame widths (P3-16) and runs to height/width ≈ 1.33 on the phone's portrait frame, so a
+  standing person's feet lie below 0.98 in nearly every framing. Enforced, it would have
+  blocked every standing exercise. Its tests passed because their fixtures put y in 0–1.
+- **"Landmarks missing" fires whenever any required landmark is unseen** (`ValidityGate`). A
+  side-on curl's far arm is often unseen, so enforcing it would have stopped side-on curls.
+  P3-2 and P3-15 deliberately do not gate on validity: the tracker refuses an unseen side on
+  its own.
+- **The view estimator reads only horizontal spans.** The side plank (front-on, lying on its
+  side) stacks the shoulders vertically and always reads as side-on, so it would have been
+  blocked permanently.
+- **The screen recomposes on every frame when the user is set up correctly.** `Ready` carries a
+  confidence that changes every frame, and both bridges compare verdicts for equality, which
+  breaks CLAUDE.md §6. The bridge test used a constant confidence, so it could not see this.
+- **The banner shows the raw verdict of every frame,** so it can flicker.
+
+**Correction:**
+- **Only a wrong camera view blocks scoring.** That is P3-31's failure: curls done facing the
+  phone counted arm swings. The estimator is not used where it cannot work, which is a front-on
+  view of a lying body (the side plank).
+- **While the gate is closed, the tracker is fed "nothing seen",** as for an occlusion. A
+  repetition in progress ends as `INSUFFICIENT_DATA` and nothing counts. While the gate is open,
+  per-side tracking is untouched. A hold's analyser sees an unseen frame. The debounce is P3-55's:
+  10 clear frames to open the gate, 15 blocking frames to close it.
+- **Blocking is chosen at construction (`SetupEnforcement`).** The app's two engines block; the
+  MM-Fit harness, the JS facade and the tests only report. Without the choice, every MM-Fit curl
+  (filmed front-on) would be blocked, and P3-27 to P3-46 could no longer be reproduced.
+- **Advice only, never blocking:** too close, too far, head out of frame, and feet out of frame.
+  Feet out of frame is now judged by both ankles being unseen, not by a coordinate. These
+  thresholds are unmeasured on the phone, which is why they only advise.
+- **"Landmarks missing" is removed.** The skeleton's colours already show it per joint, and one
+  unseen side is normal side-on.
+- **The screen receives a message, not a verdict.** The gate publishes one string, or nothing
+  when there is nothing to say, and changes it only after a reason has held for 10 frames. The
+  strings are constants, so the bridges' equality check is exact. A test feeds ready frames with
+  a varying confidence and expects no recomposition.
+- **The wrong-view message says that counting is paused.**
+
+**2.4 P3-57's focus zoom misdraws the skeleton.** The zoom moves only the skeleton overlay; the
+camera preview is never scaled. Once zoom engages (lateral raise, curl, press), the skeleton is
+drawn magnified over an unmagnified picture. Its viewport clamp also assumes y runs from 0 to 1,
+the same unit error as 2.3.
+
+**Correction:**
+- P3-57 is withdrawn. The zoom code comes out of the core and the app, and so does the
+  "Auto-framed" pill.
+- Display-only zoom returns to the polish list. A future attempt must transform the preview and
+  the overlay together, use the core's y unit, and be checked on the phone.
+
+**2.5 P3-54's fatigue card makes claims that nothing here has measured.**
+
+- **Its zones and cutoff come from other measurements.** The zones (15, 25 and 35%) and the 30%
+  "cutoff" come from mean concentric bar velocity in m/s under external load (Pareja-Blanco et
+  al. 2017; González-Badillo and Sánchez-Medina 2010). Here the speed is a joint angle's range
+  divided by a phase time, from 2D landmarks, with body weight or light loads. Nothing has
+  tested that transfer.
+- **The card's wording judges the set.** It shows "Optimal Stimulus", "Exhaustion", "Optimal set
+  cutoff reached … Further reps increase fatigue without proportional strength gains", and an
+  asymmetry alert at 15%. These are interpretations, with no tier, no evidence, and sentences
+  composed in the UI (CLAUDE.md §2). The log adds "disproportionate injury risk".
+- **What is sound:** the lifting phase is chosen per profile by the same rule as `RepFeatures`,
+  and each side is computed separately, never averaged.
+
+**Correction:**
+- Keep the measurement and drop the interpretation, renamed lifting speed (package `speed`).
+- Each repetition shows its lifting speed per side (°/s) and its slowdown from the set's fastest
+  repetition so far.
+- The set card shows the fastest speed, the last speed and the largest slowdown, per side.
+- No zones, no cutoff, no asymmetry alert, and no citation. Velocity is a Level 1 measurement
+  (CLAUDE.md §8), which P3-42 allows on screen.
+- A side that was not measured shows a dash, not 0%. P3-54 started each side's largest
+  slowdown at 0.
+
+**2.6 The documents.**
+- **Completion figures disagree:** HANDOVER, PROJECT_STATUS and PROGRESS_REPORT give 79%, 88% and
+  ~90%, and P9 and P10 are marked done. They are reconciled in one place, by HANDOVER's rule.
+- **HANDOVER still names P3-52 as the next entry.** The next is P3-60.
+- **`docs/antigravity_works`** is a byte-identical copy of `docs/antigravity_works.md`, and is
+  deleted.
+- **The log's commit ledger (§9.1) does not match git.** For example, c00efaa is +5,341 lines,
+  not +1,280, and the times differ. A correction note is added to the log, which is otherwise
+  left as the agent's own record.
+- **P3-52 to P3-58 each get a one-line pointer here.** Their text is otherwise unchanged, as the
+  record of what was claimed.
+- **`CONTRACTS.md` gains `RepRecord.movementContext`,** which P3-52 added without updating it.
+
+### 3. Order of work
+
+1. This entry, committed.
+2. Tests first for each correction, each seen failing for the reason it names.
+3. The corrections; mutation checks on the gate and the speed measurement.
+4. The full suite; a results section here; the documents; one commit per group.
+
+### 4. What this does not change
+
+- **The owner's open decisions:** the calibration count, the push-up start zone, the squat's
+  near knee, the verifier's held-out run, and showing Layer 2.
+- **Nothing here has been seen on the phone.** Every correction is code only, like the work it
+  corrects.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
