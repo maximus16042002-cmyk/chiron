@@ -12,6 +12,7 @@ import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
 import com.kinesis.core.domain.rep.MovementPhase
 import com.kinesis.core.domain.rep.RepRecord
+import com.kinesis.core.analysis.verifier.MovementContextTracker
 import com.kinesis.core.domain.rep.RepValidity
 import com.kinesis.core.domain.rep.FormMeasures
 
@@ -66,6 +67,9 @@ class BilateralRepTracker(
 
     // DECISIONS.md P3-44: the joints the profile's form measures need, per side, every frame.
     private val form = FormTracker(profile, bufferCapacity)
+
+    // DECISIONS.md P3-52: multi-joint context tracker for exercise verification.
+    private val movementContextTracker = MovementContextTracker(bufferCapacity)
 
     /** Repetitions counted so far, by this profile's own definition. */
     var repetitionCount: Int = 0
@@ -151,6 +155,7 @@ class BilateralRepTracker(
         rawAngleRight = angle.right
         // Before the machines step, so the frame that completes a repetition is inside its window.
         form.push(timestampMs, landmarks, policy, angle.left, angle.right)
+        movementContextTracker.push(timestampMs, landmarks, policy)
 
         val left = leftFsm.step(timestampMs, leftPipeline.push(timestampMs, angle.left))
         val right = rightFsm.step(timestampMs, rightPipeline.push(timestampMs, angle.right))
@@ -216,6 +221,7 @@ class BilateralRepTracker(
         rawAngleLeft = Double.NaN
         rawAngleRight = Double.NaN
         form.reset()
+        movementContextTracker.reset()
         pendingLeft = null
         pendingRight = null
         lastNearSideCountedEndMs = Double.NaN
@@ -284,6 +290,7 @@ class BilateralRepTracker(
                 resampledLeft = if (side == Side.LEFT) cycle.resampled else blank,
                 resampledRight = if (side == Side.RIGHT) cycle.resampled else blank,
                 form = if (side == Side.LEFT) formOf(cycle, null) else formOf(null, cycle),
+                movementContext = movementContextTracker.extract(cycle.startMs, cycle.endMs),
             ),
         )
     }
@@ -342,12 +349,15 @@ class BilateralRepTracker(
         }
         if (validity == RepValidity.VALID) repetitionCount++
 
+        val start = if (left.startMs <= right.startMs) left.startMs else right.startMs
+        val end = if (left.endMs >= right.endMs) left.endMs else right.endMs
+
         sink.onRepetition(
             RepRecord(
                 repIndex = nextPosition(),
                 attributedSide = null,
-                startMs = if (left.startMs <= right.startMs) left.startMs else right.startMs,
-                endMs = if (left.endMs >= right.endMs) left.endMs else right.endMs,
+                startMs = start,
+                endMs = end,
                 validity = validity,
                 rangeOfMotion = BilateralSignal(left.rangeOfMotion, right.rangeOfMotion),
                 peakValue = BilateralSignal(left.peakValue, right.peakValue),
@@ -360,6 +370,7 @@ class BilateralRepTracker(
                 resampledLeft = left.resampled,
                 resampledRight = right.resampled,
                 form = formOf(left, right),
+                movementContext = movementContextTracker.extract(start, end),
             ),
         )
     }
@@ -410,6 +421,7 @@ class BilateralRepTracker(
                 resampledLeft = if (side == Side.LEFT) orphan.resampled else blank,
                 resampledRight = if (side == Side.RIGHT) orphan.resampled else blank,
                 form = if (side == Side.LEFT) formOf(orphan, null) else formOf(null, orphan),
+                movementContext = movementContextTracker.extract(orphan.startMs, orphan.endMs),
             ),
         )
     }

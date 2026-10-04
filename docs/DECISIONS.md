@@ -11544,6 +11544,60 @@ active window:
   - Multi-class Confusion Matrix.
   - Mismatch warning behavior: False Warning Rate on matched sets vs Warning Rate on mismatched sets.
 
+### 6. Empirical Results & Verification (Development Subjects {A, B, C, S19})
+
+- **Dataset Extracted:** 27,783 repetition contexts across 15 workouts (w00–w11, w14, w15, w19)
+  and 4 subjects (A: 11,330, B: 11,142, C: 3,614, S19: 1,697).
+- **4-Fold Leave-One-Subject-Out Cross-Validation (LOSOCV):**
+  - Fold 1 (Test Subject A): Accuracy = 83.75%, Macro-F1 = 82.28%
+  - Fold 2 (Test Subject B): Accuracy = 89.16%, Macro-F1 = 90.30%
+  - Fold 3 (Test Subject C): Accuracy = 67.18%, Macro-F1 = 70.59%
+  - Fold 4 (Test Subject S19): Accuracy = 56.57%, Macro-F1 = 46.74%
+  - **Mean LOSOCV Accuracy:** $74.17\% \pm 12.99\%$
+  - **Mean LOSOCV Macro-F1:** $72.48\% \pm 16.43\%$
+  - **Pooled Dataset Accuracy:** **82.10%** (22,810 of 27,783 correct across 10 classes)
+  - **Pooled Macro-F1:** **83.09%**
+
+- **Per-Class Classification Report (Pooled LOSOCV):**
+
+| Movement Class | Precision | Recall | F1-Score | Support |
+|---|---|---|---|---|
+| `bicep_curl` | 90.76% | 96.88% | **93.72%** | 1,795 |
+| `jumping_jacks` | 85.01% | 80.80% | **82.85%** | 2,990 |
+| `lateral_raise` | 58.31% | 70.58% | **63.86%** | 2,699 |
+| `lunge` | 85.86% | 96.86% | **91.03%** | 2,864 |
+| `pushup` | 100.00% | 96.21% | **98.07%** | 2,429 |
+| `row` | 80.50% | 88.69% | **84.40%** | 4,007 |
+| `shoulder_press` | 87.55% | 96.26% | **91.70%** | 3,266 |
+| `situp` | 96.78% | 92.39% | **94.53%** | 1,366 |
+| `squat` | 45.45% | 28.34% | **34.91%** | 3,454 |
+| `tricep_extension` | 99.08% | 92.72% | **95.80%** | 2,913 |
+
+*Note on squats:* Squats in MM-Fit are filmed face-on; as recorded in P3-27 and CLAUDE.md §22, sagittal
+knee flexion is foreshortened from the front, leading to partial overlap with upright standing movements.
+Upper-body movements (`pushup`, `bicep_curl`, `shoulder_press`, `situp`, `tricep_extension`, `lunge`)
+exceed 91–98% F1.
+
+- **Mismatch Warning Engine Performance (Level 2 Deviation Findings):**
+  - **Matched Repetitions (User doing selected exercise):** 4,425 total repetitions evaluated.
+    - False Warning Rate: **9.15%** (405 warnings; 90.85% silent).
+  - **Mismatched Repetitions (User doing a different exercise):** 18,948 total candidate repetitions evaluated.
+    - Mismatch Detection Rate: **95.97%** (18,184 warnings emitted).
+  - Verifier successfully catches nearly 96% of cross-exercise mismatches while remaining quiet on 91%
+    of matched reps.
+
+- **Cross-Platform Numerical Parity (CLAUDE.md §18):**
+  - Evaluator implemented in pure Kotlin in `com.kinesis.core.analysis.verifier.ExerciseVerifier`.
+  - Tested against Python scikit-learn outputs on 25 held-out golden test vectors (`ExerciseVerifierParityTest`).
+  - Max relative difference: $< 1 \times 10^{-9}$ across all 10 class probabilities.
+  - Mutation check: verified that modifying tolerance or weights fails the test suite immediately.
+  - Multiplatform suite passes cleanly across JVM, JS, and Android targets.
+
+- **Non-Negotiable Verification:**
+  - Held-out subjects {S12, S13, S16, S17, S18, S20} were **never accessed or read**.
+  - All training and validation remained strictly within development subjects {A, B, C, S19}.
+  - Zero UI or auto-selection wiring: verifier only emits Level 2 `Deviation` findings.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

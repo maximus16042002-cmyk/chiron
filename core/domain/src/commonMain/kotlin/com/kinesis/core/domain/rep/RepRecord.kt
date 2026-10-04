@@ -71,6 +71,12 @@ class RepRecord(
      * reads as not measured, never as zero.
      */
     val form: FormMeasures = FormMeasures.NONE,
+
+    /**
+     * 145-dimensional multi-signal context for exercise verification - DECISIONS.md P3-34, P3-52.
+     * Evaluated post-rep; `null` when not captured.
+     */
+    val movementContext: MovementContext? = null,
 ) {
 
     val durationMs: Double get() = endMs - startMs

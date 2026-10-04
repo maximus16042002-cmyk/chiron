@@ -123,3 +123,20 @@ tasks.register<JavaExec>("traceSet") {
     )
     dependsOn(main.compileTaskProvider)
 }
+
+// P9 Part B: MovementContext feature extraction for the Exercise Verifier
+// gradlew :mmfit-eval:extractVerifierDataset [-Plandmarks=...] [-Plabels=...] [-Pout=...]
+tasks.register<JavaExec>("extractVerifierDataset") {
+    group = "evaluation"
+    description = "Extracts 145-feature MovementContext dataset for MM-Fit development workouts."
+    val main = kotlin.jvm().compilations.getByName("main")
+    classpath = files(main.output.allOutputs, main.runtimeDependencyFiles)
+    mainClass.set("com.kinesis.tools.mmfit.ExtractVerifierDatasetKt")
+    args = listOf(
+        project.findProperty("landmarks")?.toString() ?: "../../data/mm-fit-mediapipe",
+        project.findProperty("labels")?.toString() ?: "../../data/mm-fit",
+        project.findProperty("out")?.toString() ?: "../../data/verifier",
+    )
+    dependsOn(main.compileTaskProvider)
+}
+
