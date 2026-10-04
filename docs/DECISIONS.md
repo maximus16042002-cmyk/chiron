@@ -11249,6 +11249,46 @@ and time-fit tests, the full suite, and commits per step:
 2. the generator's pages;
 3. guided mode, favourites, repeat.
 
+### Result — step 1, the generator in the core
+
+*2026-10-04.* `core/analysis/.../workout/WorkoutGenerator.kt`: `WorkoutCatalogue`,
+`WorkoutGenerator`, `GuidedWorkout`, as designed above.
+
+**`WorkoutGeneratorTest`, 16 tests on JVM and JS.** Most of them sweep every combination of 10, 20
+and 30 minutes, the four focuses, the three levels, the two equipment settings and 12 seeds: 864
+plans.
+- The catalogue is exactly the 17 entries, with the equipment and room needs listed above.
+- **Reproducible:**
+  - the same request gives the same plan;
+  - 30 seeds give more than five different plans;
+  - **one plan is pinned exactly and passes on both the JVM and JS** (seed 2026, 30 minutes, full
+    body, intermediate, dumbbells: glute bridge, plank, row, reverse lunge, wall sit, then lateral
+    raise). A favourite saved as a seed rebuilds the same workout everywhere.
+- Every plan fits its time, and its estimate is its own.
+- With no equipment there is no dumbbell exercise; a focus keeps to its area.
+- No exercise appears twice, and no variant beside its parent. Avoided exercises are left out.
+- **Grouped by view:** the phone moves exactly (views − 1) times.
+- Targets follow the level; holds get seconds and no repetitions; the curl, knee raise and hip
+  abduction are per side.
+- No plan is empty. Upper body with no equipment is honestly just push-ups. Each item says what the
+  room needs.
+- Guided steps are every set of every exercise, in order.
+
+**Mutations: 4 of 4 caught** (`local/p3-50-generator-mutations.log`):
+
+| Planted | Tests that failed |
+|---|---|
+| an unseeded shuffle | 2 |
+| the time limit ignored | 2 |
+| no grouping by view | 2 |
+| a variant beside its parent | 1 |
+
+**Suite:** 2,791 executions, 0 failed.
+
+The `workout` package is not in `SharedCoreSourceGuardTest`'s classified packages. It runs before a
+session, on no frames and no records, so it is on neither path. The guard's bilateral and
+camera-facing scans still read it, as they read every production source.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics
