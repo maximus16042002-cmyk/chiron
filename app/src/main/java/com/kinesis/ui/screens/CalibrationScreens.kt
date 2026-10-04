@@ -1,6 +1,5 @@
 package com.kinesis.ui.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,21 +12,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kinesis.core.analysis.calibration.CalibrationGuide
 import com.kinesis.core.analysis.calibration.CalibrationOutcome
-import com.kinesis.core.analysis.fatigue.FatigueEngine
+import com.kinesis.core.analysis.speed.LiftingSpeed
+import com.kinesis.core.analysis.speed.RepetitionSpeed
+import com.kinesis.core.analysis.speed.SetSpeedSummary
 import com.kinesis.core.analysis.profile.ExerciseVariant
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.profile.RepetitionExercise
@@ -42,9 +40,6 @@ import com.kinesis.core.domain.calibration.HoldBaseline
 import com.kinesis.core.domain.calibration.PhaseTimingBaseline
 import com.kinesis.core.domain.calibration.RepetitionBaseline
 import com.kinesis.core.domain.calibration.RobustStatistic
-import com.kinesis.core.domain.fatigue.FatigueZone
-import com.kinesis.core.domain.fatigue.RepetitionFatigue
-import com.kinesis.core.domain.fatigue.SetFatigueSummary
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.core.domain.rep.HoldRecord
 import com.kinesis.core.domain.rep.HoldValidity
@@ -58,13 +53,9 @@ import com.kinesis.ui.theme.Attention
 import com.kinesis.ui.theme.Ink
 import com.kinesis.ui.theme.InkFaint
 import com.kinesis.ui.theme.InkSecondary
-import com.kinesis.ui.theme.Raised
-import com.kinesis.ui.theme.SeriesLeft
-import com.kinesis.ui.theme.SeriesRight
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.math.roundToInt
 
 /*
  * Calibration and the set summary - DECISIONS.md P3-22, in P3-48's look.
@@ -342,10 +333,8 @@ fun SetSummaryScreen(
     val set = session.sets.single()
     val reps = (set as? RepetitionSetRecord)?.reps.orEmpty().associateBy { it.repIndex }
     val holds = (set as? HoldSetRecord)?.holds.orEmpty()
-    val fatigueSummary = remember(profile, set) {
-        if (set is RepetitionSetRecord && profile is RepetitionExercise) {
-            FatigueEngine.analyzeSet(profile, set.reps)
-        } else null
+    val speeds = remember(profile, set) {
+        if (set is RepetitionSetRecord && profile is RepetitionExercise) LiftingSpeed.summarise(profile, set.reps) else null
     }
     LazyColumn(
         modifier = modifier.fillMaxSize().background(PageBackground).padding(horizontal = 16.dp),
@@ -389,16 +378,14 @@ fun SetSummaryScreen(
                 }
             }
         }
-        if (fatigueSummary != null && fatigueSummary.repetitions.isNotEmpty()) {
-            item {
-                FatigueCard(fatigueSummary)
-            }
+        if (speeds != null && speeds.repetitions.any { it.speed.left.isFinite() || it.speed.right.isFinite() }) {
+            item { SpeedCard(speeds) }
         }
         items(results) { result ->
             when (result) {
                 is RepetitionAnalysisResult -> {
-                    val repFatigue = fatigueSummary?.repetitions?.firstOrNull { it.repIndex == result.repIndex }
-                    RepetitionRow(result, reps[result.repIndex], repFatigue)
+                    val repSpeed = speeds?.repetitions?.firstOrNull { it.repIndex == result.repIndex }
+                    RepetitionRow(result, reps[result.repIndex], repSpeed)
                 }
                 is HoldAnalysisResult -> HoldRow(result, holds.firstOrNull())
             }
@@ -413,7 +400,7 @@ fun SetSummaryScreen(
 private fun RepetitionRow(
     result: RepetitionAnalysisResult,
     rep: RepRecord?,
-    fatigue: RepetitionFatigue? = null,
+    speed: RepetitionSpeed? = null,
 ) {
     KCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -448,12 +435,12 @@ private fun RepetitionRow(
             Beside("Down$whose", comparison.descentMs, ::seconds)
             Beside("Up$whose", comparison.ascentMs, ::seconds)
         }
-        if (fatigue != null && (fatigue.concentricVelocity.left.isFinite() || fatigue.concentricVelocity.right.isFinite())) {
+        if (speed != null && (speed.speed.left.isFinite() || speed.speed.right.isFinite())) {
             Spacer(Modifier.height(4.dp))
             Sides(
                 "Lifting speed",
-                formatVelocityWithLoss(fatigue.concentricVelocity.left, fatigue.velocityLossPercent.left),
-                formatVelocityWithLoss(fatigue.concentricVelocity.right, fatigue.velocityLossPercent.right),
+                formatVelocityWithLoss(speed.speed.left, speed.slowdownPercent.left),
+                formatVelocityWithLoss(speed.speed.right, speed.slowdownPercent.right),
             )
         }
     }
@@ -486,97 +473,25 @@ private fun HoldRow(result: HoldAnalysisResult, hold: HoldRecord?) {
     }
 }
 
+/**
+ * Lifting speed per side - a measurement, with no zone, cutoff or advice (DECISIONS.md P3-59,
+ * which replaced P3-54's fatigue card).
+ */
 @Composable
-private fun FatigueCard(summary: SetFatigueSummary) {
+private fun SpeedCard(summary: SetSpeedSummary) {
     KCard {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text("Velocity & Fatigue", style = MaterialTheme.typography.titleMedium, color = Ink)
-            Surface(
-                color = when (summary.endingZone) {
-                    FatigueZone.FRESH -> SeriesRight.copy(alpha = 0.2f)
-                    FatigueZone.OPTIMAL_STIMULUS -> SeriesLeft.copy(alpha = 0.2f)
-                    FatigueZone.HIGH_FATIGUE -> Attention.copy(alpha = 0.2f)
-                    FatigueZone.EXHAUSTION -> Attention.copy(alpha = 0.35f)
-                },
-                shape = RoundedCornerShape(6.dp),
-            ) {
-                Text(
-                    summary.endingZone.label,
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = when (summary.endingZone) {
-                        FatigueZone.FRESH -> SeriesRight
-                        FatigueZone.OPTIMAL_STIMULUS -> SeriesLeft
-                        FatigueZone.HIGH_FATIGUE -> Attention
-                        FatigueZone.EXHAUSTION -> Attention
-                    },
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                )
-            }
-        }
+        Text("Lifting speed", style = MaterialTheme.typography.titleMedium, color = Ink)
         Spacer(Modifier.height(6.dp))
         SidesHeader()
-        Sides("Peak speed", formatVelocity(summary.setPeakVelocity.left), formatVelocity(summary.setPeakVelocity.right))
-        Sides("Final speed", formatVelocity(summary.finalVelocity.left), formatVelocity(summary.finalVelocity.right))
-        Sides("Max velocity loss", formatLoss(summary.maxVelocityLossPercent.left), formatLoss(summary.maxVelocityLossPercent.right))
-
-        val cutoffRep = summary.recommendedCutoffRepIndex
-        if (cutoffRep != null) {
-            Spacer(Modifier.height(8.dp))
-            Surface(
-                color = Raised,
-                shape = RoundedCornerShape(8.dp),
-                border = BorderStroke(1.dp, Attention.copy(alpha = 0.6f)),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    modifier = Modifier.padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text("⚡", style = MaterialTheme.typography.bodySmall)
-                    Text(
-                        "Optimal set cutoff reached at Rep ${cutoffRep + 1} (>30% velocity loss). Further reps increase fatigue without proportional strength gains.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Attention,
-                    )
-                }
-            }
-        }
-
-        if (summary.hasFatigueAsymmetry) {
-            Spacer(Modifier.height(6.dp))
-            Surface(
-                color = Raised,
-                shape = RoundedCornerShape(8.dp),
-                border = BorderStroke(1.dp, Attention.copy(alpha = 0.6f)),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Row(
-                    modifier = Modifier.padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text("⚠️", style = MaterialTheme.typography.bodySmall)
-                    Text(
-                        "Bilateral fatigue asymmetry detected (≥15% difference in velocity loss between sides). Monitor limb fatigue balance.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Attention,
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(6.dp))
-        Text(
-            "Velocity-Based Training (VBT) tracking concentric angular speed loss relative to set peak. Grounded in Pareja-Blanco et al. (2017).",
-            style = MaterialTheme.typography.labelSmall,
-            color = InkFaint,
+        Sides("Fastest", formatVelocity(summary.fastest.left), formatVelocity(summary.fastest.right))
+        Sides("Last", formatVelocity(summary.last.left), formatVelocity(summary.last.right))
+        Sides(
+            "Largest slowdown",
+            formatLoss(summary.largestSlowdownPercent.left),
+            formatLoss(summary.largestSlowdownPercent.right),
         )
+        Spacer(Modifier.height(6.dp))
+        Note("Range of motion over the time spent lifting, per side. Slowdown is from the set's fastest repetition so far.")
     }
 }
 

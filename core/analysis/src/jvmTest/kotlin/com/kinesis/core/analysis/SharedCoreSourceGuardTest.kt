@@ -388,6 +388,15 @@ class SharedCoreSourceGuardTest {
             // P3-44: the form summary's per-frame half pushes into ring buffers every frame.
             // Its post-rep reductions live in the same class and are held to the same scan.
             "FormTracker.kt",
+            // P3-59: the setup gate and the frame-rate monitor run on every frame (P3-55, P3-56),
+            // and so does the verifier's movement context, whose post-rep resampling lives in the
+            // same class, as FormTracker's does. None was scanned before P3-59 named them.
+            "SetupGate.kt",
+            "SetupAssistant.kt",
+            "SetupVerdict.kt",
+            "CameraViewEstimator.kt",
+            "FrameRateMonitor.kt",
+            "MovementContextTracker.kt",
         )
 
         /**
@@ -435,6 +444,13 @@ class SharedCoreSourceGuardTest {
             "DeviationRules.kt",
             "AcsmTempoRule.kt",
             "PersonalStartZone.kt",
+            // P3-59: lifting speed reads a finished set's records, once per set summary.
+            "LiftingSpeed.kt",
+            // P3-52: the verifier evaluates a finished repetition's context; its model is constants.
+            // Built and wired to nothing (P3-59), and held to the scan all the same.
+            "ExerciseVerifier.kt",
+            "ExerciseVerifierModel.kt",
+            "PretrainedExerciseVerifierModel.kt",
         )
 
         /**
@@ -452,6 +468,11 @@ class SharedCoreSourceGuardTest {
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/calibration",
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/export",
             "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/deviation",
+            // P3-59: the packages P3-52 to P3-56 added, none of which the scan covered.
+            "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/setup",
+            "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/fps",
+            "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/verifier",
+            "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/speed",
         )
 
         /**
