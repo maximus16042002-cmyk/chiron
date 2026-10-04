@@ -65,6 +65,11 @@ fun ProfileScreen(
     exporting: Boolean,
     onOpenLicences: () -> Unit,
     onShowIntroduction: () -> Unit,
+    /** Training reminders - P3-49. */
+    reminder: ReminderState,
+    onToggleReminders: (Boolean) -> Unit,
+    onReminderMinute: (Int) -> Unit,
+    onReminderWeekdays: (Set<Int>) -> Unit,
     /** The weekly goal in active days, 1 to 7 - P3-49. */
     goalDays: Int,
     onGoalDays: (Int) -> Unit,
@@ -107,6 +112,9 @@ fun ProfileScreen(
                 }
             }
         }
+
+        item { SectionLabel("Reminders") }
+        item { ReminderCard(reminder, onToggleReminders, onReminderMinute, onReminderWeekdays) }
 
         item { SectionLabel("Calibrations") }
         item { BaselinesPanel(baselines) }

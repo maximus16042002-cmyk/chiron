@@ -11058,6 +11058,58 @@ flag and the weekly goal.
 
 **Suite:** 2,675 executions, 0 failed (2,591 plus these 21 on four targets). Not yet on the phone.
 
+### Result — step 3, reminders
+
+*2026-10-04.*
+
+**What a reminder says is the core's** (`history/Reminders.kt`, classified post-rep):
+- **nothing** if work was completed today (abandoned work does not count, as for the streak);
+- **"Time to train."** if no streak is running;
+- **"Train today to keep your N-day streak."** if missing today would end it;
+- **"Your N-day streak continues if you train today. If you don't, a freeze covers today."** if a
+  freeze would cover today.
+
+Which of the last two is asked of `Streaks.summarise` as of tomorrow, so the text cannot promise a
+freeze the rule would not spend. After a frozen yesterday, none is promised (P3-49 rule 4).
+
+`RemindersTest`, 7 tests on JVM and JS, includes a list of guilt words that must not appear.
+
+**When it comes is the platform's** (`reminders/ReminderTiming.kt`):
+- the first chosen weekday, at the chosen wall-clock time, strictly after now;
+- calendar days are added before the hour is set, so 18:00 stays 18:00 across a change of daylight
+  saving.
+
+`ReminderTimingTest`, 5 JUnit tests, includes the night British Summer Time began in 2026.
+
+**How it is delivered** (`reminders/ReminderWork.kt`):
+- **one WorkManager job at the next reminder time.** The job posts the notification if one is due
+  and schedules the next; it appends, so it does not cancel itself;
+- **WorkManager keeps the job across a reboot** with the boot permission its own manifest already
+  merges, so there is no receiver of ours;
+- **a job held back more than 3 hours** (phone off, deep sleep) posts nothing and schedules the
+  next. A 3 a.m. reminder for 6 p.m. would be noise;
+- **the notification** is on its own channel, "Training reminders", with a flame icon drawn for the
+  app as a vector, and it opens the app.
+
+**The permission.**
+- `POST_NOTIFICATIONS` is declared, with a manifest comment, and asked for only when the user turns
+  reminders on, on Android 13+.
+- A refusal leaves reminders off and says once where to allow them; it is not asked again
+  unprompted.
+- No network capability is added, and `OfflineManifestGuardTest` passes.
+
+**Profile:** "Training reminders":
+- a switch;
+- the time, stepped by half an hour, shown in the phone's 12- or 24-hour format;
+- seven day toggles in the locale's week order, filled when chosen;
+- "Made on this phone. Nothing is sent anywhere."
+
+Off until the user turns them on; 18:00 every day once they do. The app schedules one on start if
+they are on and none is waiting.
+
+**Suite:** 2,713 executions, 0 failed. Not yet on the phone. Seeing a real notification arrive is
+one of the phone checks.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

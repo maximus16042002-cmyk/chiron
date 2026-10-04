@@ -25,6 +25,14 @@
         normal operation, and nothing here writes a frame anywhere.
     -->
     <uses-permission android:name="android.permission.CAMERA" />
+
+    <!--
+        Training reminders - DECISIONS.md P3-49. Local notifications the user
+        turns on in Profile; asked for at that moment on Android 13 and later,
+        and a refusal turns reminders off. No network capability comes with it:
+        the notification is made on this phone.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
     <!--

@@ -1,13 +1,17 @@
 package com.kinesis
 
+import android.Manifest
 import android.app.Activity
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -59,6 +63,8 @@ import com.kinesis.health.ActivityContextSource
 import com.kinesis.health.HealthConnectActivityContextSource
 import com.kinesis.health.rememberHealthPermissionLauncher
 import com.kinesis.licenses.ThirdPartyNotices
+import com.kinesis.reminders.ReminderNotification
+import com.kinesis.reminders.ReminderScheduler
 import com.kinesis.settings.AppSettings
 import com.kinesis.storage.KinesisDatabase
 import com.kinesis.storage.RoomBaselineRepository
@@ -91,6 +97,7 @@ import com.kinesis.ui.screens.PageTitle
 import com.kinesis.ui.screens.PrimaryButton
 import com.kinesis.ui.screens.ProfileScreen
 import com.kinesis.ui.screens.ProgressScreen
+import com.kinesis.ui.screens.ReminderState
 import com.kinesis.ui.screens.SessionDetailScreen
 import com.kinesis.ui.screens.SetSummaryScreen
 import com.kinesis.ui.screens.Tab
@@ -120,6 +127,8 @@ class MainActivity : ComponentActivity() {
 
         val database = KinesisDatabase.get(applicationContext)
         val local = RoomSessionRepository(database.sessionDao())
+        // A reminder the user turned on is waiting, whatever happened to the app since - P3-49.
+        ReminderScheduler.ensureScheduled(applicationContext)
         // Baselines stay on this phone: nothing wraps this repository with sync.
         // DECISIONS.md P3-22.
         val calibration = CalibrationCoordinator(RoomBaselineRepository(database.baselineDao()))
@@ -303,6 +312,38 @@ private fun KinesisApp(
 
     val requestPermissions = rememberHealthPermissionLauncher { reloadToken++ }
 
+    // Reminders - DECISIONS.md P3-49. Stored in AppSettings, scheduled on every change. Turning
+    // them on asks for the notification permission on Android 13+; a refusal leaves them off.
+    val reminderContext = LocalContext.current.applicationContext
+    var reminder by remember {
+        val permitted = ReminderNotification.permitted(reminderContext)
+        mutableStateOf(
+            ReminderState(
+                on = settings.remindersOn && permitted,
+                minuteOfDay = settings.reminderMinuteOfDay,
+                weekdays = settings.reminderWeekdays,
+                refused = settings.remindersOn && !permitted,
+            ),
+        )
+    }
+    val applyReminder: (ReminderState) -> Unit = { state ->
+        settings.remindersOn = state.on
+        settings.reminderMinuteOfDay = state.minuteOfDay
+        settings.reminderWeekdays = state.weekdays
+        reminder = state
+        ReminderScheduler.reschedule(reminderContext)
+    }
+    val notificationPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        applyReminder(reminder.copy(on = granted, refused = !granted))
+    }
+    val toggleReminders: (Boolean) -> Unit = { on ->
+        if (on && !ReminderNotification.permitted(reminderContext) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            applyReminder(reminder.copy(on = on, refused = false))
+        }
+    }
+
     // P5's export - DECISIONS.md P3-25. Every local session and this user's
     // baselines, written off the main thread, then handed to the share sheet.
     // One at a time: on the phone an export took about 14 s (P3-25), and a
@@ -420,6 +461,10 @@ private fun KinesisApp(
                         exporting = exporting,
                         onOpenLicences = { showLicences = true },
                         onShowIntroduction = onShowIntroduction,
+                        reminder = reminder,
+                        onToggleReminders = toggleReminders,
+                        onReminderMinute = { applyReminder(reminder.copy(minuteOfDay = it)) },
+                        onReminderWeekdays = { applyReminder(reminder.copy(weekdays = it)) },
                         goalDays = goalDays,
                         onGoalDays = {
                             settings.weeklyGoalDays = it
