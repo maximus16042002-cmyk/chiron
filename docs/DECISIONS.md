@@ -12469,6 +12469,50 @@ larger change with its own entry.
 
 ---
 
+## P3-65 — The app is called Chiron; cloud backup is off
+
+*2026-10-05. The owner's decisions on P3-62's two findings: "change name to chiron", and for the
+backup, "do whatever you want" (this assistant had recommended turning it off).*
+
+### The name
+
+**Everything a person reads says "Chiron":**
+- the launcher label;
+- every screen's text (sign-in, Home, Profile, onboarding, workouts, the live screen's messages,
+  Health Connect's explanation);
+- the reminder notification and its channel;
+- the share sheet;
+- the export's file names (`chiron-<day>.json` and the three CSVs);
+- the core's calibration guidance and the technique rules' sentences.
+
+**What stays "kinesis":** names that are data or plumbing, not words to read.
+- The Kotlin packages and `applicationId` (`com.kinesis`). Changing the id would make Android
+  treat the update as a different app, cutting it off from the phone's data and from Firebase's
+  registered app.
+- Database, preference and work names.
+- The export's format identifier `"kinesis-export"`, which a reader of old files relies on
+  (CONTRACTS §10, golden-tested).
+- Log tags, the repository and the documents. The project keeps its name in the code and the
+  record; "Chiron" is what the user sees.
+
+**Test (written first):** `AppNameGuardTest` scans every production Kotlin and resource file in
+`:app` and the shared core. No string literal a user could read may contain "Kinesis", with the
+exceptions above named in the test.
+
+### Cloud backup
+
+`android:allowBackup="true"` let Android copy the app's private data, including every account's
+database, to the user's Google Drive. That is a path off the phone other than the Firebase sync
+CLAUDE.md §16 permits, and the app never disclosed it. **It is set to `false`.**
+- Sessions still reach the account through sync, so a new phone still has the history.
+- Baselines stay on the phone as P3-22 decided: a reinstall loses them, and the user calibrates
+  again, as already documented.
+
+**Test (written first):** in `OfflineManifestGuardTest`, the app's manifest must set
+`android:allowBackup="false"`.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
