@@ -11289,6 +11289,56 @@ The `workout` package is not in `SharedCoreSourceGuardTest`'s classified package
 session, on no frames and no records, so it is on neither path. The guard's bilateral and
 camera-facing scans still read it, as they read every production source.
 
+### Result — steps 2 and 3, the generator's pages and guided mode
+
+*2026-10-04.*
+
+**The way in:**
+- the top of **Workouts:** "Build a workout", and the saved workouts;
+- **Train,** with nothing chosen;
+- **Home:** "Repeat last workout".
+
+**Building a plan:**
+- **Build:** time (10/20/30 min), focus, level, equipment, as chips. A new plan gets a new random
+  seed; choosing the seed is the app's, and everything after it is the core's.
+- **The plan:**
+  - "About N min";
+  - each exercise with its target ("3 sets × 10 each side", "2 sets × 20 s hold"), its camera view,
+    its rest, and what the room needs;
+  - a ✕ to leave an exercise out, which becomes the request's `avoid`;
+  - Shuffle (a new seed), ☆ Save, Start workout;
+  - "Targets are suggestions, not prescriptions: go at your own pace", and the estimate's
+    assumption, said.
+
+**Guided mode** (`GuidedFlow`), over `GuidedWorkout.steps`:
+- **prepare:** the exercise, "Set 2 of 3 · step 5 of 12", the target, and the "Setting up" card;
+- **the live set:** the existing `LiveDestination`, saved as every set is, labelled "Set 2 of 3 · 10
+  each side";
+- **rest:** the timer, started for the user, and what comes next. "Start set 3" goes straight to the
+  camera for the same exercise; "Set up for Plank" goes to prepare for a new one;
+- **the summary:**
+  - the time, by the phone's clock from Start workout;
+  - the sets;
+  - the repetitions and seconds held: `Dashboard.summarise` over the workout's own sets;
+  - the records it set, from `Records.newIn` over those sets together against the history before
+    them. The core gained that multi-session form, with one test: two squat sets of 9 and 11
+    against an earlier 10 set one record, 11.
+
+**The back button:**
+- camera → prepare;
+- prepare or rest → the plan, where every set already saved stays saved;
+- plan → build;
+- build → Workouts.
+
+A set left by the back button is saved, as any set is, but is not in that workout's summary; the
+summary counts the sets the workout completed.
+
+**Favourites and the last workout** are stored as request and seed (`PlanRequestCodec`, one line
+each, `v1;…`), up to 10 favourites. A line that cannot be read back is dropped, never guessed at
+(`PlanRequestCodecTest`, 2 tests).
+
+**Suite:** 2,799 executions, 0 failed. **Batch 4 is built;** all of it waits on the phone.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

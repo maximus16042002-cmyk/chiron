@@ -65,9 +65,16 @@ object Records {
      * The first time an exercise is done sets no record: there is nothing it is larger than, and
      * "a new record" on a first set would be noise. Equalling a record is not a new one.
      */
-    fun newIn(before: List<SessionRecord>, session: SessionRecord): List<NewRecord> {
+    fun newIn(before: List<SessionRecord>, session: SessionRecord): List<NewRecord> = newIn(before, listOf(session))
+
+    /**
+     * The records [sessions] set together against [before] - a guided workout's sets (P3-50). Each
+     * exercise's largest value across them is compared once, so a workout names one record per
+     * kind, not one per set.
+     */
+    fun newIn(before: List<SessionRecord>, sessions: List<SessionRecord>): List<NewRecord> {
         val prior = Dashboard.perExercise(before).associateBy { it.exerciseId }
-        val now = Dashboard.perExercise(listOf(session))
+        val now = Dashboard.perExercise(sessions)
         val records = ArrayList<NewRecord>()
         for (summary in now.sortedBy { it.exerciseId }) {
             val earlier = prior[summary.exerciseId] ?: continue

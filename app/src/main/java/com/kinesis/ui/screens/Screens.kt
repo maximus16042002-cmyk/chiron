@@ -84,6 +84,8 @@ fun ExerciseSelectionScreen(
     calibratedIds: Set<String>,
     onSelect: (ExerciseProfile) -> Unit,
     modifier: Modifier = Modifier,
+    /** Shown under the title: the workout builder and saved workouts (P3-50). */
+    header: (@Composable () -> Unit)? = null,
 ) {
     // DECISIONS.md P3-48: one filter, by what the analysis does - counts repetitions or times a hold.
     var filter by remember { mutableStateOf("all") }
@@ -108,6 +110,8 @@ fun ExerciseSelectionScreen(
                 ExerciseLibrary.profiles.size.toString() + " exercises and " + ExerciseLibrary.variants.size + " variants",
             )
         }
+        if (header != null) item { header() }
+        item { SectionLabel("Exercises") }
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip("All", filter == "all") { filter = "all" }

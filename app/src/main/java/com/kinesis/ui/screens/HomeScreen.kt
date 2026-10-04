@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import com.kinesis.core.analysis.history.DashboardSummary
 import com.kinesis.core.analysis.history.DayActivity
 import com.kinesis.core.analysis.history.WeekProgress
+import com.kinesis.core.analysis.workout.PlanRequest
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.core.domain.session.LocalDay
 import com.kinesis.core.domain.session.SessionRecord
@@ -153,6 +154,9 @@ fun HomeScreen(
     onQuickStart: (ExerciseProfile) -> Unit,
     onBrowse: () -> Unit,
     onOpenSession: (SessionRecord) -> Unit,
+    /** The last workout started, to repeat (P3-50); `null` before the first. */
+    lastWorkout: PlanRequest?,
+    onRepeatWorkout: (PlanRequest) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -192,6 +196,15 @@ fun HomeScreen(
                     Note("Pick an exercise, place the phone so your whole body is in view, and start.")
                     Spacer(Modifier.height(12.dp))
                     PrimaryButton("Choose an exercise", onClick = onBrowse)
+                }
+            }
+        }
+
+        if (lastWorkout != null) {
+            item {
+                KCard(onClick = { onRepeatWorkout(lastWorkout) }) {
+                    Text("Repeat last workout", style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Text(requestLabel(lastWorkout), style = MaterialTheme.typography.bodySmall, color = InkSecondary)
                 }
             }
         }

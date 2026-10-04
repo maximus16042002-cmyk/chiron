@@ -98,6 +98,21 @@ class RecordsTest {
         assertEquals(listOf(Side.RIGHT), records.map { it.side })
     }
 
+    /**
+     * A guided workout's records (P3-50): its sets together against the history before it. Two
+     * squat sets of 9 and 11 against an earlier 10 set one record, 11 - not one per set.
+     */
+    @Test
+    fun a_workout_s_records_are_its_sets_together_against_what_came_before() {
+        val before = listOf(session(-1, reps("squat", 10)))
+        val workout = listOf(session(0, reps("squat", 9)), session(0, reps("squat", 11)))
+        val records = Records.newIn(before, workout)
+        assertEquals(1, records.size, records.toString())
+        assertEquals(11.0, records.single().value)
+        assertEquals(10.0, records.single().previous)
+        assertEquals(Records.newIn(before, workout.last()), Records.newIn(before, listOf(workout.last())))
+    }
+
     @Test
     fun the_words_name_both_numbers_and_make_no_judgement() {
         val before = listOf(

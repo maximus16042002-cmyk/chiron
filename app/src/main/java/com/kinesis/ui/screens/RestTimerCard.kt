@@ -38,11 +38,12 @@ object RestTimer {
  * seconds more on request; it ends with a vibration and a short tone.
  */
 @Composable
-fun RestTimerCard(lengthSeconds: Int) {
+fun RestTimerCard(lengthSeconds: Int, autoStart: Boolean = false) {
     val view = LocalView.current
     var length by remember { mutableIntStateOf(lengthSeconds) }
-    var startedAt by remember { mutableLongStateOf(0L) }
-    var running by remember { mutableStateOf(false) }
+    // Guided mode starts the rest for the user (P3-50); the set summary leaves it to them.
+    var startedAt by remember { mutableLongStateOf(if (autoStart) System.currentTimeMillis() else 0L) }
+    var running by remember { mutableStateOf(autoStart) }
     var remaining by remember { mutableIntStateOf(lengthSeconds) }
 
     LaunchedEffect(running, startedAt, length) {

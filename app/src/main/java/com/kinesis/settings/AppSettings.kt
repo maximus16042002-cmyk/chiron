@@ -2,6 +2,7 @@ package com.kinesis.settings
 
 import android.content.Context
 import com.kinesis.core.analysis.history.WeeklyGoal
+import com.kinesis.core.analysis.workout.PlanRequest
 
 /**
  * The app's own small settings - DECISIONS.md P3-48 and P3-49.
@@ -66,8 +67,23 @@ class AppSettings(context: Context) {
         get() = preferences.getBoolean(SPOKEN_COUNTS, false)
         set(value) = preferences.edit().putBoolean(SPOKEN_COUNTS, value).apply()
 
+    /** The last workout started, as its request and seed (P3-50), or `null`. */
+    var lastWorkout: PlanRequest?
+        get() = preferences.getString(LAST_WORKOUT, null)?.let(PlanRequestCodec::decode)
+        set(value) = preferences.edit().putString(LAST_WORKOUT, value?.let(PlanRequestCodec::encode)).apply()
+
+    /** Saved workouts, newest first, at most [MAX_FAVOURITES] (P3-50). Unreadable lines are dropped. */
+    var favouriteWorkouts: List<PlanRequest>
+        get() = preferences.getString(FAVOURITES, null).orEmpty().lines().mapNotNull(PlanRequestCodec::decode)
+        set(value) = preferences.edit()
+            .putString(FAVOURITES, value.distinct().take(MAX_FAVOURITES).joinToString("\n") { PlanRequestCodec.encode(it) })
+            .apply()
+
     private companion object {
         const val FILE = "kinesis"
+        const val LAST_WORKOUT = "last_workout"
+        const val FAVOURITES = "favourite_workouts"
+        const val MAX_FAVOURITES = 10
         const val REST_SECONDS = "rest_seconds"
         const val DEFAULT_REST_SECONDS = 60
         const val REP_TONE = "rep_tone"

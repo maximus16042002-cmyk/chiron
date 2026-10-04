@@ -52,6 +52,11 @@ import com.kinesis.core.analysis.history.WeekProgress
 import com.kinesis.core.analysis.history.WeeklyGoal
 import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.analysis.profile.ExerciseVariant
+import com.kinesis.core.analysis.workout.GuidedWorkout
+import com.kinesis.core.analysis.workout.PlanRequest
+import com.kinesis.core.analysis.workout.WorkoutCatalogue
+import com.kinesis.core.analysis.workout.WorkoutGenerator
+import com.kinesis.core.analysis.workout.WorkoutPlan
 import com.kinesis.core.domain.calibration.CalibrationBaseline
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.core.domain.session.LocalDay
@@ -89,20 +94,28 @@ import com.kinesis.ui.screens.CalibrationResultScreen
 import com.kinesis.ui.screens.DuringSetState
 import com.kinesis.ui.screens.ExerciseScreen
 import com.kinesis.ui.screens.ExerciseSelectionScreen
+import com.kinesis.ui.screens.GuidedPrepareScreen
+import com.kinesis.ui.screens.GuidedRestScreen
+import com.kinesis.ui.screens.GuidedSummaryScreen
 import com.kinesis.ui.screens.HomeScreen
 import com.kinesis.ui.screens.KCard
 import com.kinesis.ui.screens.LicencesScreen
 import com.kinesis.ui.screens.Note
 import com.kinesis.ui.screens.OnboardingScreen
 import com.kinesis.ui.screens.PageTitle
+import com.kinesis.ui.screens.PlanScreen
 import com.kinesis.ui.screens.PrimaryButton
 import com.kinesis.ui.screens.ProfileScreen
 import com.kinesis.ui.screens.ProgressScreen
 import com.kinesis.ui.screens.ReminderState
+import com.kinesis.ui.screens.SecondaryButton
 import com.kinesis.ui.screens.SessionDetailScreen
 import com.kinesis.ui.screens.SetSummaryScreen
 import com.kinesis.ui.screens.Tab
+import com.kinesis.ui.screens.WorkoutBuilderScreen
+import com.kinesis.ui.screens.WorkoutPlansCard
 import com.kinesis.ui.screens.monthStart
+import com.kinesis.ui.screens.stepTarget
 import com.kinesis.ui.theme.KinesisTheme
 import com.kinesis.ui.theme.Void
 import java.io.File
@@ -111,6 +124,7 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
+import kotlin.random.Random
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -253,6 +267,56 @@ private sealed interface Destination {
     data class Live(val profile: ExerciseProfile, val calibrating: Boolean = false) : Destination
     data class CalibrationResult(val profile: ExerciseProfile, val session: SessionRecord?) : Destination
     data class SetSummary(val profile: ExerciseProfile, val session: SessionRecord) : Destination
+
+    // DECISIONS.md P3-50: the workout generator and guided mode.
+    data class Builder(val initial: PlanRequest?) : Destination
+    data class Plan(val request: PlanRequest) : Destination
+    data class Guided(
+        val plan: WorkoutPlan,
+        /** Index into `GuidedWorkout.steps(plan)`: the set being prepared, done, or rested before. */
+        val step: Int,
+        val phase: GuidedPhase,
+        /** The sets saved so far in this workout. */
+        val done: List<SessionRecord>,
+        val startedAtMs: Long,
+    ) : Destination
+}
+
+/** Where a guided workout is within a step - P3-50. */
+private enum class GuidedPhase { PREPARE, LIVE, REST, SUMMARY }
+
+/** Whether the camera is live, which hides the bottom bar and the back link. */
+private fun isLive(destination: Destination?): Boolean =
+    destination is Destination.Live || (destination is Destination.Guided && destination.phase == GuidedPhase.LIVE)
+
+/**
+ * One step back through the training flow, or `null` to leave it: out of the camera to where the
+ * set was started, out of a guided workout to its plan (every set already saved stays saved), out
+ * of a plan to its choices.
+ */
+private fun backFrom(destination: Destination): Destination? = when (destination) {
+    is Destination.Exercise, is Destination.Builder -> null
+    is Destination.Live -> Destination.Exercise(destination.profile)
+    is Destination.CalibrationIntro -> Destination.Exercise(destination.profile)
+    is Destination.CalibrationResult -> Destination.Exercise(destination.profile)
+    is Destination.SetSummary -> Destination.Exercise(destination.profile)
+    is Destination.Plan -> Destination.Builder(destination.request)
+    is Destination.Guided -> when (destination.phase) {
+        GuidedPhase.LIVE -> destination.copy(phase = GuidedPhase.PREPARE)
+        GuidedPhase.SUMMARY -> null
+        else -> Destination.Plan(destination.plan.request)
+    }
+}
+
+/** What the back link names. */
+private fun backLabel(destination: Destination): String = when (destination) {
+    is Destination.Exercise, is Destination.Builder -> "Workouts"
+    is Destination.Plan -> "Build a workout"
+    is Destination.Guided -> "Plan"
+    is Destination.Live -> destination.profile.displayName
+    is Destination.CalibrationIntro -> destination.profile.displayName
+    is Destination.CalibrationResult -> destination.profile.displayName
+    is Destination.SetSummary -> destination.profile.displayName
 }
 
 /**
@@ -381,6 +445,15 @@ private fun KinesisApp(
         tab = Tab.TRAIN
     }
 
+    fun openTraining(destination: Destination) {
+        training = destination
+        tab = Tab.TRAIN
+    }
+
+    // Saved workouts and the last one started, as request and seed (P3-50).
+    var favourites by remember { mutableStateOf(settings.favouriteWorkouts) }
+    var lastWorkout by remember { mutableStateOf(settings.lastWorkout) }
+
     // The back button: out of a detail, then out of the training flow, then back to Home. The
     // on-screen back links call the same function, so the two cannot disagree.
     val current = training
@@ -388,19 +461,18 @@ private fun KinesisApp(
         when {
             openSession != null -> openSession = null
             showLicences -> showLicences = false
-            tab == Tab.TRAIN && current is Destination.Live -> training = Destination.Exercise(current.profile)
-            tab == Tab.TRAIN && current != null && current !is Destination.Exercise ->
-                training = Destination.Exercise(profileOf(current))
-            tab == Tab.TRAIN && current is Destination.Exercise -> {
-                training = null
-                tab = Tab.WORKOUTS
+            tab == Tab.TRAIN && current != null -> {
+                val back = backFrom(current)
+                training = back
+                // A finished guided workout goes home; anything else leaves to Workouts.
+                if (back == null) tab = if (current is Destination.Guided) Tab.HOME else Tab.WORKOUTS
             }
             else -> tab = Tab.HOME
         }
     }
     BackHandler(enabled = openSession != null || showLicences || tab != Tab.HOME, onBack = goBack)
 
-    val live = tab == Tab.TRAIN && current is Destination.Live
+    val live = tab == Tab.TRAIN && isLive(current)
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Box(Modifier.weight(1f)) {
             val shown = summary ?: Dashboard.summarise(emptyList(), today)
@@ -418,18 +490,44 @@ private fun KinesisApp(
                         onQuickStart = { startTraining(it) },
                         onBrowse = { tab = Tab.WORKOUTS },
                         onOpenSession = { openSession = it },
+                        lastWorkout = lastWorkout,
+                        onRepeatWorkout = { openTraining(Destination.Plan(it)) },
                     )
                 }
 
                 Tab.WORKOUTS -> ExerciseSelectionScreen(
                     calibratedIds = baselines.keys,
                     onSelect = { startTraining(it) },
+                    header = {
+                        WorkoutPlansCard(
+                            favourites = favourites,
+                            onBuild = { openTraining(Destination.Builder(lastWorkout)) },
+                            onOpen = { openTraining(Destination.Plan(it)) },
+                        )
+                    },
                 )
 
                 Tab.TRAIN -> TrainPage(
                     destination = current,
                     history = sessions,
                     restSeconds = duringSet.restSeconds,
+                    workouts = WorkoutCallbacks(
+                        favourites = favourites,
+                        lastWorkout = lastWorkout,
+                        onFavourite = { request ->
+                            settings.favouriteWorkouts =
+                                if (request in favourites) favourites - request else listOf(request) + favourites
+                            favourites = settings.favouriteWorkouts
+                        },
+                        onStarted = { request ->
+                            settings.lastWorkout = request
+                            lastWorkout = request
+                        },
+                        onFinished = {
+                            training = null
+                            tab = Tab.HOME
+                        },
+                    ),
                     repository = repository,
                     calibration = calibration,
                     uid = uid,
@@ -505,13 +603,81 @@ private fun KinesisApp(
     }
 }
 
-/** The exercise a training destination belongs to. */
-private fun profileOf(destination: Destination): ExerciseProfile = when (destination) {
-    is Destination.Exercise -> destination.profile
-    is Destination.CalibrationIntro -> destination.profile
-    is Destination.Live -> destination.profile
-    is Destination.CalibrationResult -> destination.profile
-    is Destination.SetSummary -> destination.profile
+/** What the Train flow needs from the shell for workouts - P3-50. */
+private class WorkoutCallbacks(
+    val favourites: List<PlanRequest>,
+    val lastWorkout: PlanRequest?,
+    val onFavourite: (PlanRequest) -> Unit,
+    val onStarted: (PlanRequest) -> Unit,
+    val onFinished: () -> Unit,
+)
+
+/**
+ * A guided workout - DECISIONS.md P3-50: prepare, the live set (the same pipeline and saving as
+ * any set), rest, the next; a summary at the end. The sequence is the core's
+ * (`GuidedWorkout.steps`), and so are the summary's totals and records.
+ */
+@Composable
+private fun GuidedFlow(
+    current: Destination.Guided,
+    repository: SessionRepository,
+    onNavigate: (Destination) -> Unit,
+    onChanged: () -> Unit,
+    history: List<SessionRecord>,
+    onFinished: () -> Unit,
+) {
+    val steps = remember(current.plan) { GuidedWorkout.steps(current.plan) }
+    val step = steps[current.step]
+    when (current.phase) {
+        GuidedPhase.PREPARE -> GuidedPrepareScreen(step, current.step + 1, steps.size) {
+            onNavigate(current.copy(phase = GuidedPhase.LIVE))
+        }
+
+        GuidedPhase.LIVE -> LiveDestination(
+            profile = WorkoutCatalogue.profileOf(step.item.exerciseId),
+            repository = repository,
+            onSessionSaved = onChanged,
+            onSetEnded = { session ->
+                onChanged()
+                val done = if (session != null) current.done + session else current.done
+                onNavigate(
+                    if (step.isLastStep) {
+                        current.copy(phase = GuidedPhase.SUMMARY, done = done)
+                    } else {
+                        current.copy(step = current.step + 1, phase = GuidedPhase.REST, done = done)
+                    },
+                )
+            },
+            modeLabel = "Set " + step.setNumber + " of " + step.item.sets + " · " + stepTarget(step),
+        )
+
+        GuidedPhase.REST -> {
+            val previous = steps[current.step - 1]
+            val sameExercise = previous.item.exerciseId == step.item.exerciseId
+            GuidedRestScreen(step, previous.item.restSeconds, sameExercise) {
+                onNavigate(current.copy(phase = if (sameExercise) GuidedPhase.LIVE else GuidedPhase.PREPARE))
+            }
+        }
+
+        GuidedPhase.SUMMARY -> {
+            val endedAt = remember(current) { System.currentTimeMillis() }
+            val summary = remember(current) {
+                Dashboard.summarise(current.done, LocalDay.of(endedAt.toDouble(), utcOffsetMinutesAt(endedAt)))
+            }
+            val records = remember(current, history) {
+                val ids = current.done.map { it.sessionId }.toSet()
+                Records.newIn(history.filter { it.sessionId !in ids }, current.done).map { it.displayText }
+            }
+            GuidedSummaryScreen(
+                sets = current.done.sumOf { it.sets.size },
+                repetitions = summary.totalValidReps,
+                heldMs = summary.totalHoldMs,
+                durationMs = endedAt - current.startedAtMs,
+                records = records,
+                onDone = onFinished,
+            )
+        }
+    }
 }
 
 /**
@@ -531,23 +697,25 @@ private fun TrainPage(
     onChanged: () -> Unit,
     history: List<SessionRecord>,
     restSeconds: Int,
+    workouts: WorkoutCallbacks,
 ) {
     // The old text bar kept every training screen clear of the status bar; with the bar gone, the
     // page does it. Edge-to-edge is enforced at targetSdk 35, so the background goes under the clock.
     Box(
         Modifier
             .fillMaxSize()
-            .background(if (destination is Destination.Live) Void else MaterialTheme.colorScheme.background)
+            .background(if (isLive(destination)) Void else MaterialTheme.colorScheme.background)
             .statusBarsPadding(),
     ) {
         Column {
             // A visible way back on every training screen but the live one, whose way out is
             // ending the set.
-            if (destination != null && destination !is Destination.Live) {
-                BackLink(if (destination is Destination.Exercise) "Workouts" else profileOf(destination).displayName, onBack)
+            val finished = destination is Destination.Guided && destination.phase == GuidedPhase.SUMMARY
+            if (destination != null && !isLive(destination) && !finished) {
+                BackLink(backLabel(destination), onBack)
             }
             Box(Modifier.weight(1f)) {
-                TrainFlow(destination, repository, calibration, uid, baselines, onChoose, onNavigate, onChanged, history, restSeconds)
+                TrainFlow(destination, repository, calibration, uid, baselines, onChoose, onNavigate, onChanged, history, restSeconds, workouts)
             }
         }
     }
@@ -566,19 +734,43 @@ private fun TrainFlow(
     /** Every stored session, for the records a finished set sets (P3-49). */
     history: List<SessionRecord>,
     restSeconds: Int,
+    workouts: WorkoutCallbacks,
 ) {
     when (val current = destination) {
         null -> Column(
             Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            PageTitle("Train", "Choose an exercise to start a set")
+            PageTitle("Train", "A single exercise, or a whole workout")
             KCard {
                 Note("Each exercise shows how to place the phone, and lets you calibrate it to your own movement first.")
                 Spacer(Modifier.padding(top = 12.dp))
                 PrimaryButton("Choose an exercise", onClick = onChoose)
+                Spacer(Modifier.padding(top = 8.dp))
+                SecondaryButton("Build a workout", onClick = { onNavigate(Destination.Builder(workouts.lastWorkout)) })
             }
         }
+
+        is Destination.Builder -> WorkoutBuilderScreen(current.initial) { minutes, focus, level, equipment ->
+            onNavigate(Destination.Plan(PlanRequest(minutes, focus, level, equipment, seed = Random.nextInt())))
+        }
+
+        is Destination.Plan -> {
+            val plan = remember(current.request) { WorkoutGenerator.generate(current.request) }
+            PlanScreen(
+                plan = plan,
+                favourite = current.request in workouts.favourites,
+                onShuffle = { onNavigate(Destination.Plan(current.request.copy(seed = Random.nextInt()))) },
+                onLeaveOut = { id -> onNavigate(Destination.Plan(current.request.copy(avoid = current.request.avoid + id))) },
+                onFavourite = { workouts.onFavourite(current.request) },
+                onStart = {
+                    workouts.onStarted(current.request)
+                    onNavigate(Destination.Guided(plan, 0, GuidedPhase.PREPARE, emptyList(), System.currentTimeMillis()))
+                },
+            )
+        }
+
+        is Destination.Guided -> GuidedFlow(current, repository, onNavigate, onChanged, history, workouts.onFinished)
 
         is Destination.Exercise -> ExerciseScreen(
             profile = current.profile,
