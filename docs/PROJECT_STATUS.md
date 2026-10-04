@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
 *Snapshot updated 2026-10-04, from the repository as it stands at the end of
-DECISIONS.md P3-48. This file summarises. It is not an authority: where it
+DECISIONS.md P3-49. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date.*
 
@@ -9,7 +9,26 @@ of date.*
 
 ## Next session starts here
 
-**Latest, P3-48 (2026-10-04): FEATURE_PLAN Batch 1 is built, not yet on the phone.**
+**Latest, P3-49 (2026-10-04): FEATURE_PLAN Batch 3 is built, not yet on the phone.**
+- **Streak freezes** (the owner's rule, derived from history): one earned every 7 days in a row, up
+  to 2, and a single missed day spends one. 16 tests; 4 of 4 mutations caught.
+- **A month calendar** on Progress: fire on active days, a snowflake on frozen ones, tap a day for
+  its sessions.
+- **Records, the weekly goal, achievements:**
+  - records per exercise: the most counted in a set, the longest hold, the largest range **per
+    side**;
+  - a goal ring on Home;
+  - six modest achievements;
+  - "★ New personal record" on the set summary.
+- **Local reminders:** a time and days in Profile. The words come from the core and never promise a
+  freeze the rule would not spend. `POST_NOTIFICATIONS` is asked only when reminders are turned on.
+- **A rest timer, and repetition cues:** a tone, a vibration or the count spoken, each off by
+  default. Speech uses an offline voice only.
+- **P3-48 step 4:** the exercise, calibration, set-summary, live and sign-in screens are in the new
+  look. Each exercise page has a "Setting up" card, from the core (`CalibrationGuide.placement`).
+- **Suite:** 2,727 executions, 0 failed.
+
+**Earlier, P3-48: FEATURE_PLAN Batch 1 is built, not yet on the phone.**
 - **The new look:** dark, rounded cards, one orange accent, a sans-serif with tabular figures. It
   supersedes P3-12's green terminal theme; the skeleton overlay's palette is unchanged. A contrast
   test holds every colour pair.
@@ -21,7 +40,7 @@ of date.*
   set; before, it closed the app.
 - **Owed:** install on the phone (with a backup first), and screenshot each page into
   `local/phase-b/`.
-- **Next after that:** FEATURE_PLAN Batch 3 (the streak calendar, reminders), then Batch 4.
+- **Next:** FEATURE_PLAN Batch 4 (the workout generator and guided workouts), then P10's charts.
 
 As of DECISIONS.md P3-38. P9's anomaly study has run on the development subjects, and Layer 4
 does not ship. The owner delegated that choice and asked for a complete app; P3-38 records
@@ -131,8 +150,8 @@ testing resumes.
    analyses remain the owner's decision.
 6. —
 7. ~~Layer 1 in the app~~: not after P3-42's failure. The app shows measurements only.
-8. **FEATURE_PLAN Batches 1, 3 and 4,** with P10's charts. **Batch 1 built (P3-48),** owed on
-   the phone.
+8. **FEATURE_PLAN Batches 1, 3 and 4,** with P10's charts. **Batch 1 built (P3-48)**
+   and **Batch 3 built (P3-49),** both owed on the phone.
 9. **P8 Layer 2, then P9 Part B** (the verifier).
 
 **Also open, not in that sequence:**
