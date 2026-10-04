@@ -10,7 +10,9 @@ read it first if you are new.*
 
 ## Next session starts here
 
-**Latest, P3-60 (2026-10-05): one database per account.** Until now every account that signed in
+**Latest, P3-61 to P3-65 (2026-10-05):** the toolchain batch (AGP 8.9.1, compileSdk 36, stable Health Connect; lint runs again), a launcher icon, failed saves always reported, lint tidied, and **the app is now called Chiron** on the phone, with cloud backup off. None of it seen on the phone yet.
+
+**Before that, P3-60 (2026-10-05): one database per account.** Until now every account that signed in
 on the phone shared one database, and sign-in uploaded every session on the phone to whoever had
 just signed in. Each account now has its own database file. The existing file stays with the first
 account signed in after the update, which on the owner's phone is the owner, so nothing moves. No
@@ -300,12 +302,12 @@ past half; the report is well short of it.
 
 ### Test suite
 
-Last full run (DECISIONS.md P3-63, 2026-10-05): **3,097 test executions, 0 failures, 0
+Last full run (DECISIONS.md P3-65, 2026-10-05): **3,101 test executions, 0 failures, 0
 errors, 0 skipped**, via `gradlew assemble allTests :app:testDebugUnitTest
 :app:testReleaseUnitTest` (plus `:app:compileDebugAndroidTestKotlin`). Core tests count once per
 target (JVM, JS, both Android variants), so this is executions, not distinct tests. By module and
 target: `core/analysis` 623 JVM (+5 allocation), 612 JS, 612 debug, 612 release; `core/domain` 40
-on each of the four; `:app` 230 debug and 218 release; the MM-Fit tools (`tools/mmfit-eval`) 25.
+on each of the four; `:app` 232 debug and 220 release; the MM-Fit tools (`tools/mmfit-eval`) 25.
 `test_subjects.py` and `test_anomaly_study.py` add Python tests. Every test is synthetic: none has
 seen a camera frame or a model. What has run on the phone is recorded in DECISIONS.md, entry by
 entry, and is not a test count.

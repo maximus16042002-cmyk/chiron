@@ -1,4 +1,4 @@
-# Kinesis
+# Kinesis (the app is called Chiron)
 
 Camera-based personal movement analysis. Android, Kotlin Multiplatform,
 MediaPipe Pose.

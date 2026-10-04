@@ -257,7 +257,7 @@ internal fun HealthContextPanel(
                 Metric("Active calories", context.context.activeCaloriesKcal, " kcal")
                 Metric("Mean heart rate", context.context.meanHeartRateBpm, " bpm")
                 Spacer(Modifier.height(6.dp))
-                Note("Read from Health Connect and shown beside your training. Kinesis does not use it in any measurement.")
+                Note("Read from Health Connect and shown beside your training. Chiron does not use it in any measurement.")
             }
 
             is ActivityContextResult.Unavailable -> {
@@ -294,7 +294,7 @@ private fun describe(reason: ContextUnavailable): String = when (reason) {
     ContextUnavailable.PLATFORM_TOO_OLD -> "This phone predates Health Connect."
     ContextUnavailable.NOT_INSTALLED -> "Health Connect is not installed."
     ContextUnavailable.PROVIDER_UPDATE_REQUIRED -> "Health Connect needs updating."
-    ContextUnavailable.PERMISSIONS_DENIED -> "Kinesis has not been allowed to read steps, active calories or heart rate."
+    ContextUnavailable.PERMISSIONS_DENIED -> "Chiron has not been allowed to read steps, active calories or heart rate."
     ContextUnavailable.READ_FAILED -> "Health Connect could not be read."
 }
 

@@ -64,7 +64,7 @@ fun WorkoutBuilderScreen(initial: PlanRequest?, onMake: (minutes: Int, focus: Fo
         Modifier.fillMaxSize().background(PageBackground).padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { PageTitle("Build a workout", "From the exercises Kinesis can follow") }
+        item { PageTitle("Build a workout", "From the exercises Chiron can follow") }
         item {
             KCard {
                 Choice("Time") {
@@ -198,7 +198,7 @@ fun GuidedPrepareScreen(step: GuidedStep, stepNumber: Int, totalSteps: Int, onSt
             KCard {
                 Text("Target", style = MaterialTheme.typography.labelLarge, color = InkSecondary)
                 Text(stepTarget(step), style = MaterialTheme.typography.headlineMedium, color = Ink)
-                Note("A suggestion. Kinesis counts what you do.")
+                Note("A suggestion. Chiron counts what you do.")
             }
         }
         item {
@@ -284,7 +284,7 @@ fun GuidedSummaryScreen(sets: Int, repetitions: Int, heldMs: Double, durationMs:
 fun WorkoutPlansCard(favourites: List<PlanRequest>, onBuild: () -> Unit, onOpen: (PlanRequest) -> Unit) {
     KCard {
         Text("Build a workout", style = MaterialTheme.typography.titleMedium, color = Ink)
-        Note("Choose the time, focus, level and equipment; Kinesis lays out the exercises.")
+        Note("Choose the time, focus, level and equipment; Chiron lays out the exercises.")
         Spacer(Modifier.height(10.dp))
         PrimaryButton("Build a workout", onClick = onBuild)
         if (favourites.isNotEmpty()) {

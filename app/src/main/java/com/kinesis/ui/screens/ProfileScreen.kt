@@ -186,7 +186,7 @@ fun ProfileScreen(
         item { SectionLabel("About") }
         item {
             KCard {
-                Text("Kinesis", style = MaterialTheme.typography.titleMedium, color = Ink)
+                Text("Chiron", style = MaterialTheme.typography.titleMedium, color = Ink)
                 Note(
                     "Counts and measures your exercise from the camera, and compares it with your own " +
                         "calibration. It is not a medical device and gives no diagnosis.",

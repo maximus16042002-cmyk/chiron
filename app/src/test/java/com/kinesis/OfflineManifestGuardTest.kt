@@ -116,6 +116,24 @@ class OfflineManifestGuardTest {
         }
     }
 
+    /**
+     * DECISIONS.md P3-65: Android's cloud backup would copy every account's database to the
+     * user's Google Drive - a path off the phone that CLAUDE.md section 16 does not permit and the
+     * app never disclosed. Session history reaches the account through sync instead.
+     */
+    @Test
+    fun cloud_backup_of_the_apps_data_is_off() {
+        val manifest = File("src/main/AndroidManifest.xml")
+            .takeIf { it.isFile }
+            ?: File("app/src/main/AndroidManifest.xml")
+        assumeTrue("could not locate the app manifest", manifest.isFile)
+
+        assertTrue(
+            manifest.path + " must set android:allowBackup=\"false\"",
+            manifest.readText().contains("android:allowBackup=\"false\""),
+        )
+    }
+
     // --- Parsing ---------------------------------------------------------------------
 
     /**

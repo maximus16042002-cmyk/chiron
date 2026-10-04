@@ -114,7 +114,7 @@ object TechniqueRules {
                 faultId = RAISED_ABOVE_SHOULDER_LEVEL,
                 displayText = "${armOf(side)} raised above shoulder level: about ${degrees(far)} from your side. " +
                     "ACE's lateral raise goes up until the arms are level with the shoulders " +
-                    "(${degrees(SHOULDER_LEVEL_DEG)}); Kinesis says so only past ${degrees(limit)}.",
+                    "(${degrees(SHOULDER_LEVEL_DEG)}); Chiron says so only past ${degrees(limit)}.",
                 ruleVersion = RULE_VERSION,
                 sourceRef = SOURCE_LATERAL_RAISE,
             )
@@ -133,7 +133,7 @@ object TechniqueRules {
                 faultId = CURL_STARTED_ELBOW_BENT,
                 displayText = "${armOf(side)} not straightened before this curl: the elbow was at about " +
                     "${degrees(start)}. ACE lowers a curl until the elbow is fully extended; " +
-                    "Kinesis says so only below ${degrees(limit)}.",
+                    "Chiron says so only below ${degrees(limit)}.",
                 ruleVersion = RULE_VERSION,
                 sourceRef = SOURCE_CURL,
             )
@@ -150,7 +150,7 @@ object TechniqueRules {
                 faultId = PUSHUP_ARMS_NOT_EXTENDED,
                 displayText = "${armOf(side)} not fully extended at the top of this push-up: the elbow reached " +
                     "about ${degrees(top)}. ACE presses until the arms are fully extended at the elbows; " +
-                    "Kinesis says so only below ${degrees(limit)}.",
+                    "Chiron says so only below ${degrees(limit)}.",
                 ruleVersion = RULE_VERSION,
                 sourceRef = SOURCE_PUSHUP,
             )
@@ -173,7 +173,7 @@ object TechniqueRules {
                 authority = authority,
                 faultId = CURL_UPPER_ARM_MOVED_FORWARD,
                 displayText = "${upperArmOf(side)} moved forward from your side: about ${degrees(angle)} at most. " +
-                    "NSCA's curl checklist keeps the upper arms close to the ribs; Kinesis says so only past " +
+                    "NSCA's curl checklist keeps the upper arms close to the ribs; Chiron says so only past " +
                     "${degrees(TOLERANCE_DEG)}.",
                 ruleVersion = RULE_VERSION_FORM,
                 sourceRef = SOURCE_CURL_UPPER_ARM,
@@ -193,7 +193,7 @@ object TechniqueRules {
                     authority = authority,
                     faultId = PUSHUP_HIPS_SAGGED,
                     displayText = "${sideOf(side)}: hips sagged about ${degrees(down)} below the line from shoulder to " +
-                        "ankle. ACE's push-up keeps the low back from sagging; Kinesis says so only past " +
+                        "ankle. ACE's push-up keeps the low back from sagging; Chiron says so only past " +
                         "${degrees(TOLERANCE_DEG)}.",
                     ruleVersion = RULE_VERSION_FORM,
                     sourceRef = SOURCE_PUSHUP_LINE,
@@ -205,7 +205,7 @@ object TechniqueRules {
                     authority = authority,
                     faultId = PUSHUP_HIPS_RAISED,
                     displayText = "${sideOf(side)}: hips raised about ${degrees(up)} above the line from shoulder to " +
-                        "ankle. ACE's push-up keeps the hips from hiking upwards; Kinesis says so only past " +
+                        "ankle. ACE's push-up keeps the hips from hiking upwards; Chiron says so only past " +
                         "${degrees(TOLERANCE_DEG)}.",
                     ruleVersion = RULE_VERSION_FORM,
                     sourceRef = SOURCE_PUSHUP_LINE,
@@ -228,7 +228,7 @@ object TechniqueRules {
                 authority = authority,
                 faultId = SQUAT_TRUNK_AHEAD_OF_SHIN,
                 displayText = "${sideOf(side)}: at the bottom the torso leaned about ${degrees(ahead)} further forward " +
-                    "than the shin. ACE's squat keeps torso and shin parallel; Kinesis says so only past " +
+                    "than the shin. ACE's squat keeps torso and shin parallel; Chiron says so only past " +
                     "${degrees(TOLERANCE_DEG)}.",
                 ruleVersion = RULE_VERSION_FORM,
                 sourceRef = SOURCE_SQUAT_TRUNK,

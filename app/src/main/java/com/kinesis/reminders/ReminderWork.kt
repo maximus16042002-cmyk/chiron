@@ -137,7 +137,7 @@ object ReminderNotification {
         )
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Kinesis")
+            .setContentTitle("Chiron")
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setContentIntent(open)
@@ -149,7 +149,7 @@ object ReminderNotification {
     private fun ensureChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val channel = NotificationChannel(CHANNEL_ID, "Training reminders", NotificationManager.IMPORTANCE_DEFAULT).apply {
-            description = "The reminders you set in Kinesis's Profile page."
+            description = "The reminders you set in Chiron's Profile page."
         }
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }

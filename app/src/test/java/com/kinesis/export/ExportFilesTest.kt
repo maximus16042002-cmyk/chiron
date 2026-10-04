@@ -60,7 +60,7 @@ class ExportFilesTest {
     fun each_file_is_named_for_its_table_and_the_day() {
         val names = ExportFiles.write(File(folder.root, "exports"), sessions, emptyList(), 0.0, "2026-09-28").map { it.name }
         assertEquals(
-            listOf("kinesis-2026-09-28.json", "kinesis-2026-09-28-sets.csv", "kinesis-2026-09-28-reps.csv", "kinesis-2026-09-28-holds.csv"),
+            listOf("chiron-2026-09-28.json", "chiron-2026-09-28-sets.csv", "chiron-2026-09-28-reps.csv", "chiron-2026-09-28-holds.csv"),
             names,
         )
     }

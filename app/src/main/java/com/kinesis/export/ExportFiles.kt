@@ -37,10 +37,10 @@ object ExportFiles {
 
         val csv = SessionExport.csv(sessions)
         val contents = listOf(
-            "kinesis-$day.json" to SessionExport.json(sessions, baselines, exportedAtEpochMs),
-            "kinesis-$day-sets.csv" to csv.sets,
-            "kinesis-$day-reps.csv" to csv.reps,
-            "kinesis-$day-holds.csv" to csv.holds,
+            "chiron-$day.json" to SessionExport.json(sessions, baselines, exportedAtEpochMs),
+            "chiron-$day-sets.csv" to csv.sets,
+            "chiron-$day-reps.csv" to csv.reps,
+            "chiron-$day-holds.csv" to csv.holds,
         )
         return contents.map { (name, text) ->
             File(directory, name).also { it.writeText(text, Charsets.UTF_8) }

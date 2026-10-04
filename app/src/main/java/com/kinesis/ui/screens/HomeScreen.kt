@@ -167,7 +167,7 @@ fun HomeScreen(
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { PageTitle("Kinesis", "Your training at a glance") }
+        item { PageTitle("Chiron", "Your training at a glance") }
 
         item { StreakHeader(summary.streak) }
 

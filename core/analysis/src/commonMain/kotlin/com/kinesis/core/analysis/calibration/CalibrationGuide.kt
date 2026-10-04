@@ -24,7 +24,7 @@ object CalibrationGuide {
         return when (profile) {
             is IsometricExercise ->
                 "Hold the position the way you usually do, for at least ${seconds(policy.minHoldMs)} seconds, " +
-                    "with your whole body in frame, $filmed. Kinesis records where you usually hold it and " +
+                    "with your whole body in frame, $filmed. Chiron records where you usually hold it and " +
                     "how steadily. These numbers are provisional."
 
             is RepetitionExercise -> {
@@ -41,13 +41,13 @@ object CalibrationGuide {
                     ""
                 }
                 "Do your usual repetitions, the way you normally train, with your whole body in frame, " +
-                    "$filmed.$turn Then end the set. Kinesis learns your baseline from your first " +
+                    "$filmed.$turn Then end the set. Chiron learns your baseline from your first " +
                     "${policy.maxValidRepsPerSide} valid repetitions$where, and needs at least " +
                     "${policy.minValidRepsPerSide}$where. Repetitions that are cut short or not seen clearly " +
                     "are not used. These numbers are provisional."
             }
 
-            else -> "Kinesis has no calibration for ${profile.displayName}."
+            else -> "Chiron has no calibration for ${profile.displayName}."
         }
     }
 
@@ -66,7 +66,7 @@ object CalibrationGuide {
             ""
         }
         val near = if (profile is RepetitionExercise && profile.analysedSides == AnalysedSides.NEAR_SIDE_ONLY) {
-            " Kinesis measures the side nearer the camera."
+            " Chiron measures the side nearer the camera."
         } else {
             ""
         }

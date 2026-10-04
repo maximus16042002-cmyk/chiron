@@ -72,7 +72,7 @@ fun AuthScreen(
             .padding(24.dp),
     ) {
         Spacer(Modifier.height(24.dp))
-        Text("Kinesis", style = MaterialTheme.typography.displayLarge, color = Ink)
+        Text("Chiron", style = MaterialTheme.typography.displayLarge, color = Ink)
         Text(
             if (creatingAccount) "Create your account" else "Sign in to your account",
             style = MaterialTheme.typography.titleMedium,

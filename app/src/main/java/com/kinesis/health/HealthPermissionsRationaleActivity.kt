@@ -47,7 +47,7 @@ class HealthPermissionsRationaleActivity : ComponentActivity() {
                         .padding(24.dp),
                 ) {
                     Text(
-                        "WHY KINESIS ASKS FOR HEALTH CONNECT",
+                        "WHY CHIRON ASKS FOR HEALTH CONNECT",
                         style = MaterialTheme.typography.titleMedium,
                         color = Ink,
                     )
@@ -71,11 +71,11 @@ class HealthPermissionsRationaleActivity : ComponentActivity() {
     companion object {
         /** The explanation, as shown. Public so a test can hold it to the code. */
         val RATIONALE: List<String> = listOf(
-            "Kinesis reads three things from Health Connect, for today only: your step count, the " +
+            "Chiron reads three things from Health Connect, for today only: your step count, the " +
                 "active calories you burned, and your average heart rate.",
             "They are shown on the History screen as context beside the sessions you recorded. " +
-                "Nothing in Kinesis's movement analysis uses them.",
-            "Kinesis only reads. It never writes to Health Connect, it does not store these values, " +
+                "Nothing in Chiron's movement analysis uses them.",
+            "Chiron only reads. It never writes to Health Connect, it does not store these values, " +
                 "and it does not upload them: they are not part of the sessions that sync to your account.",
             "You can change or withdraw this access at any time in Health Connect's settings.",
         )

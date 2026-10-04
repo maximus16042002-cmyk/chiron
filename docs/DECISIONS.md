@@ -12511,6 +12511,25 @@ CLAUDE.md §16 permits, and the app never disclosed it. **It is set to `false`.*
 **Test (written first):** in `OfflineManifestGuardTest`, the app's manifest must set
 `android:allowBackup="false"`.
 
+### Result (2026-10-05)
+
+- **Both guards were seen failing first.**
+  - `AppNameGuardTest` listed every visible "Kinesis", across 15 files of `:app` and the core.
+  - The backup test failed on `allowBackup="true"`.
+- **Renamed:** 36 lines across 15 files, the launcher label among them, by a script that touches only string
+  literals on code lines and skips the named exceptions and log tags (`"Kinesis…"` tags such as
+  `"KinesisSync"`).
+- **`allowBackup`** is `false`.
+- **Two tests pinned the old wording, and were updated to the new:**
+  - `EngineParityGolden`: three Layer 2 sentences, "Kinesis says so only…" → "Chiron says so
+    only…". Wording only; the parity it checks, JVM against JS, is unchanged;
+  - `ExportFilesTest`: the four file names.
+- **The full suite:** 3,101 test executions, 0 failed (`:app` 232 debug and 220 release).
+- **Unseen on the phone.** After the update the launcher shows "Chiron". The app's data stays,
+  because the application id is unchanged.
+
+**Next entry: P3-66.**
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

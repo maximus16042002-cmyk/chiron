@@ -97,7 +97,7 @@ fun LiveDestination(
             exerciseId = profile.id,
             headline = "No pose model",
             detail = "No pose_landmarker .task file is in the app's assets, so pose estimation " +
-                "cannot run and nothing is being measured. The rest of Kinesis works without it.",
+                "cannot run and nothing is being measured. The rest of Chiron works without it.",
         )
 
         is PoseModelState.Unreadable -> LiveUnavailableScreen(
@@ -191,7 +191,7 @@ private fun LiveCameraGate(profile: ExerciseProfile, env: LiveEnvironment) {
             headline = if (refused) "Camera permission refused" else "Camera permission needed",
             detail = "Live analysis needs the camera. Frames are analysed on this phone; none is " +
                 "stored or uploaded." +
-                if (refused) " If the system no longer asks, allow it in Settings > Apps > Kinesis." else "",
+                if (refused) " If the system no longer asks, allow it in Settings > Apps > Chiron." else "",
             action = "Allow camera",
             onAction = request,
         )

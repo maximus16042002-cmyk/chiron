@@ -102,7 +102,7 @@ fun ReminderCard(
         if (state.refused) {
             Spacer(Modifier.height(8.dp))
             Text(
-                "Notifications are turned off for Kinesis. Allow them in the phone's settings, then turn reminders on here.",
+                "Notifications are turned off for Chiron. Allow them in the phone's settings, then turn reminders on here.",
                 style = MaterialTheme.typography.bodySmall,
                 color = InkSecondary,
             )

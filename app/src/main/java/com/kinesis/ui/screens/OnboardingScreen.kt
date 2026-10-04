@@ -44,7 +44,7 @@ fun OnboardingScreen(onDone: () -> Unit, modifier: Modifier = Modifier) {
     val pages = listOf(
         Triple(
             "Movement, measured",
-            "Kinesis counts your repetitions and measures range of motion, tempo and each side of your body, " +
+            "Chiron counts your repetitions and measures range of motion, tempo and each side of your body, " +
                 "from your phone's camera.",
             "It compares you with your own calibration, not with anyone else. It gives form feedback, never a " +
                 "diagnosis: it is not a medical device.",

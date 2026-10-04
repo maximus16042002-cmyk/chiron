@@ -926,12 +926,12 @@ private fun shareExport(context: Context, files: List<File>) {
         type = "*/*"
         putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
         // The grant flag applies to the clip's URIs, so every file is on it.
-        clipData = ClipData.newRawUri("Kinesis export", uris.first()).also { clip ->
+        clipData = ClipData.newRawUri("Chiron export", uris.first()).also { clip ->
             uris.drop(1).forEach { clip.addItem(ClipData.Item(it)) }
         }
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
-    val chooser = Intent.createChooser(send, "Export Kinesis data")
+    val chooser = Intent.createChooser(send, "Export Chiron data")
     if (context !is Activity) chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     context.startActivity(chooser)
 }
