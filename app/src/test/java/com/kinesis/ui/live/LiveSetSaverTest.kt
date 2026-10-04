@@ -9,7 +9,10 @@ import com.kinesis.core.domain.rep.RepValidity
 import com.kinesis.core.domain.session.HoldSetRecord
 import com.kinesis.core.domain.session.RepetitionSetRecord
 import com.kinesis.core.domain.session.SessionRecord
+import com.kinesis.core.analysis.export.SessionExport
+import com.kinesis.storage.DraftRecovery
 import com.kinesis.storage.SessionRepository
+import com.kinesis.storage.SetDrafts
 import com.kinesis.sync.SyncQueue
 import com.kinesis.sync.SyncingSessionRepository
 import com.kinesis.ui.theme.OverlayState
@@ -20,6 +23,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
+import java.nio.file.Files
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -70,6 +75,10 @@ class LiveSetSaverTest {
     private var savedCallbacks = 0
     private val unreported = mutableListOf<String>()
 
+    private val draftDirectory: File = Files.createTempDirectory("live-drafts").toFile()
+    private val drafts = SetDrafts(draftDirectory, Runnable::run)
+    private fun draftFiles() = draftDirectory.listFiles { f -> f.name.endsWith(".json") }.orEmpty().toList()
+
     private fun saver(engine: LiveEngine, store: SessionRepository = repository) = LiveSetSaver(
         engine = engine,
         repository = store,
@@ -79,6 +88,7 @@ class LiveSetSaverTest {
         utcOffsetMinutes = 330,
         onSaved = { savedCallbacks++ },
         onUnreportedFailure = { unreported += it },
+        drafts = drafts,
     )
 
     private fun squatEngine() = LiveRepetitionEngine(ArchetypeProfiles.squat, LiveAnalysisBridge("squat") { }, NoSkeleton)
@@ -185,6 +195,39 @@ class LiveSetSaverTest {
 
         assertTrue(unreported.isEmpty())
         assertEquals(1, savedCallbacks)
+    }
+
+    /** DECISIONS.md P3-66: while the set runs its draft holds every completed record; a normal end removes it. */
+    @Test
+    fun the_draft_follows_the_set_and_is_removed_when_the_set_is_saved() = runBlocking {
+        val engine = squatEngine()
+        val saver = saver(engine)
+        engine.squat(reps = 2)
+
+        val draft = SessionExport.readSessions(draftFiles().single().readText()).single()
+        assertEquals("set-1", draft.sessionId)
+        assertEquals(
+            listOf(RepValidity.VALID, RepValidity.VALID),
+            (draft.sets.single() as RepetitionSetRecord).reps.map { it.validity },
+        )
+
+        saver.endSet().await()
+        assertTrue("the draft outlived the saved set", draftFiles().isEmpty())
+    }
+
+    /** A failed save keeps the draft, and the next launch's recovery saves it. */
+    @Test
+    fun a_failed_save_keeps_the_draft_and_recovery_saves_it() = runBlocking {
+        val engine = squatEngine()
+        val saver = saver(engine, FailingStore())
+        engine.squat(reps = 2)
+
+        assertTrue(saver.endSet().await() is SetSaveOutcome.Failed)
+        assertEquals(1, draftFiles().size)
+
+        val recovered = drafts.recover(local).single() as DraftRecovery.Recovered
+        assertEquals("set-1", recovered.session.sessionId)
+        assertEquals(2, (local.saved.single().sets.single() as RepetitionSetRecord).completedUnits)
     }
 
     /** The set ends at the tap: later frames reach neither the readout nor the skeleton. */

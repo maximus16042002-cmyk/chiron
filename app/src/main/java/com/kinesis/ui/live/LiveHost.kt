@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -39,6 +40,7 @@ import com.kinesis.diagnostics.switchablePoseModels
 import com.kinesis.pose.CameraFacing
 import com.kinesis.settings.AppSettings
 import com.kinesis.storage.SessionRepository
+import com.kinesis.storage.SetDrafts
 import com.kinesis.storage.utcOffsetMinutesAt
 import com.kinesis.ui.screens.LiveAnalysisScreen
 import com.kinesis.ui.screens.LiveHoldScreen
@@ -55,6 +57,12 @@ import kotlinx.coroutines.SupervisorJob
  * write completes, so the write cannot belong to it. DECISIONS.md P3-16.
  */
 private val setWrites = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+/**
+ * The signed-in account's draft of a set in progress - DECISIONS.md P3-66. Provided where the
+ * account's storage is opened; `null` (no draft kept) anywhere it is not.
+ */
+val LocalSetDrafts = staticCompositionLocalOf<SetDrafts?> { null }
 
 /**
  * The live destination - DECISIONS.md P3-15 and P3-16.
@@ -358,6 +366,7 @@ private fun LiveCameraSession(
             scaleType = PreviewView.ScaleType.FIT_CENTER
         }
     }
+    val drafts = LocalSetDrafts.current
     val saver = remember(engine) {
         val now = System.currentTimeMillis()
         LiveSetSaver(
@@ -369,6 +378,7 @@ private fun LiveCameraSession(
             utcOffsetMinutes = utcOffsetMinutesAt(now),
             onSaved = env.onSessionSaved,
             // The screen may be gone by now, so the toast, which outlives it (P3-63).
+            drafts = drafts,
             onUnreportedFailure = { reason ->
                 Toast.makeText(context.applicationContext, "Set not saved: $reason", Toast.LENGTH_LONG).show()
             },

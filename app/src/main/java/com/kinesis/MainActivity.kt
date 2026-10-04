@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -79,6 +80,7 @@ import com.kinesis.storage.PreferencesAccountRegistry
 import com.kinesis.storage.RoomBaselineRepository
 import com.kinesis.storage.RoomSessionRepository
 import com.kinesis.storage.SessionRepository
+import com.kinesis.storage.SetDrafts
 import com.kinesis.storage.utcOffsetMinutesAt
 import com.kinesis.sync.AuthFailure
 import com.kinesis.sync.AuthGateway
@@ -90,6 +92,7 @@ import com.kinesis.sync.SessionMerge
 import com.kinesis.sync.SyncingSessionRepository
 import com.kinesis.sync.WorkManagerSyncQueue
 import com.kinesis.ui.live.LiveDestination
+import com.kinesis.ui.live.LocalSetDrafts
 import com.kinesis.ui.screens.AuthScreen
 import com.kinesis.ui.screens.BackLink
 import com.kinesis.ui.screens.BottomBar
@@ -173,6 +176,8 @@ private class AccountStorage(
     val repository: SessionRepository,
     val merge: SessionMerge,
     val calibration: CalibrationCoordinator,
+    /** Drafts of sets in progress, so a set survives the app being killed (P3-66). */
+    val drafts: SetDrafts,
 ) {
     companion object {
         fun open(context: Context, auth: AuthGateway, uid: String): AccountStorage {
@@ -193,6 +198,7 @@ private class AccountStorage(
                 merge = SessionMerge(local, FirestoreSessionStore()),
                 // Baselines stay on this phone: nothing wraps this repository with sync. P3-22.
                 calibration = CalibrationCoordinator(RoomBaselineRepository(database.baselineDao())),
+                drafts = SetDrafts.forAccount(context, uid),
             )
         }
     }
@@ -241,16 +247,21 @@ private fun KinesisRoot(
             val storage = remember(current.uid) { openAccount(current.uid) }
             LaunchedEffect(current.uid) {
                 if (mergedFor != current.uid) {
+                    // A set the app was killed during, or whose save failed, is saved first, so the
+                    // merge below uploads it like any other (P3-66).
+                    runCatching { storage.drafts.recover(storage.repository) }
                     runCatching { storage.merge.pullMissing(current.uid) }
                     runCatching { storage.merge.pushMissing(current.uid) }
                     mergedFor = current.uid
                 }
             }
-            KinesisApp(storage.repository, contextSource, storage.calibration, current.uid, current.email, showIntroduction) {
-                scope.launch {
-                    auth.signOut()
-                    state = auth.state
-                    mergedFor = null
+            CompositionLocalProvider(LocalSetDrafts provides storage.drafts) {
+                KinesisApp(storage.repository, contextSource, storage.calibration, current.uid, current.email, showIntroduction) {
+                    scope.launch {
+                        auth.signOut()
+                        state = auth.state
+                        mergedFor = null
+                    }
                 }
             }
         }

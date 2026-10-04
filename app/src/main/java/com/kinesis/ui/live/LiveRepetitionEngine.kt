@@ -34,12 +34,19 @@ class LiveRepetitionEngine(
 ) : LiveEngine {
 
     private val reps = ArrayList<RepRecord>()
+
+    @Volatile
+    private var repetitionListener: ((String, List<RepRecord>) -> Unit)? = null
     // The app blocks scoring on a wrong camera view - CLAUDE.md section 10, DECISIONS.md P3-59.
     private val analysis = LiveRepetitionAnalysis(
         profile,
         policy,
         setupEnforcement = SetupEnforcement.BLOCK_SCORING,
-        onRepetition = { reps += it },
+        onRepetition = { record ->
+            reps += record
+            // Post-rep, a few times a minute: a copy for the draft (P3-66).
+            repetitionListener?.invoke(profile.id, reps.toList())
+        },
     )
 
     private var lastTimestampMs = Double.NaN
@@ -65,6 +72,10 @@ class LiveRepetitionEngine(
         publish()
         skeleton.clear()
         probe?.onNoPose(timestampMs)
+    }
+
+    override fun observeRepetitions(listener: (exerciseId: String, records: List<RepRecord>) -> Unit) {
+        repetitionListener = listener
     }
 
     @Synchronized

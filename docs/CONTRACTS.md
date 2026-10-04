@@ -288,6 +288,11 @@ Resolve by inspecting MM-Fit's label file once downloaded, record the decision i
 Guards: a file format that P7's harness and any other reader rely on, changing
 silently.
 
+**Read back as well as written (P3-66).** `SessionExport.readSessions` reads the
+JSON's sessions, format versions 1 and 2, and refuses any other format or version.
+What it reads exports again to the same bytes. The app writes a set in progress as
+a one-session export draft (`set-drafts/`), so a set survives the app being killed.
+
 `SessionExport`, in `commonMain`, turns a list of `SessionRecord`s into one JSON
 document and three CSV tables. The app writes them to files and hands them to
 the share sheet; P7's harness can call it directly on the JVM.

@@ -2,6 +2,7 @@ package com.kinesis.core.analysis.export
 
 import com.kinesis.core.analysis.EngineJson
 import com.kinesis.core.analysis.JsonNumber
+import com.kinesis.core.analysis.JsonText
 import com.kinesis.core.analysis.calibration.BaselineJson
 import com.kinesis.core.domain.calibration.CalibrationBaseline
 import com.kinesis.core.domain.rep.HoldRecord
@@ -64,6 +65,47 @@ object SessionExport {
             raw("sessions", sessions.joinToString(",", "[", "]") { session(it) })
             raw("baselines", baselines.joinToString(",", "[", "]") { BaselineJson.write(it) })
         }
+
+    /**
+     * The sessions of a document [json] wrote - DECISIONS.md P3-66, for the draft of a set in
+     * progress. The inverse of [json]: what it reads exports again to the same bytes. Version 1
+     * (no form summaries) and 2 are read; anything else, or a document that is not an export, is
+     * refused with [IllegalArgumentException], never guessed at. Baselines are not read.
+     */
+    fun readSessions(json: String): List<SessionRecord> {
+        val document = JsonText.obj(JsonText.parse(json), "an export")
+        require(JsonText.string(document, "format") == FORMAT) { "not a $FORMAT document" }
+        val version = JsonText.int(document, "formatVersion")
+        require(version in 1..FORMAT_VERSION) { "export format version $version is not one this reader knows" }
+        return list(document, "sessions").map(::readSession)
+    }
+
+    private fun readSession(value: Any?): SessionRecord {
+        val map = JsonText.obj(value, "a session")
+        return SessionRecord(
+            sessionId = JsonText.string(map, "sessionId"),
+            startedAtEpochMs = JsonText.double(map, "startedAtEpochMs"),
+            utcOffsetMinutes = JsonText.int(map, "utcOffsetMinutes"),
+            sets = list(map, "sets").map(::readSet),
+        )
+    }
+
+    private fun readSet(value: Any?): SetRecord {
+        val map = JsonText.obj(value, "a set")
+        val exerciseId = JsonText.string(map, "exerciseId")
+        val startedAt = JsonText.double(map, "startedAtEpochMs")
+        return when (val mode = JsonText.string(map, "mode")) {
+            "repetition" -> RepetitionSetRecord(exerciseId, startedAt, list(map, "reps").map(EngineJson::readRep))
+            "hold" -> HoldSetRecord(exerciseId, startedAt, list(map, "holds").map(EngineJson::readHold))
+            else -> throw IllegalArgumentException("unknown set mode \"$mode\"")
+        }
+    }
+
+    private fun list(map: Map<String, Any?>, key: String): List<Any?> {
+        val value = JsonText.field(map, key)
+        require(value is List<*>) { "\"$key\" is not an array" }
+        return value
+    }
 
     /** The same history as three flat tables. The 64-point curves are in the JSON only. */
     fun csv(sessions: List<SessionRecord>): ExportCsv {

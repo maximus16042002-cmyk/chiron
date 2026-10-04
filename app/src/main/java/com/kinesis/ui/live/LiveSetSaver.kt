@@ -1,8 +1,10 @@
 package com.kinesis.ui.live
 
+import com.kinesis.core.domain.session.RepetitionSetRecord
 import com.kinesis.core.domain.session.SessionRecord
 import com.kinesis.storage.SessionRecorder
 import com.kinesis.storage.SessionRepository
+import com.kinesis.storage.SetDrafts
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -55,6 +57,12 @@ sealed interface SetSaveOutcome {
  * goes to [onUnreportedFailure], which the app shows as a toast. A watch, once
  * taken, is kept, so a failure is never reported twice.
  *
+ * ### A draft while the set runs - DECISIONS.md P3-66
+ *
+ * With [drafts], every completed repetition record replaces the draft with the
+ * session ending the set then would save. A normal end discards it; a failed
+ * save keeps it, for [SetDrafts.recover] to retry when the account next opens.
+ *
  * Call from the main thread.
  */
 class LiveSetSaver(
@@ -67,7 +75,24 @@ class LiveSetSaver(
     private val onSaved: () -> Unit,
     /** A failed write no screen was watching, with its reason. Called on [scope]. */
     private val onUnreportedFailure: (String) -> Unit = {},
+    /** This account's draft of the set in progress (P3-66); `null` keeps none. */
+    private val drafts: SetDrafts? = null,
 ) {
+
+    init {
+        if (drafts != null) {
+            engine.observeRepetitions { exerciseId, records ->
+                drafts.write(
+                    SessionRecord(
+                        sessionId = sessionId,
+                        startedAtEpochMs = startedAtEpochMs,
+                        utcOffsetMinutes = utcOffsetMinutes,
+                        sets = listOf(RepetitionSetRecord(exerciseId, startedAtEpochMs, records)),
+                    ),
+                )
+            }
+        }
+    }
 
     private var outcome: Deferred<SetSaveOutcome>? = null
 
@@ -81,7 +106,10 @@ class LiveSetSaver(
         val recorder = SessionRecorder(sessionId, startedAtEpochMs, utcOffsetMinutes, repository)
         val closed = engine.closeSetInto(recorder, startedAtEpochMs)
         val write = scope.async {
-            if (!closed) return@async SetSaveOutcome.NothingToSave
+            if (!closed) {
+                drafts?.discard(sessionId)
+                return@async SetSaveOutcome.NothingToSave
+            }
             val session = try {
                 recorder.finish()
             } catch (error: CancellationException) {
@@ -91,7 +119,12 @@ class LiveSetSaver(
                 val reason = error.message ?: "the local database refused the write"
                 if (!watched) onUnreportedFailure(reason)
                 return@async SetSaveOutcome.Failed(reason)
-            } ?: return@async SetSaveOutcome.NothingToSave
+            } ?: run {
+                drafts?.discard(sessionId)
+                return@async SetSaveOutcome.NothingToSave
+            }
+            // Saved: the draft is no longer needed. A failure above returned first and kept it.
+            drafts?.discard(sessionId)
             onSaved()
             SetSaveOutcome.Saved(session)
         }

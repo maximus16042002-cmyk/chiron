@@ -12590,6 +12590,50 @@ partial records, which is its own change.
     aside;
   - drafts of two accounts never mix.
 
+### Result (2026-10-05)
+
+**One change to the design, made while building it: one draft file per set, not per account.**
+- With a single file per account, switching camera mid-set has a race. Switching ends one set and
+  starts another at once, and the old set's save, finishing late, would discard the new set's
+  fresh draft.
+- Drafts are now `set-drafts/<account database name>/<session id>.json`. Discarding names its
+  session, and recovery takes every draft in the account's directory.
+- A directory per account, rather than a file-name prefix, matters for P3-60's names:
+  `kinesis` is a prefix of `kinesis-<uid>`, so a prefix would have let the first account read the
+  others' drafts.
+
+**Built:**
+- **Core:** `SessionExport.readSessions`, reading versions 1 and 2, and refusing anything else.
+- **App:**
+  - `SetDrafts`: write, discard and recover, on one background writer, with temporary-file
+    renames;
+  - `LiveEngine.observeRepetitions`, a no-op for holds;
+  - `LiveSetSaver`, which keeps the draft and discards it after a save or nothing to save;
+  - `MainActivity`: `AccountStorage.drafts`, recovery before the merge on opening an account, and
+    `LocalSetDrafts` provided to the live screen.
+
+**Tests:**
+- `SessionExportReadTest`: 5, on every target. The export fixture reads back and exports again
+  byte for byte.
+- `SetDraftsTest`: 6.
+- `LiveSetSaverTest`: 2 more, using the real engine and synthetic squats.
+
+**Mutation checks, 6 of 6 caught:**
+- recovery saving a session already stored;
+- one file for every set;
+- no discard after a save;
+- a discard after a failed save;
+- the engine never reporting repetitions;
+- the reader accepting any format version.
+
+**The full suite:** 3,137 test executions, 0 failed (`core/analysis` 628 JVM, 617 JS, 617 debug,
+617 release; `:app` 240 debug and 228 release).
+
+**Unseen on the phone.** The check: start a set, do a few repetitions, force-stop the app from
+Settings, and open it again. The set should appear in history with the repetitions done.
+
+**Next entry: P3-67.**
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

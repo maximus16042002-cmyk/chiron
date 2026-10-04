@@ -2,6 +2,7 @@ package com.kinesis.ui.live
 
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
+import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.storage.SessionRecorder
 import com.kinesis.ui.theme.OverlayState
 
@@ -34,4 +35,12 @@ interface LiveEngine {
      *   the camera never saw anyone. A set nobody was seen in is not a set.
      */
     fun closeSetInto(recorder: SessionRecorder, startedAtEpochMs: Double): Boolean
+
+    /**
+     * Calls [listener] with the exercise and every record so far, each time a repetition record
+     * completes - DECISIONS.md P3-66, for the draft that lets a set survive the app being killed.
+     * Called on the camera thread, so the listener must hand any real work elsewhere. A hold has
+     * no record until it ends, so a hold engine never calls it.
+     */
+    fun observeRepetitions(listener: (exerciseId: String, records: List<RepRecord>) -> Unit) {}
 }
