@@ -43,6 +43,7 @@ import com.kinesis.core.domain.rep.RepValidity
 import com.kinesis.core.domain.session.HoldSetRecord
 import com.kinesis.core.domain.session.RepetitionSetRecord
 import com.kinesis.core.domain.session.SessionRecord
+import com.kinesis.ui.theme.Accent
 import com.kinesis.ui.theme.Attention
 import com.kinesis.ui.theme.Ink
 import com.kinesis.ui.theme.InkFaint
@@ -317,6 +318,8 @@ fun SetSummaryScreen(
     session: SessionRecord,
     baselineTitle: String?,
     results: List<AnalysisResult>,
+    /** The records this set set, in the core's words (`Records.newIn`, P3-49); empty if none. */
+    records: List<String>,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -352,6 +355,17 @@ fun SetSummaryScreen(
                         "No calibration yet: calibrate this exercise to see your usual numbers beside these."
                     },
                 )
+            }
+        }
+        if (records.isNotEmpty()) {
+            item {
+                KCard {
+                    Text("★ New personal record", style = MaterialTheme.typography.titleMedium, color = Accent)
+                    for (record in records) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(record, style = MaterialTheme.typography.bodyMedium, color = Ink)
+                    }
+                }
             }
         }
         items(results) { result ->

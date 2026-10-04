@@ -41,6 +41,12 @@ data class ExerciseSummary(
     /** Largest range of motion seen, within each side. */
     val bestRangeOfMotion: BilateralSignal,
 
+    /** The most repetitions counted in one set; 0 if none ever was - DECISIONS.md P3-49. */
+    val mostRepsInASet: Int,
+
+    /** The longest completed hold, or [Double.NaN] if none ever completed - P3-49. */
+    val longestHoldMs: Double,
+
     val lastPerformedDay: LocalDay?,
 )
 
@@ -103,24 +109,8 @@ object Dashboard {
             )
         }
 
-        val accumulators = LinkedHashMap<String, ExerciseAccumulator>()
-        for (session in sessions) {
-            val day = session.localDay
-            for (set in session.sets) {
-                val accumulator = accumulators.getOrPut(set.exerciseId) {
-                    ExerciseAccumulator(set.exerciseId)
-                }
-                accumulator.add(set, day)
-            }
-        }
-
         val days = sessions.map { it.localDay }
-        val perExercise = accumulators.values
-            .map { it.summarise() }
-            .sortedWith(
-                compareByDescending<ExerciseSummary> { it.lastPerformedDay?.dayNumber ?: Int.MIN_VALUE }
-                    .thenBy { it.exerciseId },
-            )
+        val perExercise = perExercise(sessions)
 
         return DashboardSummary(
             streak = streak,
@@ -131,6 +121,30 @@ object Dashboard {
             lastDay = days.maxByOrNull { it.dayNumber },
             perExercise = perExercise,
         )
+    }
+
+    /**
+     * One summary per exercise in [sessions], most recently performed first. The records
+     * (`Records.newIn`) compare two of these, so a record and the Progress page read the same
+     * numbers.
+     */
+    fun perExercise(sessions: List<SessionRecord>): List<ExerciseSummary> {
+        val accumulators = LinkedHashMap<String, ExerciseAccumulator>()
+        for (session in sessions) {
+            val day = session.localDay
+            for (set in session.sets) {
+                val accumulator = accumulators.getOrPut(set.exerciseId) {
+                    ExerciseAccumulator(set.exerciseId)
+                }
+                accumulator.add(set, day)
+            }
+        }
+        return accumulators.values
+            .map { it.summarise() }
+            .sortedWith(
+                compareByDescending<ExerciseSummary> { it.lastPerformedDay?.dayNumber ?: Int.MIN_VALUE }
+                    .thenBy { it.exerciseId },
+            )
     }
 
     /**
@@ -148,6 +162,8 @@ object Dashboard {
         var validRepCount: Int = 0
         var totalHoldMs: Double = 0.0
         var lastDay: LocalDay? = null
+        var mostRepsInASet: Int = 0
+        var longestHoldMs: Double = Double.NaN
 
         private var leftSum: Double = 0.0
         private var leftCount: Int = 0
@@ -163,14 +179,20 @@ object Dashboard {
             if (previous == null || previous < day) lastDay = day
 
             when (set) {
-                is RepetitionSetRecord -> for (rep in set.validReps) {
-                    validRepCount++
-                    addLeft(rep.rangeOfMotion.left)
-                    addRight(rep.rangeOfMotion.right)
+                is RepetitionSetRecord -> {
+                    var inThisSet = 0
+                    for (rep in set.validReps) {
+                        validRepCount++
+                        inThisSet++
+                        addLeft(rep.rangeOfMotion.left)
+                        addRight(rep.rangeOfMotion.right)
+                    }
+                    if (inThisSet > mostRepsInASet) mostRepsInASet = inThisSet
                 }
 
                 is HoldSetRecord -> for (hold in set.validHolds) {
                     totalHoldMs += hold.totalHoldMs
+                    if (longestHoldMs.isNaN() || hold.totalHoldMs > longestHoldMs) longestHoldMs = hold.totalHoldMs
                 }
             }
         }
@@ -205,6 +227,8 @@ object Dashboard {
                 right = if (rightCount == 0) Double.NaN else rightSum / rightCount,
             ),
             bestRangeOfMotion = BilateralSignal(left = leftBest, right = rightBest),
+            mostRepsInASet = mostRepsInASet,
+            longestHoldMs = longestHoldMs,
             lastPerformedDay = lastDay,
         )
     }

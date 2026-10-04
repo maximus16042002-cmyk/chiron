@@ -1,5 +1,6 @@
 package com.kinesis.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -21,9 +22,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.kinesis.core.analysis.history.DashboardSummary
 import com.kinesis.core.analysis.history.DayActivity
+import com.kinesis.core.analysis.history.WeekProgress
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.core.domain.session.LocalDay
 import com.kinesis.core.domain.session.SessionRecord
@@ -32,10 +38,59 @@ import com.kinesis.ui.theme.Ink
 import com.kinesis.ui.theme.InkFaint
 import com.kinesis.ui.theme.InkSecondary
 import com.kinesis.ui.theme.OnAccent
+import com.kinesis.ui.theme.Raised
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+
+/**
+ * This week's active days as a ring against the goal - DECISIONS.md P3-49. The count is the core's;
+ * the ring is its picture, with the numbers beside it in words.
+ */
+@Composable
+private fun GoalRing(progress: WeekProgress) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(72.dp), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.fillMaxSize()) {
+                val stroke = 8.dp.toPx()
+                val inset = stroke / 2
+                val arcSize = Size(size.width - stroke, size.height - stroke)
+                drawArc(Raised, 0f, 360f, false, topLeft = Offset(inset, inset), size = arcSize, style = Stroke(stroke))
+                val fraction = (progress.activeDays.toFloat() / progress.goalDays).coerceIn(0f, 1f)
+                if (fraction > 0f) {
+                    drawArc(
+                        Accent, -90f, 360f * fraction, false,
+                        topLeft = Offset(inset, inset), size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round),
+                    )
+                }
+            }
+            Text(
+                progress.activeDays.toString() + "/" + progress.goalDays,
+                style = MaterialTheme.typography.titleMedium,
+                color = Ink,
+            )
+        }
+        Column(Modifier.padding(start = 16.dp)) {
+            Text("This week", style = MaterialTheme.typography.titleMedium, color = Ink)
+            Text(
+                progress.activeDays.toString() + " of " + progress.goalDays + if (progress.goalDays == 1) " day" else " days",
+                style = MaterialTheme.typography.bodyMedium,
+                color = InkSecondary,
+            )
+            val left = progress.goalDays - progress.activeDays
+            Text(
+                when {
+                    progress.met -> "✓ Goal reached"
+                    left == 1 -> "1 more day to your goal"
+                    else -> "$left more days to your goal"
+                },
+                style = MaterialTheme.typography.labelLarge,
+                color = if (progress.met) Accent else InkSecondary,
+            )
+        }
+    }
+}
 
 /**
  * Seven days in a row, one mark each: filled where work was completed, a snowflake where a freeze
@@ -89,6 +144,8 @@ fun HomeScreen(
     summary: DashboardSummary,
     /** The last seven days, oldest first, ending today - `Streaks.activity`. */
     week: List<DayActivity>,
+    /** This week's active days against the goal - `WeeklyGoal.progress`; `null` while loading. */
+    weekGoal: WeekProgress?,
     /** The most recent session, or `null` before the first. */
     lastSession: SessionRecord?,
     /** The exercise of the last set recorded, offered as "continue". */
@@ -142,6 +199,10 @@ fun HomeScreen(
         if (lastSession != null) {
             item { SectionLabel("Last session") }
             item { SessionCard(lastSession, onClick = { onOpenSession(lastSession) }) }
+        }
+
+        if (weekGoal != null) {
+            item { KCard { GoalRing(weekGoal) } }
         }
 
         if (week.isNotEmpty()) {

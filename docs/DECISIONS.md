@@ -11006,6 +11006,58 @@ executions, 0 failed, 0 skipped**:
 
 Not yet on the phone.
 
+### Result — step 2, records, the weekly goal, achievements
+
+*2026-10-04.*
+
+**In the core** (`history/`), each classified as post-rep in `SharedCoreSourceGuardTest`:
+- **`Dashboard`:**
+  - each exercise's summary gains `mostRepsInASet` and `longestHoldMs`;
+  - the per-exercise pass is public as `Dashboard.perExercise`, so the records and the Progress
+    page read the same numbers.
+- **`Records.newIn(before, session)`:**
+  - a set's most repetitions counted, longest completed hold, and largest range of motion, **each
+    side apart**, when strictly larger than everything before it for the same exercise;
+  - a first set sets none, and an equal value is not a record;
+  - the sentence is composed in the core and names both numbers: "Largest range of motion on your
+    left side: 104°. Your largest before was 100°." No "best", "better" or "improved".
+- **`WeeklyGoal`:**
+  - active days this week, by the streak's rule, against a goal of 1–7 days;
+  - weekdays are numbered as `java.util.Calendar` numbers them, so the platform passes the locale's
+    first day straight in;
+  - `weekday` is a floor, correct before 1970.
+- **`Achievements`:** six, from the dashboard's summary.
+  - The first workout.
+  - 7 and 30 days in a row, by the **longest** streak, so they are kept.
+  - 100 and 1,000 repetitions.
+  - An hour held.
+
+  Progress is capped at the target.
+
+**Tests, on JVM and JS:**
+- `RecordsTest` (9), `WeeklyGoalTest` (6), `AchievementsTest` (6), sharing one fixture file;
+- **mutations: 3 of 3 caught** (`local/p3-49-records-mutations.log`):
+
+| Planted | Tests that failed |
+|---|---|
+| equalling counts as a record | 3 |
+| a broken hold counts | 2 |
+| the two sides averaged | 2 |
+
+**The pages:**
+- **Home:** a ring for this week, "2/3", with "1 more day to your goal" or "✓ Goal reached".
+- **Progress:**
+  - each exercise adds "Most counted in one set" and "Longest hold";
+  - "Achievements" lists all six, ★ done or ☆ with "64 of 100 repetitions";
+  - the "best" range label is now "largest", as the design said.
+- **The set summary:** "★ New personal record" and the core's sentences, when the set set one.
+- **Profile:** "Weekly goal", with − and + (1–7, 3 by default).
+
+**Settings** moved into one class, `AppSettings` (SharedPreferences, file `kinesis`): the onboarding
+flag and the weekly goal.
+
+**Suite:** 2,675 executions, 0 failed (2,591 plus these 21 on four targets). Not yet on the phone.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

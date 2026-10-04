@@ -6,10 +6,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,16 +33,35 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import com.kinesis.calibration.CalibrationCoordinator
+import com.kinesis.core.analysis.calibration.CalibrationGuide
+import com.kinesis.core.analysis.calibration.CalibrationKey
+import com.kinesis.core.analysis.calibration.CalibrationOutcome
+import com.kinesis.core.analysis.history.Achievement
+import com.kinesis.core.analysis.history.Achievements
 import com.kinesis.core.analysis.history.Dashboard
 import com.kinesis.core.analysis.history.DashboardSummary
+import com.kinesis.core.analysis.history.DayActivity
+import com.kinesis.core.analysis.history.Records
+import com.kinesis.core.analysis.history.Streaks
+import com.kinesis.core.analysis.history.WeekProgress
+import com.kinesis.core.analysis.history.WeeklyGoal
+import com.kinesis.core.analysis.profile.ExerciseLibrary
+import com.kinesis.core.analysis.profile.ExerciseVariant
+import com.kinesis.core.domain.calibration.CalibrationBaseline
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.core.domain.session.LocalDay
+import com.kinesis.core.domain.session.SessionRecord
+import com.kinesis.export.ExportFiles
 import com.kinesis.health.ActivityContextPermissions
 import com.kinesis.health.ActivityContextResult
 import com.kinesis.health.ActivityContextSource
 import com.kinesis.health.HealthConnectActivityContextSource
 import com.kinesis.health.rememberHealthPermissionLauncher
+import com.kinesis.licenses.ThirdPartyNotices
+import com.kinesis.settings.AppSettings
 import com.kinesis.storage.KinesisDatabase
+import com.kinesis.storage.RoomBaselineRepository
 import com.kinesis.storage.RoomSessionRepository
 import com.kinesis.storage.SessionRepository
 import com.kinesis.storage.utcOffsetMinutesAt
@@ -53,52 +74,38 @@ import com.kinesis.sync.FirestoreSessionStore
 import com.kinesis.sync.SessionMerge
 import com.kinesis.sync.SyncingSessionRepository
 import com.kinesis.sync.WorkManagerSyncQueue
-import com.kinesis.licenses.ThirdPartyNotices
 import com.kinesis.ui.live.LiveDestination
-import com.kinesis.ui.screens.LicencesScreen
 import com.kinesis.ui.screens.AuthScreen
-import com.kinesis.ui.screens.ExerciseSelectionScreen
+import com.kinesis.ui.screens.BackLink
+import com.kinesis.ui.screens.BottomBar
 import com.kinesis.ui.screens.CalibrationIntroScreen
 import com.kinesis.ui.screens.CalibrationResultScreen
 import com.kinesis.ui.screens.ExerciseScreen
+import com.kinesis.ui.screens.ExerciseSelectionScreen
+import com.kinesis.ui.screens.HomeScreen
+import com.kinesis.ui.screens.KCard
+import com.kinesis.ui.screens.LicencesScreen
+import com.kinesis.ui.screens.Note
+import com.kinesis.ui.screens.OnboardingScreen
+import com.kinesis.ui.screens.PageTitle
+import com.kinesis.ui.screens.PrimaryButton
+import com.kinesis.ui.screens.ProfileScreen
+import com.kinesis.ui.screens.ProgressScreen
+import com.kinesis.ui.screens.SessionDetailScreen
 import com.kinesis.ui.screens.SetSummaryScreen
-import com.kinesis.calibration.CalibrationCoordinator
-import com.kinesis.core.analysis.calibration.CalibrationGuide
-import com.kinesis.core.analysis.calibration.CalibrationKey
-import com.kinesis.core.analysis.calibration.CalibrationOutcome
-import com.kinesis.core.analysis.profile.ExerciseLibrary
-import com.kinesis.core.analysis.profile.ExerciseVariant
-import com.kinesis.core.domain.calibration.CalibrationBaseline
-import com.kinesis.core.domain.session.SessionRecord
-import com.kinesis.storage.RoomBaselineRepository
+import com.kinesis.ui.screens.Tab
+import com.kinesis.ui.screens.monthStart
 import com.kinesis.ui.theme.KinesisTheme
-import com.kinesis.export.ExportFiles
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import com.kinesis.ui.theme.Void
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Box
-import com.kinesis.ui.screens.Tab
-import com.kinesis.ui.screens.BottomBar
-import com.kinesis.ui.screens.HomeScreen
-import com.kinesis.ui.screens.ProgressScreen
-import com.kinesis.ui.screens.SessionDetailScreen
-import com.kinesis.ui.screens.ProfileScreen
-import com.kinesis.ui.screens.OnboardingScreen
-import com.kinesis.ui.screens.PageTitle
-import com.kinesis.ui.screens.KCard
-import com.kinesis.ui.screens.Note
-import com.kinesis.ui.screens.PrimaryButton
-import com.kinesis.ui.theme.Void
-import com.kinesis.core.analysis.history.Streaks
-import com.kinesis.core.analysis.history.DayActivity
-import com.kinesis.ui.screens.monthStart
-import com.kinesis.ui.screens.BackLink
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * The app shell - DECISIONS.md P3-12, given five pages in P3-48.
@@ -161,17 +168,18 @@ private fun KinesisRoot(
     calibration: CalibrationCoordinator,
 ) {
     // DECISIONS.md P3-48: three short pages on the first launch, and again on request.
-    val preferences = LocalContext.current.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
-    var introduced by remember { mutableStateOf(preferences.getBoolean(INTRODUCED, false)) }
+    val appContext = LocalContext.current.applicationContext
+    val settings = remember(appContext) { AppSettings(appContext) }
+    var introduced by remember { mutableStateOf(settings.introduced) }
     if (!introduced) {
         OnboardingScreen(onDone = {
-            preferences.edit().putBoolean(INTRODUCED, true).apply()
+            settings.introduced = true
             introduced = true
         })
         return
     }
     val showIntroduction: () -> Unit = {
-        preferences.edit().putBoolean(INTRODUCED, false).apply()
+        settings.introduced = false
         introduced = false
     }
 
@@ -262,6 +270,11 @@ private fun KinesisApp(
     var summary: DashboardSummary? by remember { mutableStateOf(null) }
     var week: List<DayActivity> by remember { mutableStateOf(emptyList()) }
     var calendar: List<DayActivity> by remember { mutableStateOf(emptyList()) }
+    var weekGoal: WeekProgress? by remember { mutableStateOf(null) }
+    var achievements: List<Achievement> by remember { mutableStateOf(emptyList()) }
+    val settings = LocalContext.current.let { remember(it) { AppSettings(it) } }
+    var goalDays by remember { mutableStateOf(settings.weeklyGoalDays) }
+    val firstWeekday = remember { Calendar.getInstance().firstDayOfWeek }
     // The signed-in user's baselines, by calibration id. Re-read with the history.
     var baselines: Map<String, CalibrationBaseline> by remember(uid) { mutableStateOf(emptyMap()) }
     var context: ActivityContextResult? by remember { mutableStateOf(null) }
@@ -282,6 +295,8 @@ private fun KinesisApp(
         week = Streaks.activity(all, today, from = today.plusDays(-6), to = today)
         val firstDay = all.minOfOrNull { it.localDay.dayNumber }?.let { LocalDay(it) } ?: today
         calendar = Streaks.activity(all, today, from = monthStart(minOf(firstDay, today)), to = today)
+        weekGoal = WeeklyGoal.progress(all, today, firstWeekday, goalDays)
+        achievements = Achievements.of(all, today)
         baselines = calibration.baselines(uid)
         context = contextSource.readDay(today, offsetMinutes)
     }
@@ -352,6 +367,7 @@ private fun KinesisApp(
                     HomeScreen(
                         summary = shown,
                         week = week,
+                        weekGoal = weekGoal,
                         lastSession = last,
                         quickStart = last?.sets?.lastOrNull()?.exerciseId?.let { id -> ExerciseLibrary.all.firstOrNull { it.id == id } },
                         onQuickStart = { startTraining(it) },
@@ -367,6 +383,7 @@ private fun KinesisApp(
 
                 Tab.TRAIN -> TrainPage(
                     destination = current,
+                    history = sessions,
                     repository = repository,
                     calibration = calibration,
                     uid = uid,
@@ -385,6 +402,7 @@ private fun KinesisApp(
                         sessions = sessions,
                         calendar = calendar,
                         today = today,
+                        achievements = achievements,
                         onOpenSession = { openSession = it },
                     )
                 }
@@ -402,6 +420,12 @@ private fun KinesisApp(
                         exporting = exporting,
                         onOpenLicences = { showLicences = true },
                         onShowIntroduction = onShowIntroduction,
+                        goalDays = goalDays,
+                        onGoalDays = {
+                            settings.weeklyGoalDays = it
+                            goalDays = settings.weeklyGoalDays
+                            reloadToken++
+                        },
                     )
                 }
             }
@@ -447,6 +471,7 @@ private fun TrainPage(
     onBack: () -> Unit,
     onNavigate: (Destination) -> Unit,
     onChanged: () -> Unit,
+    history: List<SessionRecord>,
 ) {
     // The old text bar kept every training screen clear of the status bar; with the bar gone, the
     // page does it. Edge-to-edge is enforced at targetSdk 35, so the background goes under the clock.
@@ -463,7 +488,7 @@ private fun TrainPage(
                 BackLink(if (destination is Destination.Exercise) "Workouts" else profileOf(destination).displayName, onBack)
             }
             Box(Modifier.weight(1f)) {
-                TrainFlow(destination, repository, calibration, uid, baselines, onChoose, onNavigate, onChanged)
+                TrainFlow(destination, repository, calibration, uid, baselines, onChoose, onNavigate, onChanged, history)
             }
         }
     }
@@ -479,6 +504,8 @@ private fun TrainFlow(
     onChoose: () -> Unit,
     onNavigate: (Destination) -> Unit,
     onChanged: () -> Unit,
+    /** Every stored session, for the records a finished set sets (P3-49). */
+    history: List<SessionRecord>,
 ) {
     when (val current = destination) {
         null -> Column(
@@ -555,11 +582,18 @@ private fun TrainFlow(
             val results = remember(current, baseline) {
                 calibration.analyseSet(current.profile, current.session, baseline)
             }
+            // Against everything before this set: the set itself is excluded by id, whether or
+            // not the history has been re-read since it was saved.
+            val records = remember(current, history) {
+                Records.newIn(history.filter { it.sessionId != current.session.sessionId }, current.session)
+                    .map { it.displayText }
+            }
             SetSummaryScreen(
                 profile = current.profile,
                 session = current.session,
                 baselineTitle = baseline?.let { displayNameOf(it.calibrationId).uppercase() },
                 results = results,
+                records = records,
                 onDone = { onNavigate(Destination.Exercise(current.profile)) },
             )
         }
@@ -584,12 +618,6 @@ private fun LicencesPage(onBack: () -> Unit) {
         LicencesScreen(apacheLicenceText = licence, bsdTexts = bsd)
     }
 }
-
-/** The app's own small settings: SharedPreferences, no new dependency (P3-48). */
-private const val PREFERENCES = "kinesis"
-
-/** Whether the first-launch pages have been seen. */
-private const val INTRODUCED = "introduced"
 
 /** The cache folder the export is written to; `res/xml/export_paths.xml` shares only this. */
 private const val EXPORT_DIRECTORY = "exports"

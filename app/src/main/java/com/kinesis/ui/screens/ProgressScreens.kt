@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.kinesis.core.analysis.history.Achievement
 import com.kinesis.core.analysis.history.DashboardSummary
 import com.kinesis.core.analysis.history.DayActivity
 import com.kinesis.core.analysis.profile.ExerciseLibrary
@@ -37,6 +38,7 @@ import com.kinesis.core.domain.session.LocalDay
 import com.kinesis.core.domain.session.RepetitionSetRecord
 import com.kinesis.core.domain.session.SessionRecord
 import com.kinesis.core.domain.session.SetRecord
+import com.kinesis.ui.theme.Accent
 import com.kinesis.ui.theme.Attention
 import com.kinesis.ui.theme.Ink
 import com.kinesis.ui.theme.InkFaint
@@ -62,6 +64,8 @@ fun ProgressScreen(
     /** Every day from the first session's month to today - `Streaks.activity`. */
     calendar: List<DayActivity>,
     today: LocalDay,
+    /** `Achievements.of` - P3-49. */
+    achievements: List<Achievement>,
     onOpenSession: (SessionRecord) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -111,9 +115,18 @@ fun ProgressScreen(
                         Spacer(Modifier.height(8.dp))
                         SidesLine("Range of motion, mean", exercise.meanRangeOfMotion.left, exercise.meanRangeOfMotion.right)
                         SidesLine("Range of motion, largest", exercise.bestRangeOfMotion.left, exercise.bestRangeOfMotion.right)
+                        RecordLine("Most counted in one set", exercise.mostRepsInASet.toString())
+                    }
+                    if (exercise.longestHoldMs.isFinite()) {
+                        RecordLine("Longest hold", seconds(exercise.longestHoldMs))
                     }
                 }
             }
+        }
+
+        if (achievements.isNotEmpty()) {
+            item { SectionLabel("Achievements") }
+            item { KCard { for (achievement in achievements) AchievementLine(achievement) } }
         }
 
         item {
@@ -246,6 +259,35 @@ private fun HoldLine(hold: HoldRecord) {
 @Composable
 private fun androidx.compose.foundation.layout.RowScope.Cell(text: String, weight: Float, color: androidx.compose.ui.graphics.Color) {
     Text(text, style = MaterialTheme.typography.bodySmall, color = color, modifier = Modifier.weight(weight))
+}
+
+@Composable
+private fun RecordLine(label: String, value: String) {
+    Row(Modifier.fillMaxWidth()) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = InkSecondary, modifier = Modifier.weight(1f))
+        Text(value, style = MaterialTheme.typography.bodySmall, color = Ink)
+    }
+}
+
+/** An achievement: a mark, its name, and how far - done or not shown by the mark's shape, not colour alone. */
+@Composable
+private fun AchievementLine(achievement: Achievement) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            if (achievement.achieved) "★" else "☆",
+            style = MaterialTheme.typography.titleLarge,
+            color = if (achievement.achieved) Accent else InkFaint,
+            modifier = Modifier.width(36.dp),
+        )
+        Column(Modifier.weight(1f)) {
+            Text(achievement.title, style = MaterialTheme.typography.titleMedium, color = if (achievement.achieved) Ink else InkSecondary)
+            Text(
+                if (achievement.achieved) "Done" else achievement.progressText,
+                style = MaterialTheme.typography.bodySmall,
+                color = InkSecondary,
+            )
+        }
+    }
 }
 
 @Composable

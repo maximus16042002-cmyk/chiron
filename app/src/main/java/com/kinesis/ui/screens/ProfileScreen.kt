@@ -1,21 +1,50 @@
 package com.kinesis.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.kinesis.core.domain.calibration.CalibrationBaseline
 import com.kinesis.health.ActivityContextResult
 import com.kinesis.ui.theme.Ink
+import com.kinesis.ui.theme.InkFaint
+import com.kinesis.ui.theme.Raised
+
+/** A round − or + button. */
+@Composable
+internal fun Stepper(glyph: String, label: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .background(Raised)
+            .let { if (enabled) it.clickable(onClick = onClick) else it }
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(glyph, style = MaterialTheme.typography.titleLarge, color = if (enabled) Ink else InkFaint)
+    }
+}
 
 /**
  * Profile: the account, calibrations, data and the small print - DECISIONS.md P3-48.
@@ -36,6 +65,9 @@ fun ProfileScreen(
     exporting: Boolean,
     onOpenLicences: () -> Unit,
     onShowIntroduction: () -> Unit,
+    /** The weekly goal in active days, 1 to 7 - P3-49. */
+    goalDays: Int,
+    onGoalDays: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -54,6 +86,25 @@ fun ProfileScreen(
                 Note("Your training goes to this account. Signing out keeps what is on this phone.")
                 Spacer(Modifier.height(12.dp))
                 SecondaryButton("Sign out", onClick = onSignOut)
+            }
+        }
+
+        item { SectionLabel("Weekly goal") }
+        item {
+            KCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            goalDays.toString() + if (goalDays == 1) " day a week" else " days a week",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Ink,
+                        )
+                        Note("A day counts when a repetition or a hold is completed, as for the streak.")
+                    }
+                    Stepper("−", "Fewer days", enabled = goalDays > 1) { onGoalDays(goalDays - 1) }
+                    Spacer(Modifier.width(8.dp))
+                    Stepper("+", "More days", enabled = goalDays < 7) { onGoalDays(goalDays + 1) }
+                }
             }
         }
 

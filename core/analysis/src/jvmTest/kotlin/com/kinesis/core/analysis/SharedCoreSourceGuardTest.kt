@@ -405,6 +405,11 @@ class SharedCoreSourceGuardTest {
             // purpose, which is what this path is for.
             "Streaks.kt",
             "Dashboard.kt",
+            // P3-49: records, the weekly goal and achievements, likewise read over stored history
+            // when a page opens or a set has been saved.
+            "Records.kt",
+            "WeeklyGoal.kt",
+            "Achievements.kt",
             // P3-22: calibration runs once, after the calibration set has ended,
             // and the comparison once per completed record. Both take records,
             // which exist only once a movement has finished.
