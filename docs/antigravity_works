@@ -269,4 +269,83 @@ Implement Phase P10's Fatigue Engine: a scientific Velocity-Based Training (VBT)
 - Updated `docs/HANDOVER.md` (§8.3 engineering roadmap).
 - Mirrored execution logs across `docs/antigravity_works.md` and `docs/antigravity_works`.
 
+---
+
+## 5. Phase P3-55: Camera-View Setup Assistant & Framing Gate
+
+### Objective
+Implement the Camera-View Setup Assistant & Live Framing Gate per `CLAUDE.md §10`, `CONTRACTS.md §8`, and resolve `HANDOVER.md §8.2 item 9`: verify user framing, camera distance, in-frame visibility, and orientation angle against the exercise profile before and during scoring, blocking nonsensical scoring and providing real-time coaching feedback.
+
+### Empirical Foundation & Non-Negotiables
+1. **Deterministic Geometry over ML:** Camera orientation is estimated from projected torso-normalized shoulder and hip lateral spans:
+   $$\text{aspectRatio} = \frac{\max(\Delta x_{\text{shoulder}}, \Delta x_{\text{hip}})}{\text{torsoScale}}$$
+   - Validated on MM-Fit development workouts ({A, B, C, S19}):
+     - Side-on exercises (`pushups`, `situps`): median aspect ratio $0.170\text{–}0.340$, 90th percentile $< 0.40$.
+     - Front-on exercises (`lateral_raises`, `shoulder_press`, `bicep_curls` in MM-Fit): median aspect ratio $0.670\text{–}0.826$, 10th percentile $> 0.60$.
+     - Oblique exercises (`lunges`, `rows`): median aspect ratio $0.455\text{–}0.601$.
+   - **Thresholds:**
+     - `SIDE_ON`: ratio $\le 0.42$
+     - `FRONT_ON`: ratio $\ge 0.60$
+     - `ANGLED_45`: $0.42 < \text{ratio} < 0.60$
+2. **Real-Time Framing Constraints:**
+   - Person presence: `LandmarkNormalizer.hasMeasurableTorso(landmarks)`.
+   - Distance bounds: torso scale in $[0.12, 0.65]$ of frame width (preventing distances $>4\text{m}$ or $<1\text{m}$).
+   - In-frame margins: head (nose $y \ge 0.03$), feet for standing exercises (left & right ankle $y \le 0.98$).
+   - Landmark presence: all landmarks in `profile.requiredLandmarks` must meet visibility threshold.
+3. **Core-Composed Coaching Guidance:** All user messages ("Turn sideways to camera", "Step back — head is out of frame", "Move closer to the camera", "Full body must be visible") are composed strictly in the shared core (`core/analysis`), never hardcoded in the Android UI.
+4. **Hysteresis & Debouncing:** A stateful `SetupGate` requires 10 consecutive ready frames (~300ms) to permit scoring, and debounces unready frames for 15 frames (~500ms) to avoid fluttering.
+5. **Zero Per-Frame Allocation:** Evaluator runs in $O(1)$ arithmetic on primitive coordinates without heap allocations in the camera frame loop.
+
+### Execution Log
+
+#### Step 1: Core Analysis Implementation
+- **`core/analysis/src/commonMain/kotlin/.../setup/CameraViewEstimator.kt`:**
+  - Implemented `estimate(landmarks)` returning `CameraView` with confidence score.
+- **`core/analysis/src/commonMain/kotlin/.../setup/SetupVerdict.kt`:**
+  - Sealed class hierarchy: `Ready`, `NoPerson`, `TooClose`, `TooFar`, `HeadOutOfFrame`, `FeetOutOfFrame`, `LandmarksMissing`, `WrongView`.
+  - Properties: `isScoringPermitted: Boolean`, `coachingMessage: String`.
+- **`core/analysis/src/commonMain/kotlin/.../setup/SetupAssistant.kt`:**
+  - Stateless evaluator checking torso measurement, distance scaling, in-frame bounds, landmark presence, and camera view angle matching.
+- **`core/analysis/src/commonMain/kotlin/.../setup/SetupGate.kt`:**
+  - Stateful gate managing debounce counters (`READY_THRESHOLD = 10`, `UNREADY_THRESHOLD = 15`) and `isReady` scoring permission.
+
+#### Step 2: Unit Testing Suite
+- **`CameraViewEstimatorTest.kt`:**
+  - Tested front-on, side-on, 45-degree angle, and missing landmarks handling.
+- **`SetupAssistantTest.kt`:**
+  - Tested distance bounds (too close / too far), head out of frame, feet out of frame for standing exercises, missing landmarks, view angle mismatch (side-on vs front-on), and ready state.
+- **`SetupGateTest.kt`:**
+  - Tested debounce hysteresis: requiring 10 consecutive ready frames before transitioning `isReady = true`, maintaining ready state through brief flickers, and dropping after 15 unready frames.
+
+#### Step 3: Analysis Pipeline Wiring
+- **`LiveRepetitionAnalysis.kt` & `LiveHoldAnalysis.kt`:**
+  - Instantiated `SetupGate(profile, policy)`.
+  - Fed frames into `setupGate.onFrame(landmarks)` and `setupGate.onNothingSeen()`.
+  - Exposed `setupVerdict` and `isSetupReady` properties.
+
+#### Step 4: UI Engine & Compose Integration
+- **`LiveAnalysisBridge.kt` & `LiveHoldBridge.kt`:**
+  - Added `setupVerdict` to `LiveUiState` and `LiveHoldUiState`.
+  - Added `setupVerdict` parameter and equality comparison to `onFrame` to preserve strict recomposition budget (zero recompositions on unchanged setup state).
+- **`LiveRepetitionEngine.kt` & `LiveHoldEngine.kt`:**
+  - Passed `setupVerdict = analysis.setupVerdict` to bridges during `publish()`.
+- **`Screens.kt`:**
+  - In `LiveCameraLayout`, added a floating coaching banner pill at `Alignment.BottomCenter`:
+    - Renders warning icon and `setupVerdict.coachingMessage` in Attention color with Card translucent surface whenever `setupVerdict !is SetupVerdict.Ready`.
+- **`LiveAnalysisBridgeTest.kt`:**
+  - Added unit test confirming that changing `setupVerdict` informs Compose once, while unchanged frames produce zero additional recompositions.
+
+#### Step 5: Full Verification & Test Execution
+- Executed `:core:domain:allTests`: **100% passing** (135 tasks, 0 errors).
+- Executed `:core:analysis:allTests`: **100% passing** across JVM and JS targets.
+- Executed `:app:testDebugUnitTest`: **100% passing** (all bridge and engine tests passed).
+- Executed `SharedCoreSourceGuardTest`: **100% passing** (zero leaks, bilateral signals preserved).
+
+#### Step 6: Documentation & Decision Record
+- Recorded formal decision `## P3-55` in `docs/DECISIONS.md`.
+- Updated `docs/PROJECT_STATUS.md` with P3-55 summary.
+- Updated `docs/HANDOVER.md` (marked table 8.2 item 9 resolved by P3-55).
+- Mirrored logs across `docs/antigravity_works.md` and `docs/antigravity_works`.
+
+
 

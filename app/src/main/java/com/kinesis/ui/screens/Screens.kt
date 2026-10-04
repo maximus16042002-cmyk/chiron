@@ -1,6 +1,7 @@
 package com.kinesis.ui.screens
 
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +21,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -38,6 +41,7 @@ import com.kinesis.core.analysis.calibration.CalibrationKey
 import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.analysis.profile.ExerciseVariant
 import com.kinesis.core.analysis.profile.IsometricExercise
+import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.health.ActivityContextResult
 import com.kinesis.health.ContextUnavailable
@@ -321,7 +325,7 @@ fun LiveAnalysisScreen(
 ) {
     LiveCameraLayout(
         state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
-        switchModelLabel, onSwitchModel, modeLabel,
+        switchModelLabel, onSwitchModel, modeLabel, state.setupVerdict,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -360,7 +364,7 @@ fun LiveHoldScreen(
 ) {
     LiveCameraLayout(
         state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
-        switchModelLabel, onSwitchModel, modeLabel,
+        switchModelLabel, onSwitchModel, modeLabel, state.setupVerdict,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -417,6 +421,7 @@ private fun LiveCameraLayout(
     onSwitchModel: (() -> Unit)?,
     /** A calibration set says so on screen (DECISIONS.md P3-22); `null` otherwise. */
     modeLabel: String?,
+    setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
     readout: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
@@ -449,6 +454,30 @@ private fun LiveCameraLayout(
                 Pill("⟲ $switchCameraLabel", Card, Ink, onClick = onSwitchCamera)
                 if (switchModelLabel != null && onSwitchModel != null) {
                     Pill(switchModelLabel, Card, InkSecondary, onClick = onSwitchModel)
+                }
+            }
+            if (setupVerdict !is SetupVerdict.Ready) {
+                Surface(
+                    color = Card.copy(alpha = 0.92f),
+                    shape = RoundedCornerShape(20.dp),
+                    border = BorderStroke(1.dp, Attention.copy(alpha = 0.8f)),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 16.dp),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("⚠️", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            setupVerdict.coachingMessage,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Attention,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
                 }
             }
             if (diagnostics != null) {

@@ -1,5 +1,6 @@
 package com.kinesis.ui.live
 
+import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.rep.MovementPhase
 import com.kinesis.core.domain.rep.RepValidity
@@ -25,6 +26,7 @@ data class LiveUiState(
      * and while amber the figure said nothing about tracking.
      */
     val showingAttention: Boolean = false,
+    val setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
 ) {
     /**
      * How the skeleton should be drawn, derived rather than stored so the
@@ -115,6 +117,7 @@ class LiveAnalysisBridge(
         recordsReported: Int = 0,
         /** This frame's time, which the attention flash is measured against. */
         timestampMs: Double = 0.0,
+        setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
     ) {
         frameCount++
 
@@ -137,7 +140,8 @@ class LiveAnalysisBridge(
             repCount == current.repCount &&
             frameValidity == current.frameValidity &&
             lastRepValidity == current.lastRepValidity &&
-            attention == current.showingAttention
+            attention == current.showingAttention &&
+            setupVerdict == current.setupVerdict
         if (unchanged) return
 
         publish(
@@ -148,6 +152,7 @@ class LiveAnalysisBridge(
                 frameValidity = frameValidity,
                 lastRepValidity = lastRepValidity,
                 showingAttention = attention,
+                setupVerdict = setupVerdict,
             ),
         )
     }

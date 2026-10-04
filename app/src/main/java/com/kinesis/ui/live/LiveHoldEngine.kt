@@ -56,5 +56,10 @@ class LiveHoldEngine(
         return true
     }
 
-    private fun publish() = bridge.onFrame(analysis.heldMs, analysis.holdState, analysis.frameValidity)
+    private fun publish() = bridge.onFrame(
+        heldMs = analysis.heldMs,
+        holdState = analysis.holdState,
+        frameValidity = analysis.frameValidity,
+        setupVerdict = analysis.setupVerdict,
+    )
 }

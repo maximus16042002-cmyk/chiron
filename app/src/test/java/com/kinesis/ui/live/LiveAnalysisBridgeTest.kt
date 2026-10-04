@@ -1,6 +1,8 @@
 package com.kinesis.ui.live
 
+import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.domain.landmark.FrameValidity
+import com.kinesis.core.domain.profile.CameraView
 import com.kinesis.core.domain.rep.MovementPhase
 import com.kinesis.core.domain.rep.RepValidity
 import com.kinesis.ui.theme.OverlayState
@@ -250,5 +252,29 @@ class LiveAnalysisBridgeTest {
         bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.ABORTED, recordsReported = 1, timestampMs = 0.0)
         bridge.onFrame(MovementPhase.TOP, 1, FrameValidity.VALID, RepValidity.VALID, recordsReported = 2, timestampMs = 300.0)
         assertEquals(OverlayState.TRACKED, seen.last().overlayState)
+    }
+
+    @Test
+    fun a_change_in_setup_verdict_reaches_compose_and_unchanged_verdict_does_not_recompose() {
+        val (bridge, seen) = bridge()
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, setupVerdict = SetupVerdict.NoPerson)
+        val countAfterFirst = bridge.publishCount
+
+        // 30 identical frames with NoPerson do not recompose
+        repeat(30) {
+            bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, setupVerdict = SetupVerdict.NoPerson)
+        }
+        assertEquals(countAfterFirst, bridge.publishCount)
+
+        // Setup transitions to Ready: Compose is informed once
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, setupVerdict = SetupVerdict.Ready(CameraView.FRONT_ON, 0.95))
+        assertEquals(countAfterFirst + 1, bridge.publishCount)
+        assertTrue(seen.last().setupVerdict is SetupVerdict.Ready)
+
+        // 30 identical frames with Ready do not recompose
+        repeat(30) {
+            bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, setupVerdict = SetupVerdict.Ready(CameraView.FRONT_ON, 0.95))
+        }
+        assertEquals(countAfterFirst + 1, bridge.publishCount)
     }
 }

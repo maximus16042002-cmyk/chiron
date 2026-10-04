@@ -78,5 +78,6 @@ class LiveRepetitionEngine(
         lastRepValidity = analysis.lastRepValidity,
         recordsReported = analysis.recordsReported,
         timestampMs = lastTimestampMs,
+        setupVerdict = analysis.setupVerdict,
     )
 }

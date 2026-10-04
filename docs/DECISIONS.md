@@ -11698,6 +11698,56 @@ Phase P10 implements this Velocity-Based Training (VBT) engine natively within t
 
 ---
 
+## P3-55 — Camera-View Setup Assistant and Framing Gate
+
+*Decided 2026-10-04. Implements CLAUDE.md §10, CONTRACTS.md §8, and resolves HANDOVER.md §8.2 item 9.*
+
+### Context and Motivation
+
+`CLAUDE.md §10` and `CONTRACTS.md §8` explicitly establish the Camera-View Contract:
+1. Every exercise profile declares its `requiredView` (`FRONT_ON`, `SIDE_ON`, or `ANGLED_45`).
+2. Kinesis must **not** silently analyse an exercise from an unsuitable camera view.
+3. When setup conditions are clearly invalid, scoring and technique analysis must be **blocked** rather than producing confident nonsense.
+
+In the 2026-09-29 phone session (DECISIONS.md P3-31), doing bicep curls facing the phone produced 7 over-counted repetitions and 5 false counts because the user faced the front camera instead of turning side-on. Until now, no runtime component verified body framing, distance, or camera view orientation before or during scoring.
+
+### Principles and Guardrails (Non-Negotiables)
+
+1. **Deterministic Geometry over ML:** Orientation is computed directly from 2D projected shoulder and hip span relative to torso length:
+   $$\text{aspectRatio} = \frac{\max(\Delta x_{\text{shoulder}}, \Delta x_{\text{hip}})}{\text{torsoScale}}$$
+   - Empirical validation on MM-Fit development workouts proves sharp bimodal separation:
+     - Side-on exercises (`pushups`, `situps`): median aspect ratio $0.17\text{–}0.34$, 90th percentile $< 0.40$.
+     - Front-on exercises (`lateral_raises`, `shoulder_press`, `bicep_curls` in MM-Fit): median aspect ratio $0.67\text{–}0.83$, 10th percentile $> 0.60$.
+     - Oblique exercises (`lunges`, `rows` in MM-Fit): median aspect ratio $0.45\text{–}0.60$.
+   - **Thresholds:**
+     - `SIDE_ON`: ratio $\le 0.42$.
+     - `FRONT_ON`: ratio $\ge 0.60$.
+     - `ANGLED_45`: $0.42 < \text{ratio} < 0.60$.
+2. **Real-Time Framing Constraints:**
+   - Person presence: `LandmarkNormalizer.hasMeasurableTorso(landmarks)`.
+   - Distance limits: torso scale must fall within $[0.12, 0.65]$ of frame width (preventing distances $>4\text{m}$ or $<1\text{m}$).
+   - In-frame bounds: head (nose $y \ge 0.03$) and feet for standing exercises (ankles $y \le 0.98$).
+3. **Core-Composed Coaching Guidance:** All coaching text ("Turn side-on to the camera", "Step back — head is cut off", "Move closer") is composed strictly in the shared core (`core/analysis`), never hardcoded in Android UI.
+4. **Hysteresis & Debouncing:** A stateful `SetupGate` prevents UI fluttering by requiring 10 consecutive ready frames (~300ms) to permit scoring, and debounces momentary noise before flagging view misalignment.
+5. **Zero Allocations & $O(1)$ Math:** The check requires reading 6 coordinate floats and computing two Euclidean distances. Zero per-frame memory allocation.
+
+### What Was Built
+
+1. **`CameraViewEstimator` (`core/analysis/src/commonMain/kotlin/.../setup/CameraViewEstimator.kt`):**
+   - Estimates `CameraView` (`FRONT_ON`, `SIDE_ON`, `ANGLED_45`) from torso-normalized lateral shoulder and hip spans.
+2. **`SetupVerdict` (`core/analysis/src/commonMain/kotlin/.../setup/SetupVerdict.kt`):**
+   - Sealed class hierarchy: `Ready`, `NoPerson`, `TooClose`, `TooFar`, `HeadOutOfFrame`, `FeetOutOfFrame`, `LandmarksMissing`, `WrongView`.
+   - Carries human-readable `coachingMessage` and `isScoringPermitted` property.
+3. **`SetupAssistant` (`core/analysis/src/commonMain/kotlin/.../setup/SetupAssistant.kt`):**
+   - Stateless validator evaluating `profile`, `landmarks`, and `policy`.
+4. **`SetupGate` (`core/analysis/src/commonMain/kotlin/.../setup/SetupGate.kt`):**
+   - Stateful debounce and hysteresis gate maintaining readiness status across frames.
+5. **Live Screen Integration:**
+   - Wired into `LiveRepetitionAnalysis` and `LiveUiState`.
+   - UI banner in `LiveCameraLayout` (`Screens.kt`) renders status coaching pill above camera preview.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

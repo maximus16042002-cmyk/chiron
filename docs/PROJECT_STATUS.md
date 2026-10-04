@@ -10,7 +10,18 @@ read it first if you are new.*
 
 ## Next session starts here
 
-**Latest, P3-53 and P3-54 (2026-10-04): Technique Rules wiring (P3-53) and Phase P10 Fatigue Engine (P3-54) built and verified.**
+**Latest, P3-55 (2026-10-04): Camera-View Setup Assistant and Framing Gate built and verified.**
+- **Camera-View Setup Assistant & Framing Gate (`core/analysis`, `app`):**
+  - Resolves CLAUDE.md §10, CONTRACTS.md §8, and HANDOVER.md §8.2 item 9.
+  - Deterministic geometry over ML: aspect ratio computed directly from torso-normalized shoulder and hip span relative to torso length.
+  - Thresholds empirically validated on MM-Fit development workouts: `SIDE_ON` ($\le 0.42$), `FRONT_ON` ($\ge 0.60$), `ANGLED_45` ($0.42 < \text{ratio} < 0.60$).
+  - Real-time framing gate checks distance boundaries ($[0.12, 0.65]$ torso scale), in-frame bounds (head and feet), and landmarks.
+  - Core-composed coaching guidance strings ("Turn sideways to camera", "Step back — head is out of frame", "Position yourself in camera view").
+  - Stateful `SetupGate` provides 10-frame (~300ms) ready transition hysteresis and 15-frame unready debounce.
+  - Live screens (`LiveAnalysisScreen`, `LiveHoldScreen`) render real-time amber coaching pill banner when setup is unready.
+  - Verified with 100% test pass rate across JVM and JS multiplatform suites; strict Compose recomposition budget preserved.
+
+**Before that, P3-53 and P3-54 (2026-10-04): Technique Rules wiring (P3-53) and Phase P10 Fatigue Engine (P3-54) built and verified.**
 - **Phase P10 Fatigue Engine (`core/domain`, `core/analysis`, `app`):**
   - Velocity-Based Training (VBT) concentric angular velocity tracking per side (deg/s).
   - Velocity loss % calculated relative to set peak velocity; never averages bilateral signals.

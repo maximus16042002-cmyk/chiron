@@ -1,6 +1,7 @@
 package com.kinesis.ui.live
 
 import com.kinesis.core.analysis.hold.HoldState
+import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.ui.theme.OverlayState
 
@@ -15,6 +16,7 @@ data class LiveHoldUiState(
     val heldSeconds: Int,
     val holdState: HoldState,
     val frameValidity: FrameValidity,
+    val setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
 ) {
     /**
      * Derived, as in [LiveUiState], so the overlay and the readout cannot
@@ -42,7 +44,7 @@ class LiveHoldBridge(
 ) {
 
     // INVALID until a frame says otherwise, as in LiveAnalysisBridge.
-    private var current = LiveHoldUiState(exerciseId, 0, HoldState.NOT_STARTED, FrameValidity.INVALID)
+    private var current = LiveHoldUiState(exerciseId, 0, HoldState.NOT_STARTED, FrameValidity.INVALID, SetupVerdict.NoPerson)
 
     /** How many times Compose has been asked to recompose. Instrumentation. */
     var publishCount: Int = 0
@@ -56,14 +58,20 @@ class LiveHoldBridge(
         publish(current)
     }
 
-    fun onFrame(heldMs: Double, holdState: HoldState, frameValidity: FrameValidity) {
+    fun onFrame(
+        heldMs: Double,
+        holdState: HoldState,
+        frameValidity: FrameValidity,
+        setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
+    ) {
         frameCount++
         val heldSeconds = (heldMs / 1000.0).toInt()
         val unchanged = heldSeconds == current.heldSeconds &&
             holdState == current.holdState &&
-            frameValidity == current.frameValidity
+            frameValidity == current.frameValidity &&
+            setupVerdict == current.setupVerdict
         if (unchanged) return
-        publish(LiveHoldUiState(exerciseId, heldSeconds, holdState, frameValidity))
+        publish(LiveHoldUiState(exerciseId, heldSeconds, holdState, frameValidity, setupVerdict))
     }
 
     private fun publish(state: LiveHoldUiState) {

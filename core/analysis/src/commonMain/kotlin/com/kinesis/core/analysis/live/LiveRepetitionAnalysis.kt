@@ -6,6 +6,8 @@ import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.analysis.rep.BilateralPhase
 import com.kinesis.core.analysis.rep.BilateralRepTracker
 import com.kinesis.core.analysis.rep.RepSink
+import com.kinesis.core.analysis.setup.SetupGate
+import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.analysis.temporal.TemporalConfig
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.landmark.Landmarks
@@ -59,6 +61,10 @@ class LiveRepetitionAnalysis(
 ) {
 
     private val tracker = BilateralRepTracker(profile, temporalConfig)
+    private val setupGate = SetupGate(profile, policy)
+
+    val setupVerdict: SetupVerdict get() = setupGate.latestVerdict
+    val isSetupReady: Boolean get() = setupGate.isReady
 
     /** Nothing has been seen before the first frame, so nothing is valid. */
     var frameValidity: FrameValidity = FrameValidity.INVALID
@@ -102,6 +108,7 @@ class LiveRepetitionAnalysis(
 
     /** One frame of anatomical landmarks, from the platform pose adapter. */
     fun onFrame(timestampMs: Double, landmarks: Landmarks) {
+        setupGate.onFrame(landmarks)
         frameValidity = if (!LandmarkNormalizer.hasMeasurableTorso(landmarks)) {
             FrameValidity.INVALID
         } else {
@@ -119,6 +126,7 @@ class LiveRepetitionAnalysis(
      * later as though no time had passed.
      */
     fun onNothingSeen(timestampMs: Double) {
+        setupGate.onNothingSeen()
         frameValidity = FrameValidity.INVALID
         tracker.onFrame(timestampMs, NOTHING_SEEN, policy, sink)
     }

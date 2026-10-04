@@ -770,7 +770,7 @@ The engineering is far ahead of the thesis: the remaining work is mostly evaluat
 | 6 | **Per-side tempo for simultaneous exercises** (squat, push-up…): needs `RepRecord` to keep each side's phase times, a change touching Room, sync and the golden file | P3-22 |
 | 7 | **Local sessions are not partitioned by account:** on a phone shared by two accounts, one account's sessions would be uploaded to the other's | P3-22, P3-25 |
 | 8 | **Whether a calibration hold should be one hold or several** (several would give the sway a spread) | P3-22 |
-| 9 | **A setup assistant that enforces each exercise's camera view** (CLAUDE.md §10): nothing gates the view today | P3-23 |
+| 9 | **A setup assistant that enforces each exercise's camera view** (CLAUDE.md §10) | Resolved by P3-55 |
 | 10 | **Approval to start P9 Part B** (the verifier), including the scikit-learn §17 check, and **later approval of its one final held-out run** | P3-34 |
 | 11 | **Approval for any other use of held-out data** | CLAUDE.md, P3-30 |
 | 12 | **Wire Layer 2's rules and Exercise Verifier into the set summary** | Resolved by P3-53 |

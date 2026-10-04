@@ -8,6 +8,8 @@ import com.kinesis.core.analysis.landmark.LandmarkNormalizer
 import com.kinesis.core.analysis.landmark.ValidityGate
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.rep.BilateralRepTracker
+import com.kinesis.core.analysis.setup.SetupGate
+import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.analysis.temporal.RealTimeSignalPipeline
 import com.kinesis.core.analysis.temporal.TemporalConfig
 import com.kinesis.core.domain.bilateral.BilateralSignal
@@ -45,6 +47,10 @@ class LiveHoldAnalysis(
     private val analyser = HoldAnalyser(profile)
     private val leftPipeline = RealTimeSignalPipeline(temporalConfig, BilateralRepTracker.DEFAULT_BUFFER_CAPACITY)
     private val rightPipeline = RealTimeSignalPipeline(temporalConfig, BilateralRepTracker.DEFAULT_BUFFER_CAPACITY)
+    private val setupGate = SetupGate(profile, policy)
+
+    val setupVerdict: SetupVerdict get() = setupGate.latestVerdict
+    val isSetupReady: Boolean get() = setupGate.isReady
 
     /** Nothing has been seen before the first frame, so nothing is valid. */
     var frameValidity: FrameValidity = FrameValidity.INVALID
@@ -64,6 +70,7 @@ class LiveHoldAnalysis(
         private set
 
     fun onFrame(timestampMs: Double, landmarks: Landmarks) {
+        setupGate.onFrame(landmarks)
         frameValidity = if (!LandmarkNormalizer.hasMeasurableTorso(landmarks)) {
             FrameValidity.INVALID
         } else {
@@ -81,6 +88,7 @@ class LiveHoldAnalysis(
 
     /** A frame in which the pose estimator found nobody: unseen, not broken. */
     fun onNothingSeen(timestampMs: Double) {
+        setupGate.onNothingSeen()
         frameValidity = FrameValidity.INVALID
         rawAngleLeft = Double.NaN
         rawAngleRight = Double.NaN
