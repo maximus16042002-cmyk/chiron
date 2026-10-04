@@ -1,8 +1,6 @@
 package com.kinesis.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,14 +9,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.kinesis.core.analysis.calibration.CalibrationGuide
 import com.kinesis.core.analysis.calibration.CalibrationOutcome
 import com.kinesis.core.analysis.profile.ExerciseVariant
 import com.kinesis.core.analysis.profile.IsometricExercise
@@ -35,38 +37,39 @@ import com.kinesis.core.domain.calibration.RepetitionBaseline
 import com.kinesis.core.domain.calibration.RobustStatistic
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.core.domain.rep.HoldRecord
+import com.kinesis.core.domain.rep.HoldValidity
 import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.core.domain.rep.RepValidity
 import com.kinesis.core.domain.session.HoldSetRecord
 import com.kinesis.core.domain.session.RepetitionSetRecord
 import com.kinesis.core.domain.session.SessionRecord
 import com.kinesis.ui.theme.Attention
-import com.kinesis.ui.theme.InkSecondary
-import com.kinesis.ui.theme.InkFaint
 import com.kinesis.ui.theme.Ink
-import com.kinesis.ui.theme.Card
+import com.kinesis.ui.theme.InkFaint
+import com.kinesis.ui.theme.InkSecondary
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /*
- * Calibration and the set summary - DECISIONS.md P3-22.
+ * Calibration and the set summary - DECISIONS.md P3-22, in P3-48's look.
  *
  * Every number here is computed in the shared core: the baseline by the
  * calibrator, the comparison by the post-rep analysis. These screens lay the
  * numbers out and label the fields. Sentences about movement come from the core
- * too - the calibration instructions and the reason a set did not calibrate - and
- * there are no judgements at all: "shallower than your usual" and its rules are
- * P8's. Left and right are shown separately everywhere a value has two sides.
+ * too - the setup and calibration instructions and the reason a set did not
+ * calibrate - and there are no judgements at all: "shallower than your usual" and
+ * its rules are P8's. Left and right are shown separately everywhere a value has
+ * two sides.
  */
 
 // --- Exercise --------------------------------------------------------------------------
 
 /**
- * One library entry: what it is, its baseline if it has one, and the two ways in -
- * an ordinary set, or a calibration set. A variant has no calibration of its own
- * (CONTRACTS.md section 3), so it shows its parent's baseline and offers no
- * CALIBRATE; the parent's screen does that.
+ * One library entry: what it is, how to set the phone up for it, its baseline if it has
+ * one, and the two ways in - an ordinary set, or a calibration set. A variant has no
+ * calibration of its own (CONTRACTS.md section 3), so it shows its parent's baseline and
+ * offers no calibration; the parent's page does that.
  */
 @Composable
 fun ExerciseScreen(
@@ -77,38 +80,50 @@ fun ExerciseScreen(
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
-        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier.fillMaxSize().background(PageBackground).padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Column(Modifier.padding(top = 24.dp, bottom = 4.dp)) {
-                Text(profile.displayName, style = MaterialTheme.typography.headlineMedium)
-                Text(
-                    "tier " + profile.tier.name + " · " + profile.requiredView.name.replace('_', ' ').lowercase() +
-                        " · " + profile.posture.name.replace('_', ' ').lowercase() +
-                        if (profile is IsometricExercise) " · hold" else "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = InkFaint,
-                )
-            }
+            PageTitle(
+                profile.displayName,
+                "Tier " + profile.tier.name + " · " + viewLabel(profile.requiredView) + " · " +
+                    postureLabel(profile.posture) + if (profile is IsometricExercise) " · hold" else " · repetitions",
+            )
         }
-        item { Action("START SET", onStartSet) }
-        if (onCalibrate != null) item { Action(if (baseline == null) "CALIBRATE" else "RECALIBRATE", onCalibrate) }
         if (profile is ExerciseVariant) {
             item {
-                Text(
-                    "Uses the " + profile.parent.displayName + " baseline: a variant shares its parent's " +
-                        "calibration. Calibrate from " + profile.parent.displayName + ".",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = InkFaint,
-                )
+                KCard {
+                    Text("A kind of " + profile.parent.displayName, style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Spacer(Modifier.height(4.dp))
+                    Note(profile.coachingNote)
+                    Spacer(Modifier.height(4.dp))
+                    Note(
+                        "It uses the " + profile.parent.displayName + " calibration: a variant shares its " +
+                            "parent's. Calibrate from " + profile.parent.displayName + ".",
+                    )
+                }
             }
+        }
+        item {
+            KCard {
+                Text("Setting up", style = MaterialTheme.typography.titleMedium, color = Ink)
+                Spacer(Modifier.height(4.dp))
+                Note(CalibrationGuide.placement(profile))
+            }
+        }
+        item { PrimaryButton("Start set", onClick = onStartSet) }
+        if (onCalibrate != null) {
+            item { SecondaryButton(if (baseline == null) "Calibrate" else "Recalibrate", onClick = onCalibrate) }
         }
         item {
             if (baseline == null) {
-                Card {
-                    Label("BASELINE")
-                    Text("NOT CALIBRATED", style = MaterialTheme.typography.bodyMedium, color = InkFaint)
+                KCard {
+                    Text("Not calibrated", style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Spacer(Modifier.height(4.dp))
+                    Note(
+                        "A calibration set records how you usually move, so each set afterwards is shown " +
+                            "beside your own numbers.",
+                    )
                 }
             } else {
                 BaselineCard(if (profile is ExerciseVariant) profile.parent.displayName else profile.displayName, baseline)
@@ -128,20 +143,24 @@ fun CalibrationIntroScreen(
     onStart: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+    LazyColumn(
+        modifier = modifier.fillMaxSize().background(PageBackground).padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Spacer(Modifier.height(8.dp))
-        Text("CALIBRATE " + profile.displayName.uppercase(), style = MaterialTheme.typography.titleMedium)
-        Text(instructions, style = MaterialTheme.typography.bodyMedium, color = InkSecondary)
-        Text(
-            "The baseline is kept on this phone only. It is not uploaded with your sessions, and " +
-                "calibrating again replaces it.",
-            style = MaterialTheme.typography.bodySmall,
-            color = InkFaint,
-        )
-        Action("START CALIBRATION SET", onStart)
+        item { PageTitle("Calibrate", profile.displayName) }
+        item {
+            KCard {
+                Text(instructions, style = MaterialTheme.typography.bodyLarge, color = Ink)
+            }
+        }
+        item {
+            Note(
+                "The calibration is kept on this phone only. It is not uploaded with your sessions, and " +
+                    "calibrating again replaces it.",
+            )
+        }
+        item { PrimaryButton("Start calibration set", onClick = onStart) }
+        item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
@@ -158,43 +177,35 @@ fun CalibrationResultScreen(
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
-        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier.fillMaxSize().background(PageBackground).padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item {
-            Text(
-                "CALIBRATION · " + profile.displayName.uppercase(),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 24.dp),
-            )
-        }
+        item { PageTitle("Calibration", profile.displayName) }
         when (outcome) {
-            null -> item { Text("Building the baseline…", style = MaterialTheme.typography.bodyMedium, color = InkFaint) }
+            null -> item { KCard { Note("Building the baseline…") } }
 
             is CalibrationOutcome.Calibrated -> {
-                item { Text(outcome.displayText, style = MaterialTheme.typography.bodyMedium, color = Ink) }
                 item {
-                    Text(
-                        "Saved on this phone. It replaces any earlier " + profile.displayName + " baseline.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = InkFaint,
-                    )
+                    KCard {
+                        Text("✓ " + outcome.displayText, style = MaterialTheme.typography.bodyLarge, color = Ink)
+                        Spacer(Modifier.height(4.dp))
+                        Note("Saved on this phone. It replaces any earlier " + profile.displayName + " calibration.")
+                    }
                 }
                 item { BaselineCard(profile.displayName, outcome.baseline) }
-                item { Action("DONE", onDone) }
+                item { PrimaryButton("Done", onClick = onDone) }
             }
 
             else -> {
-                item { Text(outcome.displayText, style = MaterialTheme.typography.bodyMedium, color = Attention) }
                 item {
-                    Text(
-                        "Nothing was saved, and any earlier baseline is unchanged. The set itself is in your history.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = InkFaint,
-                    )
+                    KCard {
+                        Text(outcome.displayText, style = MaterialTheme.typography.bodyLarge, color = Attention)
+                        Spacer(Modifier.height(4.dp))
+                        Note("Nothing was saved, and any earlier calibration is unchanged. The set itself is in your history.")
+                    }
                 }
-                item { Action("TRY AGAIN", onTryAgain) }
-                item { Action("DONE", onDone) }
+                item { PrimaryButton("Try again", onClick = onTryAgain) }
+                item { SecondaryButton("Done", onClick = onDone) }
             }
         }
         item { Spacer(Modifier.height(24.dp)) }
@@ -206,24 +217,22 @@ fun CalibrationResultScreen(
 /** A baseline's values, each side separately. Median, with the IQR as the rep-to-rep spread. */
 @Composable
 fun BaselineCard(title: String, baseline: CalibrationBaseline, modifier: Modifier = Modifier) {
-    Card(modifier) {
-        Label("BASELINE · " + title.uppercase() + " · " + day(baseline.createdAtEpochMs))
+    KCard(modifier) {
+        Text(title, style = MaterialTheme.typography.titleMedium, color = Ink)
+        Text("Calibrated " + day(baseline.createdAtEpochMs), style = MaterialTheme.typography.labelSmall, color = InkSecondary)
+        Spacer(Modifier.height(8.dp))
         when (baseline) {
             is RepetitionBaseline -> {
-                Text(
-                    "repetitions used: L " + baseline.repetitionsUsedLeft + "   R " + baseline.repetitionsUsedRight,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = InkFaint,
-                )
-                Spacer(Modifier.height(6.dp))
-                SidesRow("RANGE", baseline.rangeOfMotion.left, baseline.rangeOfMotion.right, ::degrees)
-                SidesRow("TOP", baseline.peakValue.left, baseline.peakValue.right, ::degrees)
-                SidesRow("FAR", baseline.troughValue.left, baseline.troughValue.right, ::degrees)
-                TimingRow("DOWN", baseline.descentMs)
-                TimingRow("UP", baseline.ascentMs)
-                SidesRow("CURVE SPREAD", baseline.curveSpread.left, baseline.curveSpread.right, ::degrees)
+                SidesHeader()
+                Sides("Repetitions used", baseline.repetitionsUsedLeft.toString(), baseline.repetitionsUsedRight.toString())
+                SidesRow("Range", baseline.rangeOfMotion.left, baseline.rangeOfMotion.right, ::degrees)
+                SidesRow("Top", baseline.peakValue.left, baseline.peakValue.right, ::degrees)
+                SidesRow("Far end", baseline.troughValue.left, baseline.troughValue.right, ::degrees)
+                TimingRow("Down", baseline.descentMs)
+                TimingRow("Up", baseline.ascentMs)
+                SidesRow("Curve spread", baseline.curveSpread.left, baseline.curveSpread.right, ::degrees)
                 Value(
-                    "L MINUS R",
+                    "Left minus right",
                     when (val asymmetry = baseline.asymmetry) {
                         is AsymmetryBaseline.Paired -> signedDegrees(asymmetry.leftMinusRight.median) +
                             spread(asymmetry.leftMinusRight, ::degrees)
@@ -235,57 +244,62 @@ fun BaselineCard(title: String, baseline: CalibrationBaseline, modifier: Modifie
             }
 
             is HoldBaseline -> {
-                Value("HELD AT", degrees(baseline.meanHeldValue) + " (target " + degrees(baseline.targetValue) + ")")
-                Value("OFFSET", signedDegrees(baseline.postureOffset))
-                Value("FROM TARGET", degrees(baseline.meanAbsDeviation) + " mean")
-                Value("SWAY", degrees(baseline.sway) + " SD")
-                Value("HELD FOR", seconds(baseline.heldMs) + ", " + baseline.breakCount + " breaks")
+                Value("Held at", degrees(baseline.meanHeldValue) + " (target " + degrees(baseline.targetValue) + ")")
+                Value("Offset", signedDegrees(baseline.postureOffset))
+                Value("From target", degrees(baseline.meanAbsDeviation) + " mean")
+                Value("Sway", degrees(baseline.sway) + " SD")
+                Value("Held for", seconds(baseline.heldMs) + ", " + baseline.breakCount + " breaks")
             }
         }
+        Spacer(Modifier.height(6.dp))
         Text(
-            "Provisional: estimator " + baseline.estimatorVersion + ".",
+            "Median of your repetitions, with the spread between them in brackets. Provisional: estimator " +
+                baseline.estimatorVersion + ".",
             style = MaterialTheme.typography.labelSmall,
             color = InkFaint,
-            modifier = Modifier.padding(top = 6.dp),
         )
+    }
+}
+
+/** The two columns' heads, so every row below reads left and right apart. */
+@Composable
+private fun SidesHeader() {
+    Sides("", "Left", "Right", InkFaint)
+}
+
+@Composable
+private fun Sides(label: String, left: String, right: String, color: Color = Ink) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = InkSecondary, modifier = Modifier.weight(1.2f))
+        Text(left, style = MaterialTheme.typography.bodySmall, color = color, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
+        Spacer(Modifier.width(12.dp))
+        Text(right, style = MaterialTheme.typography.bodySmall, color = color, textAlign = TextAlign.End, modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
 private fun SidesRow(label: String, left: RobustStatistic, right: RobustStatistic, unit: (Double) -> String) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = InkFaint)
-        Text(
-            "L " + unit(left.median) + spread(left, unit) + "   R " + unit(right.median) + spread(right, unit),
-            style = MaterialTheme.typography.bodySmall,
-            color = InkSecondary,
-        )
-    }
+    Sides(label, unit(left.median) + spread(left, unit), unit(right.median) + spread(right, unit))
 }
 
 /** Timing, attributed as the records attribute it: per side, or once for a repetition both sides made. */
 @Composable
 private fun TimingRow(label: String, timing: PhaseTimingBaseline) {
     if (timing.perRepetition.isMeasured) {
-        Value(label, seconds(timing.perRepetition.median) + spread(timing.perRepetition, ::seconds) + " both sides together")
+        Value(label, seconds(timing.perRepetition.median) + spread(timing.perRepetition, ::seconds) + ", both sides together")
     } else {
         SidesRow(label, timing.perSide.left, timing.perSide.right, ::seconds)
     }
 }
 
-// --- Dashboard ------------------------------------------------------------------------
+// --- Profile ------------------------------------------------------------------------
 
 /** Every calibrated exercise's baseline, per side. [baselines] pairs a display name with each. */
 @Composable
 fun BaselinesPanel(baselines: List<Pair<String, CalibrationBaseline>>) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Label("BASELINES")
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (baselines.isEmpty()) {
-            Text(
-                "No exercise calibrated yet. Calibrate one from an exercise's page in Workouts.",
-                style = MaterialTheme.typography.bodySmall,
-                color = InkFaint,
-            )
+            KCard { Note("No exercise calibrated yet. Calibrate one from an exercise's page in Workouts.") }
         }
         for ((name, baseline) in baselines) BaselineCard(name, baseline)
     }
@@ -310,23 +324,33 @@ fun SetSummaryScreen(
     val reps = (set as? RepetitionSetRecord)?.reps.orEmpty().associateBy { it.repIndex }
     val holds = (set as? HoldSetRecord)?.holds.orEmpty()
     LazyColumn(
-        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier.fillMaxSize().background(PageBackground).padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Column(Modifier.padding(top = 24.dp)) {
-                Text("SET · " + profile.displayName.uppercase(), style = MaterialTheme.typography.titleMedium)
-                Text(
-                    if (set is RepetitionSetRecord) set.completedUnits.toString() + " counted of " + set.reps.size + " records"
-                    else set.completedUnits.toString() + " valid hold",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = InkFaint,
-                )
-                Text(
-                    if (baselineTitle != null) "BESIDE THE $baselineTitle BASELINE" else "NO BASELINE: CALIBRATE TO SEE ITS VALUES HERE",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (baselineTitle != null) Ink else InkFaint,
-                    modifier = Modifier.padding(top = 4.dp),
+            PageTitle(
+                profile.displayName,
+                if (set is RepetitionSetRecord) {
+                    set.completedUnits.toString() + " counted of " + set.reps.size + if (set.reps.size == 1) " attempt" else " attempts"
+                } else {
+                    set.completedUnits.toString() + if (set.completedUnits == 1) " hold completed" else " holds completed"
+                },
+            )
+        }
+        item {
+            KCard {
+                if (set is RepetitionSetRecord) {
+                    NumberBlock(set.completedUnits.toString(), if (set.completedUnits == 1) "repetition" else "repetitions")
+                } else {
+                    NumberBlock(seconds((set as HoldSetRecord).holds.sumOf { it.totalHoldMs }), "held")
+                }
+                Spacer(Modifier.height(8.dp))
+                Note(
+                    if (baselineTitle != null) {
+                        "Each record below is shown beside your " + baselineTitle + " calibration."
+                    } else {
+                        "No calibration yet: calibrate this exercise to see your usual numbers beside these."
+                    },
                 )
             }
         }
@@ -336,50 +360,72 @@ fun SetSummaryScreen(
                 is HoldAnalysisResult -> HoldRow(result, holds.firstOrNull())
             }
         }
-        item { Action("DONE", onDone) }
+        item { PrimaryButton("Done", onClick = onDone) }
         item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
 @Composable
 private fun RepetitionRow(result: RepetitionAnalysisResult, rep: RepRecord?) {
-    Card {
-        Label(
-            "#" + result.repIndex + "  " + (rep?.validity?.name ?: "") +
-                (rep?.attributedSide?.let { "  " + it.name } ?: ""),
-            if (rep?.validity == RepValidity.VALID) Ink else Attention,
-        )
+    KCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Repetition " + result.repIndex + (rep?.attributedSide?.let { " · " + sideWord(it) } ?: ""),
+                style = MaterialTheme.typography.titleMedium,
+                color = Ink,
+                modifier = Modifier.weight(1f),
+            )
+            if (rep != null) {
+                Text(
+                    validityLabel(rep.validity),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (rep.validity == RepValidity.VALID) Ink else Attention,
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
         val comparison = result.comparison
         if (comparison == null && rep != null) {
-            Value("RANGE", "L " + degrees(rep.rangeOfMotion.left) + "   R " + degrees(rep.rangeOfMotion.right))
-            Value("DOWN · UP", seconds(rep.descentMs) + " · " + seconds(rep.ascentMs))
+            SidesHeader()
+            Sides("Range", degrees(rep.rangeOfMotion.left), degrees(rep.rangeOfMotion.right))
+            Value("Down · up", seconds(rep.descentMs) + " · " + seconds(rep.ascentMs))
         } else if (comparison != null) {
-            Beside("RANGE L", comparison.rangeOfMotionLeft, ::degrees)
-            Beside("RANGE R", comparison.rangeOfMotionRight, ::degrees)
+            Beside("Range, left", comparison.rangeOfMotionLeft, ::degrees)
+            Beside("Range, right", comparison.rangeOfMotionRight, ::degrees)
             val whose = when (comparison.timingSide) {
-                Side.LEFT -> " L"
-                Side.RIGHT -> " R"
+                Side.LEFT -> ", left"
+                Side.RIGHT -> ", right"
                 null -> ""
             }
-            Beside("DOWN$whose", comparison.descentMs, ::seconds)
-            Beside("UP$whose", comparison.ascentMs, ::seconds)
+            Beside("Down$whose", comparison.descentMs, ::seconds)
+            Beside("Up$whose", comparison.ascentMs, ::seconds)
         }
     }
 }
 
 @Composable
 private fun HoldRow(result: HoldAnalysisResult, hold: HoldRecord?) {
-    Card {
-        Label("HOLD  " + (hold?.validity?.name ?: ""))
+    KCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Hold", style = MaterialTheme.typography.titleMedium, color = Ink, modifier = Modifier.weight(1f))
+            if (hold != null) {
+                Text(
+                    holdValidityLabel(hold.validity),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (hold.validity == HoldValidity.VALID) Ink else Attention,
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
         val comparison = result.comparison
         if (comparison == null && hold != null) {
-            Value("HELD AT", degrees(hold.meanHeldValue))
-            Value("SWAY", degrees(hold.heldValueSd))
-            Value("HELD FOR", seconds(hold.totalHoldMs))
+            Value("Held at", degrees(hold.meanHeldValue))
+            Value("Sway", degrees(hold.heldValueSd))
+            Value("Held for", seconds(hold.totalHoldMs))
         } else if (comparison != null) {
-            Beside("HELD AT", comparison.meanHeldValue, ::degrees)
-            Beside("SWAY", comparison.sway, ::degrees)
-            Beside("HELD FOR", comparison.heldMs, ::seconds)
+            Beside("Held at", comparison.meanHeldValue, ::degrees)
+            Beside("Sway", comparison.sway, ::degrees)
+            Beside("Held for", comparison.heldMs, ::seconds)
         }
     }
 }
@@ -387,47 +433,24 @@ private fun HoldRow(result: HoldAnalysisResult, hold: HoldRecord?) {
 /** A measured value, and the baseline's for the same quantity. No difference, no direction. */
 @Composable
 private fun Beside(label: String, value: BesideBaseline, unit: (Double) -> String) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = InkFaint)
-        Row {
-            Text(unit(value.measured), style = MaterialTheme.typography.bodySmall, color = Ink)
-            Text("   baseline " + unit(value.baseline), style = MaterialTheme.typography.bodySmall, color = InkSecondary)
-        }
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = InkSecondary, modifier = Modifier.weight(1f))
+        Text(unit(value.measured), style = MaterialTheme.typography.bodyMedium, color = Ink)
+        Text("   usual " + unit(value.baseline), style = MaterialTheme.typography.bodySmall, color = InkSecondary)
     }
 }
 
 // --- Pieces ---------------------------------------------------------------------------
 
 @Composable
-private fun Card(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Column(
-        modifier.fillMaxWidth().border(1.dp, InkSecondary).background(Card).padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(3.dp),
-    ) { content() }
-}
-
-@Composable
-private fun Label(text: String, color: Color = InkFaint) {
-    Text(text, style = MaterialTheme.typography.labelSmall, color = color)
-}
-
-@Composable
 private fun Value(label: String, value: String) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = InkFaint)
-        Text(value, style = MaterialTheme.typography.bodySmall, color = InkSecondary)
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = InkSecondary)
+        Text(value, style = MaterialTheme.typography.bodySmall, color = Ink)
     }
 }
 
-@Composable
-private fun Action(label: String, onClick: () -> Unit) {
-    Text(
-        "[ $label ]",
-        style = MaterialTheme.typography.titleMedium,
-        color = Ink,
-        modifier = Modifier.clickable(onClick = onClick).padding(vertical = 8.dp),
-    )
-}
+private fun sideWord(side: Side): String = if (side == Side.LEFT) "left" else "right"
 
 // Formatting only: a value that was not measured shows as a dash, never as zero.
 
@@ -441,7 +464,7 @@ private fun seconds(ms: Double): String =
     if (!ms.isFinite()) "—" else String.format(Locale.ROOT, "%.2f s", ms / 1000.0)
 
 private fun spread(statistic: RobustStatistic, unit: (Double) -> String): String =
-    if (!statistic.isMeasured) "" else " (IQR " + unit(statistic.interquartileRange) + ")"
+    if (!statistic.isMeasured) "" else " (" + unit(statistic.interquartileRange) + ")"
 
 private fun day(epochMs: Double): String =
-    if (!epochMs.isFinite()) "" else SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).format(Date(epochMs.toLong()))
+    if (!epochMs.isFinite()) "" else SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(epochMs.toLong()))

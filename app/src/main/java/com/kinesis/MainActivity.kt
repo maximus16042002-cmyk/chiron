@@ -98,6 +98,7 @@ import com.kinesis.ui.theme.Void
 import com.kinesis.core.analysis.history.Streaks
 import com.kinesis.core.analysis.history.DayActivity
 import com.kinesis.ui.screens.monthStart
+import com.kinesis.ui.screens.BackLink
 
 /**
  * The app shell - DECISIONS.md P3-12, given five pages in P3-48.
@@ -320,9 +321,10 @@ private fun KinesisApp(
         tab = Tab.TRAIN
     }
 
-    // The back button: out of a detail, then out of the training flow, then back to Home.
+    // The back button: out of a detail, then out of the training flow, then back to Home. The
+    // on-screen back links call the same function, so the two cannot disagree.
     val current = training
-    BackHandler(enabled = openSession != null || showLicences || tab != Tab.HOME) {
+    val goBack: () -> Unit = {
         when {
             openSession != null -> openSession = null
             showLicences -> showLicences = false
@@ -336,6 +338,7 @@ private fun KinesisApp(
             else -> tab = Tab.HOME
         }
     }
+    BackHandler(enabled = openSession != null || showLicences || tab != Tab.HOME, onBack = goBack)
 
     val live = tab == Tab.TRAIN && current is Destination.Live
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -369,6 +372,7 @@ private fun KinesisApp(
                     uid = uid,
                     baselines = baselines,
                     onChoose = { tab = Tab.WORKOUTS },
+                    onBack = goBack,
                     onNavigate = { training = it },
                     onChanged = { reloadToken++ },
                 )
@@ -386,7 +390,7 @@ private fun KinesisApp(
                 }
 
                 Tab.PROFILE -> if (showLicences) {
-                    LicencesPage()
+                    LicencesPage(onBack = goBack)
                 } else {
                     ProfileScreen(
                         email = email,
@@ -440,6 +444,7 @@ private fun TrainPage(
     uid: String,
     baselines: Map<String, CalibrationBaseline>,
     onChoose: () -> Unit,
+    onBack: () -> Unit,
     onNavigate: (Destination) -> Unit,
     onChanged: () -> Unit,
 ) {
@@ -450,7 +455,18 @@ private fun TrainPage(
             .fillMaxSize()
             .background(if (destination is Destination.Live) Void else MaterialTheme.colorScheme.background)
             .statusBarsPadding(),
-    ) { TrainFlow(destination, repository, calibration, uid, baselines, onChoose, onNavigate, onChanged) }
+    ) {
+        Column {
+            // A visible way back on every training screen but the live one, whose way out is
+            // ending the set.
+            if (destination != null && destination !is Destination.Live) {
+                BackLink(if (destination is Destination.Exercise) "Workouts" else profileOf(destination).displayName, onBack)
+            }
+            Box(Modifier.weight(1f)) {
+                TrainFlow(destination, repository, calibration, uid, baselines, onChoose, onNavigate, onChanged)
+            }
+        }
+    }
 }
 
 @Composable
@@ -511,7 +527,7 @@ private fun TrainFlow(
                     },
                 )
             },
-            modeLabel = if (current.calibrating) "CALIBRATION SET" else null,
+            modeLabel = if (current.calibrating) "Calibration set" else null,
         )
 
         is Destination.CalibrationResult -> {
@@ -552,7 +568,7 @@ private fun TrainFlow(
 
 /** The licences (P3-17), read from the APK's assets. */
 @Composable
-private fun LicencesPage() {
+private fun LicencesPage(onBack: () -> Unit) {
     val appContext = LocalContext.current.applicationContext
     val readAsset = { path: String ->
         try {
@@ -563,7 +579,10 @@ private fun LicencesPage() {
     }
     val licence = remember { readAsset(ThirdPartyNotices.APACHE_LICENSE_ASSET) }
     val bsd = remember { ThirdPartyNotices.bsdNotices.map { it to it.textAsset?.let(readAsset) } }
-    Box(Modifier.statusBarsPadding()) { LicencesScreen(apacheLicenceText = licence, bsdTexts = bsd) }
+    Column(Modifier.background(MaterialTheme.colorScheme.background).statusBarsPadding()) {
+        BackLink("Profile", onBack)
+        LicencesScreen(apacheLicenceText = licence, bsdTexts = bsd)
+    }
 }
 
 /** The app's own small settings: SharedPreferences, no new dependency (P3-48). */

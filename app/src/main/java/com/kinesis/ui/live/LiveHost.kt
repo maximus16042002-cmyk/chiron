@@ -81,7 +81,7 @@ fun LiveDestination(
     if (profile !is RepetitionExercise && profile !is IsometricExercise) {
         LiveUnavailableScreen(
             exerciseId = profile.id,
-            headline = "NO LIVE ANALYSER",
+            headline = "No live analyser",
             detail = profile.displayName + " is neither a repetition nor a hold profile, so " +
                 "nothing here can analyse it. Nothing is being measured.",
         )
@@ -92,14 +92,14 @@ fun LiveDestination(
     when (val model = remember { PoseModelAsset.locate(context) }) {
         PoseModelState.Absent -> LiveUnavailableScreen(
             exerciseId = profile.id,
-            headline = "NO POSE MODEL",
+            headline = "No pose model",
             detail = "No pose_landmarker .task file is in the app's assets, so pose estimation " +
                 "cannot run and nothing is being measured. The rest of Kinesis works without it.",
         )
 
         is PoseModelState.Unreadable -> LiveUnavailableScreen(
             exerciseId = profile.id,
-            headline = "POSE MODEL UNREADABLE",
+            headline = "Pose model unreadable",
             detail = model.reason + ". Nothing is being measured.",
         )
 
@@ -185,11 +185,11 @@ private fun LiveCameraGate(profile: ExerciseProfile, env: LiveEnvironment) {
     if (!permitted) {
         LiveUnavailableScreen(
             exerciseId = profile.id,
-            headline = if (refused) "CAMERA PERMISSION REFUSED" else "CAMERA PERMISSION NEEDED",
+            headline = if (refused) "Camera permission refused" else "Camera permission needed",
             detail = "Live analysis needs the camera. Frames are analysed on this phone; none is " +
                 "stored or uploaded." +
                 if (refused) " If the system no longer asks, allow it in Settings > Apps > Kinesis." else "",
-            action = "ALLOW CAMERA",
+            action = "Allow camera",
             onAction = request,
         )
         return
@@ -278,8 +278,8 @@ private fun LiveHoldSession(
 
 /** The action, not the state: what tapping it switches to. */
 private fun switchCameraLabel(facing: CameraFacing): String = when (facing) {
-    CameraFacing.FRONT -> "BACK CAMERA"
-    CameraFacing.BACK -> "FRONT CAMERA"
+    CameraFacing.FRONT -> "Back camera"
+    CameraFacing.BACK -> "Front camera"
 }
 
 /** Likewise the action: the model tapping it switches to. */
@@ -361,7 +361,7 @@ private fun LiveCameraSession(
             when (val outcome = saver.endSet().await()) {
                 is SetSaveOutcome.Saved -> env.onSetEnded(outcome.session)
                 SetSaveOutcome.NothingToSave -> env.onSetEnded(null)
-                is SetSaveOutcome.Failed -> failure = LiveFailure("SET NOT SAVED", outcome.reason, false)
+                is SetSaveOutcome.Failed -> failure = LiveFailure("Set not saved", outcome.reason, false)
             }
         }
     }
@@ -379,13 +379,13 @@ private fun LiveCameraSession(
 
         ending -> LiveUnavailableScreen(
             exerciseId = profile.id,
-            headline = "SAVING SET",
+            headline = "Saving the set",
             detail = "Writing this set to the phone. If you are signed in, sync follows later.",
         )
 
         !portrait -> LiveUnavailableScreen(
             exerciseId = profile.id,
-            headline = "TURNING TO PORTRAIT",
+            headline = "Turning to portrait",
             detail = "Live analysis runs in portrait only.",
         )
 
@@ -406,7 +406,7 @@ private fun LiveCameraSession(
                     onFailure = { reason ->
                         main.execute {
                             failure = LiveFailure(
-                                "LIVE ANALYSIS STOPPED", reason + ". Nothing is being measured.", offersCameraSwitch = false,
+                                "Live analysis stopped", reason + ". Nothing is being measured.", offersCameraSwitch = false,
                             )
                         }
                     },
@@ -414,7 +414,7 @@ private fun LiveCameraSession(
                 val camera = when (opening) {
                     is PoseSourceOpening.Failed -> {
                         failure = LiveFailure(
-                            "LIVE ANALYSIS UNAVAILABLE", opening.reason + ". Nothing is being measured.",
+                            "Live analysis unavailable", opening.reason + ". Nothing is being measured.",
                             offersCameraSwitch = false,
                         )
                         null
@@ -422,7 +422,7 @@ private fun LiveCameraSession(
 
                     is PoseSourceOpening.Opened -> LiveCamera(context, opening.source, probe) { reason ->
                         failure = LiveFailure(
-                            "LIVE ANALYSIS UNAVAILABLE", reason + ". Nothing is being measured.", offersCameraSwitch = true,
+                            "Live analysis unavailable", reason + ". Nothing is being measured.", offersCameraSwitch = true,
                         )
                     }
                 }

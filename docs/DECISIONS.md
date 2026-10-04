@@ -10740,6 +10740,63 @@ Batch 3's calendar will read the same function.
   this machine has no emulator image. The screenshots and their descriptions will be added here
   when it is.
 
+### Result — step 4, the training screens in the new look
+
+*2026-10-04.* Step 2 restyled the five pages, but the screens inside Train kept P3-12's terminal
+style: uppercase labels, outlined rectangles, `[ BRACKET ]` buttons. Step 2's own words were "the
+existing exercise, calibration and live screens, restyled", so this finishes it.
+
+**What changed:**
+- **The exercise page:**
+  - the title, then "Tier A · side-on · standing · repetitions";
+  - a **"Setting up"** card;
+  - the main button "Start set", then "Calibrate" or "Recalibrate";
+  - the calibration, or a sentence saying what calibrating does;
+  - a variant shows its coaching note (P3-6), which no screen showed before.
+- **Calibration, its result, and the set summary:**
+  - rounded cards, buttons, sentence-case labels;
+  - every two-sided value in **Left** and **Right** columns under a heading row;
+  - "usual" beside a measured value where the label said "baseline";
+  - repetitions named "✓ counted", "✕ turned back" and so on, the same words as Progress (one shared
+    function). Holds likewise: "✕ not seen" where the screen said "insufficient data";
+  - the set summary opens with the count in large figures.
+- **The live screen.** The camera is unchanged: the same embedded views, the same 3:4 box, the same
+  clipping (P3-16, P3-19).
+  - The exercise's name is shown, not its id, and a calibration set has an accent label.
+  - The camera switch is a rounded label in the corner.
+  - Underneath, a rounded panel: the count in the overlay state's colour, the phase as a word
+    ("Descending"), the tracking state with a ● beside it so colour is not alone, and an "End set"
+    button.
+  - Nothing new runs per frame. The panel reads the same `LiveUiState`, published a few times a
+    second (CLAUDE.md §6).
+- **Unavailable states** ("No pose model", "Camera permission needed", …) are in sentence case,
+  with a button.
+- **Sign-in:** buttons, rounded fields, and the "What leaves this phone" disclosure kept above the
+  fold, in amber.
+- **Licences and Health Connect:** cards. The Health Connect absences are full sentences.
+- **A visible way back** on every training screen except the live one, on the licences, and on a
+  session's detail: "‹ Workouts", "‹ Squat", "‹ Profile". Each calls the same function as the back
+  button.
+
+**One addition to the core:** `CalibrationGuide.placement(profile)`, the "Setting up" text.
+- It is composed in the core beside the calibration instructions, from the profile's own
+  `requiredView` and posture. So the page cannot ask for one view while the analysis assumes
+  another (CLAUDE.md §10).
+- The limits are the model card's (P3-17): the whole body, head to feet, within about 4 m, only you
+  in view.
+- The side-on "turn round for the other side" sentence (P3-32) is shared with the instructions.
+- Postures are now said in plain words in both texts: "lying on your back", not "supine".
+
+`CalibrationGuideTest` gains five tests, on JVM and JS:
+- every entry names its own view;
+- every entry carries the model card's limits;
+- placement says "turn round" exactly where the instructions do;
+- no posture jargon;
+- no correctness words.
+
+**Suite:** 2,591 executions, 0 failed (the 2,571 of P3-49 step 1 plus these five on four targets).
+The instrumented tests compile against the restyled live screen. Not yet on the phone.
+
 ---
 
 ## P3-49 — FEATURE_PLAN Batch 3: streak freezes, the calendar, records, goals, reminders

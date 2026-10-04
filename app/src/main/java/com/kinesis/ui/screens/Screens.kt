@@ -1,63 +1,66 @@
 package com.kinesis.ui.screens
 
+import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.kinesis.core.analysis.history.DashboardSummary
+import com.kinesis.camera.LiveCamera
 import com.kinesis.core.analysis.calibration.CalibrationKey
 import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.analysis.profile.ExerciseVariant
 import com.kinesis.core.analysis.profile.IsometricExercise
-import com.kinesis.core.domain.calibration.CalibrationBaseline
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.health.ActivityContextResult
 import com.kinesis.health.ContextUnavailable
 import com.kinesis.health.DailyMetric
-import com.kinesis.camera.LiveCamera
 import com.kinesis.licenses.ThirdPartyNotice
 import com.kinesis.licenses.ThirdPartyNotices
 import com.kinesis.ui.live.LiveHoldUiState
 import com.kinesis.ui.live.LiveUiState
 import com.kinesis.ui.live.SkeletonOverlayView
+import com.kinesis.ui.theme.Accent
 import com.kinesis.ui.theme.Attention
-import com.kinesis.ui.theme.InkSecondary
-import com.kinesis.ui.theme.InkFaint
-import com.kinesis.ui.theme.Ink
 import com.kinesis.ui.theme.Card
+import com.kinesis.ui.theme.Ink
+import com.kinesis.ui.theme.InkFaint
+import com.kinesis.ui.theme.InkSecondary
+import com.kinesis.ui.theme.OnAccent
+import com.kinesis.ui.theme.Void
 import com.kinesis.ui.theme.color
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.foundation.layout.statusBarsPadding
 
 /**
- * The screens - DECISIONS.md P3-12.
+ * The screens - DECISIONS.md P3-12, in P3-48's look.
  *
- * Phosphor green on near-black, monospace throughout. Every string a user reads
+ * Every string a user reads
  * about their movement comes from the core: CONTRACTS.md section 2 and
  * FINAL_ARCHITECTURE section 6 both say the UI "renders what it is given and
  * composes no sentences of its own", which is what stops UI copy from making a
@@ -128,9 +131,9 @@ private fun ExerciseRow(profile: ExerciseProfile, calibrated: Boolean, onClick: 
                 Text(profile.displayName, style = MaterialTheme.typography.titleMedium, color = Ink)
                 Text(
                     buildString {
-                        append(profile.requiredView.name.replace('_', ' ').lowercase())
+                        append(viewLabel(profile.requiredView))
                         append(" · ")
-                        append(profile.posture.name.lowercase())
+                        append(postureLabel(profile.posture))
                         append(if (profile is IsometricExercise) " · hold" else " · repetitions")
                         if (isVariant) append(" · a kind of " + (profile as ExerciseVariant).parent.displayName)
                     },
@@ -176,31 +179,25 @@ fun LicencesScreen(
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(PageBackground)
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item {
-            Text(
-                "LICENCES",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 24.dp),
-            )
-        }
-        item { Text("POSE MODEL", style = MaterialTheme.typography.labelSmall, color = InkFaint) }
+        item { PageTitle("Licences", "What the app is built from, and the terms each part ships under") }
+        item { SectionLabel("Pose model") }
         item { NoticeRow(ThirdPartyNotices.poseModel) }
-        item { Text("SOFTWARE", style = MaterialTheme.typography.labelSmall, color = InkFaint) }
+        item { SectionLabel("Software") }
         items(ThirdPartyNotices.software) { NoticeRow(it) }
-        item { Text("BSD 3-CLAUSE", style = MaterialTheme.typography.labelSmall, color = InkFaint) }
+        item { SectionLabel("BSD 3-Clause") }
         items(bsdTexts) { (notice, text) ->
-            Column {
-                NoticeRow(notice)
-                Spacer(Modifier.height(6.dp))
+            KCard {
+                NoticeText(notice)
+                Spacer(Modifier.height(8.dp))
                 LicenceText(text)
             }
         }
-        item { Text("APACHE LICENSE, VERSION 2.0", style = MaterialTheme.typography.labelSmall, color = InkFaint) }
-        item { LicenceText(apacheLicenceText) }
+        item { SectionLabel("Apache License, Version 2.0") }
+        item { KCard { LicenceText(apacheLicenceText) } }
         item { Spacer(Modifier.height(24.dp)) }
     }
 }
@@ -216,18 +213,15 @@ private fun LicenceText(text: String?) {
 
 @Composable
 private fun NoticeRow(notice: ThirdPartyNotice) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .border(1.dp, InkSecondary)
-            .background(Card)
-            .padding(14.dp),
-    ) {
-        Text(notice.component, style = MaterialTheme.typography.bodyMedium)
-        Text(notice.licence, style = MaterialTheme.typography.bodySmall, color = Ink)
-        if (notice.detail.isNotEmpty()) {
-            Text(notice.detail, style = MaterialTheme.typography.bodySmall, color = InkFaint)
-        }
+    KCard { NoticeText(notice) }
+}
+
+@Composable
+private fun NoticeText(notice: ThirdPartyNotice) {
+    Text(notice.component, style = MaterialTheme.typography.titleMedium, color = Ink)
+    Text(notice.licence, style = MaterialTheme.typography.bodySmall, color = Ink)
+    if (notice.detail.isNotEmpty()) {
+        Text(notice.detail, style = MaterialTheme.typography.bodySmall, color = InkSecondary)
     }
 }
 
@@ -237,47 +231,35 @@ private fun NoticeRow(notice: ThirdPartyNotice) {
  *
  * Every absence renders as itself. The reasons come from P3-11's
  * `ContextUnavailable`, so this panel and the read path cannot disagree about
- * why there is nothing to show.
+ * why there is nothing to show. It sits inside the caller's card (Profile, P3-48).
  */
 @Composable
 internal fun HealthContextPanel(
     context: ActivityContextResult?,
     onRequestHealthAccess: (() -> Unit)?,
 ) {
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .border(1.dp, InkFaint)
-            .padding(14.dp),
-    ) {
-        Text("DAILY CONTEXT", style = MaterialTheme.typography.labelSmall, color = InkFaint)
+    Column(Modifier.fillMaxWidth()) {
+        Text("Today", style = MaterialTheme.typography.titleMedium, color = Ink)
         Spacer(Modifier.height(6.dp))
 
         when (context) {
-            null -> Text("—", style = MaterialTheme.typography.bodySmall, color = InkFaint)
+            null -> Note("Reading…")
 
             is ActivityContextResult.Available -> {
-                Metric("STEPS", context.context.steps)
-                Metric("ACTIVE KCAL", context.context.activeCaloriesKcal)
-                Metric("MEAN BPM", context.context.meanHeartRateBpm)
+                Metric("Steps", context.context.steps, "")
+                Metric("Active calories", context.context.activeCaloriesKcal, " kcal")
+                Metric("Mean heart rate", context.context.meanHeartRateBpm, " bpm")
+                Spacer(Modifier.height(6.dp))
+                Note("Read from Health Connect and shown beside your training. Kinesis does not use it in any measurement.")
             }
 
             is ActivityContextResult.Unavailable -> {
-                Text(
-                    describe(context.reason),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = InkFaint,
-                )
+                Note(describe(context.reason))
                 if (context.reason == ContextUnavailable.PERMISSIONS_DENIED &&
                     onRequestHealthAccess != null
                 ) {
-                    Spacer(Modifier.height(10.dp))
-                    Text(
-                        "[ GRANT ACCESS ]",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Ink,
-                        modifier = Modifier.clickable(onClick = onRequestHealthAccess),
-                    )
+                    Spacer(Modifier.height(12.dp))
+                    SecondaryButton("Allow access", onClick = onRequestHealthAccess)
                 }
             }
         }
@@ -285,32 +267,29 @@ internal fun HealthContextPanel(
 }
 
 @Composable
-private fun Metric(label: String, metric: DailyMetric) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = InkFaint)
+private fun Metric(label: String, metric: DailyMetric, unit: String) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = InkSecondary)
         Text(
             when (metric) {
-                is DailyMetric.Measured -> metric.value.toInt().toString()
+                is DailyMetric.Measured -> metric.value.toInt().toString() + unit
                 DailyMetric.NotPermitted -> "not permitted"
                 DailyMetric.NoData -> "no data"
                 DailyMetric.ReadFailed -> "could not be read"
             },
-            style = MaterialTheme.typography.bodySmall,
-            color = if (metric is DailyMetric.Measured) InkSecondary else InkFaint,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (metric is DailyMetric.Measured) Ink else InkFaint,
         )
     }
 }
 
 private fun describe(reason: ContextUnavailable): String = when (reason) {
-    ContextUnavailable.PLATFORM_TOO_OLD -> "this device predates Health Connect"
-    ContextUnavailable.NOT_INSTALLED -> "Health Connect is not installed"
-    ContextUnavailable.PROVIDER_UPDATE_REQUIRED -> "Health Connect needs updating"
-    ContextUnavailable.PERMISSIONS_DENIED -> "no permissions granted"
-    ContextUnavailable.READ_FAILED -> "could not be read"
+    ContextUnavailable.PLATFORM_TOO_OLD -> "This phone predates Health Connect."
+    ContextUnavailable.NOT_INSTALLED -> "Health Connect is not installed."
+    ContextUnavailable.PROVIDER_UPDATE_REQUIRED -> "Health Connect needs updating."
+    ContextUnavailable.PERMISSIONS_DENIED -> "Kinesis has not been allowed to read steps, active calories or heart rate."
+    ContextUnavailable.READ_FAILED -> "Health Connect could not be read."
 }
-
-private fun format(value: Double): String =
-    if (value.isNaN()) "—" else value.toInt().toString() + "°"
 
 // --- Live analysis --------------------------------------------------------------------
 
@@ -340,22 +319,19 @@ fun LiveAnalysisScreen(
         state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
         switchModelLabel, onSwitchModel, modeLabel,
     ) {
-        Text(
-            state.repCount.toString(),
-            style = MaterialTheme.typography.displayLarge,
-            color = state.overlayState.color,
-        )
-        Text(
-            state.phase.name,
-            style = MaterialTheme.typography.titleMedium,
-            color = InkSecondary,
-        )
-        Spacer(Modifier.height(24.dp))
-        Text(
-            state.overlayState.meaning.uppercase(),
-            style = MaterialTheme.typography.bodySmall,
-            color = state.overlayState.color,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                state.repCount.toString(),
+                style = MaterialTheme.typography.displayLarge,
+                color = state.overlayState.color,
+            )
+            Column(Modifier.padding(start = 16.dp)) {
+                Text(if (state.repCount == 1) "repetition" else "repetitions", style = MaterialTheme.typography.labelSmall, color = InkSecondary)
+                Text(fieldName(state.phase.name), style = MaterialTheme.typography.titleMedium, color = Ink)
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        TrackingLine(state.overlayState.meaning, state.overlayState.color)
     }
 }
 
@@ -382,24 +358,30 @@ fun LiveHoldScreen(
         state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
         switchModelLabel, onSwitchModel, modeLabel,
     ) {
-        Text(
-            (state.heldSeconds / 60).toString() + ":" + (state.heldSeconds % 60).toString().padStart(2, '0'),
-            style = MaterialTheme.typography.displayLarge,
-            color = state.overlayState.color,
-        )
-        Text(
-            state.holdState.name.replace('_', ' '),
-            style = MaterialTheme.typography.titleMedium,
-            color = InkSecondary,
-        )
-        Spacer(Modifier.height(24.dp))
-        Text(
-            state.overlayState.meaning.uppercase(),
-            style = MaterialTheme.typography.bodySmall,
-            color = state.overlayState.color,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                (state.heldSeconds / 60).toString() + ":" + (state.heldSeconds % 60).toString().padStart(2, '0'),
+                style = MaterialTheme.typography.displayLarge,
+                color = state.overlayState.color,
+            )
+            Column(Modifier.padding(start = 16.dp)) {
+                Text("held", style = MaterialTheme.typography.labelSmall, color = InkSecondary)
+                Text(fieldName(state.holdState.name), style = MaterialTheme.typography.titleMedium, color = Ink)
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        TrackingLine(state.overlayState.meaning, state.overlayState.color)
     }
 }
+
+/** The tracking state in words, in the overlay state's own colour, with a mark so colour is not alone. */
+@Composable
+private fun TrackingLine(meaning: String, color: androidx.compose.ui.graphics.Color) {
+    Text("● " + meaning.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.bodySmall, color = color)
+}
+
+/** An enum value as a field name: `ASCENDING` reads "Ascending". A label, not a judgement. */
+private fun fieldName(name: String): String = name.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
 
 /**
  * The camera area and the readout beneath it.
@@ -436,7 +418,7 @@ private fun LiveCameraLayout(
     Column(
         modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(Void),
     ) {
         Box(
             Modifier
@@ -451,30 +433,18 @@ private fun LiveCameraLayout(
                 AndroidView(factory = { preview }, modifier = Modifier.fillMaxSize())
                 AndroidView(factory = { overlay }, modifier = Modifier.fillMaxSize())
             }
-            Column(Modifier.align(Alignment.TopStart).padding(16.dp)) {
-                Text(exerciseId, style = MaterialTheme.typography.labelSmall, color = InkFaint)
-                if (modeLabel != null) {
-                    Text(modeLabel, style = MaterialTheme.typography.labelSmall, color = Ink)
-                }
+            Column(Modifier.align(Alignment.TopStart).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Pill(nameOf(exerciseId), Card, Ink)
+                if (modeLabel != null) Pill(modeLabel, Accent, OnAccent)
             }
-            Column(Modifier.align(Alignment.TopEnd), horizontalAlignment = Alignment.End) {
-                Text(
-                    "[ $switchCameraLabel ]",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Ink,
-                    modifier = Modifier
-                        .clickable(onClick = onSwitchCamera)
-                        .padding(16.dp),
-                )
+            Column(
+                Modifier.align(Alignment.TopEnd).padding(12.dp),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Pill("⟲ $switchCameraLabel", Card, Ink, onClick = onSwitchCamera)
                 if (switchModelLabel != null && onSwitchModel != null) {
-                    Text(
-                        "[ $switchModelLabel ]",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = InkFaint,
-                        modifier = Modifier
-                            .clickable(onClick = onSwitchModel)
-                            .padding(horizontal = 16.dp),
-                    )
+                    Pill(switchModelLabel, Card, InkSecondary, onClick = onSwitchModel)
                 }
             }
             if (diagnostics != null) {
@@ -493,19 +463,36 @@ private fun LiveCameraLayout(
         Column(
             Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+                .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                .background(Card)
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
         ) {
             readout()
-            Spacer(Modifier.height(16.dp))
-            Text(
-                "[ END SET ]",
-                style = MaterialTheme.typography.titleMedium,
-                color = Ink,
-                modifier = Modifier.clickable(onClick = onEndSet),
-            )
+            Spacer(Modifier.height(14.dp))
+            PrimaryButton("End set", onClick = onEndSet)
         }
     }
+}
+
+/** A small rounded label over the camera, tappable when [onClick] is given. */
+@Composable
+private fun Pill(
+    text: String,
+    background: androidx.compose.ui.graphics.Color,
+    color: androidx.compose.ui.graphics.Color,
+    onClick: (() -> Unit)? = null,
+) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelLarge,
+        color = color,
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(background)
+            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+    )
 }
 
 /**
@@ -528,7 +515,7 @@ fun LiveUnavailableScreen(
     Box(
         modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
+            .background(PageBackground),
     ) {
         Column(
             Modifier
@@ -536,31 +523,25 @@ fun LiveUnavailableScreen(
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(headline, style = MaterialTheme.typography.titleMedium, color = Attention)
-            Spacer(Modifier.height(16.dp))
+            Text(headline, style = MaterialTheme.typography.titleLarge, color = Attention, textAlign = TextAlign.Center)
+            Spacer(Modifier.height(12.dp))
             Text(
                 detail,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = InkSecondary,
                 textAlign = TextAlign.Center,
             )
             if (action != null && onAction != null) {
                 Spacer(Modifier.height(24.dp))
-                Text(
-                    "[ $action ]",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Ink,
-                    modifier = Modifier.clickable(onClick = onAction),
-                )
+                PrimaryButton(action, onClick = onAction)
             }
         }
 
         Text(
-            exerciseId,
-            style = MaterialTheme.typography.labelSmall,
-            color = InkFaint,
+            nameOf(exerciseId),
+            style = MaterialTheme.typography.labelLarge,
+            color = InkSecondary,
             modifier = Modifier.align(Alignment.TopStart).padding(16.dp),
         )
     }
 }
-

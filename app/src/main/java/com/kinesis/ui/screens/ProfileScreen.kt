@@ -58,7 +58,7 @@ fun ProfileScreen(
         }
 
         item { SectionLabel("Calibrations") }
-        item { KCard { BaselinesPanel(baselines) } }
+        item { BaselinesPanel(baselines) }
 
         item { SectionLabel("Activity from Health Connect") }
         item { KCard { HealthContextPanel(context, onRequestHealthAccess) } }

@@ -110,7 +110,7 @@ fun ProgressScreen(
                     if (exercise.validRepCount > 0) {
                         Spacer(Modifier.height(8.dp))
                         SidesLine("Range of motion, mean", exercise.meanRangeOfMotion.left, exercise.meanRangeOfMotion.right)
-                        SidesLine("Range of motion, best", exercise.bestRangeOfMotion.left, exercise.bestRangeOfMotion.right)
+                        SidesLine("Range of motion, largest", exercise.bestRangeOfMotion.left, exercise.bestRangeOfMotion.right)
                     }
                 }
             }
@@ -174,14 +174,7 @@ fun SessionDetailScreen(
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item {
-            Text(
-                "‹ $backLabel",
-                style = MaterialTheme.typography.labelLarge,
-                color = InkSecondary,
-                modifier = Modifier.clickable(onClick = onBack).padding(top = 20.dp, bottom = 4.dp),
-            )
-        }
+        item { Box(Modifier.padding(top = 8.dp)) { BackLink(backLabel, onBack) } }
         item { PageTitle(whenOf(session), plural(session.sets.size, "set") + " · " + plural(session.completedUnits, "counted")) }
         items(session.sets.withIndex().toList(), key = { "set-" + it.index }) { (index, set) ->
             SetCard(index + 1, set)
@@ -244,7 +237,7 @@ private fun RepLine(rep: RepRecord) {
 private fun HoldLine(hold: HoldRecord) {
     val counted = hold.validity == HoldValidity.VALID
     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        Cell(if (counted) "✓ held" else "✕ " + hold.validity.name.lowercase().replace('_', ' '), 1.6f, if (counted) Ink else Attention)
+        Cell(holdValidityLabel(hold.validity), 1.6f, if (counted) Ink else Attention)
         Cell(seconds(hold.totalHoldMs), 1.2f, Ink)
         Cell(plural(hold.breakCount, "break"), 1.2f, InkSecondary)
     }
@@ -268,11 +261,19 @@ private fun SidesLine(label: String, left: Double, right: Double) {
 // --- Words for fields, not judgements --------------------------------------------------------
 
 /** A record's validity, named: whether it counted, and if not, why. Shape as well as colour. */
-private fun validityLabel(validity: RepValidity): String = when (validity) {
+internal fun validityLabel(validity: RepValidity): String = when (validity) {
     RepValidity.VALID -> "✓ counted"
     RepValidity.ABORTED -> "✕ turned back"
     RepValidity.INCOMPLETE -> "✕ unfinished"
     RepValidity.INSUFFICIENT_DATA -> "✕ not seen"
+}
+
+/** A hold's validity, named, as a repetition's is. */
+internal fun holdValidityLabel(validity: HoldValidity): String = when (validity) {
+    HoldValidity.VALID -> "✓ held"
+    HoldValidity.BROKEN -> "✕ broken"
+    HoldValidity.TOO_SHORT -> "✕ too short"
+    HoldValidity.INSUFFICIENT_DATA -> "✕ not seen"
 }
 
 /** An exercise's name from the library, or its id if the library no longer has it. */

@@ -77,4 +77,67 @@ class CalibrationGuideTest {
             }
         }
     }
+
+    // --- Placement, on every exercise's page - DECISIONS.md P3-48 --------------------------------
+
+    /**
+     * The view in the setup text is the profile's own `requiredView` (CLAUDE.md section 10: every
+     * profile declares its view, and nothing is analysed from an unsuitable one), for all 17
+     * entries, variants included.
+     */
+    @Test
+    fun every_entry_s_placement_names_its_own_required_view() {
+        for (entry in ExerciseLibrary.all) {
+            val text = CalibrationGuide.placement(entry)
+            val view = when (entry.requiredView.name) {
+                "FRONT_ON" -> "front-on"
+                "SIDE_ON" -> "side-on"
+                else -> "45 degrees"
+            }
+            assertTrue(text.contains(view), "${entry.id} wants $view: $text")
+        }
+    }
+
+    /** The pose model card's out-of-scope list (P3-17): the whole body, one person, within about 4 m. */
+    @Test
+    fun every_placement_carries_the_model_card_s_limits() {
+        for (entry in ExerciseLibrary.all) {
+            val text = CalibrationGuide.placement(entry)
+            for (part in listOf("whole body", "head to feet", "4 metres", "only you")) {
+                assertTrue(text.contains(part), "'$part' missing for ${entry.id}: $text")
+            }
+        }
+    }
+
+    @Test
+    fun placement_says_to_turn_round_exactly_where_the_instructions_do() {
+        for (entry in ExerciseLibrary.all) {
+            assertTrue(
+                CalibrationGuide.placement(entry).contains("turn round") ==
+                    CalibrationGuide.instructions(entry).contains("turn round"),
+                entry.id,
+            )
+        }
+        assertTrue(CalibrationGuide.placement(ExerciseLibrary.row).contains("the side nearer the camera"))
+    }
+
+    @Test
+    fun postures_are_said_in_plain_words() {
+        for (entry in ExerciseLibrary.all) {
+            val text = CalibrationGuide.placement(entry) + " " + CalibrationGuide.instructions(entry)
+            for (jargon in listOf("supine", "prone", "hinged", "side lying", "side_lying")) {
+                assertTrue(!text.contains(jargon), "'$jargon' in ${entry.id}: $text")
+            }
+        }
+    }
+
+    @Test
+    fun no_placement_makes_a_claim_about_correctness() {
+        for (entry in ExerciseLibrary.all) {
+            val text = CalibrationGuide.placement(entry).lowercase()
+            for (word in listOf("correct", "diagnos", "injur", "proper form", "perfect")) {
+                assertTrue(!text.contains(word), "'$word' in ${entry.id}: $text")
+            }
+        }
+    }
 }

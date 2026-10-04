@@ -6,6 +6,7 @@ import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.analysis.profile.RepetitionSemantics
 import com.kinesis.core.domain.profile.CameraView
 import com.kinesis.core.domain.profile.ExerciseProfile
+import com.kinesis.core.domain.profile.Posture
 
 /**
  * What the user is told before a calibration set - DECISIONS.md P3-22.
@@ -19,7 +20,7 @@ import com.kinesis.core.domain.profile.ExerciseProfile
 object CalibrationGuide {
 
     fun instructions(profile: ExerciseProfile, policy: CalibrationPolicy = CalibrationPolicy.PROVISIONAL): String {
-        val filmed = "filmed " + view(profile.requiredView) + ", " + profile.posture.name.lowercase().replace('_', ' ')
+        val filmed = "filmed " + view(profile.requiredView) + ", " + posture(profile.posture)
         return when (profile) {
             is IsometricExercise ->
                 "Hold the position the way you usually do, for at least ${seconds(policy.minHoldMs)} seconds, " +
@@ -34,10 +35,7 @@ object CalibrationGuide {
                 }
                 // DECISIONS.md P3-32: side-on, the far limb is behind the body, so one side
                 // at a time, each nearer the camera in turn.
-                val turn = if (
-                    profile.requiredView == CameraView.SIDE_ON &&
-                    profile.repetitionSemantics == RepetitionSemantics.PER_LIMB
-                ) {
+                val turn = if (turnsRound(profile)) {
                     " Work one side at a time with that side nearer the camera, then turn round for the other side."
                 } else {
                     ""
@@ -51,6 +49,43 @@ object CalibrationGuide {
 
             else -> "Kinesis has no calibration for ${profile.displayName}."
         }
+    }
+
+    /**
+     * How to set the phone up for [profile] - shown on every exercise's page (DECISIONS.md P3-48).
+     *
+     * The view is the profile's own `requiredView`, so the page cannot ask for one view while the
+     * analysis assumes another (CLAUDE.md section 10). The limits are the pose model card's
+     * out-of-scope list (P3-17): the whole body with the head visible, within about 4 m, one person.
+     * The side-on, one-side-at-a-time advice is the same sentence the calibration instructions give.
+     */
+    fun placement(profile: ExerciseProfile): String {
+        val turn = if (profile is RepetitionExercise && turnsRound(profile)) {
+            " Work one side at a time with that side nearer the camera, then turn round for the other side."
+        } else {
+            ""
+        }
+        val near = if (profile is RepetitionExercise && profile.analysedSides == AnalysedSides.NEAR_SIDE_ONLY) {
+            " Kinesis measures the side nearer the camera."
+        } else {
+            ""
+        }
+        return "Film yourself " + view(profile.requiredView) + ", " + posture(profile.posture) + ". " +
+            "Stand the phone up so your whole body is in the frame, head to feet, within about 4 metres, " +
+            "with only you in view and good light." + turn + near
+    }
+
+    // DECISIONS.md P3-32: side-on, the far limb is behind the body, so one side at a time.
+    private fun turnsRound(profile: RepetitionExercise): Boolean =
+        profile.requiredView == CameraView.SIDE_ON && profile.repetitionSemantics == RepetitionSemantics.PER_LIMB
+
+    private fun posture(posture: Posture): String = when (posture) {
+        Posture.STANDING -> "standing"
+        Posture.SEATED -> "seated"
+        Posture.HINGED -> "bent forward at the hips"
+        Posture.PRONE -> "face down"
+        Posture.SUPINE -> "lying on your back"
+        Posture.SIDE_LYING -> "lying on your side"
     }
 
     private fun view(view: CameraView): String = when (view) {

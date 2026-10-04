@@ -2,7 +2,6 @@ package com.kinesis.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -22,15 +22,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.kinesis.sync.AuthFailure
 import com.kinesis.ui.theme.Attention
-import com.kinesis.ui.theme.InkSecondary
-import com.kinesis.ui.theme.InkFaint
-import com.kinesis.ui.theme.Ink
 import com.kinesis.ui.theme.Card
+import com.kinesis.ui.theme.Ink
+import com.kinesis.ui.theme.InkFaint
+import com.kinesis.ui.theme.InkSecondary
 
 /**
  * Sign in or create an account - DECISIONS.md P3-14.
@@ -62,26 +63,27 @@ fun AuthScreen(
     Column(
         modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            // No NavBar above this one, so it insets itself. Same cause as the
-            // NavBar fix: targetSdk 35 lays the app out edge to edge.
+            .background(PageBackground)
+            // Nothing above this one, so it insets itself: targetSdk 35 lays the
+            // app out edge to edge.
             .statusBarsPadding()
             .navigationBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(24.dp),
     ) {
-        Text("KINESIS", style = MaterialTheme.typography.displayLarge)
+        Spacer(Modifier.height(24.dp))
+        Text("Kinesis", style = MaterialTheme.typography.displayLarge, color = Ink)
         Text(
-            if (creatingAccount) "CREATE ACCOUNT" else "SIGN IN",
+            if (creatingAccount) "Create your account" else "Sign in to your account",
             style = MaterialTheme.typography.titleMedium,
             color = InkSecondary,
         )
 
         Spacer(Modifier.height(28.dp))
 
-        Field("EMAIL", email, onChange = { email = it })
+        Field("Email", email, onChange = { email = it })
         Spacer(Modifier.height(12.dp))
-        Field("PASSWORD", password, onChange = { password = it }, secret = true)
+        Field("Password", password, onChange = { password = it }, secret = true)
 
         if (failure != null) {
             Spacer(Modifier.height(16.dp))
@@ -94,25 +96,20 @@ fun AuthScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        Text(
+        PrimaryButton(
             text = when {
-                busy -> "[ WORKING... ]"
-                creatingAccount -> "[ CREATE ACCOUNT ]"
-                else -> "[ SIGN IN ]"
+                busy -> "Working…"
+                creatingAccount -> "Create account"
+                else -> "Sign in"
             },
-            style = MaterialTheme.typography.titleMedium,
-            color = if (busy) InkFaint else Ink,
-            modifier = Modifier.clickable(enabled = !busy) {
-                if (creatingAccount) onSignUp(email, password) else onSignIn(email, password)
-            },
+            onClick = { if (creatingAccount) onSignUp(email, password) else onSignIn(email, password) },
+            enabled = !busy,
         )
 
-        Spacer(Modifier.height(16.dp))
-        Text(
-            if (creatingAccount) "have an account? sign in" else "no account? create one",
-            style = MaterialTheme.typography.bodySmall,
-            color = InkSecondary,
-            modifier = Modifier.clickable { creatingAccount = !creatingAccount },
+        Spacer(Modifier.height(12.dp))
+        SecondaryButton(
+            if (creatingAccount) "I have an account: sign in" else "No account? Create one",
+            onClick = { creatingAccount = !creatingAccount },
         )
 
         Spacer(Modifier.height(32.dp))
@@ -131,13 +128,14 @@ fun SyncDisclosure(modifier: Modifier = Modifier) {
     Column(
         modifier
             .fillMaxWidth()
-            .border(1.dp, Attention)
+            .clip(CardShape)
             .background(Card)
-            .padding(14.dp),
+            .border(1.dp, Attention, CardShape)
+            .padding(16.dp),
     ) {
         Text(
-            "WHAT LEAVES THIS DEVICE",
-            style = MaterialTheme.typography.labelSmall,
+            "What leaves this phone",
+            style = MaterialTheme.typography.titleMedium,
             color = Attention,
         )
         Spacer(Modifier.height(8.dp))
@@ -174,13 +172,13 @@ private fun Field(
     secret: Boolean = false,
 ) {
     Column(Modifier.fillMaxWidth()) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = InkFaint)
-        Spacer(Modifier.height(4.dp))
+        Text(label, style = MaterialTheme.typography.labelLarge, color = InkSecondary)
+        Spacer(Modifier.height(6.dp))
         BasicTextField(
             value = value,
             onValueChange = onChange,
             singleLine = true,
-            textStyle = MaterialTheme.typography.bodyMedium.copy(color = Ink),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(color = Ink),
             cursorBrush = SolidColor(Ink),
             visualTransformation = if (secret) {
                 PasswordVisualTransformation()
@@ -189,9 +187,10 @@ private fun Field(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, InkSecondary)
+                .clip(RoundedCornerShape(12.dp))
                 .background(Card)
-                .padding(12.dp),
+                .border(1.dp, InkFaint, RoundedCornerShape(12.dp))
+                .padding(14.dp),
         )
     }
 }

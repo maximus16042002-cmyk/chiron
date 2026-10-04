@@ -25,11 +25,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.kinesis.core.domain.profile.CameraView
+import com.kinesis.core.domain.profile.Posture
 import com.kinesis.ui.theme.Accent
 import com.kinesis.ui.theme.Canvas
 import com.kinesis.ui.theme.Card
@@ -70,6 +72,20 @@ fun PageTitle(title: String, subtitle: String? = null) {
             Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = InkSecondary)
         }
     }
+}
+
+/** "‹ Where you came from", at the top of a page reached from another. */
+@Composable
+fun BackLink(label: String, onClick: () -> Unit) {
+    Text(
+        "‹ $label",
+        style = MaterialTheme.typography.labelLarge,
+        color = InkSecondary,
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    )
 }
 
 /** A small heading above a group of cards. */
@@ -215,3 +231,20 @@ fun Note(text: String) {
 
 /** The canvas colour, for page backgrounds. */
 val PageBackground = Canvas
+
+/** A camera view as a short label: a field name, not a sentence about movement. */
+fun viewLabel(view: CameraView): String = when (view) {
+    CameraView.FRONT_ON -> "front-on"
+    CameraView.SIDE_ON -> "side-on"
+    CameraView.ANGLED_45 -> "45°"
+}
+
+/** A posture as a short label. */
+fun postureLabel(posture: Posture): String = when (posture) {
+    Posture.STANDING -> "standing"
+    Posture.SEATED -> "seated"
+    Posture.HINGED -> "bent over"
+    Posture.PRONE -> "face down"
+    Posture.SUPINE -> "on your back"
+    Posture.SIDE_LYING -> "on your side"
+}
