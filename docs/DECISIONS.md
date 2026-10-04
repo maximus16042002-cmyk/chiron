@@ -11341,6 +11341,68 @@ each, `v1;…`), up to 10 favourites. A line that cannot be read back is dropped
 
 ---
 
+## P3-51 — P10's charts: each exercise's trend, left and right apart
+
+*2026-10-04. Written before the code. P3-38's order, after Batch 4. FEATURE_PLAN Batch 1 lists
+"per-exercise trends" under Progress, and P10 ("Visualisation & Android") has had no visualisation.*
+
+### What is drawn
+
+Tapping an exercise on Progress opens its page.
+
+**1. Range of motion, set by set.** A line chart with **two series, left and right**:
+- each point is that side's mean range over the set's counted repetitions;
+- the sides are never combined (CLAUDE.md §3);
+- a side the set did not measure (one arm of an alternating curl) is a gap, not a zero;
+- one axis, degrees.
+
+**2. Repetitions counted in each set,** as columns; or, for a hold, seconds held.
+
+The last 12 sets of the exercise, oldest first.
+
+### The numbers are the core's
+
+`Trends.of(sessions, exerciseId, limit)` in `core/analysis/history`, post-rep:
+- one point per set: when, the counted repetitions, each side's mean range over them, and the
+  seconds held;
+- only counted repetitions and completed holds count, as everywhere else.
+
+**Tests first, on JVM and JS:**
+- oldest first, and the limit keeps the newest;
+- each side's mean is its own;
+- an unmeasured side is NaN;
+- turned-back repetitions are excluded;
+- a hold gives seconds and no range;
+- other exercises are excluded.
+
+**A mutation check:** the two sides averaged must fail a test.
+
+### How they are drawn
+
+Following the data-visualisation method this session used, and checked with its validator:
+- **colour, by its job:** identity, so categorical, from the reference palette's dark steps:
+  - left **blue `#3987E5`**, right **aqua `#199E70`**;
+  - validated on the card surface `#1A1C21`: lightness band, chroma, CVD separation ΔE 19.6,
+    normal-vision ΔE 20.9, contrast ≥ 3:1, all pass;
+  - orange is left to the app's accent, which means selection and the streak;
+- **identity is never colour alone:**
+  - a legend ("● Left ■ Right");
+  - a circle marker for left and a square for right;
+  - "L" and "R" end labels in text colours;
+- **the marks:** 2 px lines, markers ≥ 8 px with a 2 px ring in the surface colour, hairline
+  gridlines, round tick values;
+- **columns:** at most 24 px wide, a rounded top, one colour, with the newest value labelled;
+- **interaction:** a tap selects a set, and a line above the chart reads it out ("Sat 3 Oct · L 92°
+  · R 88° · 10 counted");
+- **"Show as table"** lists every point, as the table view;
+- drawn with Compose `Canvas`, so no chart library and no §17 check;
+- the palette values join `KinesisPalette`, and the contrast test gains them.
+
+**Not drawn:** a trend line, a fit, or any "improving" label. A chart shows measurements; it does
+not judge them.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
