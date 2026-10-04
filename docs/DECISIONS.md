@@ -10901,6 +10901,54 @@ Each step is committed on its own, with the suite run:
 
 Phone screenshots go to `local/phase-b/` when the phone is connected, described here.
 
+### Result — step 1, freezes and the calendar
+
+*2026-10-04.*
+
+**The rule** is in `Streaks.kt` as one pass over the active days, oldest first (`walk`).
+- `StreakSummary` gains `freezesHeld`.
+- `Streaks.activity` gains `today`, and each `DayActivity` says whether it was `frozen`.
+- `FREEZE_EARNED_EVERY = 7` and `MAX_FREEZES_HELD = 2` are named constants, and the page's
+  explanation reads them rather than repeating the numbers.
+
+**The tests:**
+- `StreakFreezeRuleTest`: 16 tests, the list above plus "today without work is neither frozen nor
+  missed", "six days earn nothing", and the calendar's view of the same rule (a frozen day is never
+  also active; future days are blank). All pass on JVM and JS.
+- `StreakRuleTest`'s 17 pass unchanged, except that the four P3-48 strip tests now pass `today`.
+
+**Mutations: 4 of 4 caught.** Each was planted in turn with a fresh test run, and the file was
+restored and checked byte for byte (`local/p3-49-freeze-mutations.log`):
+
+| Planted | Tests that failed |
+|---|---|
+| earning on day 6 | 2 |
+| spending two freezes on one gap | 2 |
+| counting the frozen day | 5 |
+| a freeze not ending the run (added; not in the design's three) | 1 |
+
+**The pages:**
+- **Progress:**
+  - **the header:** the streak, the longest, and the freezes held, with one sentence of the rule;
+  - **the calendar:** a month grid from the first session's month to this one, swiped or stepped
+    with ‹ ›, in the locale's first weekday. Fire on active days, ❄ on frozen ones, today ringed,
+    future days dimmed and not tappable;
+  - tapping a day lists that day's sessions, with "Show all" to return;
+  - the totals' third number is now "days trained". The longest streak moved to the header.
+- **Home:** the same header. The seven-day strip marks frozen days with ❄.
+
+**Suite:** `gradlew assemble allTests :app:testDebugUnitTest :app:testReleaseUnitTest`, **2,571
+executions, 0 failed, 0 skipped**:
+
+| Module | Debug | Release | JVM | JS |
+|---|---|---|---|---|
+| core/analysis | 503 | 503 | 514 (+5 allocation) | 503 |
+| core/domain | 37 | 37 | 37 | 37 |
+| app | 191 | 179 | | |
+| tools | | | 25 | |
+
+Not yet on the phone.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

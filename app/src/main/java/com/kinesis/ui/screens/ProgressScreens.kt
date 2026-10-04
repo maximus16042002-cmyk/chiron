@@ -3,6 +3,7 @@ package com.kinesis.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,16 +18,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.kinesis.core.analysis.history.DashboardSummary
+import com.kinesis.core.analysis.history.DayActivity
 import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.domain.rep.HoldRecord
 import com.kinesis.core.domain.rep.HoldValidity
 import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.core.domain.rep.RepValidity
 import com.kinesis.core.domain.session.HoldSetRecord
+import com.kinesis.core.domain.session.LocalDay
 import com.kinesis.core.domain.session.RepetitionSetRecord
 import com.kinesis.core.domain.session.SessionRecord
 import com.kinesis.core.domain.session.SetRecord
@@ -52,9 +59,17 @@ fun ProgressScreen(
     summary: DashboardSummary,
     /** Every stored session, newest first. */
     sessions: List<SessionRecord>,
+    /** Every day from the first session's month to today - `Streaks.activity`. */
+    calendar: List<DayActivity>,
+    today: LocalDay,
     onOpenSession: (SessionRecord) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var selectedDay: LocalDay? by remember { mutableStateOf(null) }
+    val shownSessions = remember(sessions, selectedDay) {
+        val day = selectedDay
+        if (day == null) sessions else sessions.filter { it.localDay == day }
+    }
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -70,10 +85,13 @@ fun ProgressScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     NumberBlock(summary.sessionCount.toString(), "sessions", Modifier.weight(1f))
                     NumberBlock(summary.totalValidReps.toString(), "repetitions", Modifier.weight(1f))
-                    NumberBlock(summary.streak.longestDays.toString() + " d", "longest streak", Modifier.weight(1f))
+                    NumberBlock(summary.streak.qualifyingDays.toString(), "days trained", Modifier.weight(1f))
                 }
             }
         }
+
+        item { StreakHeader(summary.streak) }
+        item { MonthCalendar(calendar, today, selectedDay, onSelect = { selectedDay = it }) }
 
         if (summary.perExercise.isNotEmpty()) {
             item { SectionLabel("By exercise") }
@@ -98,11 +116,23 @@ fun ProgressScreen(
             }
         }
 
-        item { SectionLabel("Sessions") }
-        if (sessions.isEmpty()) {
-            item { KCard { Note("No sessions yet. Your first set will appear here.") } }
+        item {
+            val day = selectedDay
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f)) { SectionLabel(if (day == null) "Sessions" else "Sessions on " + dayTitle(day)) }
+                if (day != null) FilterChip("Show all", selected = false, onClick = { selectedDay = null })
+            }
         }
-        items(sessions, key = { "session-" + it.sessionId }) { session ->
+        if (shownSessions.isEmpty()) {
+            item {
+                KCard {
+                    Note(
+                        if (selectedDay == null) "No sessions yet. Your first set will appear here." else "No sessions on this day.",
+                    )
+                }
+            }
+        }
+        items(shownSessions, key = { "session-" + it.sessionId }) { session ->
             SessionCard(session, onClick = { onOpenSession(session) })
         }
         item { Spacer(Modifier.height(16.dp)) }

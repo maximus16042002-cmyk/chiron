@@ -252,7 +252,7 @@ class StreakRuleTest {
             session(dayAt(-2), reps = 2),
             session(dayAt(0), reps = 1),
         )
-        val week = Streaks.activity(history, from = day0.plusDays(-6), to = day0)
+        val week = Streaks.activity(history, day0, from = day0.plusDays(-6), to = day0)
 
         assertEquals((-6..0).map { day0.plusDays(it) }, week.map { it.day }, "seven days, oldest first, none skipped")
         assertEquals(listOf(3, 0, 0, 0, 3, 0, 1), week.map { it.completedUnits }, "two sessions on one day add up")
@@ -269,7 +269,7 @@ class StreakRuleTest {
             session(dayAt(-1), abortedReps = 4, tooShortHolds = 2),
             session(dayAt(0), reps = 1),
         )
-        val week = Streaks.activity(history, from = day0.plusDays(-1), to = day0)
+        val week = Streaks.activity(history, day0, from = day0.plusDays(-1), to = day0)
 
         assertEquals(listOf(false, true), week.map { it.counted })
         assertEquals(
@@ -285,6 +285,7 @@ class StreakRuleTest {
         val lateUtc = day0.dayNumber * LocalDay.MILLIS_PER_DAY + 23.5 * 3_600_000.0
         val week = Streaks.activity(
             listOf(session(lateUtc, utcOffsetMinutes = 60, reps = 1)),
+            today = day0.plusDays(1),
             from = day0,
             to = day0.plusDays(1),
         )
@@ -293,8 +294,8 @@ class StreakRuleTest {
 
     @Test
     fun an_empty_range_is_empty_and_an_empty_history_is_all_unmarked() {
-        assertEquals(emptyList(), Streaks.activity(listOf(session(dayAt(0), reps = 1)), from = day0, to = day0.plusDays(-1)))
-        assertTrue(Streaks.activity(emptyList(), from = day0.plusDays(-6), to = day0).none { it.counted })
+        assertEquals(emptyList(), Streaks.activity(listOf(session(dayAt(0), reps = 1)), day0, from = day0, to = day0.plusDays(-1)))
+        assertTrue(Streaks.activity(emptyList(), day0, from = day0.plusDays(-6), to = day0).none { it.counted })
     }
 
     // --- Building history --------------------------------------------------------------------

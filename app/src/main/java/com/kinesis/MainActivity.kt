@@ -97,6 +97,7 @@ import com.kinesis.ui.screens.PrimaryButton
 import com.kinesis.ui.theme.Void
 import com.kinesis.core.analysis.history.Streaks
 import com.kinesis.core.analysis.history.DayActivity
+import com.kinesis.ui.screens.monthStart
 
 /**
  * The app shell - DECISIONS.md P3-12, given five pages in P3-48.
@@ -259,6 +260,7 @@ private fun KinesisApp(
     var sessions: List<SessionRecord> by remember { mutableStateOf(emptyList()) }
     var summary: DashboardSummary? by remember { mutableStateOf(null) }
     var week: List<DayActivity> by remember { mutableStateOf(emptyList()) }
+    var calendar: List<DayActivity> by remember { mutableStateOf(emptyList()) }
     // The signed-in user's baselines, by calibration id. Re-read with the history.
     var baselines: Map<String, CalibrationBaseline> by remember(uid) { mutableStateOf(emptyMap()) }
     var context: ActivityContextResult? by remember { mutableStateOf(null) }
@@ -276,7 +278,9 @@ private fun KinesisApp(
         val all = repository.allSessions()
         sessions = all.sortedByDescending { it.startedAtEpochMs }
         summary = Dashboard.summarise(all, today)
-        week = Streaks.activity(all, from = today.plusDays(-6), to = today)
+        week = Streaks.activity(all, today, from = today.plusDays(-6), to = today)
+        val firstDay = all.minOfOrNull { it.localDay.dayNumber }?.let { LocalDay(it) } ?: today
+        calendar = Streaks.activity(all, today, from = monthStart(minOf(firstDay, today)), to = today)
         baselines = calibration.baselines(uid)
         context = contextSource.readDay(today, offsetMinutes)
     }
@@ -372,7 +376,13 @@ private fun KinesisApp(
                 Tab.PROGRESS -> if (openSession != null) {
                     SessionDetailScreen(openSession!!, backLabel = "Progress", onBack = { openSession = null })
                 } else {
-                    ProgressScreen(summary = shown, sessions = sessions, onOpenSession = { openSession = it })
+                    ProgressScreen(
+                        summary = shown,
+                        sessions = sessions,
+                        calendar = calendar,
+                        today = today,
+                        onOpenSession = { openSession = it },
+                    )
                 }
 
                 Tab.PROFILE -> if (showLicences) {

@@ -38,8 +38,8 @@ import java.util.Locale
 import java.util.TimeZone
 
 /**
- * Seven days in a row, one mark each: filled where work was completed, empty where none was, and
- * today ringed. Shape as well as colour - a filled dot against an outlined one - so the strip
+ * Seven days in a row, one mark each: filled where work was completed, a snowflake where a freeze
+ * covered the day (P3-49), empty where neither, and today ringed. Shape as well as colour - a filled dot against an outlined one - so the strip
  * reads without colour vision.
  */
 @Composable
@@ -55,11 +55,15 @@ private fun WeekStrip(week: List<DayActivity>) {
                     when {
                         entry.counted -> mark.background(Accent)
                         entry.day == today -> mark.border(2.dp, Ink, CircleShape)
+                        entry.frozen -> mark.border(1.dp, Ink, CircleShape)
                         else -> mark.border(1.dp, InkFaint, CircleShape)
                     },
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (entry.counted) Text("✓", style = MaterialTheme.typography.labelSmall, color = OnAccent)
+                    when {
+                        entry.counted -> Text("✓", style = MaterialTheme.typography.labelSmall, color = OnAccent)
+                        entry.frozen -> Text("❄", style = MaterialTheme.typography.labelSmall, color = Ink)
+                    }
                 }
             }
         }
@@ -104,21 +108,7 @@ fun HomeScreen(
     ) {
         item { PageTitle("Kinesis", "Your training at a glance") }
 
-        item {
-            KCard {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("🔥", style = MaterialTheme.typography.displayLarge, color = Accent)
-                    Column(Modifier.padding(start = 12.dp)) {
-                        Text(summary.streak.currentDays.toString(), style = MaterialTheme.typography.displayLarge, color = Ink)
-                        Text(
-                            "day streak · longest " + summary.streak.longestDays,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = InkSecondary,
-                        )
-                    }
-                }
-            }
-        }
+        item { StreakHeader(summary.streak) }
 
         item {
             KCard {

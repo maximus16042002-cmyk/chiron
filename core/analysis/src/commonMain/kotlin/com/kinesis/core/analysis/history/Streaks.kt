@@ -11,10 +11,13 @@ import com.kinesis.core.domain.session.SessionRecord
  */
 data class StreakSummary(
 
-    /** Consecutive qualifying days ending today or yesterday. Zero if broken. */
+    /**
+     * The active days in the streak still running today. Zero if it has ended. A frozen day keeps
+     * a streak running but is not counted in it (P3-49).
+     */
     val currentDays: Int,
 
-    /** The longest run ever achieved, whether or not it is the current one. */
+    /** The largest count any streak has reached, whether or not it is the current one. */
     val longestDays: Int,
 
     /** The most recent day that counted, or `null` if none ever has. */
@@ -22,15 +25,20 @@ data class StreakSummary(
 
     /** How many days in the whole history counted. Not a streak, a total. */
     val qualifyingDays: Int,
+
+    /** Freezes held as of today, after any spent on yesterday - DECISIONS.md P3-49. */
+    val freezesHeld: Int,
 )
 
 /**
- * One calendar day and the work completed on it - DECISIONS.md P3-48.
+ * One calendar day, the work completed on it, and whether a freeze was spent on it -
+ * DECISIONS.md P3-48 and P3-49.
  *
  * [completedUnits] is the streak's measure (completed repetitions plus completed holds), so a day
- * is [counted] exactly when [Streaks] would count it.
+ * is [counted] exactly when [Streaks] would count it. A day is never both counted and [frozen]: a
+ * freeze is spent only on a day with no work.
  */
-data class DayActivity(val day: LocalDay, val completedUnits: Int) {
+data class DayActivity(val day: LocalDay, val completedUnits: Int, val frozen: Boolean = false) {
     val counted: Boolean get() = completedUnits > 0
 }
 
@@ -55,14 +63,22 @@ data class DayActivity(val day: LocalDay, val completedUnits: Int) {
  * document asks for either, and a threshold nobody specified is a threshold
  * invented here.
  *
- * ### A missed day breaks it, and there is no freeze
+ * ### A missed day breaks it, unless a freeze covers it
  *
- * Deliberate, and recorded in P3-10 rather than omitted quietly. A freeze needs
- * state of its own - how many are held, how many are spent, how they are earned -
- * which is exactly the "new architecture" P3-3 said this feature would not add,
- * and it is a motivation mechanic with no correctness content. Because the streak
- * is **computed from history rather than stored**, adding one later is a change
- * to this function and not a migration.
+ * P3-10 had no freeze, and said that because the streak is **computed from history rather than
+ * stored**, adding one later would be "a change to this function and not a migration". P3-49 is
+ * that change, the owner's rule from FEATURE_PLAN Batch 3:
+ * - **earning:** a run of consecutive active days earns one freeze on its 7th, 14th, 21st, … day,
+ *   unless [MAX_FREEZES_HELD] are already held. A frozen day is not an active day, so it ends the
+ *   run and earning starts again from zero;
+ * - **spending:** a missed day straight after an active day spends one freeze, if one is held, and
+ *   is frozen. If the next day is active the streak continues; if it is missed too, the streak
+ *   ends. One freeze at most is spent on a gap;
+ * - **never refunded:** a freeze spent on a gap that then ends the streak stays spent. A day's
+ *   state never changes once the day is over;
+ * - **the count is active days.** A frozen day keeps a streak alive and adds nothing to it.
+ *
+ * The freezes are derived, never stored, so sync and reinstalling cannot corrupt them.
  *
  * ### Today's silence is not yet a break
  *
@@ -91,22 +107,34 @@ object Streaks {
         return days
     }
 
+    /** A run earns a freeze on every one of its days divisible by this - P3-49. */
+    const val FREEZE_EARNED_EVERY: Int = 7
+
+    /** The most freezes held at once - P3-49. */
+    const val MAX_FREEZES_HELD: Int = 2
+
     /**
-     * Every day from [from] to [to] inclusive, oldest first, with the work completed on it - the
-     * week strip on Home and the calendar (DECISIONS.md P3-48). Days without a session are listed
-     * with nothing, not left out, so a gap shows as a gap.
+     * Every day from [from] to [to] inclusive, oldest first, with the work completed on it and
+     * whether a freeze was spent on it, as of [today] - the week strip on Home and the calendar
+     * (DECISIONS.md P3-48, P3-49). Days without a session are listed with nothing, not left out,
+     * so a gap shows as a gap.
      *
      * Each session is bucketed by the offset it was recorded in, as the streak does, and a day is
-     * marked by the same rule: [qualifyingDays] and the counted days here are the same set.
+     * marked by the same rule: [qualifyingDays] and the counted days here are the same set, and the
+     * frozen days are the ones [summarise] spent freezes on.
      */
-    fun activity(sessions: List<SessionRecord>, from: LocalDay, to: LocalDay): List<DayActivity> {
+    fun activity(sessions: List<SessionRecord>, today: LocalDay, from: LocalDay, to: LocalDay): List<DayActivity> {
         if (from > to) return emptyList()
         val units = IntArray(from.daysUntil(to) + 1)
         for (session in sessions) {
             val index = from.daysUntil(session.localDay)
             if (index in units.indices) units[index] += session.completedUnits
         }
-        return units.indices.map { DayActivity(from.plusDays(it), units[it]) }
+        val frozen = walk(qualifyingDays(sessions), today).frozen
+        return units.indices.map {
+            val day = from.plusDays(it)
+            DayActivity(day, units[it], frozen = day in frozen)
+        }
     }
 
     /**
@@ -117,47 +145,70 @@ object Streaks {
      */
     fun summarise(sessions: List<SessionRecord>, today: LocalDay): StreakSummary {
         val days = qualifyingDays(sessions)
-        if (days.isEmpty()) {
-            return StreakSummary(
-                currentDays = 0,
-                longestDays = 0,
-                lastQualifyingDay = null,
-                qualifyingDays = 0,
-            )
-        }
-
-        val ordered = days.sortedBy { it.dayNumber }
-
-        var longest = 1
-        var run = 1
-        for (index in 1 until ordered.size) {
-            run = if (ordered[index - 1].daysUntil(ordered[index]) == 1) run + 1 else 1
-            if (run > longest) longest = run
-        }
-
-        // The run is anchored to today if today counted, and to yesterday
-        // otherwise - a streak does not break until a whole day has passed
-        // without work.
-        val anchor = when {
-            today in days -> today
-            today.plusDays(-1) in days -> today.plusDays(-1)
-            else -> null
-        }
-
-        var current = 0
-        if (anchor != null) {
-            var day: LocalDay = anchor
-            while (day in days) {
-                current++
-                day = day.plusDays(-1)
-            }
-        }
-
+        val ledger = walk(days, today)
         return StreakSummary(
-            currentDays = current,
-            longestDays = longest,
-            lastQualifyingDay = ordered.last(),
-            qualifyingDays = ordered.size,
+            currentDays = ledger.currentDays,
+            longestDays = ledger.longestDays,
+            lastQualifyingDay = days.maxByOrNull { it.dayNumber },
+            qualifyingDays = days.size,
+            freezesHeld = ledger.freezesHeld,
         )
+    }
+
+    private class Ledger(
+        val currentDays: Int,
+        val longestDays: Int,
+        val freezesHeld: Int,
+        val frozen: Set<LocalDay>,
+    )
+
+    /**
+     * One pass over the active days, oldest first, applying P3-49's rule at every gap.
+     *
+     * The gap after the last active day is judged against [today], and today itself is never a
+     * miss: P3-10's "today's silence is not yet a break". So "yesterday missed" is decided this
+     * morning, and a freeze spent on it is spent for good.
+     */
+    private fun walk(days: Set<LocalDay>, today: LocalDay): Ledger {
+        val frozen = HashSet<LocalDay>()
+        var held = 0
+        var run = 0
+        var count = 0
+        var longest = 0
+        var previous: LocalDay? = null
+
+        // A gap of [missed] days after [last]: spend one freeze on its first day if one is held.
+        // Returns whether the streak survives it.
+        fun gap(last: LocalDay, missed: Int): Boolean {
+            run = 0
+            val spent = held > 0
+            if (spent) {
+                held--
+                frozen += last.plusDays(1)
+            }
+            return spent && missed == 1
+        }
+
+        for (day in days.sortedBy { it.dayNumber }) {
+            val last = previous
+            if (last != null) {
+                val missed = last.daysUntil(day) - 1
+                if (missed >= 1 && !gap(last, missed)) count = 0
+            }
+            run++
+            count++
+            if (count > longest) longest = count
+            if (run % FREEZE_EARNED_EVERY == 0 && held < MAX_FREEZES_HELD) held++
+            previous = day
+        }
+
+        val last = previous
+        var current = 0
+        if (last != null) {
+            // Days strictly between the last active day and today; today is not yet missed.
+            val missed = last.daysUntil(today) - 1
+            current = if (missed < 1 || gap(last, missed)) count else 0
+        }
+        return Ledger(currentDays = current, longestDays = longest, freezesHeld = held, frozen = frozen)
     }
 }
