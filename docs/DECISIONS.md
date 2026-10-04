@@ -11600,6 +11600,46 @@ exceed 91–98% F1.
 
 ---
 
+## P3-53 — Wiring the Exercise Verifier and Tier A Technique Rules to the Post-Rep Path and Set Summary
+
+*Decided 2026-10-04. Resolves HANDOVER.md §8.2 item 12 ("whether to wire Layer 2's rules into the set summary") and integrates P9 Part B's Exercise Verifier.*
+
+### Context and Motivation
+
+With Phase P8 Layer 2 technique rules built (P3-43, P3-44) and Phase P9 Part B's Exercise Verifier trained, evaluated, and packaged into a pure Kotlin evaluator (P3-52), both capabilities remained uncalled in the application's user experience. The set summary rendered numerical comparisons (P6) and Level 1 measurements, but omitted Level 2 verifier mismatch warnings and Level 3 cited technique guidance.
+
+### Principles and Guardrails (Non-Negotiables)
+
+1. **Warning Only (CLAUDE.md §13):** The verifier is strictly a mismatch warning engine. It **must not** automatically switch or select the user's exercise.
+2. **Post-Rep Evaluation ($O(1)$ Completion Path):** Both `ExerciseVerifier` and `TechniqueRules` evaluate exclusively on completed repetition records within `PostRepAnalysis.analyse`. Neither runs per-frame ML or allocates within real-time capture loops.
+3. **Tier A Scope Boundary:** Level 3 `TechniqueFault`s remain structurally restricted to `TierAProfile` (or variants deriving authority from a Tier A parent) via `TechniqueAuthority`.
+4. **Mandatory Citations:** Every Level 3 `TechniqueFault` renders its published academic/clinical `sourceRef` verbatim from the shared core. The UI composes no movement sentences or medical diagnoses of its own.
+5. **Quiet on Unverified or Matched Sets:** Unverified exercises (e.g. wall sit, plank, glute bridge) and movements lacking context emit no verifier findings. Matched repetitions produce no warning.
+
+### What Was Built
+
+1. **Post-Rep Analysis Pipeline (`PostRepAnalysis.kt`):**
+   - Injected default `ExerciseVerifier` instance.
+   - Evaluates `verifier.verify(profile.id, rep.movementContext)`: if `VerificationResult.Mismatch`, appends the Level 2 `Deviation` finding (`metric = "exercise_verifier"`).
+   - Evaluates `TechniqueRules.evaluate(authority, profile, rep)` for Tier A profiles and appends all resulting `TechniqueFault`s.
+2. **Multiplatform Test Coverage (`PostRepAnalysisTest.kt`):**
+   - Added `tier_a_repetition_with_technique_fault_produces_level_3_technique_fault_with_citation`: verifies that technique faults attach verbatim source citations and displayText under Level 3.
+   - Added `verifier_mismatch_produces_level_2_deviation_warning`: verifies that kinematic context matching another exercise triggers a Level 2 `Deviation` with `UNUSUAL_FOR_YOU`.
+   - Added `verifier_match_and_unverified_produce_no_verifier_findings`: verifies that matched exercises and unverified profiles remain completely silent.
+3. **UI Set Summary Integration (`CalibrationScreens.kt`):**
+   - Added `FindingCard` composable embedded within `RepetitionRow` and `HoldRow`.
+   - Verifier mismatch warnings display with an attention badge (`⚠️`), `Raised` card container, and `Attention` border.
+   - Level 3 `TechniqueFault`s display the core's exact `displayText` alongside the published `sourceRef` citation in `InkSecondary`.
+   - Personal `Deviation`s display clearly without diagnostics or judgements.
+
+### Verification
+
+- `:core:analysis:allTests` (JVM, JS, Android Debug, Android Release): **100% passing**.
+- `:app:testDebugUnitTest` and `:app:testReleaseUnitTest`: **100% passing**.
+- Parity goldens confirmed unchanged.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

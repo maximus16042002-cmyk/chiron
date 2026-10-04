@@ -1,5 +1,6 @@
 package com.kinesis.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -12,7 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -40,6 +43,9 @@ import com.kinesis.core.domain.rep.HoldRecord
 import com.kinesis.core.domain.rep.HoldValidity
 import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.core.domain.rep.RepValidity
+import com.kinesis.core.domain.finding.Deviation
+import com.kinesis.core.domain.finding.Finding
+import com.kinesis.core.domain.finding.TechniqueFault
 import com.kinesis.core.domain.session.HoldSetRecord
 import com.kinesis.core.domain.session.RepetitionSetRecord
 import com.kinesis.core.domain.session.SessionRecord
@@ -48,6 +54,7 @@ import com.kinesis.ui.theme.Attention
 import com.kinesis.ui.theme.Ink
 import com.kinesis.ui.theme.InkFaint
 import com.kinesis.ui.theme.InkSecondary
+import com.kinesis.ui.theme.Raised
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -417,6 +424,12 @@ private fun RepetitionRow(result: RepetitionAnalysisResult, rep: RepRecord?) {
             Beside("Down$whose", comparison.descentMs, ::seconds)
             Beside("Up$whose", comparison.ascentMs, ::seconds)
         }
+        if (result.findings.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            for (finding in result.findings) {
+                FindingCard(finding)
+            }
+        }
     }
 }
 
@@ -443,6 +456,80 @@ private fun HoldRow(result: HoldAnalysisResult, hold: HoldRecord?) {
             Beside("Held at", comparison.meanHeldValue, ::degrees)
             Beside("Sway", comparison.sway, ::degrees)
             Beside("Held for", comparison.heldMs, ::seconds)
+        }
+        if (result.findings.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            for (finding in result.findings) {
+                FindingCard(finding)
+            }
+        }
+    }
+}
+
+@Composable
+private fun FindingCard(finding: Finding) {
+    when (finding) {
+        is TechniqueFault -> {
+            Surface(
+                color = Raised,
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            ) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Text(
+                        text = finding.displayText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Ink,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "Source: " + finding.sourceRef,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = InkSecondary,
+                    )
+                }
+            }
+        }
+        is Deviation -> {
+            val isVerifierMismatch = finding.metric == "exercise_verifier"
+            Surface(
+                color = Raised,
+                shape = RoundedCornerShape(8.dp),
+                border = if (isVerifierMismatch) BorderStroke(1.dp, Attention.copy(alpha = 0.7f)) else null,
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            ) {
+                Row(
+                    modifier = Modifier.padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    if (isVerifierMismatch) {
+                        Text(
+                            text = "⚠️",
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                    Text(
+                        text = finding.displayText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isVerifierMismatch) Attention else InkSecondary,
+                    )
+                }
+            }
+        }
+        else -> {
+            Surface(
+                color = Raised,
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            ) {
+                Text(
+                    text = finding.displayText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = InkSecondary,
+                    modifier = Modifier.padding(10.dp),
+                )
+            }
         }
     }
 }

@@ -6,10 +6,20 @@ import com.kinesis.core.analysis.calibration.CalibrationFixtures.paired
 import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.profile.RepetitionExercise
+import com.kinesis.core.analysis.technique.TechniqueRules
+import com.kinesis.core.analysis.verifier.VerifierParityGolden
 import com.kinesis.core.domain.analysis.BaselineReference
+import com.kinesis.core.domain.bilateral.BilateralSignal
 import com.kinesis.core.domain.bilateral.Side
 import com.kinesis.core.domain.calibration.HoldBaseline
 import com.kinesis.core.domain.calibration.RepetitionBaseline
+import com.kinesis.core.domain.finding.ClaimLevel
+import com.kinesis.core.domain.finding.Deviation
+import com.kinesis.core.domain.finding.DeviationDirection
+import com.kinesis.core.domain.finding.TechniqueFault
+import com.kinesis.core.domain.rep.MovementContext
+import com.kinesis.core.domain.rep.RepRecord
+import com.kinesis.core.domain.rep.RepValidity
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -152,7 +162,90 @@ class PostRepAnalysisTest {
     fun a_repetition_unlike_its_baseline_carries_layer_ones_findings() {
         // Left 8.5° short of its usual: shallower, and left-minus-right 8.5° off its habitual 10.
         val findings = PostRepAnalysis.analyse(squat, paired(9, 95.0, 93.5), squatBaseline).findings
-        assertEquals(setOf("rom_left", "asymmetry_lr"), findings.map { (it as com.kinesis.core.domain.finding.Deviation).metric }.toSet())
+        assertEquals(setOf("rom_left", "asymmetry_lr"), findings.map { (it as Deviation).metric }.toSet())
         assertEquals("p8-layer1-1", PostRepAnalysis.VERSION)
+    }
+
+    @Test
+    fun tier_a_repetition_with_technique_fault_produces_level_3_technique_fault_with_citation() {
+        val raise = ExerciseLibrary.lateralRaise
+        // Arm raised above shoulder level (trough > 90° + 20° = 110°)
+        val rep = RepRecord(
+            repIndex = 1,
+            attributedSide = null,
+            startMs = 0.0,
+            endMs = 2_000.0,
+            validity = RepValidity.VALID,
+            rangeOfMotion = BilateralSignal(104.0, 78.0),
+            peakValue = BilateralSignal(20.0, 22.0),
+            troughValue = BilateralSignal(124.0, 100.0),
+            descentMs = 1_000.0,
+            ascentMs = 1_000.0,
+            resampledLeft = DoubleArray(64) { 20.0 },
+            resampledRight = DoubleArray(64) { 22.0 },
+        )
+        val result = PostRepAnalysis.analyse(raise, rep, null)
+        val fault = assertIs<TechniqueFault>(result.findings.single { it is TechniqueFault })
+        assertEquals(ClaimLevel.L3_TECHNIQUE, fault.level)
+        assertEquals(TechniqueRules.RAISED_ABOVE_SHOULDER_LEVEL, fault.faultId)
+        assertEquals(TechniqueRules.SOURCE_LATERAL_RAISE, fault.sourceRef)
+        assertTrue(fault.sourceRef.isNotEmpty())
+        assertTrue(fault.displayText.contains("raised above shoulder level"))
+    }
+
+    @Test
+    fun verifier_mismatch_produces_level_2_deviation_warning() {
+        // Sample 0 from golden is a bicep curl. We test analyzing it under squat profile.
+        val curlVector = VerifierParityGolden.VECTORS[0]
+        assertEquals("bicep_curl", curlVector.trueExercise)
+        val rep = RepRecord(
+            repIndex = 1,
+            attributedSide = null,
+            startMs = 0.0,
+            endMs = 2_000.0,
+            validity = RepValidity.VALID,
+            rangeOfMotion = BilateralSignal(90.0, 90.0),
+            peakValue = BilateralSignal(170.0, 170.0),
+            troughValue = BilateralSignal(80.0, 80.0),
+            descentMs = 1_000.0,
+            ascentMs = 1_000.0,
+            resampledLeft = DoubleArray(64) { 170.0 },
+            resampledRight = DoubleArray(64) { 170.0 },
+            movementContext = MovementContext(curlVector.rawFeatures),
+        )
+        val result = PostRepAnalysis.analyse(squat, rep, null)
+        val warning = assertIs<Deviation>(result.findings.single { it is Deviation && it.metric == "exercise_verifier" })
+        assertEquals(ClaimLevel.L2_DEVIATION, warning.level)
+        assertEquals(DeviationDirection.UNUSUAL_FOR_YOU, warning.direction)
+        assertTrue(warning.displayText.contains("This looks like a different exercise"))
+        assertTrue(warning.displayText.contains("Bicep Curl"))
+    }
+
+    @Test
+    fun verifier_match_and_unverified_produce_no_verifier_findings() {
+        val curlVector = VerifierParityGolden.VECTORS[0]
+        val rep = RepRecord(
+            repIndex = 1,
+            attributedSide = null,
+            startMs = 0.0,
+            endMs = 2_000.0,
+            validity = RepValidity.VALID,
+            rangeOfMotion = BilateralSignal(90.0, 90.0),
+            peakValue = BilateralSignal(170.0, 170.0),
+            troughValue = BilateralSignal(80.0, 80.0),
+            descentMs = 1_000.0,
+            ascentMs = 1_000.0,
+            resampledLeft = DoubleArray(64) { 170.0 },
+            resampledRight = DoubleArray(64) { 170.0 },
+            movementContext = MovementContext(curlVector.rawFeatures),
+        )
+        // 1. Matches selected exercise (bicep_curl) -> no warning
+        val matchResult = PostRepAnalysis.analyse(curl, rep, null)
+        assertTrue(matchResult.findings.none { it is Deviation && it.metric == "exercise_verifier" })
+
+        // 2. Unverified exercise (e.g. gluteBridge) -> no warning
+        val unverified = ExerciseLibrary.gluteBridge
+        val unverifiedResult = PostRepAnalysis.analyse(unverified, rep, null)
+        assertTrue(unverifiedResult.findings.none { it is Deviation && it.metric == "exercise_verifier" })
     }
 }

@@ -147,3 +147,49 @@
 | `docs/PROJECT_STATUS.md` | Updated phase table: P9 marked complete (~79% progress) | `860ee1e` |
 | `docs/HANDOVER.md` | Updated status table: P9 complete | `860ee1e` |
 | `docs/antigravity_works.md` | This document | Staged |
+
+---
+
+## 4. Phase: Wiring the Exercise Verifier & Tier A Technique Rules (P3-53)
+
+### Objective
+Resolve HANDOVER.md §8.2 item 12 by connecting Phase P9 Part B's Exercise Verifier (mismatch warning engine) and Phase P8 Layer 2's cited technique rules into the post-rep analysis pipeline and the Android UI Set Summary screen.
+
+### Research Principles & Non-Negotiables Upheld
+1. **Warning Only (CLAUDE.md §13):** The Exercise Verifier is strictly a mismatch warning engine. It **never** auto-switches or selects the exercise.
+2. **Post-Rep Evaluation ($O(1)$ Path):** Both `ExerciseVerifier` and `TechniqueRules` run exclusively on completed repetition records within `PostRepAnalysis.analyse`. Zero ML is run per-frame.
+3. **Tier A Boundary Enforced:** Level 3 `TechniqueFault` findings are strictly confined to `TierAProfile` (or variants deriving authority from a Tier A parent) via `TechniqueAuthority`.
+4. **Verbatim Published Citations:** Every Level 3 `TechniqueFault` renders its published citation (`sourceRef`) verbatim from the shared core without modification.
+5. **Quiet on Matched/Unverified Reps:** Repetitions that match the selected exercise or belong to unverified profiles (e.g. wall sit, plank, glute bridge) emit no verifier warnings.
+
+### Execution Log
+
+#### Step 1: Core Post-Rep Pipeline Integration (`PostRepAnalysis.kt`)
+- Added default `ExerciseVerifier` instance to `PostRepAnalysis`.
+- Updated `analyse(profile: RepetitionExercise, rep: RepRecord, baseline: RepetitionBaseline?)`:
+  - Evaluates `verifier.verify(profile.id, rep.movementContext)`: if `VerificationResult.Mismatch`, appends the Level 2 `Deviation` finding (`metric = "exercise_verifier"`).
+  - Evaluates `TechniqueRules.evaluate(authority, profile, rep)` for Tier A profiles and appends all resulting `TechniqueFault`s.
+
+#### Step 2: Multiplatform Unit Testing (`PostRepAnalysisTest.kt`)
+- Added `tier_a_repetition_with_technique_fault_produces_level_3_technique_fault_with_citation`: verifies that lateral raise with arm above shoulder level produces a Level 3 `TechniqueFault` with non-empty ACE citation and verbatim display text.
+- Added `verifier_mismatch_produces_level_2_deviation_warning`: verifies that a repetition with bicep curl kinematics analyzed under a squat profile produces a Level 2 `Deviation` with `UNUSUAL_FOR_YOU` and mismatch text.
+- Added `verifier_match_and_unverified_produce_no_verifier_findings`: verifies that matched exercises and unverified profiles (glute bridge) produce no false verifier findings.
+
+#### Step 3: UI Set Summary Integration (`CalibrationScreens.kt`)
+- Added `FindingCard(finding: Finding)` composable rendered inside `RepetitionRow` and `HoldRow`.
+- Renders verifier mismatch warnings with `⚠️` icon, `Raised` card surface, and `Attention` border.
+- Renders Level 3 `TechniqueFault`s with verbatim `displayText` and published source citation (`sourceRef`) in `InkSecondary`.
+- Renders personal baseline `Deviation` findings cleanly.
+
+#### Step 4: Verification & Multiplatform Test Suite Run
+- Executed `./gradlew.bat :core:analysis:jvmTest`: Passed (7 tasks, 0 errors).
+- Executed `./gradlew.bat :core:analysis:jsNodeTest`: Passed (23 tasks, 0 errors).
+- Executed `./gradlew.bat :app:testDebugUnitTest`: Passed (53 tasks, 0 errors).
+- Executed `./gradlew.bat allTests :app:testReleaseUnitTest`: Passed (142 tasks, 0 errors).
+- Parity goldens confirmed unchanged.
+
+#### Step 5: Documentation & Decision Record
+- Recorded formal decision `## P3-53` in `docs/DECISIONS.md`.
+- Updated `docs/PROJECT_STATUS.md` and `docs/HANDOVER.md`.
+- Recorded full workflow in `docs/antigravity_works.md` and synced `docs/antigravity_works`.
+

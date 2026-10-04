@@ -5,6 +5,9 @@ import com.kinesis.core.analysis.deviation.DeviationRules
 import com.kinesis.core.analysis.profile.ExerciseVariant
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.profile.RepetitionExercise
+import com.kinesis.core.analysis.technique.TechniqueRules
+import com.kinesis.core.analysis.verifier.ExerciseVerifier
+import com.kinesis.core.analysis.verifier.VerificationResult
 import com.kinesis.core.domain.finding.Finding
 import com.kinesis.core.domain.profile.TechniqueAuthority
 import com.kinesis.core.domain.profile.TierAProfile
@@ -48,11 +51,25 @@ object PostRepAnalysis {
      */
     const val VERSION: String = "p8-layer1-1"
 
-    fun analyse(profile: RepetitionExercise, rep: RepRecord, baseline: RepetitionBaseline?): RepetitionAnalysisResult {
+    private val defaultVerifier by lazy { ExerciseVerifier() }
+
+    fun analyse(
+        profile: RepetitionExercise,
+        rep: RepRecord,
+        baseline: RepetitionBaseline?,
+        verifier: ExerciseVerifier = defaultVerifier,
+    ): RepetitionAnalysisResult {
         requireOwnBaseline(profile, baseline)
         val findings = ArrayList<Finding>()
         if (baseline != null) findings += DeviationRules.evaluate(profile, rep, baseline)
-        techniqueAuthorityOf(profile)?.let { authority -> AcsmTempoRule.evaluate(authority, profile, rep)?.let { findings += it } }
+        techniqueAuthorityOf(profile)?.let { authority ->
+            AcsmTempoRule.evaluate(authority, profile, rep)?.let { findings += it }
+            findings += TechniqueRules.evaluate(authority, profile, rep)
+        }
+        val verification = verifier.verify(profile.id, rep.movementContext)
+        if (verification is VerificationResult.Mismatch) {
+            findings += verification.finding
+        }
         val comparison = baseline?.let {
             val timingSide = timingSideOf(rep)
             val descent = if (timingSide == null) it.descentMs.perRepetition else it.descentMs.perSide.on(timingSide)

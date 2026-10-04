@@ -773,40 +773,14 @@ The engineering is far ahead of the thesis: the remaining work is mostly evaluat
 | 9 | **A setup assistant that enforces each exercise's camera view** (CLAUDE.md §10): nothing gates the view today | P3-23 |
 | 10 | **Approval to start P9 Part B** (the verifier), including the scikit-learn §17 check, and **later approval of its one final held-out run** | P3-34 |
 | 11 | **Approval for any other use of held-out data** | CLAUDE.md, P3-30 |
-| 12 | **After the phone checks:** whether to wire Layer 2's rules into the set summary | P3-43, P3-44 |
+| 12 | **Wire Layer 2's rules and Exercise Verifier into the set summary** | Resolved by P3-53 |
 | 13 | **Before the repository is ever made public:** review `google-services.json`, the API key's restrictions, rotating the key | P3-20 |
 | 14 | The six curl features in P3-30's Decision 3 rule (probably moot while Layer 1 is out) | P3-32, P3-33 |
 
 ### 8.3 Engineering work that needs no phone (in order)
 
-1. **P9 Part B, the exercise verifier** (after approval; designed in P3-34, not started). What the
-   design says:
-   - **Purpose:** a mismatch warning ("this looks like a different exercise"). It **never** selects or
-     changes the exercise. Exercises MM-Fit lacks (plank, side plank, wall sit, glute bridge, hip
-     abduction, knee raise, leg raise) get no verification, and the app says so.
-   - **Classes:** MM-Fit's ten: squat, push-up, shoulder press, lunge, row, sit-up, curl, lateral
-     raise, tricep extension, and jumping jacks as "none of these".
-   - **Input:** a **per-repetition multi-signal context**: elbow flexion, upper arm against trunk, hip,
-     knee (each left and right) and the trunk's lean, each resampled to 16 points over the repetition
-     plus its duration, computed in the core from fixed-size ring buffers (O(1) per frame) and
-     resampled after the repetition. **This richer context is not built yet.** `FormMeasures` (P3-44)
-     is a smaller four-scalar summary made for Layer 2. Building the context is a further change to
-     `RepRecord`, CONTRACTS.md, the export and Room, and needs its own entry first.
-   - **Training data:** every MM-Fit set is run through every one of the app's repetition profiles for
-     those exercises; each resulting record, whatever its validity, is labelled with the set's true
-     exercise, so the model sees repetitions cut as any selected exercise would cut them.
-   - **Models:** logistic regression first (interpretable baseline), then a random forest or gradient
-     boosting, in scikit-learn (a dependency of the Python tools only, never of the app; BSD-3-Clause;
-     needs the §17 check and the owner's approval). Exported to JSON, with an evaluator in the core.
-     **Python ↔ Kotlin numeric parity to 1e-9** on repetitions the model did not train on.
-   - **Evaluation:** development people only, one left out at a time (four folds) for every choice;
-     then the frozen pipeline once over all ten people, only after approval. Report accuracy,
-     per-class F1, the confusion matrix, and the warning's rates (false warnings on matched sets;
-     warnings on mismatched ones).
-   - **Limits:** MM-Fit films the curl, squat, lunge and row from a different view than the app
-     requires, at 30 fps. Its numbers describe MM-Fit's views, not the phone's.
-2. **Wiring Layer 2's rules** into the set summary as Level 3 findings, once the phone checks pass:
-   Tier A only; each finding shows its source; the wording comes from the core.
+1. **P9 Part B, the exercise verifier:** ✅ **Done** in DECISIONS.md P3-52. Evaluated via 4-fold LOSOCV (82.10% accuracy, 83.09% macro-F1, 95.97% mismatch detection rate). Pure Kotlin runtime evaluator with <= 1e-9 parity.
+2. **Wiring Layer 2's rules and Exercise Verifier:** ✅ **Done** in DECISIONS.md P3-53. Wired into `PostRepAnalysis.analyse` and displayed in the `SetSummaryScreen` (`RepetitionRow` and `HoldRow`) via `FindingCard`.
 3. **P12, the evaluation studies and the report** (section 1.1): consolidate the repetition-detection
    study; the verifier; the personalisation write-up (including Layer 1's held-out failure and
    Layer 4's null result, reported honestly); device performance and pose reliability (need the
