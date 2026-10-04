@@ -11443,6 +11443,109 @@ app, and blue would have read as "left".
 
 ---
 
+## P3-52 — P9 Part B: The Exercise Verifier — Design, Multi-Signal Context, and Evaluation Protocol
+
+*2026-10-04. Written and committed before any verifier code is implemented or models trained.*
+*Fulfills P9 Part B as specified in P3-34 and HANDOVER.md §8.3.*
+
+### 1. Purpose and Non-Negotiable Boundaries
+
+- **Purpose:** An explainable mismatch detector. When a user performs movement with a specific
+  exercise selected, the verifier checks whether the movement matches the selected exercise. If a
+  clear mismatch is observed, it emits a warning: *"This looks like a different exercise: [predicted] ([confidence]%)"*.
+- **CLAUDE.md §13 & P3-34 strictly observed:**
+  - **MUST NOT** be used for automatic exercise selection. The user's selection remains in effect; the
+    verifier only warns.
+  - **MUST NOT** run per frame. It consumes a completed repetition context on the post-rep path ($O(1)$
+    per frame tracking, evaluation only after completion).
+  - Exercises MM-Fit does not cover (plank, side plank, wall sit, glute bridge, hip abduction, knee
+    raise, leg raise) receive **no verification**, and the app explicitly states so.
+  - **Classes:** MM-Fit's ten classes:
+    - 8 supported repetition profiles: `squat`, `pushup`, `shoulder_press`, `lunge`, `row`, `situp`,
+      `bicep_curl`, `lateral_raise`;
+    - 2 mismatch/out-of-domain classes from MM-Fit: `tricep_extension`, and `jumping_jacks` (representing
+      "none of these" / foreign movement).
+
+### 2. CLAUDE.md §17 Dependency Check: scikit-learn
+
+- **Package:** `scikit-learn` (with `scipy`).
+- **Where used:** Offline Python training tools only (`tools/mmfit-eval/`). **Never bundled in the Android app.**
+- **Why needed:** Training the multiclass classifier (multinomial logistic regression / decision trees)
+  and cross-validation on the MM-Fit dataset. Neither the Python standard library nor NumPy provides
+  multiclass solvers and standardization pipelines.
+- **Existing capabilities:** Checked. `numpy` is installed; writing a custom L-BFGS or coordinate descent
+  solver for multiclass logistic regression from scratch would be redundant and error-prone.
+- **Licence:** BSD 3-Clause (permissive open source, fully compatible with academic and commercial use).
+- **Bundle & runtime cost for the app:** **0 bytes.** Model weights and standardization parameters are
+  exported as a compact JSON file. The on-device runtime evaluator is written in pure Kotlin in
+  `core/analysis/src/commonMain`.
+- **Offline compatibility:** Training and evaluation are 100% offline.
+- **Maintenance:** Actively maintained industry standard.
+
+### 3. Multi-Signal Movement Context (The 145-Feature Vector)
+
+Per P3-34 Part B, the verifier consumes a multi-joint kinematic context resampled over the repetition's
+active window:
+
+1. **The 9 Kinematic Signals:**
+   - Left Elbow Flexion angle (degrees)
+   - Right Elbow Flexion angle (degrees)
+   - Left Upper Arm to Trunk angle (shoulder angle, degrees)
+   - Right Upper Arm to Trunk angle (shoulder angle, degrees)
+   - Left Hip angle (degrees)
+   - Right Hip angle (degrees)
+   - Left Knee angle (degrees)
+   - Right Knee angle (degrees)
+   - Trunk Lean from Vertical (degrees)
+
+2. **Per-Frame Path ($O(1)$):**
+   - Ring buffers in `MultiSignalTracker` (preallocated, fixed capacity matching existing temporal buffers).
+   - Zero object allocation per frame during tracking.
+   - Missing landmarks on unmeasurable/occluded frames are marked `NaN` in the ring buffer.
+
+3. **Post-Rep Processing:**
+   - Upon repetition completion (valid start and end timestamps), each of the 9 signals is resampled
+     to exactly **16 points** across the repetition duration using linear interpolation with gap
+     handling (bridging up to 500 ms).
+   - Any unmeasured/occluded signal across the repetition is imputed with neutral posture defaults (e.g., 0.0).
+   - $9 \text{ signals} \times 16 \text{ points} = 144 \text{ points}$.
+   - Appended with **Repetition Duration** in milliseconds: 1 feature.
+   - Total feature vector size: **145 continuous features**.
+
+### 4. Model Architecture & Cross-Platform Parity Contract
+
+1. **Primary Model:** Multinomial Logistic Regression with $L_2$ regularization (`LogisticRegression(multi_class='multinomial')`).
+   - Highly interpretable, lightweight, and robust to modest sample sizes.
+   - Standardized using `StandardScaler` (means $\mu \in \mathbb{R}^{145}$, scales $\sigma \in \mathbb{R}^{145}$).
+   - Logits: $z_c = b_c + \sum_{j=1}^{145} W_{c, j} \frac{x_j - \mu_j}{\sigma_j}$ for classes $c \in \{0, \dots, 9\}$.
+   - Softmax probabilities: $P(y = c \mid \mathbf{x}) = \frac{e^{z_c}}{\sum_{k} e^{z_k}}$.
+2. **Export Format:** Self-contained JSON file containing:
+   - `modelType`: `"multinomial_logistic_regression"`, `modelVersion`: `"p9-verifier-1"`
+   - `classes`: array of 10 class IDs
+   - `features`: array of 145 feature names
+   - `scalerMean`: array of 145 floats
+   - `scalerScale`: array of 145 floats
+   - `weights`: $10 \times 145$ 2D array
+   - `intercepts`: array of 10 floats
+3. **Cross-Platform Evaluator & Parity:**
+   - Evaluator implemented in pure Kotlin in `core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/verifier/`.
+   - Permanent test `ExerciseVerifierParityTest`: asserts $|P_{kt}(c) - P_{py}(c)| < 1 \times 10^{-9}$ for
+     all 10 classes across a suite of held-out test vectors.
+
+### 5. Evaluation Protocol (Frozen Before Any Run)
+
+- **Dataset:** MM-Fit dataset (`data/mm-fit/`, `data/mm-fit-mediapipe/`).
+- **Subjects:** **Development subjects only** (A, B, C, S19 = 15 workouts: w00–w11, w14, w15, w19).
+- **The 6 held-out subjects (S12, S13, S16, S17, S18, S20) remain strictly untouched.** They will only be
+  evaluated in a single final run after the entire pipeline is frozen and owner approval is granted.
+- **Cross-Validation Scheme:** 4-Fold Leave-One-Subject-Out Cross-Validation (LOSOCV) across {A, B, C, S19}.
+- **Metrics Reported:**
+  - Overall accuracy, macro-averaged F1, and per-class F1 across the 10 classes.
+  - Multi-class Confusion Matrix.
+  - Mismatch warning behavior: False Warning Rate on matched sets vs Warning Rate on mismatched sets.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
