@@ -593,3 +593,126 @@ Resolve the repository packaging footprint loose end (`PROJECT_STATUS.md §5`, `
 - Executed `assemble allTests :app:testDebugUnitTest :app:testReleaseUnitTest :app:compileDebugAndroidTestKotlin`:
   - **360 actionable Gradle tasks, 51 executed, 0 failures, 0 errors, 0 warnings**.
   - All multiplatform tests (JVM, JS Node, Android) and unit tests passing 100%.
+
+---
+
+## 9. Comprehensive Master Audit Registry
+
+### 9.1 Complete Git Commit Ledger
+
+| # | Commit Hash | Timestamp | Message & Summary | Files Changed | Net Changes |
+|---|---|---|---|---|---|
+| 1 | `880b902` | 2026-10-04 22:50 | `P3-52: P9 Part B Exercise Verifier design, context contract, and evaluation protocol` | `docs/DECISIONS.md` | +140 / -0 |
+| 2 | `c00efaa` | 2026-10-04 23:05 | `feat(verifier): implement Phase P9 Part B exercise verifier and LOSOCV evaluation (P3-52)` | 14 files in domain, analysis, tools, data | +1,280 / -15 |
+| 3 | `860ee1e` | 2026-10-04 23:10 | `docs: update PROJECT_STATUS and HANDOVER for Phase P9 Part B completion` | `docs/PROJECT_STATUS.md`, `docs/HANDOVER.md` | +28 / -12 |
+| 4 | `e10c4e8` | 2026-10-04 23:15 | `docs: create antigravity_works log recording all agent actions and decisions` | `docs/antigravity_works.md`, `docs/antigravity_works` | +150 / -0 |
+| 5 | `52b7d12` | 2026-10-04 23:24 | `feat(analysis,ui): wire Exercise Verifier and Tier A Technique Rules to post-rep path and SetSummaryScreen (P3-53)` | `CalibrationScreens.kt`, `PostRepAnalysis.kt`, tests, docs | +335 / -32 |
+| 6 | `3c6cbc0` | 2026-10-04 23:42 | `feat(fatigue): implement Phase P10 velocity-loss fatigue engine and set summary cards (P3-54)` | `Fatigue.kt`, `FatigueEngine.kt`, tests, UI, docs | +791 / -11 |
+| 7 | `dc9d7c9` | 2026-10-05 00:06 | `feat(setup): implement camera-view setup assistant and live framing gate (P3-55)` | `SetupAssistant.kt`, `CameraViewEstimator.kt`, `SetupGate.kt`, bridges, UI, tests, docs | +962 / -10 |
+| 8 | `d62217a` | 2026-10-05 00:29 | `feat(telemetry): implement low frame-rate warning gate and skeleton visual redesign (P3-56)` | `FrameRateMonitor.kt`, `SkeletonOverlayView.kt`, bridges, UI, tests, docs | +687 / -18 |
+| 9 | `f0317f6` | 2026-10-05 00:48 | `feat(ui): implement display-only focus zoom auto-framing and progress report housekeeping (P3-57)` | `FocusZoomCalculator.kt`, `FocusZoomTarget.kt`, `FocusZoomPolicy.kt`, overlay, bridges, tests, PROGRESS_REPORT, docs | +983 / -167 |
+| 10 | `0452de8` | 2026-10-05 00:57 | `feat(build): optimize APK footprint via mobile ARM ABI filtering and guard test (P3-58)` | `app/build.gradle.kts`, `ApkPackagingGuardTest.kt`, docs | +215 / -3 |
+
+### 9.2 Complete File Inventory by Architectural Module
+
+#### Module `:core:domain` (Multiplatform Types & Contracts)
+- `core/domain/src/commonMain/kotlin/com/kinesis/core/domain/MovementContext.kt`: 145-dimensional kinematic feature vector representing a completed repetition.
+- `core/domain/src/commonMain/kotlin/com/kinesis/core/domain/rep/RepRecord.kt`: Added optional `movementContext: MovementContext? = null` field, backwards-compatible with Room v3 schema.
+- `core/domain/src/commonMain/kotlin/com/kinesis/core/domain/fatigue/Fatigue.kt`: Domain types for Velocity-Based Training: `FatigueZone`, `RepetitionFatigue`, `SetFatigueSummary`.
+- `core/domain/src/commonTest/kotlin/com/kinesis/core/domain/MovementContextTest.kt`: Unit tests for feature extraction and normalization.
+- `core/domain/src/commonTest/kotlin/com/kinesis/core/domain/fatigue/FatigueTest.kt`: Unit tests for fatigue zones, bilateral independence, and asymmetry detection.
+
+#### Module `:core:analysis` (Shared Multiplatform Engine — `commonMain`)
+- **`calibration/`**:
+  - `PostRepAnalysis.kt`: Integrated `ExerciseVerifier` (mismatch deviation emitter) and `TechniqueRules.evaluate` (Tier A technique fault emitter).
+  - `PostRepAnalysisTest.kt`: Multiplatform tests for verifier warnings, citations, and unverified exercise fallbacks.
+- **`fatigue/`**:
+  - `FatigueEngine.kt`: Concentric phase duration selection based on `profile.awayFromStart`, angular velocity calculation, stateful $O(1)$ `FatigueTracker`, and set-level aggregator.
+  - `FatigueEngineTest.kt`: Multiplatform tests for VBT velocity loss, cutoff recommendations (>30%), and bilateral asymmetry (≥15%).
+- **`setup/`**:
+  - `CameraViewEstimator.kt`: Deterministic aspect-ratio view estimation (`SIDE_ON`, `FRONT_ON`, `ANGLED_45`).
+  - `SetupVerdict.kt`: Sealed verdict types (`Ready`, `NoPerson`, `TooClose`, `TooFar`, `HeadOutOfFrame`, `FeetOutOfFrame`, `LandmarksMissing`, `WrongView`).
+  - `SetupAssistant.kt`: Stateless framing validator enforcing distance, bounds, landmarks, and orientation.
+  - `SetupGate.kt`: Stateful debounce gate (`READY_THRESHOLD = 10`, `UNREADY_THRESHOLD = 15`).
+  - `CameraViewEstimatorTest.kt`, `SetupAssistantTest.kt`, `SetupGateTest.kt`: Unit test suites.
+- **`fps/`**:
+  - `FrameRateMonitor.kt`: Zero-allocation 15-frame circular timestamp buffer, rolling FPS calculator, and debounce hysteresis state machine (`HEALTHY`, `MODERATE`, `DEGRADED`).
+  - `FrameRateMonitorTest.kt`: Unit tests for steady FPS, drop debounce (8 frames), recovery hysteresis (8 frames), and core warning strings.
+- **`zoom/`**:
+  - `FocusZoomTarget.kt`: Value class with projection math (`mapX`, `mapY`, `unmapX`, `unmapY`).
+  - `FocusZoomPolicy.kt`: Validated policy configuration.
+  - `FocusZoomCalculator.kt`: Zero-allocation auto-framing engine with whole-body suppression matrix, overhead headroom preservation, 15-frame enter/exit hysteresis, viewport clamping, and EMA filter ($\alpha = 0.12$).
+  - `FocusZoomCalculatorTest.kt`: Comprehensive multiplatform unit tests.
+- **`live/`**:
+  - `LiveRepetitionAnalysis.kt` & `LiveHoldAnalysis.kt`: Wired with zero-allocation `SetupGate`, `FrameRateMonitor`, and `FocusZoomCalculator`.
+
+#### Module `:app` (Android UI, Canvas Overlay & Hardware Integration)
+- **`ui/live/`**:
+  - `LiveEngine.kt`: Extended `SkeletonSink.submit` with `zoomTarget: FocusZoomTarget = FocusZoomTarget.FULL_FRAME`.
+  - `OverlayGeometry.kt`: Integrated zoom target projection into `screenX` and `screenY`.
+  - `SkeletonOverlayView.kt`: Pre-allocated halo paints, nose head indicator, safe-zone framing brackets, auto-framing brackets, and zoom projection with zero allocations in `onDraw`.
+  - `LiveAnalysisBridge.kt` & `LiveHoldBridge.kt`: Added `setupVerdict`, `frameRateHealth`, `fpsWarningMessage`, and `isZoomEngaged` with strict equality guards preventing recomposition churn.
+  - `LiveRepetitionEngine.kt` & `LiveHoldEngine.kt`: Passed setup, FPS snapshot, and zoom targets on each frame publish.
+- **`ui/screens/`**:
+  - `CalibrationScreens.kt`: Added `FindingCard` (verifier mismatch alert and cited technique fault card) and `FatigueCard` (velocity loss %, ending zone, cutoff badge, asymmetry alert, Pareja-Blanco citation) inside `SetSummaryScreen`.
+  - `Screens.kt`: Added floating coaching alert banner, low frame-rate warning pill, and `⛶ Auto-framed` status pill badge in `LiveCameraLayout`.
+- **`test/java/com/kinesis/`**:
+  - `LiveAnalysisBridgeTest.kt`: Unit tests for bridge recomposition throttling across setup, FPS, and zoom transitions.
+  - `ApkPackagingGuardTest.kt`: Permanent packaging guard verifying `ndk.abiFilters` and inspecting `app-debug.apk` zip entries.
+- **`build.gradle.kts`**:
+  - Added `ndk { abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a")) }` to `defaultConfig`.
+
+#### Module `tools/mmfit-eval` (Offline Evaluation Pipeline)
+- `tools/mmfit-eval/ExtractVerifierDataset.kt`: Gradle task `:mmfit-eval:extractVerifierDataset` parsing binary landmarks.
+- `tools/mmfit-eval/train_verifier.py`: 4-fold Leave-One-Subject-Out Cross-Validation (LOSOCV) training script.
+- `tools/mmfit-eval/generate_kotlin_verifier.py`: Generates pure Kotlin model matrices and golden parity vectors.
+- `tools/mmfit-eval/exercise_verifier_model.json`: Exported weights and normalization parameters.
+
+#### Documentation (`docs/`)
+- `docs/DECISIONS.md`: Added architectural entries `## P3-52`, `## P3-53`, `## P3-54`, `## P3-55`, `## P3-56`, `## P3-57`, `## P3-58`.
+- `docs/PROJECT_STATUS.md`: Synchronized phase tables, active metrics, and loose-end resolutions.
+- `docs/HANDOVER.md`: Synchronized tables 8.2 and 8.3 with resolved items.
+- `docs/PROGRESS_REPORT.md`: Full multi-phase revision documenting ~90% repository completion.
+- `docs/antigravity_works.md` & `docs/antigravity_works`: Exhaustive mirror-synchronized activity logs.
+
+### 9.3 Master Mathematical & Algorithmic Registry
+
+1. **Multinomial Logistic Regression Softmax Parity (P3-52):**
+   $$z_k = \sum_{j=1}^{145} W_{k, j} \cdot \left(\frac{x_j - \mu_j}{\sigma_j}\right) + b_k, \quad P(y = k \mid x) = \frac{\exp(z_k - \max_m z_m)}{\sum_{c=1}^{10} \exp(z_c - \max_m z_m)}$$
+   Guaranteed parity: $|P_{kt}(k) - P_{py}(k)| \le 1.0 \times 10^{-9}$.
+
+2. **Velocity-Based Training (VBT) Concentric Velocity & Loss (P3-54):**
+   $$v_{\text{concentric}} = \frac{\text{RoM}_{\text{concentric}}}{\Delta t_{\text{concentric}}} \times 1000 \quad (\text{deg/s})$$
+   $$\text{Loss}_{\%} = \frac{v_{\text{peak}} - v_{\text{rep}}}{v_{\text{peak}}} \times 100\%$$
+   $$\text{Asymmetry}_{\%} = \text{Loss}_{\%, \text{left}} - \text{Loss}_{\%, \text{right}}$$
+   Thresholds: `Cutoff` $> 30.0\%$, `Asymmetry` $\ge 15.0\%$.
+
+3. **Deterministic Camera-View Aspect Ratio (P3-55):**
+   $$\text{aspectRatio} = \frac{\max(|x_{\text{L.shoulder}} - x_{\text{R.shoulder}}|, |x_{\text{L.hip}} - x_{\text{R.hip}}|)}{\text{torsoScale}}$$
+   Thresholds: $\le 0.42 \implies \text{SIDE\_ON}$, $\ge 0.60 \implies \text{FRONT\_ON}$, else $\text{ANGLED\_45}$.
+
+4. **Rolling Timestamp Frame-Rate Engine (P3-56):**
+   $$\text{FPS}_{\text{rolling}} = \frac{(N - 1) \times 10^9}{t_{\text{head}} - t_{\text{tail}}}$$
+   Hysteresis: 8 consecutive degraded frames ($< 12.0$ FPS) to engage; 8 consecutive recovery frames ($\ge 15.0$ FPS) to clear.
+
+5. **Display-Only Viewport Transform & Clamping (P3-57):**
+   $$x_{\text{screen}} = \left(x_{\text{norm}} - \left(c_x - \frac{0.5}{s}\right)\right) \times s \times W$$
+   $$y_{\text{screen}} = \left(y_{\text{norm}} - \left(c_y - \frac{0.5}{s}\right)\right) \times s \times H$$
+   $$\left[c_x - \frac{0.5}{s}, c_y - \frac{0.5}{s}, c_x + \frac{0.5}{s}, c_y + \frac{0.5}{s}\right] \subset [0.0, 1.0]$$
+   Filter: $s_t = (1 - \alpha) s_{t-1} + \alpha s^*, \quad \alpha = 0.12$.
+
+6. **APK Packaging Filter (P3-58):**
+   $$\text{Native ABIs} = \{\text{arm64-v8a}, \text{armeabi-v7a}\}, \quad \text{Excluded} = \{\text{x86}, \text{x86\_64}\}$$
+
+### 9.4 Final Verification & Quality Certification
+- **Actionable Gradle Tasks:** 360 tasks (51 executed, 1 from cache, 308 up-to-date).
+- **Test Results:** 0 failures, 0 errors, 0 warnings across all test targets.
+- **Architectural Guards Passed:**
+  - `ApkPackagingGuardTest`: Clean.
+  - `SharedCoreSourceGuardTest`: Clean.
+  - `OfflineManifestGuardTest`: Clean.
+  - `DatabaseVersionGuardTest`: Clean.
+  - `ExportProviderGuardTest`: Clean.
+  - `SkeletonPaletteLegibilityTest`: Clean.
+  - `KinesisPaletteContrastTest`: Clean.
+
