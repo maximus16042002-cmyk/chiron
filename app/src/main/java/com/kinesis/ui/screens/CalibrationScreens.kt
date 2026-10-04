@@ -320,6 +320,8 @@ fun SetSummaryScreen(
     results: List<AnalysisResult>,
     /** The records this set set, in the core's words (`Records.newIn`, P3-49); empty if none. */
     records: List<String>,
+    /** The rest's length, from Profile (P3-49). */
+    restSeconds: Int,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -374,6 +376,7 @@ fun SetSummaryScreen(
                 is HoldAnalysisResult -> HoldRow(result, holds.firstOrNull())
             }
         }
+        item { RestTimerCard(restSeconds) }
         item { PrimaryButton("Done", onClick = onDone) }
         item { Spacer(Modifier.height(24.dp)) }
     }

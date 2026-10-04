@@ -11110,6 +11110,55 @@ they are on and none is waiting.
 **Suite:** 2,713 executions, 0 failed. Not yet on the phone. Seeing a real notification arrive is
 one of the phone checks.
 
+### Result — step 4, the rest timer, the repetition cues, spoken counts
+
+*2026-10-04.* Platform-side only: no analysis is involved, and the core is unchanged.
+
+**The rest timer** (`RestTimerCard`, on the set summary):
+- started by the user, with "+15 s" while it runs;
+- it ends with a vibration and a short tone;
+- the length is set in Profile: 15 s to 5 min in 15 s steps, 60 s by default;
+- the time left is read from the clock at each tick (`RestTimer.remainingSeconds`), so a late tick
+  never drifts it, and a clock set back shows the full length, never more.
+
+**On each counted repetition** (`RepFeedback`), each switched on separately in Profile under
+"During a set", and all off by default:
+- a short tone (`ToneGenerator`);
+- a vibration (the view's haptic feedback, which needs no permission);
+- the count spoken aloud (Android's `TextToSpeech`).
+
+**When the cue fires.**
+- **Driven by the count rising, never by a frame** (`RepCountWatcher`). The live state is
+  republished several times a second with the same count. A jump fires once, for the latest count.
+  A lower count is a new set starting.
+- **The count is read in a `snapshotFlow`, not in composition,** so the live session does not
+  recompose at the publication rate. Only the readout does, as before (CLAUDE.md §6).
+
+**Speech stays offline.** Only a voice that needs no network is used; with none for the phone's
+language, counts are not spoken, and Profile says so. The manifest gains a `<queries>` entry for the
+text-to-speech service, which Android 11+ requires before an app can find the engine. It adds no
+permission, and `OfflineManifestGuardTest` passes.
+
+**Not built:** spoken or toned cues during a hold. Nothing in FEATURE_PLAN asks for them, and a hold
+has no count to rise.
+
+**Tests:**
+- `RepCountWatcherTest` (4): a republished count is not a repetition; each rise fires once; a jump
+  fires once; a new set does not fire, and its first repetition does;
+- `RestTimerTest` (3).
+
+**Suite:** 2,727 executions, 0 failed. Not yet on the phone, where a tone, a vibration and a voice
+are only really checked.
+
+**Batch 3 is built.**
+- the streak freeze and the calendar;
+- records, the weekly goal, achievements;
+- reminders;
+- the rest timer and the cues;
+- the export (P3-25).
+
+All of it waits on the phone.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

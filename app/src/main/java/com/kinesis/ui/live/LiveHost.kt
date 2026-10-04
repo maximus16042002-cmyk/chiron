@@ -14,6 +14,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -22,9 +23,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.kinesis.camera.LiveCamera
 import com.kinesis.camera.LiveOrientation
 import com.kinesis.camera.PoseLandmarkerSource
-import com.kinesis.camera.PoseSourceOpening
 import com.kinesis.camera.PoseModelAsset
 import com.kinesis.camera.PoseModelState
+import com.kinesis.camera.PoseSourceOpening
 import com.kinesis.camera.hasCameraPermission
 import com.kinesis.camera.rememberCameraPermissionLauncher
 import com.kinesis.core.analysis.profile.IsometricExercise
@@ -35,16 +36,17 @@ import com.kinesis.diagnostics.PhaseBProbe
 import com.kinesis.diagnostics.phaseBProbeOrNull
 import com.kinesis.diagnostics.switchablePoseModels
 import com.kinesis.pose.CameraFacing
+import com.kinesis.settings.AppSettings
 import com.kinesis.storage.SessionRepository
 import com.kinesis.storage.utcOffsetMinutesAt
 import com.kinesis.ui.screens.LiveAnalysisScreen
 import com.kinesis.ui.screens.LiveHoldScreen
 import com.kinesis.ui.screens.LiveUnavailableScreen
+import java.io.IOException
+import java.util.UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import java.io.IOException
-import java.util.UUID
 
 /**
  * Where finished sets are written. Process-lifetime on purpose: leaving the
@@ -229,6 +231,24 @@ private fun LiveRepetitionSession(
         }
     }
     val engine = remember(profile, source) { LiveRepetitionEngine(profile, bridge, overlay, probe = probe) }
+
+    // DECISIONS.md P3-49: a tone, a vibration or the count spoken, as set in Profile, once per
+    // counted repetition - keyed on the count, never on a frame (CLAUDE.md section 6).
+    val context = LocalContext.current
+    val view = LocalView.current
+    val feedback = remember(profile, source) {
+        val settings = AppSettings(context)
+        RepFeedback(context, settings.repTone, settings.repVibrate, settings.spokenCounts)
+    }
+    DisposableEffect(feedback) { onDispose { feedback.release() } }
+    val watcher = remember(profile, source) { RepCountWatcher() }
+    // Read in a snapshot flow, not in composition: reading the count here would recompose the
+    // whole session at the publication rate, where now only the readout does.
+    LaunchedEffect(feedback, watcher) {
+        snapshotFlow { (published.value ?: bridge.state).repCount }.collect { count ->
+            if (watcher.counted(count)) feedback.onRepetition(count, view)
+        }
+    }
 
     LiveCameraSession(profile, engine, probe, overlay, env, source, switches.onSwitchCamera) { preview, onEndSet ->
         LiveAnalysisScreen(

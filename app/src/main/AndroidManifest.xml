@@ -50,6 +50,18 @@
     -->
     <uses-sdk tools:overrideLibrary="androidx.health.connect.client" />
 
+    <!--
+        Spoken counts - DECISIONS.md P3-49. From Android 11 an app sees only the
+        apps it declares; this lets it find the phone's text-to-speech engine.
+        Speech runs in that engine on the phone, and Kinesis keeps only a voice
+        that needs no network.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:label="Kinesis"

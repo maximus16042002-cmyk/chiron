@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -28,7 +30,43 @@ import com.kinesis.core.domain.calibration.CalibrationBaseline
 import com.kinesis.health.ActivityContextResult
 import com.kinesis.ui.theme.Ink
 import com.kinesis.ui.theme.InkFaint
+import com.kinesis.ui.theme.InkSecondary
 import com.kinesis.ui.theme.Raised
+
+/** The cues on a counted repetition, and the rest's length - P3-49. */
+data class DuringSetState(val tone: Boolean, val vibrate: Boolean, val speak: Boolean, val restSeconds: Int)
+
+@Composable
+private fun DuringSetCard(state: DuringSetState, onChange: (DuringSetState) -> Unit) {
+    KCard {
+        ToggleRow("Tone on each counted repetition", state.tone) { onChange(state.copy(tone = it)) }
+        ToggleRow("Vibrate on each counted repetition", state.vibrate) { onChange(state.copy(vibrate = it)) }
+        ToggleRow("Say each count aloud", state.speak) { onChange(state.copy(speak = it)) }
+        if (state.speak) Note("Spoken by the phone's own voice, offline. If it has none for your language, counts are not spoken.")
+        Spacer(Modifier.height(12.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Rest between sets", style = MaterialTheme.typography.titleMedium, color = Ink)
+                Text(
+                    (state.restSeconds / 60).toString() + ":" + (state.restSeconds % 60).toString().padStart(2, '0'),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = InkSecondary,
+                )
+            }
+            Stepper("−", "15 seconds shorter", enabled = state.restSeconds > 15) { onChange(state.copy(restSeconds = state.restSeconds - 15)) }
+            Spacer(Modifier.width(8.dp))
+            Stepper("+", "15 seconds longer", enabled = state.restSeconds < 300) { onChange(state.copy(restSeconds = state.restSeconds + 15)) }
+        }
+    }
+}
+
+@Composable
+private fun ToggleRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = Ink, modifier = Modifier.weight(1f))
+        Switch(checked = checked, onCheckedChange = onChange)
+    }
+}
 
 /** A round − or + button. */
 @Composable
@@ -70,6 +108,9 @@ fun ProfileScreen(
     onToggleReminders: (Boolean) -> Unit,
     onReminderMinute: (Int) -> Unit,
     onReminderWeekdays: (Set<Int>) -> Unit,
+    /** During a set and between sets - P3-49. */
+    duringSet: DuringSetState,
+    onDuringSet: (DuringSetState) -> Unit,
     /** The weekly goal in active days, 1 to 7 - P3-49. */
     goalDays: Int,
     onGoalDays: (Int) -> Unit,
@@ -112,6 +153,9 @@ fun ProfileScreen(
                 }
             }
         }
+
+        item { SectionLabel("During a set") }
+        item { DuringSetCard(duringSet, onDuringSet) }
 
         item { SectionLabel("Reminders") }
         item { ReminderCard(reminder, onToggleReminders, onReminderMinute, onReminderWeekdays) }

@@ -86,6 +86,7 @@ import com.kinesis.ui.screens.BackLink
 import com.kinesis.ui.screens.BottomBar
 import com.kinesis.ui.screens.CalibrationIntroScreen
 import com.kinesis.ui.screens.CalibrationResultScreen
+import com.kinesis.ui.screens.DuringSetState
 import com.kinesis.ui.screens.ExerciseScreen
 import com.kinesis.ui.screens.ExerciseSelectionScreen
 import com.kinesis.ui.screens.HomeScreen
@@ -283,6 +284,9 @@ private fun KinesisApp(
     var achievements: List<Achievement> by remember { mutableStateOf(emptyList()) }
     val settings = LocalContext.current.let { remember(it) { AppSettings(it) } }
     var goalDays by remember { mutableStateOf(settings.weeklyGoalDays) }
+    var duringSet by remember {
+        mutableStateOf(DuringSetState(settings.repTone, settings.repVibrate, settings.spokenCounts, settings.restSeconds))
+    }
     val firstWeekday = remember { Calendar.getInstance().firstDayOfWeek }
     // The signed-in user's baselines, by calibration id. Re-read with the history.
     var baselines: Map<String, CalibrationBaseline> by remember(uid) { mutableStateOf(emptyMap()) }
@@ -425,6 +429,7 @@ private fun KinesisApp(
                 Tab.TRAIN -> TrainPage(
                     destination = current,
                     history = sessions,
+                    restSeconds = duringSet.restSeconds,
                     repository = repository,
                     calibration = calibration,
                     uid = uid,
@@ -465,6 +470,14 @@ private fun KinesisApp(
                         onToggleReminders = toggleReminders,
                         onReminderMinute = { applyReminder(reminder.copy(minuteOfDay = it)) },
                         onReminderWeekdays = { applyReminder(reminder.copy(weekdays = it)) },
+                        duringSet = duringSet,
+                        onDuringSet = { state ->
+                            settings.repTone = state.tone
+                            settings.repVibrate = state.vibrate
+                            settings.spokenCounts = state.speak
+                            settings.restSeconds = state.restSeconds
+                            duringSet = state.copy(restSeconds = settings.restSeconds)
+                        },
                         goalDays = goalDays,
                         onGoalDays = {
                             settings.weeklyGoalDays = it
@@ -517,6 +530,7 @@ private fun TrainPage(
     onNavigate: (Destination) -> Unit,
     onChanged: () -> Unit,
     history: List<SessionRecord>,
+    restSeconds: Int,
 ) {
     // The old text bar kept every training screen clear of the status bar; with the bar gone, the
     // page does it. Edge-to-edge is enforced at targetSdk 35, so the background goes under the clock.
@@ -533,7 +547,7 @@ private fun TrainPage(
                 BackLink(if (destination is Destination.Exercise) "Workouts" else profileOf(destination).displayName, onBack)
             }
             Box(Modifier.weight(1f)) {
-                TrainFlow(destination, repository, calibration, uid, baselines, onChoose, onNavigate, onChanged, history)
+                TrainFlow(destination, repository, calibration, uid, baselines, onChoose, onNavigate, onChanged, history, restSeconds)
             }
         }
     }
@@ -551,6 +565,7 @@ private fun TrainFlow(
     onChanged: () -> Unit,
     /** Every stored session, for the records a finished set sets (P3-49). */
     history: List<SessionRecord>,
+    restSeconds: Int,
 ) {
     when (val current = destination) {
         null -> Column(
@@ -639,6 +654,7 @@ private fun TrainFlow(
                 baselineTitle = baseline?.let { displayNameOf(it.calibrationId).uppercase() },
                 results = results,
                 records = records,
+                restSeconds = restSeconds,
                 onDone = { onNavigate(Destination.Exercise(current.profile)) },
             )
         }

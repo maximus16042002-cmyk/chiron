@@ -46,8 +46,33 @@ class AppSettings(context: Context) {
         get() = preferences.getInt(REMINDER_MINUTE, DEFAULT_REMINDER_MINUTE).coerceIn(0, 24 * 60 - 1)
         set(value) = preferences.edit().putInt(REMINDER_MINUTE, value.coerceIn(0, 24 * 60 - 1)).apply()
 
+    /** A rest's length on the set summary, in seconds: 15 to 300, 60 by default (P3-49). */
+    var restSeconds: Int
+        get() = preferences.getInt(REST_SECONDS, DEFAULT_REST_SECONDS).coerceIn(15, 300)
+        set(value) = preferences.edit().putInt(REST_SECONDS, value.coerceIn(15, 300)).apply()
+
+    /** A short tone on each counted repetition (P3-49). Off by default. */
+    var repTone: Boolean
+        get() = preferences.getBoolean(REP_TONE, false)
+        set(value) = preferences.edit().putBoolean(REP_TONE, value).apply()
+
+    /** A vibration on each counted repetition (P3-49). Off by default. */
+    var repVibrate: Boolean
+        get() = preferences.getBoolean(REP_VIBRATE, false)
+        set(value) = preferences.edit().putBoolean(REP_VIBRATE, value).apply()
+
+    /** Each count spoken aloud, by an offline voice only (P3-49). Off by default. */
+    var spokenCounts: Boolean
+        get() = preferences.getBoolean(SPOKEN_COUNTS, false)
+        set(value) = preferences.edit().putBoolean(SPOKEN_COUNTS, value).apply()
+
     private companion object {
         const val FILE = "kinesis"
+        const val REST_SECONDS = "rest_seconds"
+        const val DEFAULT_REST_SECONDS = 60
+        const val REP_TONE = "rep_tone"
+        const val REP_VIBRATE = "rep_vibrate"
+        const val SPOKEN_COUNTS = "spoken_counts"
         const val INTRODUCED = "introduced"
         const val WEEKLY_GOAL_DAYS = "weekly_goal_days"
         const val REMINDERS_ON = "reminders_on"
