@@ -12241,6 +12241,51 @@ seen yet.
 
 ---
 
+## P3-61 — The toolchain batch: AGP 8.9.1, compileSdk 36, the stable Health Connect client
+
+*2026-10-05. Written before any change. HANDOVER 8.2 item 5, decided "its own small batch, later"
+in P3-21. Done now, while the owner is busy with the phone, because it needs neither.*
+
+### What changes
+
+| | From | To | Why |
+|---|---|---|---|
+| Android Gradle Plugin | 8.7.3 | **8.9.1** | the minimum the stable Health Connect client requires (P3-19 §7, read from its AAR metadata) |
+| compileSdk (all three Android modules) | 35 | **36** | likewise |
+| Health Connect client | 1.1.0-beta01 | **1.1.0** | the stable release, replacing a beta |
+
+**What does not change:**
+- **targetSdk stays 35.** Raising it changes how Android 16 treats the app at run time
+  (edge-to-edge, behaviour changes), which only the phone can check. That is its own decision,
+  for when the phone is on the desk.
+- Kotlin, Gradle (9.3.0), and every other library.
+- **AGP 9.4.0 is not taken,** although it is in this machine's cache (P0-9). It is a major version
+  that also moves Kotlin, KSP and the Compose compiler, and it changes how the Kotlin
+  Multiplatform modules declare Android. That is a much larger batch with more ways to break.
+
+### §17 check: Health Connect 1.1.0
+
+- **Why:** the same artifact as now, moving from beta to stable. No new capability is used.
+- **Licence:** Apache 2.0, unchanged.
+- **Network and manifest:** P3-19 found the client adds only its own bound service.
+  `OfflineManifestGuardTest` must still pass, unweakened.
+- **Bundled code:** it repackages Protocol Buffers, whose BSD notice already ships (P3-21).
+  Unchanged unless the build shows otherwise.
+- **Cost:** compared by APK size before and after.
+
+### Checks
+
+- The full suite on every target, as always.
+- The release build is assembled, not only debug.
+- `OfflineManifestGuardTest` and `ApkPackagingGuardTest` pass unweakened.
+- **Lint:** P1-1 disabled it in the two core modules because AGP 8.7.3's lint cannot read Java 25
+  class files. It is tried once on 8.9.1. If it now runs, the exclusion is removed; if not, it
+  stays, with the reason updated.
+- **If anything fails in a way not fixable within this batch,** the batch is reverted whole and
+  the failure recorded here. A half-upgraded toolchain is worse than either end.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
