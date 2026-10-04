@@ -193,3 +193,80 @@ Resolve HANDOVER.md §8.2 item 12 by connecting Phase P9 Part B's Exercise Verif
 - Updated `docs/PROJECT_STATUS.md` and `docs/HANDOVER.md`.
 - Recorded full workflow in `docs/antigravity_works.md` and synced `docs/antigravity_works`.
 
+---
+
+## 5. Phase P10: Fatigue Engine — Velocity-Based Training & Set Cutoff (P3-54)
+
+### Objective
+Implement Phase P10's Fatigue Engine: a scientific Velocity-Based Training (VBT) system calculating concentric angular velocity loss, tracking fatigue zones, detecting set termination cutoffs (>30% velocity loss), monitoring bilateral fatigue asymmetry, and surfacing actionable feedback on the Android `SetSummaryScreen`.
+
+### Scientific Foundation & Non-Negotiables (CLAUDE.md §1, §12, §13, §18)
+1. **Velocity-Based Training (VBT) Evidence Base:**
+   - Grounded in peer-reviewed exercise science literature (González-Badillo & Sánchez-Medina 2010; Pareja-Blanco et al. 2017).
+   - Involuntary loss in mean concentric velocity directly indexes neuromuscular fatigue and motor unit recruitment failure.
+   - **Fatigue Zones:**
+     - `FRESH` (<15% loss): Maximal power output and technique clarity.
+     - `OPTIMAL_STIMULUS` (15–25% loss): High mechanical stimulus with minimal metabolic/technique degradation.
+     - `HIGH_FATIGUE` (25–35% loss): Severe neuromuscular fatigue, approaching mechanical breakdown.
+     - `EXHAUSTION` (≥35% loss): Excessive central fatigue, disproportionate injury risk without extra hypertrophy stimulus.
+   - **Recommended Cutoff:** Set termination recommended when velocity loss exceeds **30.0%**.
+   - **Bilateral Asymmetry Alert:** Warning triggered when velocity loss between limbs differs by $\ge 15.0\%$ on simultaneous bilateral exercises.
+2. **Bilateral Independence:** Bilateral signals are **never averaged**. Concentric angular velocities and velocity loss percentages are computed, tracked, and stored per side using `BilateralSignal`.
+3. **Concentric Phase Alignment:** Respects `profile.awayFromStart == Contraction.CONCENTRIC`:
+   - Movements lifting on descent (bicep curls, lateral raises): concentric duration is `descentMs`.
+   - Movements lifting on ascent (squats, push-ups): concentric duration is `ascentMs`.
+4. **$O(1)$ Post-Rep Execution:** Stateful accumulation in `FatigueTracker` requires $O(1)$ time and memory per rep. Zero per-frame allocations or frame-loop ML.
+5. **Architectural Guard:** Pure Kotlin Multiplatform domain & analysis modules (`core/domain`, `core/analysis`) with zero Android/Compose dependencies, validated by `SharedCoreSourceGuardTest`.
+
+### Execution Log
+
+#### Step 1: Domain Model (`core/domain/src/commonMain/kotlin/.../fatigue/Fatigue.kt`)
+- Created `FatigueZone` enum (`FRESH`, `OPTIMAL_STIMULUS`, `HIGH_FATIGUE`, `EXHAUSTION`) with `FatigueZone.of(lossPercent)`.
+- Created `RepetitionFatigue` data class storing `repIndex`, `concentricVelocity` (`BilateralSignal` deg/s), `peakConcentricVelocity`, `velocityLossPercent`, `zone`, `isTerminationRecommended`, and `lossAsymmetryPercent`.
+- Created `SetFatigueSummary` data class aggregating set peak velocity, final velocity, max loss %, ending zone, `recommendedCutoffRepIndex`, and `hasFatigueAsymmetry`.
+
+#### Step 2: Domain Unit Tests (`core/domain/src/commonTest/kotlin/.../fatigue/FatigueTest.kt`)
+- Added tests verifying:
+  - Boundary mapping for all 4 fatigue zones.
+  - Per-side velocity loss calculation without averaging.
+  - Asymmetry calculation between limbs (left minus right).
+  - Termination recommendation at cutoff threshold.
+  - Cross-platform serialization and NaN handling.
+
+#### Step 3: Analysis Engine (`core/analysis/src/commonMain/kotlin/.../fatigue/FatigueEngine.kt`)
+- Implemented `concentricDurationMs(profile, rep)` properly branching on `profile.awayFromStart`.
+- Implemented `concentricVelocity(profile, rep)` computing angular degrees per second for left and right independently.
+- Implemented stateful `FatigueTracker` for $O(1)$ rep-by-rep accumulation tracking running peak velocity and velocity loss.
+- Implemented static `FatigueEngine.analyzeSet(profile, reps)` for complete set summary evaluation.
+
+#### Step 4: Analysis Engine Unit Tests (`core/analysis/src/commonTest/kotlin/.../fatigue/FatigueEngineTest.kt`)
+- Added tests verifying:
+  - Correct contraction phase mapping (bicep curl vs squat).
+  - Detection of 30% velocity loss set cutoff.
+  - Detection of bilateral fatigue asymmetry (≥15% difference).
+  - Safe fallback when rep timing or range is missing/non-finite.
+
+#### Step 5: Android UI Integration (`CalibrationScreens.kt`)
+- Updated `SetSummaryScreen` to compute and remember `fatigueSummary = FatigueEngine.analyzeSet(profile, set.reps)`.
+- Added `FatigueCard` composable:
+  - Renders ending fatigue zone badge with appropriate theme colors (`SeriesRight`, `SeriesLeft`, `Attention`).
+  - Displays Peak Speed, Final Speed, and Max Velocity Loss separated by limb (`SidesHeader` and `Sides`).
+  - Displays `⚡ Optimal set cutoff reached at Rep X (>30% velocity loss)` card when threshold is met.
+  - Displays `⚠️ Bilateral fatigue asymmetry detected (≥15% difference)` card when limb divergence occurs.
+  - Includes academic citation banner referencing Pareja-Blanco et al. (2017).
+- Updated `RepetitionRow` to render lifting speed (deg/s) and velocity loss percentage per side for individual reps.
+- Resolved Kotlin cross-module smart cast constraint using local variable binding for `cutoffRep`.
+
+#### Step 6: Verification & Test Execution
+- Executed `:core:domain:allTests`: **100% passing**.
+- Executed `:core:analysis:allTests`: **100% passing**.
+- Executed `:app:testDebugUnitTest`: **100% passing**.
+- Executed `SharedCoreSourceGuardTest`: **100% passing** (zero leaks, bilateral signals preserved).
+
+#### Step 7: Documentation & Decision Record
+- Recorded formal decision `## P3-54` in `docs/DECISIONS.md`.
+- Updated `docs/PROJECT_STATUS.md` (marked P10 complete, overall completion ~88%).
+- Updated `docs/HANDOVER.md` (§8.3 engineering roadmap).
+- Mirrored execution logs across `docs/antigravity_works.md` and `docs/antigravity_works`.
+
+

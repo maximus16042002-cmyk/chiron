@@ -18,15 +18,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.kinesis.core.analysis.calibration.CalibrationGuide
 import com.kinesis.core.analysis.calibration.CalibrationOutcome
+import com.kinesis.core.analysis.fatigue.FatigueEngine
 import com.kinesis.core.analysis.profile.ExerciseVariant
 import com.kinesis.core.analysis.profile.IsometricExercise
+import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.domain.analysis.AnalysisResult
 import com.kinesis.core.domain.analysis.BesideBaseline
 import com.kinesis.core.domain.analysis.HoldAnalysisResult
@@ -38,6 +42,9 @@ import com.kinesis.core.domain.calibration.HoldBaseline
 import com.kinesis.core.domain.calibration.PhaseTimingBaseline
 import com.kinesis.core.domain.calibration.RepetitionBaseline
 import com.kinesis.core.domain.calibration.RobustStatistic
+import com.kinesis.core.domain.fatigue.FatigueZone
+import com.kinesis.core.domain.fatigue.RepetitionFatigue
+import com.kinesis.core.domain.fatigue.SetFatigueSummary
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.core.domain.rep.HoldRecord
 import com.kinesis.core.domain.rep.HoldValidity
@@ -55,9 +62,12 @@ import com.kinesis.ui.theme.Ink
 import com.kinesis.ui.theme.InkFaint
 import com.kinesis.ui.theme.InkSecondary
 import com.kinesis.ui.theme.Raised
+import com.kinesis.ui.theme.SeriesLeft
+import com.kinesis.ui.theme.SeriesRight
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /*
  * Calibration and the set summary - DECISIONS.md P3-22, in P3-48's look.
@@ -335,6 +345,11 @@ fun SetSummaryScreen(
     val set = session.sets.single()
     val reps = (set as? RepetitionSetRecord)?.reps.orEmpty().associateBy { it.repIndex }
     val holds = (set as? HoldSetRecord)?.holds.orEmpty()
+    val fatigueSummary = remember(profile, set) {
+        if (set is RepetitionSetRecord && profile is RepetitionExercise) {
+            FatigueEngine.analyzeSet(profile, set.reps)
+        } else null
+    }
     LazyColumn(
         modifier = modifier.fillMaxSize().background(PageBackground).padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -377,9 +392,17 @@ fun SetSummaryScreen(
                 }
             }
         }
+        if (fatigueSummary != null && fatigueSummary.repetitions.isNotEmpty()) {
+            item {
+                FatigueCard(fatigueSummary)
+            }
+        }
         items(results) { result ->
             when (result) {
-                is RepetitionAnalysisResult -> RepetitionRow(result, reps[result.repIndex])
+                is RepetitionAnalysisResult -> {
+                    val repFatigue = fatigueSummary?.repetitions?.firstOrNull { it.repIndex == result.repIndex }
+                    RepetitionRow(result, reps[result.repIndex], repFatigue)
+                }
                 is HoldAnalysisResult -> HoldRow(result, holds.firstOrNull())
             }
         }
@@ -390,7 +413,11 @@ fun SetSummaryScreen(
 }
 
 @Composable
-private fun RepetitionRow(result: RepetitionAnalysisResult, rep: RepRecord?) {
+private fun RepetitionRow(
+    result: RepetitionAnalysisResult,
+    rep: RepRecord?,
+    fatigue: RepetitionFatigue? = null,
+) {
     KCard {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -423,6 +450,14 @@ private fun RepetitionRow(result: RepetitionAnalysisResult, rep: RepRecord?) {
             }
             Beside("Down$whose", comparison.descentMs, ::seconds)
             Beside("Up$whose", comparison.ascentMs, ::seconds)
+        }
+        if (fatigue != null && (fatigue.concentricVelocity.left.isFinite() || fatigue.concentricVelocity.right.isFinite())) {
+            Spacer(Modifier.height(4.dp))
+            Sides(
+                "Lifting speed",
+                formatVelocityWithLoss(fatigue.concentricVelocity.left, fatigue.velocityLossPercent.left),
+                formatVelocityWithLoss(fatigue.concentricVelocity.right, fatigue.velocityLossPercent.right),
+            )
         }
         if (result.findings.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
@@ -534,6 +569,100 @@ private fun FindingCard(finding: Finding) {
     }
 }
 
+@Composable
+private fun FatigueCard(summary: SetFatigueSummary) {
+    KCard {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Velocity & Fatigue", style = MaterialTheme.typography.titleMedium, color = Ink)
+            Surface(
+                color = when (summary.endingZone) {
+                    FatigueZone.FRESH -> SeriesRight.copy(alpha = 0.2f)
+                    FatigueZone.OPTIMAL_STIMULUS -> SeriesLeft.copy(alpha = 0.2f)
+                    FatigueZone.HIGH_FATIGUE -> Attention.copy(alpha = 0.2f)
+                    FatigueZone.EXHAUSTION -> Attention.copy(alpha = 0.35f)
+                },
+                shape = RoundedCornerShape(6.dp),
+            ) {
+                Text(
+                    summary.endingZone.label,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = when (summary.endingZone) {
+                        FatigueZone.FRESH -> SeriesRight
+                        FatigueZone.OPTIMAL_STIMULUS -> SeriesLeft
+                        FatigueZone.HIGH_FATIGUE -> Attention
+                        FatigueZone.EXHAUSTION -> Attention
+                    },
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                )
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        SidesHeader()
+        Sides("Peak speed", formatVelocity(summary.setPeakVelocity.left), formatVelocity(summary.setPeakVelocity.right))
+        Sides("Final speed", formatVelocity(summary.finalVelocity.left), formatVelocity(summary.finalVelocity.right))
+        Sides("Max velocity loss", formatLoss(summary.maxVelocityLossPercent.left), formatLoss(summary.maxVelocityLossPercent.right))
+
+        val cutoffRep = summary.recommendedCutoffRepIndex
+        if (cutoffRep != null) {
+            Spacer(Modifier.height(8.dp))
+            Surface(
+                color = Raised,
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, Attention.copy(alpha = 0.6f)),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier.padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("⚡", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "Optimal set cutoff reached at Rep ${cutoffRep + 1} (>30% velocity loss). Further reps increase fatigue without proportional strength gains.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Attention,
+                    )
+                }
+            }
+        }
+
+        if (summary.hasFatigueAsymmetry) {
+            Spacer(Modifier.height(6.dp))
+            Surface(
+                color = Raised,
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, Attention.copy(alpha = 0.6f)),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier.padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("⚠️", style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "Bilateral fatigue asymmetry detected (≥15% difference in velocity loss between sides). Monitor limb fatigue balance.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Attention,
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "Velocity-Based Training (VBT) tracking concentric angular speed loss relative to set peak. Grounded in Pareja-Blanco et al. (2017).",
+            style = MaterialTheme.typography.labelSmall,
+            color = InkFaint,
+        )
+    }
+}
+
 /** A measured value, and the baseline's for the same quantity. No difference, no direction. */
 @Composable
 private fun Beside(label: String, value: BesideBaseline, unit: (Double) -> String) {
@@ -572,3 +701,14 @@ private fun spread(statistic: RobustStatistic, unit: (Double) -> String): String
 
 private fun day(epochMs: Double): String =
     if (!epochMs.isFinite()) "" else SimpleDateFormat("d MMM yyyy", Locale.getDefault()).format(Date(epochMs.toLong()))
+
+private fun formatVelocity(velocity: Double): String =
+    if (!velocity.isFinite()) "—" else String.format(Locale.ROOT, "%.0f°/s", velocity)
+
+private fun formatLoss(lossPercent: Double): String =
+    if (!lossPercent.isFinite()) "—" else String.format(Locale.ROOT, "%.0f%%", lossPercent)
+
+private fun formatVelocityWithLoss(velocity: Double, lossPercent: Double): String =
+    if (!velocity.isFinite()) "—"
+    else if (!lossPercent.isFinite() || lossPercent <= 0.0) String.format(Locale.ROOT, "%.0f°/s", velocity)
+    else String.format(Locale.ROOT, "%.0f°/s (-%.0f%%)", velocity, lossPercent)

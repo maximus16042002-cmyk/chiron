@@ -781,7 +781,8 @@ The engineering is far ahead of the thesis: the remaining work is mostly evaluat
 
 1. **P9 Part B, the exercise verifier:** ✅ **Done** in DECISIONS.md P3-52. Evaluated via 4-fold LOSOCV (82.10% accuracy, 83.09% macro-F1, 95.97% mismatch detection rate). Pure Kotlin runtime evaluator with <= 1e-9 parity.
 2. **Wiring Layer 2's rules and Exercise Verifier:** ✅ **Done** in DECISIONS.md P3-53. Wired into `PostRepAnalysis.analyse` and displayed in the `SetSummaryScreen` (`RepetitionRow` and `HoldRow`) via `FindingCard`.
-3. **P12, the evaluation studies and the report** (section 1.1): consolidate the repetition-detection
+3. **P10 Fatigue Engine:** ✅ **Done** in DECISIONS.md P3-54. Velocity-Based Training (VBT) concentric velocity loss & set cutoff recommendation (>30% loss) and bilateral asymmetry tracking (Pareja-Blanco et al. 2017) built in core and integrated into SetSummaryScreen (`FatigueCard` and `RepetitionRow`).
+4. **P12, the evaluation studies and the report** (section 1.1): consolidate the repetition-detection
    study; the verifier; the personalisation write-up (including Layer 1's held-out failure and
    Layer 4's null result, reported honestly); device performance and pose reliability (need the
    phone); parity as a study. The limitations section must say that Layer 2's rules implement

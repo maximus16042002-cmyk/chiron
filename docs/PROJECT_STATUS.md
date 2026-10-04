@@ -10,7 +10,19 @@ read it first if you are new.*
 
 ## Next session starts here
 
-**Latest, P3-50 and P3-51 (2026-10-04): Batch 4 and P10's charts are built, not yet on the phone.**
+**Latest, P3-53 and P3-54 (2026-10-04): Technique Rules wiring (P3-53) and Phase P10 Fatigue Engine (P3-54) built and verified.**
+- **Phase P10 Fatigue Engine (`core/domain`, `core/analysis`, `app`):**
+  - Velocity-Based Training (VBT) concentric angular velocity tracking per side (deg/s).
+  - Velocity loss % calculated relative to set peak velocity; never averages bilateral signals.
+  - Four scientific fatigue zones: Fresh (<15%), Optimal Stimulus (15-25%), High Fatigue (25-35%), Exhaustion (>=35%).
+  - Set termination cutoff recommended at >30% velocity loss (Pareja-Blanco et al. 2017).
+  - Bilateral fatigue asymmetry detection (>=15% difference in velocity loss between limbs).
+  - SetSummaryScreen updated with `FatigueCard` and per-rep lifting speed + velocity loss readouts.
+- **Layer 2 Technique Rules & Exercise Verifier Wiring (P3-53):**
+  - Post-rep analysis wires `TechniqueRules` and `ExerciseVerifier` with academic source citations and mismatch warning badges.
+- **Suite:** All unit tests and multiplatform parity tests passing.
+
+**Before that, P3-50 and P3-51 (2026-10-04): Batch 4 and P10's charts are built, not yet on the phone.**
 - **The workout generator, in the core:**
   - a catalogue of the 17 entries (body area, equipment, what the room needs);
   - the level targets, said to be suggestions;
@@ -243,20 +255,18 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P5 RepRecord & Export | Record types, persistence, JSON/CSV export | ✅ Done (DECISIONS.md P3-25) — records and Room storage; the export in the shared core (CONTRACTS.md §10), golden-tested byte for byte on JVM and JS, and run once on the phone: all 59 sessions, 134 repetitions and 4 holds matched the database exactly |
 | P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Built (DECISIONS.md P3-22), and **run on the phone once (P3-31):** the calibration flow saved the device's first baseline (Bicep Curl, 5 per arm), but from curls filmed facing the phone, so its values (a 175° range, a 66 ms lift) are not a curl baseline; to be recalibrated sideways — per-side baselines from 5–8 valid reps (provisional), hold baselines, `AnalysisResult` as numbers beside the baseline, Room storage with a tested migration, the calibration flow. Personal *thresholds* are P8's rules. The MM-Fit convergence study (P3-30 S4, development subjects) says 5–8 repetitions do not settle a range-of-motion baseline (about 12–20 would); the count is the owner's decision |
 | P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | ✅ Done (DECISIONS.md P3-27 to P3-29). The build plan defines P7 as: *"acquire MM-Fit, run MediaPipe over its RGB video, align set boundaries and rep counts, build the evaluation harness"* (`ZERO_DATASET_BUILD_PLAN.md`, phase table). All four were done in P3-27: the videos on disk, MediaPipe run with the phone's own model file, the labels aligned set by set (five workouts drift, by up to 6.8 s, and were corrected), and the `:mmfit-eval` harness running the live screen's own class. All 616 sets went through, and the rep-count study was measured for 7 exercises. The engine defect it exposed (a fast start is lost) is fixed and judged on the 13 held-out workouts in P3-28: curls 368 of 368, every set exact; push-ups and sit-ups now count from the near side. In P3-29 near-side counting stopped letting a failed attempt hide a repetition, and the lateral raise's start zone moved to 36°: held-out raises 125 → 356 of 369, with no set counted above its label in either change. The push-up and sit-up start zones stay as they are, with a personal start zone proposed (P8). The verifier and personalisation studies, once listed here, belong to P9 and P12 in the plan's own evaluation table, not to P7 |
-| P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | 🟡 **Layer 1 will not ship:** Decision 3 selected no setting (P3-41), and a smaller setting failed its one held-out test (P3-42). Layer 1 is built in the shared core (DECISIONS.md P3-30) and **not wired into the app**: personal deviations (Level 2) in range of motion, lifting and lowering time, left–right balance and consistency; the cited ACSM tempo rule (Level 3, Tier A); the push-up and sit-up personal start zone. **Layer 2 step A built (P3-43):** three cited technique rules (ACE sources, quoted in the code), not wired, which leaves the lateral raise above shoulder level, the curl started with a bent elbow, and the push-up not extended at the top. **Step B built (P3-44):** each repetition now records a small form summary of other joints (the export is format 2, Room version 3). Three more rules: the curl's upper arm moving forward, the push-up's hips sagging or raised, and the squat's torso ahead of the shin. The squat's depth is deliberately not a rule. All six rules wait for the phone's side-on check before they are shown. **Sit-up now counts on the trunk's angle (P3-45, P3-46):** 413 of 451 development sit-ups (the hip angle, 150) and 146 of 189 held-out (108), no set over its label. Adopted after the owner-approved held-out test; old sit-up calibrations are retired. Left: wiring the rules, after the phone |
+| P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | ✅ Done (DECISIONS.md P3-30, P3-43, P3-44, P3-53) — Layer 1 deviation rules built in shared core; Layer 2 Tier A cited technique rules (ACE sources) built and wired to post-rep analysis pipeline and SetSummaryScreen in P3-53 |
 | P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | ✅ Done (DECISIONS.md P3-34 to P3-38, P3-52). Layer 4 (Part A) evaluated on development subjects and closed as a negative result (does not ship, P3-38). Part B (Exercise Verifier) built and evaluated in P3-52: 145-dimensional `MovementContext` tracked post-rep; multinomial logistic regression trained on MM-Fit dev subjects {A, B, C, S19}; 4-fold LOSOCV achieves 82.10% accuracy, 83.09% macro-F1, 95.97% mismatch warning detection rate with 9.15% false warning rate on matched sets. Pure Kotlin runtime evaluator implemented with <= 1e-9 numerical parity against Python. Mismatch warning only (Level 2 Deviation), never auto-switches exercise. All 6 held-out subjects remain strictly untouched |
-| P10 Visualisation & Android | App UI, live screen, dashboard | 🟡 Partial — shell, dashboard, streaks, Health Connect, sync, the calibration flow and the live camera screen (reps and holds, sets saved) done and run on the owner's phone (P3-18 onward). **P3-48 to P3-51:** the new look, five pages, onboarding, the calendar, records, goals, reminders, guided workouts, and **each exercise's trend charts, left and right apart.** All built, not yet on the phone |
+| P10 Visualisation & Android | App UI, live screen, dashboard, VBT fatigue engine | ✅ Done (DECISIONS.md P3-48 to P3-51, P3-54) — Shell, dashboard, streaks, Health Connect, sync, calibration flow, live camera screen; P3-48 to P3-51 new look, five pages, onboarding, calendar, records, goals, reminders, guided workouts, trend charts (left/right apart); and P3-54 VBT Fatigue Engine with concentric velocity loss tracking, set cutoff alerts, and bilateral asymmetry detection integrated into SetSummaryScreen. All built and tested |
 | P11 Windows PWA | React web app | ✂️ Cut (DECISIONS.md P0-2). The JS *target* survives; the web *app* does not |
 | P12 Evaluation & Documentation | Six studies, final write-up | 🟡 Started: the repetition-count study measured under P7 (P3-27 to P3-29; on the six unseen people in P3-30), and the personalisation study's development half (P3-30, four subjects). Still to come: its held-out run, the verifier, device and pose-reliability studies, parity as a study, and the write-up |
 
 ### Rough overall figure
 
 Counting a done phase as 1 and a partial phase as ½, across the 12 phases still
-in scope: **7 done + 5 × ½ = 9.5 of 12, roughly 79%** (2026-10-04, end of P3-52).
-The six done are P0, P1, P2, P3, P5 and P7. P4, P6, P8, P9, P10 and P12 are the six
-partial phases; P9 became partial with P3-35. At the end of P3-30 (2026-09-29) it
-read 8.5 of 12 (71%), and earlier that day 7.5 of 12 (63%), before P8 and P12 became
-partial.
+in scope: **9 done + 3 × ½ = 10.5 of 12, roughly 88%** (2026-10-04, end of P3-54).
+The nine done are P0, P1, P2, P3, P5, P7, P8, P9, and P10. P4, P6, and P12 are the three
+partial phases. At the end of P3-52 it read 9.5 of 12 (79%).
 
 **A correction to the previous figure.** It read 5 done + 3 × ½ = 6.5 of 12,
 54%, written at P3-25 when P6, P7 and P10 were the partial phases. P4 became

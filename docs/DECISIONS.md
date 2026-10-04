@@ -11640,6 +11640,64 @@ With Phase P8 Layer 2 technique rules built (P3-43, P3-44) and Phase P9 Part B's
 
 ---
 
+## P3-54 — Phase P10 Fatigue Engine: Velocity Loss and Set Termination Tracking
+
+*Decided 2026-10-04. Implements Phase P10 (Fatigue Engine: Velocity-Based Training concentric velocity loss & form breakdown indicator).*
+
+### Context and Motivation
+
+In resistance training, neuromuscular fatigue directly manifests as an involuntary decrease in mean concentric velocity (González-Badillo & Sánchez-Medina 2010; Pareja-Blanco et al. 2017). Tracking velocity loss allows athletes to:
+1. Identify the optimal training stimulus zone (15–25% velocity loss) where maximal strength adaptations occur without excessive metabolic fatigue.
+2. Signal an objective set termination cutoff (e.g. 30% velocity loss), preventing form breakdown and excessive central nervous system exhaustion.
+3. Detect bilateral fatigue asymmetry (≥15% difference in loss between limbs), indicating unilateral failure risk.
+
+Phase P10 implements this Velocity-Based Training (VBT) engine natively within the shared multiplatform core and set summary UI.
+
+### Principles and Guardrails (Non-Negotiables)
+
+1. **Bilateral Independence:** Bilateral signals are never averaged. Concentric velocity and percentage velocity loss are computed, tracked, and stored per limb (`BilateralSignal`).
+2. **Exercise Science Grounding:** Velocity loss thresholds and zones strictly follow peer-reviewed VBT literature (Pareja-Blanco et al. 2017; González-Badillo & Sánchez-Medina 2010):
+   - Fresh: <15% loss.
+   - Optimal Stimulus: 15–25% loss.
+   - High Fatigue: 25–35% loss.
+   - Exhaustion: ≥35% loss.
+   - Set Cutoff Recommendation: >30% loss.
+   - Bilateral Asymmetry Alert: ≥15% delta in velocity loss between sides on simultaneous lifts.
+3. **Concentric Phase Alignment:** Angular velocity derivation respects `profile.awayFromStart == Contraction.CONCENTRIC`:
+   - Movements lifting on descent (curls, lateral raises): concentric duration is `descentMs`.
+   - Movements lifting on ascent (squats, push-ups): concentric duration is `ascentMs`.
+4. **$O(1)$ Post-Rep Execution:** Calculations occur during completed rep evaluation and set summary generation. Zero per-frame allocations, zero frame-loop ML overhead.
+5. **No Platform Leaks:** Pure Kotlin Multiplatform domain and analysis implementation (`core/domain`, `core/analysis`), fully validated against `SharedCoreSourceGuardTest`.
+
+### What Was Built
+
+1. **Domain Model (`core/domain/.../fatigue/Fatigue.kt`):**
+   - `FatigueZone`: Enumeration (`FRESH`, `OPTIMAL_STIMULUS`, `HIGH_FATIGUE`, `EXHAUSTION`) with helper mapper `FatigueZone.of(lossPercent)`.
+   - `RepetitionFatigue`: Per-rep concentric velocity (deg/s), set peak velocity, velocity loss percentage, zone, termination recommendation flag, and bilateral loss asymmetry percentage.
+   - `SetFatigueSummary`: Set-level peak velocity, final velocity, max loss %, ending zone, recommended cutoff rep index, and bilateral asymmetry alert flag.
+2. **Domain Tests (`core/domain/.../fatigue/FatigueTest.kt`):**
+   - Validates zone boundary mapping, asymmetry computation, termination recommendation, and multiplatform serialization.
+3. **Analysis Engine (`core/analysis/.../fatigue/FatigueEngine.kt`):**
+   - Pure functions `concentricDurationMs`, `concentricVelocity` (deg/s per side).
+   - Stateful $O(1)$ `FatigueTracker` for real-time rep-by-rep accumulation without retrospective scanning.
+   - Static evaluator `FatigueEngine.analyzeSet(profile, reps)` for whole-set summary analysis.
+4. **Analysis Tests (`core/analysis/.../fatigue/FatigueEngineTest.kt`):**
+   - Tests concentric velocity calculation across contraction profiles (bicep curl vs squat).
+   - Tests set cutoff detection at 30% velocity loss and fatigue asymmetry detection (≥15% difference).
+   - Tests robust handling of missing or invalid timing.
+5. **Android UI Integration (`CalibrationScreens.kt`):**
+   - Added `FatigueCard` composable in `SetSummaryScreen` with zone badges, peak/final velocities, cutoff notice (`⚡ Optimal set cutoff reached at Rep X`), and bilateral asymmetry warning.
+   - Updated `RepetitionRow` to display lifting speed (deg/s) and loss percentage per side.
+
+### Verification
+
+- `:core:domain:allTests` (JVM, JS, Android Debug, Android Release): **100% passing**.
+- `:core:analysis:allTests` (JVM, JS, Android Debug, Android Release): **100% passing**.
+- `:app:testDebugUnitTest`: **100% passing**.
+- `SharedCoreSourceGuardTest`: **100% passing** (no bilateral averaging, no platform leaks).
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
