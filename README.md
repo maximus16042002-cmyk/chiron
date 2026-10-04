@@ -10,17 +10,23 @@ diagnostic system.
 ## Status
 
 **P0-P3, P5 and P7 are complete; the app is feature-complete in code; the device check (P4) and the
-research core (P8-P9 remainder, P12) are not.** As of 2026-10-04 (DECISIONS.md P3-51):
+research core (P8-P9 remainder, P12) are not - about 75% of the plan.** As of 2026-10-05
+(DECISIONS.md P3-59):
 
 - The shared analysis engine, all 15 profiles and 2 variants, calibration, the export, the MM-Fit
   evaluation pipeline, and the Android app (five pages, calendar and streak freezes, records, weekly
-  goal, reminders, workout generator and guided workouts, per-exercise trend charts) are built and
-  tested on JVM, JS and Android: **2,831 test executions, none failing**.
+  goal, reminders, workout generator and guided workouts, per-exercise trend charts, lifting speed
+  per side, a camera-view setup gate) are built and tested on JVM, JS and Android: **3,069 test
+  executions, none failing**.
+- The exercise verifier (P9 Part B) is built and evaluated on the development people, and does not
+  ship: on new people it warned on too many correct repetitions (P3-59).
 - On the owner's phone (Nothing Phone 2a, Android 16) the live screen, curl counting, set saving,
   account sync, Health Connect and the export have run. **Everything built since P3-47 - the whole
   new look and every feature after it - has not yet been seen on a device.**
-- Still owed: the rest of the phone session (`docs/P4_TOMORROW.md`), the exercise verifier (P9
-  Part B), wiring the cited technique rules, and the evaluation write-up (P12).
+- Still owed: the rest of the phone session (`docs/P4_TOMORROW.md`), then deciding whether to show
+  the cited technique rules, and the evaluation write-up (P12).
+- P3-52 to P3-58 were written by another AI agent; P3-59 reviewed and corrected them. Its log is
+  `docs/antigravity_works.md`.
 
 **`docs/HANDOVER.md` is the complete account of the project: history, rules, results, what is
 done and what must be done next. Start there.** `docs/PROJECT_STATUS.md` is the shorter status

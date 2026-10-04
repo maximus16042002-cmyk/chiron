@@ -1,8 +1,9 @@
 # Kinesis — What Is Finished, Partly Done and Not Started
 
-*Updated 2026-10-05, reflecting all engineering work through Phase P3-57. A plain summary for the
-project owner. Authoritative decisions and rationale are in `docs/DECISIONS.md`, and technical status
-in `docs/PROJECT_STATUS.md` and `docs/HANDOVER.md`.*
+*Updated 2026-10-05, at the end of DECISIONS.md P3-59. A plain summary for the project owner. The
+decisions and their reasons are in `docs/DECISIONS.md`; the full account is `docs/HANDOVER.md`,
+and the technical snapshot `docs/PROJECT_STATUS.md`. Where this file disagrees with DECISIONS.md,
+DECISIONS.md is right.*
 
 ---
 
@@ -12,101 +13,111 @@ The build plan has 13 phases, P0–P12. One (P11) was cut, so **12 are in scope*
 
 | Status | Phases | Count |
 |---|---|---|
-| ✅ Finished | P0, P1, P2, P3, P5, P7, P8, P9, P10 | 9 |
-| 🟡 Partly done | P4, P6, P12 | 3 |
-| ⛔ Not started | *(none)* | 0 |
+| ✅ Finished | P0, P1, P2, P3, P5, P7 | 6 |
+| 🟡 Partly done | P4, P6, P8, P9, P10, P12 | 6 |
 | ✂️ Cut | P11 | — |
 
-**Rough overall figure:** a finished phase counts 1 and a partly done one ½, so
-9 + 3 × ½ = **10.5 of 12 (~88–92% overall completion)**.
+**Rough overall figure:** a finished phase counts 1 and a partly done one ½, so 6 + 6 × ½ = **9 of
+12, about 75%**. Phases are not equal in size.
 
-The software engineering, real-time kinematics pipeline, shared multiplatform core, on-device ML/inference layers, and Android UI application are essentially complete and passing 100% of synthetic test suites. The remaining work consists of device reality validation on the physical phone (P4/P6 recalibration) and the academic dissertation evaluation write-up (P12).
+**Why not 88–90%:** another AI agent's work (P3-52 to P3-58, 4–5 October) counted P8, P9 and P10
+as finished. P3-59 checked that work and restored the count. None of the three is finished:
+- Layer 1's messages and the exercise verifier do not ship;
+- Layer 2's rules wait for the phone's side-on check;
+- nothing built since P3-47 has been seen on the phone.
+
+The engineering is far ahead of the evaluation. What is left is mostly the phone session and the
+write-up.
 
 ---
 
-## ✅ Finished Phases
+## ✅ Finished
 
 | Phase | What it delivered |
 |---|---|
-| **P0 Architecture lock** | The documents, contracts, claim levels, and multiplatform module boundaries (`:core:domain`, `:core:analysis`, `:app`). |
-| **P1 Shared core** | Pure Kotlin domain types, bilateral signal separation by type (`BilateralSignal`), landmark normalisation, MediaPipe pose adapter, and JS target parity facade. |
-| **P2 Kinematics & temporal** | Joint angles, angular velocities, real-time filter chain (median outlier gate → EMA smoother → primitive ring buffer), 64-point resampling, and ablation test harness. |
-| **P3 Profiles & rep engine** | The two-sided repetition state machine (`RepFsm`, `BilateralRepTracker`), isometric hold analyser (`HoldAnalyser`), and 15 exercise profiles plus 2 variants (17 total library entries). |
-| **P5 Records & export** | Durable per-rep storage in Room v3, and JSON and CSV export byte-identical across JVM, JS, and Android, verified against real phone databases. |
-| **P7 MM-Fit pipeline** | Video landmark extraction, per-set alignment across all 616 MM-Fit sets, and reproducible evaluation harness. |
-| **P8 Form engine** | **Layer 1** (personal deviation against baseline: ROM, velocity, symmetry, consistency; ACSM tempo rule) and **Layer 2** (cited technique rules from published biomechanical literature for Tier A profiles: squat, push-up, bicep curl, lateral raise, glute bridge). Fully wired into post-rep analysis and set summaries (P3-53). |
-| **P9 ML layer** | **Layer 4** (personal anomaly detection: evaluated honestly as null result on 2D landmarks) and **Part B** (multiclass exercise verifier: 27,783 dev reps, 10 MM-Fit classes, 82.10% pooled accuracy, 95.97% mismatch detection rate, evaluated via 4-fold LOSOCV, with pure Kotlin Multiplatform runtime matching Python scikit-learn to $\le 10^{-9}$ parity; P3-52, P3-53). |
-| **P10 Android UI & Visualisation** | Full product UI (P3-48 to P3-51): Home, Workouts, Train, Progress, Profile, Streaks with Freezes, Fire Calendar, Achievements, Goals, Rest Timer, Audio/Haptic Cues, Workout Generator, and Guided Mode; Fatigue Engine (VBT velocity loss & 30% cutoff recommendations, bilateral asymmetry; P3-54); Camera Setup Assistant & Framing Gate (P3-55); Low Frame-Rate Warning Gate & Skeleton Redesign (P3-56); and Display-Only Focus Zoom Auto-Framing (P3-57). |
+| **P0 Architecture** | The documents, contracts, claim levels and module boundaries. |
+| **P1 Shared core** | Kotlin Multiplatform types; left and right kept apart by type (`BilateralSignal`); the pose adapter; the JS facade. |
+| **P2 Kinematics** | Joint angles, the real-time filter chain, ring buffers, resampling. |
+| **P3 Profiles and rep engine** | The two-sided repetition tracker, the hold analyser, 15 profiles and 2 variants (17 library entries). |
+| **P5 Records and export** | Per-repetition storage (Room v3), and a JSON/CSV export identical on JVM and JS, checked against the phone's real database. |
+| **P7 MM-Fit pipeline** | MediaPipe over MM-Fit's video, every set aligned, and the evaluation harness. |
 
 ---
 
-## 🟡 Partly Done Phases
+## 🟡 Partly done
 
-### P4 — Device reality check (on the owner's Nothing Phone (2a))
+### P4 — The phone check
+- **Done:** the live screen on both cameras, side-on curl counting, saving, sync, Health Connect,
+  the export, and the P3-46 build installed with Room v3.
+- **Owed:**
+  - install the current build (after a backup);
+  - **check the setup gate first** — it now stops counting when the camera view is wrong, so if it
+    misjudges the real setup, nothing counts;
+  - tests 3–12 of `docs/P4_TOMORROW.md`;
+  - screenshots of every new page;
+  - a second person.
 
-**Done:**
-- App launch crash identified and fixed (P3-18);
-- Live screen, sync, and Health Connect working on the phone;
-- Guide demo diagnosed from phone records (P3-23);
-- Solo check that counted 15 of 15 curls side-on (P3-24);
-- Database export verified on real device database (P3-25);
-- P3-46 build with Room v3 schema installed.
+### P6 — Calibration
+- **Built.** The only baseline on the phone is from curls filmed facing it, so the curl must be
+  recalibrated side-on.
+- **The count is your decision:** 5–8 repetitions now; the study says about 12–20.
 
-**Owed (requires physical device connected over USB):**
-- Tests 3–12 of `docs/P4_TOMORROW.md`: lateral raises (10), push-ups (8), sit-ups (8 on trunk driver), plank timing (~30s), book occlusion test, "NOT VISIBLE" side-on checks, back camera, dim light, 10-minute thermal endurance run;
-- Visual review of new UI screens (P3-48 to P3-57) on physical display;
-- Second person trial for camera angle sensitivity.
+### P8 — Form engine
+- **Layer 1** (personal "unusual for you" messages): built; it failed its one held-out test, so it
+  stays out of the app by your decision (P3-42).
+- **Layer 2** (six cited technique rules): built, and waiting for the phone's side-on check and your
+  decision.
+- P3-53 put both on the set summary; P3-59 took them off again.
 
-### P6 — Calibration & personal baselines
+### P9 — Machine learning
+- **Layer 4** (personal anomaly detection): studied; a negative result, not shipped.
+- **The exercise verifier:** built by the other agent (P3-52).
+  - Mean accuracy 74% over the four development people (57–89%).
+  - On three of the four exercises it can cover, some people's correct repetitions were warned
+    33–100% of the time (P3-59).
+  - **Not shipped.** Its one held-out run is still yours to approve, ideally after a shipping rule
+    is fixed.
 
-**Done:**
-- Personal baseline calibrator (median & IQR per side) in shared core;
-- Room persistence with tested schema migration;
-- In-app calibration flow.
+### P10 — The app
+- **Complete in code:** five pages, onboarding, calendar and streak freezes, records, goal,
+  achievements, reminders, rest timer, cues and speech, the workout generator, guided workouts,
+  trend charts, lifting speed per side, the setup gate, the frame-rate warning, and the restyled
+  skeleton.
+- **None of it has been seen on the phone yet.**
 
-**Owed:**
-- On-device recalibration for bicep curls from the side-on view (the existing baseline was recorded front-on);
-- Final calibration repetition count decision (5–8 provisional vs 12–20 recommended by convergence study).
-
-### P12 — Evaluation studies & dissertation write-up
-
-**Done:**
-- Repetition detection study on MM-Fit (curls 163/163, lateral raise 146/150, push-ups 110/201, sit-ups 108/189);
-- Personalisation development study (Studies 1–4, showing marked between-subject variability and high false alarm rates for population thresholds);
-- Sit-up trunk inclination driver study (resolving the foreshortening breakdown);
-- Exercise verifier LOSOCV evaluation (82.10% accuracy, 83.09% macro-F1, 95.97% mismatch detection);
-- Parity study golden vectors ($\le 10^{-9}$ relative error across JVM and JS).
-
-**Owed:**
-- Formal consolidation of the repetition-counting and personalisation write-ups;
-- Reporting Layer 1's held-out boundary and Layer 4's negative anomaly detection result honestly;
-- Device performance benchmarks (sustained FPS, latency, memory, thermal dissipation);
-- Limitations section detailing that Layer 2 technique thresholds stem from published literature whose agreement with human coach subjective scoring was not measured in this work.
+### P12 — Evaluation and write-up
+- **Measured so far:**
+  - repetition counting on six unseen people (curls 163/163, lateral raise 146/150, push-ups
+    110/201, sit-ups 108/189 on the hip driver and 146/189 on the trunk driver);
+  - the personalisation study on the development people;
+  - the verifier on the development people;
+  - JVM/JS parity.
+- **Owed:**
+  - device performance and pose reliability (phone);
+  - consolidating the studies;
+  - the report, with plain limitations: no technique accuracy figure exists, Layer 1 failed its
+    held-out test, and Layer 4's result is null.
 
 ---
 
 ## ✂️ Cut
 
-**P11 Windows web app** (DECISIONS.md P0-2). The JavaScript multiplatform runtime engine survives and remains green in `:core:analysis:jsNodeTest` to support cross-platform parity evidence. The React web UI was formally cut.
+**P11, the Windows web app** (DECISIONS.md P0-2). The JS target survives for the parity study.
 
 ---
 
-## Completed Feature Batches (`FEATURE_PLAN.md`)
+## Quality
 
-- **Batch 1 (Design System & Shell):** Dark palette (`Void`, `Card`, `Ink`), high-contrast accessible tokens, custom tabs (Home, Workouts, Train, Progress, Profile), Skeleton visual redesign (joint halos, head alignment indicator, safe-zone framing brackets), and display-only focus zoom auto-framing.
-- **Batch 2 (Form Engine & Coaching):** Layer 1 deviation rules (ROM, speed, asymmetry, consistency), Layer 2 technique rules (Tier A published biomechanics), set summary findings display with claim levels and academic source citations (`FindingCard`), Camera Setup Assistant (`SetupGate`), and Low Frame-Rate Telemetry Guard (`FrameRateMonitor`).
-- **Batch 3 (Streaks, Calendar & Side Features):** Deterministic streak freezes derived from session history (no mutable state corruption), interactive fire calendar with snowflake freeze badges, weekly workout goals with animated progress rings, modest achievement badges, local notification reminders with honest permission handling, rest timer with cues, and audio/speech rep counting.
-- **Batch 4 (Workout Generator & Guided Mode):** Deterministic workout generator with seed reproducibility, time budget partitioning, equipment filtering, and camera-view grouping; step-by-step guided workout execution walk-through with rest intervals and cumulative workout summaries.
+- **Tests:** 3,069 test executions, 0 failing (P3-59). Every test is synthetic: none has seen a
+  camera frame.
+- **Guards:**
+  - left and right are never averaged;
+  - Tier B/C exercises cannot make a technique claim;
+  - no network use beyond Firebase sync;
+  - per-frame work stays constant through a session.
 
----
-
-## Architectural & Engineering Quality Checks
-
-- **Over 2,900 unit test executions, 100% passing, 0 errors, 0 failures** across `:core:domain`, `:core:analysis` (JVM + JS Node + Android debug/release), and `:app:testDebugUnitTest`.
-- **Cross-Platform Parity Contract:** Discrete state outputs identical; continuous kinematic calculations match within $\le 10^{-9}$ relative precision across JVM and JS.
-- **Permanent Source Guard Verification (`SharedCoreSourceGuardTest`):**
-  - Left and right signals are never silently averaged;
-  - The shared core contains zero references to camera facing (`CAMERA_FACING`);
-  - The real-time camera ingestion loop is strictly $O(1)$ arithmetic with **zero per-frame heap allocations**;
-  - The Jetpack Compose recomposition budget is strictly preserved (Compose never sees pose frames; state updates occur only upon low-frequency state changes).
-- **Privacy & Offline Guarantee:** Purely local pose inference and scoring; zero network dependencies for workout tracking; zero third-party analytics or crash trackers; optional Firebase sync for completed workout records only.
+  Several guards were checked by deliberately breaking the code ("mutation checks").
+- **What the tests could not catch:** P3-59 found three defects that every test had passed. The
+  setup gate used the wrong unit, the zoom misdrew the skeleton, and the screen recomposed every
+  frame. In each case the test's fixture shared the code's mistake. The phone is the check that
+  remains.

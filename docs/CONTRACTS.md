@@ -236,6 +236,14 @@ exists once a repetition has completed. There is therefore no API through which
 a model can be run per frame — the prohibition is a consequence of the type
 signatures rather than a rule anyone has to remember.
 
+**`RepRecord.movementContext`** (`DECISIONS.md` P3-52, recorded here by P3-59): an
+optional `MovementContext`, the exercise verifier's input. Nine signals (elbow
+flexion, upper arm against trunk, hip and knee, each left and right, and the
+trunk's lean) resampled to 16 points over the repetition, plus its duration: 145
+numbers. It is filled on the live path from fixed-size ring buffers and is `null`
+otherwise. It is **not** stored in Room, synced or exported; a repetition read
+back from storage has none. The verifier that reads it is built and not shipped.
+
 ---
 
 ## 8. The camera-view contract
@@ -247,6 +255,14 @@ stability.
 When required conditions are clearly invalid, scoring and technique analysis are
 **blocked** rather than producing confident nonsense. Measurement may continue if
 it is honest to do so; technique judgement may not.
+
+**As built (`DECISIONS.md` P3-55, corrected by P3-59).** In the app, a wrong camera
+view (or nobody in shot) held for half a second blocks scoring: the tracker and the
+hold analyser see nothing until the view has been right for a third of a second.
+Distance, a cropped head and unseen feet only advise. Occluded landmarks are not a
+setup verdict, because the tracker already refuses an unseen side on its own. The
+view is not judged for a front-on lying profile (the side plank), which the
+estimator cannot see. Camera stability is not checked.
 
 ---
 

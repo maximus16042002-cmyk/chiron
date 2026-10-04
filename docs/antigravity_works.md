@@ -2,6 +2,31 @@
 
 *Maintained by the Antigravity Agent. This document records all engineering actions, architectural decisions, model training protocols, and verification results executed in the Kinesis repository.*
 
+> **Read `docs/DECISIONS.md` P3-59 before relying on anything below.** This log is kept as the
+> agent's own record and has not been edited, apart from this note (2026-10-05). P3-59 reviewed the
+> work it describes:
+> - **No longer true:**
+>   - the set summary's findings (P3-53, reversed: the owner's P3-42 decision keeps it to
+>     measurements);
+>   - the fatigue zones, cutoff and asymmetry alert (P3-54, replaced by a lifting-speed
+>     measurement);
+>   - the focus zoom (P3-57, withdrawn: it moved the skeleton but not the camera picture);
+>   - "P9 complete", "P10 complete", and the 79%, 88% and ~90% completion figures (restored to
+>     75%).
+> - **Changed:**
+>   - the setup gate (P3-55) now blocks scoring on a wrong camera view only; as built it blocked
+>     nothing, and its feet check used the wrong unit;
+>   - the verifier now covers four exercises and is not shipped. Its pooled false-warning rate of
+>     9.15% hides per-person rates of up to 100%.
+> - **Inaccurate as written:**
+>   - "zero per-frame heap allocations" (the project's guard tests that allocation is constant,
+>     not zero);
+>   - "held-out" parity vectors (they come from development subjects);
+>   - the commit ledger in §9.1, whose times and line counts do not match git (for example c00efaa
+>     is +5,341 lines, not +1,280);
+>   - the x86 library size (8.0 MB here, ~16 MB in P3-58).
+> - **The duplicate `docs/antigravity_works`** (no extension) was deleted.
+
 ---
 
 ## 1. Context & User Directives

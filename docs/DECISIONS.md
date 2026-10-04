@@ -11445,6 +11445,8 @@ app, and blue would have read as "left".
 
 ## P3-52 — P9 Part B: The Exercise Verifier — Design, Multi-Signal Context, and Evaluation Protocol
 
+> **Reviewed in P3-59:** kept, and not shipped. Per exercise, some left-out people's correct repetitions were warned 33–100% of the time; it now covers only the four exercises MM-Fit films from the app's view. The "held-out" parity vectors below are development samples. The 82.10% is pooled; the mean over the folds is 74.17%.
+
 *2026-10-04. Written and committed before any verifier code is implemented or models trained.*
 *Fulfills P9 Part B as specified in P3-34 and HANDOVER.md §8.3.*
 
@@ -11602,6 +11604,8 @@ exceed 91–98% F1.
 
 ## P3-53 — Wiring the Exercise Verifier and Tier A Technique Rules to the Post-Rep Path and Set Summary
 
+> **Reversed in P3-59:** it put Layer 1's messages, the ACSM message, Layer 2's rules and the verifier on the set summary, against P3-42. The set summary shows measurements only again.
+
 *Decided 2026-10-04. Resolves HANDOVER.md §8.2 item 12 ("whether to wire Layer 2's rules into the set summary") and integrates P9 Part B's Exercise Verifier.*
 
 ### Context and Motivation
@@ -11641,6 +11645,8 @@ With Phase P8 Layer 2 technique rules built (P3-43, P3-44) and Phase P9 Part B's
 ---
 
 ## P3-54 — Phase P10 Fatigue Engine: Velocity Loss and Set Termination Tracking
+
+> **Replaced in P3-59:** the zones, the 30% cutoff and the asymmetry alert are removed (taken from barbell research, untested here). What remains is lifting speed per side and its slowdown within a set, a Level 1 measurement.
 
 *Decided 2026-10-04. Implements Phase P10 (Fatigue Engine: Velocity-Based Training concentric velocity loss & form breakdown indicator).*
 
@@ -11700,6 +11706,8 @@ Phase P10 implements this Velocity-Based Training (VBT) engine natively within t
 
 ## P3-55 — Camera-View Setup Assistant and Framing Gate
 
+> **Corrected in P3-59:** as built it blocked nothing, judged feet in the wrong unit, would have stopped side-on curls and side planks, and recomposed the screen every frame. It now blocks scoring on a wrong camera view only, in the app; the rest advises.
+
 *Decided 2026-10-04. Implements CLAUDE.md §10, CONTRACTS.md §8, and resolves HANDOVER.md §8.2 item 9.*
 
 ### Context and Motivation
@@ -11750,6 +11758,8 @@ In the 2026-09-29 phone session (DECISIONS.md P3-31), doing bicep curls facing t
 
 ## P3-56 — Low Frame-Rate Warning Gate and Skeleton Visual Redesign
 
+> **Reviewed in P3-59:** kept as built. It is a warning; it never blocks.
+
 *Decided 2026-10-05. Implements HANDOVER.md §8.2 item 4, CLAUDE.md §6 & §21, and FEATURE_PLAN Batch 1 skeleton redesign.*
 
 ### Context and Motivation
@@ -11783,6 +11793,8 @@ In the 2026-09-29 phone session (DECISIONS.md P3-31), doing bicep curls facing t
 ---
 
 ## P3-57 — Display-Only Focus Zoom (Auto-Framing) and Progress Report Housekeeping
+
+> **Withdrawn in P3-59:** the zoom magnified the skeleton but not the camera picture, and assumed y runs 0–1. Its progress-report figure (~90%) was also withdrawn.
 
 *Decided 2026-10-05. Implements FEATURE_PLAN.md Batch 1 (Focus zoom / auto-framing), HANDOVER.md §8.3 item 4 & item 5, and CLAUDE.md §6 & §21.*
 
@@ -11823,6 +11835,8 @@ In the 2026-09-29 phone session (DECISIONS.md P3-31), doing bicep curls facing t
 ---
 
 ## P3-58 — APK Footprint Optimization & Mobile ARM ABI Filtering
+
+> **Reviewed in P3-59:** kept. The release APK's size before the filter (~56 MB) was not measured.
 
 *Decided 2026-10-05. Resolves PROJECT_STATUS.md §5 loose end, HANDOVER.md §8.3 item 5, and CLAUDE.md §17 dependency/bundle cost.*
 
@@ -12063,6 +12077,65 @@ the same unit error as 2.3.
   near knee, the verifier's held-out run, and showing Layer 2.
 - **Nothing here has been seen on the phone.** Every correction is code only, like the work it
   corrects.
+
+### 5. Result (2026-10-05)
+
+**Done, in the order of section 3, one commit per group:**
+
+| Commit | Correction |
+|---|---|
+| 490770d | This entry and `tools/mmfit-eval/verifier_breakdown.py` (2.2's tables) |
+| acf385a | 2.1 and 2.2: set summary back to measurements only; `PostRepAnalysis` back to its P3-30 form; `FindingCard` removed; the verifier narrowed to four exercises |
+| 79c1128 | 2.5: lifting speed replaces the fatigue engine. The source guard now scans the setup, fps, verifier and speed packages, none of which it covered (the setup gate, the frame-rate monitor and the verifier's context tracker all run per frame) |
+| be691ba | 2.4: the zoom withdrawn |
+| 99ca658 | 2.3: the setup gate |
+| (this commit) | 2.6: the documents |
+
+**Tests first, and seen failing.**
+- The two `PostRepAnalysis` guards and the narrowed verifier set failed against the P3-53 code,
+  each for the reason it names, before the corrections.
+- The gate's and the speed tests were written before their code and are proven by mutation below.
+
+**Mutation checks, all caught:**
+- **Lifting speed (4 of 4):** averaging the two sides; starting each side's largest slowdown at 0;
+  scoring repetitions that did not count; letting a twitch below 20° set the fastest.
+- **The extended guard (1 of 1):** unlisting `FrameRateMonitor.kt`.
+- **The setup gate (8 of 8):**
+  - P3-55's own feet check (ankle y > 0.98);
+  - judging every profile's view (the side plank);
+  - no debounce on the message;
+  - the tracker ignoring the gate;
+  - the hold analyser ignoring it;
+  - each of the two app engines switched to report-only;
+  - a message that changes every frame (the recomposition bug's shape, caught by the swaying-user
+    engine test).
+
+**The full suite:** `assemble allTests :app:testDebugUnitTest :app:testReleaseUnitTest
+:app:compileDebugAndroidTestKotlin` ran with **3,069 test executions, 0 failed, 0 errors, 0
+skipped**. By module and target:
+- `core/analysis`: 623 JVM (+5 allocation), 612 JS, 612 debug, 612 release;
+- `core/domain`: 40 on each of the four;
+- `:app`: 216 debug, 204 release;
+- `tools/mmfit-eval`: 25. The harness compiled and ran on report-only, so the MM-Fit results are
+  unchanged.
+
+**What the tests could not have caught, and the phone must:**
+- **The gate's thresholds come from MM-Fit (P3-55) and were never measured on the phone.** In the
+  app a wrong view now stops counting. If the estimator misjudges the owner's real side-on curl
+  or front-on raise, nothing will count, and that is the first thing to check (HANDOVER 8.1).
+- **Three of P3-59's findings passed every test** (the feet unit, the overlay-only zoom, the
+  per-frame recomposition), because each test's fixture shared the code's mistake. The fixtures
+  added here use the core's real units, and the engine test sways the user. They can still share a
+  mistake nobody has seen yet.
+
+**Not changed:**
+- `MovementContextTracker` still runs per frame inside `BilateralRepTracker` and fills
+  `RepRecord.movementContext`, which nothing in the app reads. It is O(1) and covered by the scan.
+  It stays so the verifier can be re-evaluated without rebuilding it.
+- The frame-rate warning's 12-a-second threshold is the agent's choice; whether the owner prefers
+  a gate stays open (HANDOVER 8.2 item 4).
+
+**Next entry: P3-60.**
 
 ---
 

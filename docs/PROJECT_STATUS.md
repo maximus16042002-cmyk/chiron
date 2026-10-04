@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
-*Snapshot updated 2026-10-04, from the repository as it stands at the end of
-DECISIONS.md P3-51. This file summarises. It is not an authority: where it
+*Snapshot updated 2026-10-05, from the repository as it stands at the end of
+DECISIONS.md P3-59. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date. **`docs/HANDOVER.md` is the complete, self-contained account of the project** -
 read it first if you are new.*
@@ -10,57 +10,26 @@ read it first if you are new.*
 
 ## Next session starts here
 
-**Latest, P3-57 (2026-10-05): Display-Only Focus Zoom (Auto-Framing) and Progress Report Housekeeping built and verified.**
-- **Display-Only Focus Zoom / Auto-Framing (`core/analysis`, `app`):**
-  - Implements FEATURE_PLAN.md Batch 1 (Focus zoom) and resolves HANDOVER.md §8.3 items 4 & 5.
-  - Strict display-only boundary: MediaPipe and pose analysis always process full-frame camera preview; zoom transform is applied exclusively for preview rendering and `SkeletonOverlayView` canvas overlay.
-  - Whole-body exercise suppression: squat, push-up, plank, side plank, wall sit, glute bridge, sit-up, lunge strictly clamped to 1.0x unzoomed full frame.
-  - Overhead headroom preservation: shoulder press preserves +25% headroom above top landmarks to avoid hand clipping at lockout.
-  - Hysteresis debouncing: 15 frames to engage, 15 frames to exit; smoothed with continuous EMA ($\alpha = 0.12$).
-  - Zero heap allocations in real-time camera ingestion loop ($O(1)$ arithmetic in `FocusZoomCalculator.step`).
-  - Strict Compose budget: Compose only observes boolean `isZoomEngaged == current.isZoomEngaged` transitions (0 recompositions during continuous zoom).
-  - UI indication: `⛶ Auto-framed` status pill in `LiveCameraLayout`.
-- **Documentation Housekeeping:**
-  - `docs/PROGRESS_REPORT.md` fully rewritten and synchronized across all phases P0–P10, P3-31 through P3-57 (~90% complete).
-- **Suite:** 100% passing across `:core:domain:allTests`, `:core:analysis:allTests` (JVM + JS), and `:app:testDebugUnitTest`.
-
-**Before that, P3-56 (2026-10-05): Low Frame-Rate Warning Gate and Skeleton Visual Redesign built and verified.**
-- **Low Frame-Rate Gate & FPS Telemetry (`core/analysis`, `app`):**
-  - Resolves HANDOVER.md §8.2 item 4 and implements FEATURE_PLAN Batch 1 skeleton redesign.
-  - $O(1)$ sliding-window frame rate monitor (`FrameRateMonitor`) in shared core with zero per-frame heap allocations.
-  - 8-frame hysteresis debouncing for categorical health states (`HEALTHY` $\ge 20$, `MODERATE` $12\text{--}20$, `DEGRADED` $< 12$ FPS).
-  - Wired into `LiveRepetitionAnalysis`, `LiveHoldAnalysis`, `LiveAnalysisBridge`, and `LiveHoldBridge`.
-  - Recomposition budget guard: Compose is notified only on health level transition (0 recompositions for ongoing FPS fluctuations).
-  - Live pill warning displayed in `LiveCameraLayout` when camera FPS is degraded.
-- **Skeleton Overlay Visual Redesign (`SkeletonOverlayView`):**
-  - Soft glowing halos around tracked joints (25% alpha, 2.2x radius).
-  - Head position alignment circle at nose landmark with state border.
-  - Subtle safe-zone framing brackets rendered when tracking is unready or degraded.
-  - Zero heap allocations in `onDraw`.
-- **Suite:** 100% passing across `:core:domain:allTests`, `:core:analysis:allTests` (JVM + JS), and `:app:testDebugUnitTest`.
-
-**Before that, P3-55 (2026-10-04): Camera-View Setup Assistant and Framing Gate built and verified.**
-- **Camera-View Setup Assistant & Framing Gate (`core/analysis`, `app`):**
-  - Resolves CLAUDE.md §10, CONTRACTS.md §8, and HANDOVER.md §8.2 item 9.
-  - Deterministic geometry over ML: aspect ratio computed directly from torso-normalized shoulder and hip span relative to torso length.
-  - Thresholds empirically validated on MM-Fit development workouts: `SIDE_ON` ($\le 0.42$), `FRONT_ON` ($\ge 0.60$), `ANGLED_45` ($0.42 < \text{ratio} < 0.60$).
-  - Real-time framing gate checks distance boundaries ($[0.12, 0.65]$ torso scale), in-frame bounds (head and feet), and landmarks.
-  - Core-composed coaching guidance strings ("Turn sideways to camera", "Step back — head is out of frame", "Position yourself in camera view").
-  - Stateful `SetupGate` provides 10-frame (~300ms) ready transition hysteresis and 15-frame unready debounce.
-  - Live screens (`LiveAnalysisScreen`, `LiveHoldScreen`) render real-time amber coaching pill banner when setup is unready.
-  - Verified with 100% test pass rate across JVM and JS multiplatform suites; strict Compose recomposition budget preserved.
-
-**Before that, P3-53 and P3-54 (2026-10-04): Technique Rules wiring (P3-53) and Phase P10 Fatigue Engine (P3-54) built and verified.**
-- **Phase P10 Fatigue Engine (`core/domain`, `core/analysis`, `app`):**
-  - Velocity-Based Training (VBT) concentric angular velocity tracking per side (deg/s).
-  - Velocity loss % calculated relative to set peak velocity; never averages bilateral signals.
-  - Four scientific fatigue zones: Fresh (<15%), Optimal Stimulus (15-25%), High Fatigue (25-35%), Exhaustion (>=35%).
-  - Set termination cutoff recommended at >30% velocity loss (Pareja-Blanco et al. 2017).
-  - Bilateral fatigue asymmetry detection (>=15% difference in velocity loss between limbs).
-  - SetSummaryScreen updated with `FatigueCard` and per-rep lifting speed + velocity loss readouts.
-- **Layer 2 Technique Rules & Exercise Verifier Wiring (P3-53):**
-  - Post-rep analysis wires `TechniqueRules` and `ExerciseVerifier` with academic source citations and mismatch warning badges.
-- **Suite:** All unit tests and multiplatform parity tests passing.
+**Latest, P3-59 (2026-10-05): another agent's work reviewed and corrected.** P3-52 to P3-58 were
+built overnight by a different AI agent (Antigravity; its log is `docs/antigravity_works.md`).
+P3-59 checked each piece against the code, the data and earlier decisions:
+- **Kept:** the exercise verifier's code and its 1e-9 Kotlin/Python parity (built and evaluated,
+  **not shipped**); the frame-rate warning; the skeleton restyle; the x86-free APK (P3-58).
+- **Reversed:**
+  - the set summary showed Layer 1's "unusual for you" messages, the ACSM message, Layer 2's rules
+    and the verifier's warnings (P3-53), against the owner's P3-42 decision. It shows
+    measurements only again;
+  - the focus zoom (P3-57) magnified the skeleton but not the picture. Withdrawn;
+  - the "fatigue" card's zones, 30% cutoff and advice (P3-54), taken from barbell research and
+    untested here. It is now a lifting-speed measurement per side.
+- **Corrected:** the setup gate (P3-55) blocked nothing, judged feet in the wrong unit, and
+  recomposed the screen every frame. It now blocks scoring on a wrong camera view only.
+- **Measured:** the verifier per exercise and per left-out person on the development data
+  (`tools/mmfit-eval/verifier_breakdown.py`). Some people's correct repetitions were warned 33–100%
+  of the time on three of the four exercises it can cover.
+- **Suite:** 3,069 test executions, 0 failed.
+- **Next:** unchanged, the phone (`docs/HANDOVER.md` 8.1). Check the setup gate first: if it
+  misjudges the real setup, nothing counts.
 
 **Before that, P3-50 and P3-51 (2026-10-04): Batch 4 and P10's charts are built, not yet on the phone.**
 - **The workout generator, in the core:**
@@ -295,18 +264,22 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P5 RepRecord & Export | Record types, persistence, JSON/CSV export | ✅ Done (DECISIONS.md P3-25) — records and Room storage; the export in the shared core (CONTRACTS.md §10), golden-tested byte for byte on JVM and JS, and run once on the phone: all 59 sessions, 134 repetitions and 4 holds matched the database exactly |
 | P6 Calibration & Personalisation | `CalibrationBaseline`, personal thresholds | 🟡 Built (DECISIONS.md P3-22), and **run on the phone once (P3-31):** the calibration flow saved the device's first baseline (Bicep Curl, 5 per arm), but from curls filmed facing the phone, so its values (a 175° range, a 66 ms lift) are not a curl baseline; to be recalibrated sideways — per-side baselines from 5–8 valid reps (provisional), hold baselines, `AnalysisResult` as numbers beside the baseline, Room storage with a tested migration, the calibration flow. Personal *thresholds* are P8's rules. The MM-Fit convergence study (P3-30 S4, development subjects) says 5–8 repetitions do not settle a range-of-motion baseline (about 12–20 would); the count is the owner's decision |
 | P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | ✅ Done (DECISIONS.md P3-27 to P3-29). The build plan defines P7 as: *"acquire MM-Fit, run MediaPipe over its RGB video, align set boundaries and rep counts, build the evaluation harness"* (`ZERO_DATASET_BUILD_PLAN.md`, phase table). All four were done in P3-27: the videos on disk, MediaPipe run with the phone's own model file, the labels aligned set by set (five workouts drift, by up to 6.8 s, and were corrected), and the `:mmfit-eval` harness running the live screen's own class. All 616 sets went through, and the rep-count study was measured for 7 exercises. The engine defect it exposed (a fast start is lost) is fixed and judged on the 13 held-out workouts in P3-28: curls 368 of 368, every set exact; push-ups and sit-ups now count from the near side. In P3-29 near-side counting stopped letting a failed attempt hide a repetition, and the lateral raise's start zone moved to 36°: held-out raises 125 → 356 of 369, with no set counted above its label in either change. The push-up and sit-up start zones stay as they are, with a personal start zone proposed (P8). The verifier and personalisation studies, once listed here, belong to P9 and P12 in the plan's own evaluation table, not to P7 |
-| P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | ✅ Done (DECISIONS.md P3-30, P3-43, P3-44, P3-53) — Layer 1 deviation rules built in shared core; Layer 2 Tier A cited technique rules (ACE sources) built and wired to post-rep analysis pipeline and SetSummaryScreen in P3-53 |
-| P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | ✅ Done (DECISIONS.md P3-34 to P3-38, P3-52). Layer 4 (Part A) evaluated on development subjects and closed as a negative result (does not ship, P3-38). Part B (Exercise Verifier) built and evaluated in P3-52: 145-dimensional `MovementContext` tracked post-rep; multinomial logistic regression trained on MM-Fit dev subjects {A, B, C, S19}; 4-fold LOSOCV achieves 82.10% accuracy, 83.09% macro-F1, 95.97% mismatch warning detection rate with 9.15% false warning rate on matched sets. Pure Kotlin runtime evaluator implemented with <= 1e-9 numerical parity against Python. Mismatch warning only (Level 2 Deviation), never auto-switches exercise. All 6 held-out subjects remain strictly untouched |
-| P10 Visualisation & Android | App UI, live screen, dashboard, VBT fatigue engine | ✅ Done (DECISIONS.md P3-48 to P3-51, P3-54) — Shell, dashboard, streaks, Health Connect, sync, calibration flow, live camera screen; P3-48 to P3-51 new look, five pages, onboarding, calendar, records, goals, reminders, guided workouts, trend charts (left/right apart); and P3-54 VBT Fatigue Engine with concentric velocity loss tracking, set cutoff alerts, and bilateral asymmetry detection integrated into SetSummaryScreen. All built and tested |
+| P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | 🟡 **Layer 1 will not ship:** Decision 3 selected no setting (P3-41), and a smaller setting failed its one held-out test (P3-42). Layer 1 is built in the shared core (DECISIONS.md P3-30) and **not wired into the app**: personal deviations (Level 2) in range of motion, lifting and lowering time, left–right balance and consistency; the cited ACSM tempo rule (Level 3, Tier A); the push-up and sit-up personal start zone. **Layer 2 step A built (P3-43):** three cited technique rules (ACE sources, quoted in the code), not wired, which leaves the lateral raise above shoulder level, the curl started with a bent elbow, and the push-up not extended at the top. **Step B built (P3-44):** each repetition now records a small form summary of other joints (the export is format 2, Room version 3). Three more rules: the curl's upper arm moving forward, the push-up's hips sagging or raised, and the squat's torso ahead of the shin. The squat's depth is deliberately not a rule. All six rules wait for the phone's side-on check before they are shown. **Sit-up now counts on the trunk's angle (P3-45, P3-46):** 413 of 451 development sit-ups (the hip angle, 150) and 146 of 189 held-out (108), no set over its label. Adopted after the owner-approved held-out test; old sit-up calibrations are retired. Left: wiring the rules, after the phone. P3-53 showed Layer 1's and Layer 2's findings on the set summary; P3-59 took them off again |
+| P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | 🔶 Partial, **in scope since DECISIONS.md P3-34** (the owner, 2026-09-30). Layer 4 is built in the core, not wired: an Isolation Forest (P3-35), and a robust covariance distance added to the comparison before any run (P3-36). The anomaly study ran on the development subjects (P3-37). The forest on F1 + F2 sees only stalls, which the deterministic detectors see as often; the device rule flags 7–30% of unaltered repetitions with 10–40 in the history. Layer 4 does not ship (P3-38, under the owner's delegation); the study stands as a negative result. The verifier (Part B) is not started, and comes after the app work P3-38 orders first. **Part B, the verifier,** was built by another agent (P3-52): mean accuracy over the four development folds 74.2% (56.6–89.2%), Kotlin matching Python to 1e-9. Per exercise, some left-out people's correct repetitions were warned 33–100% of the time (P3-59), so it is limited to the four exercises MM-Fit films from the app's view and **does not ship**. Its held-out run is unspent |
+| P10 Visualisation & Android | App UI, live screen, dashboard | 🟡 Partial — shell, dashboard, streaks, Health Connect, sync, the calibration flow and the live camera screen (reps and holds, sets saved) done and run on the owner's phone (P3-18 onward). **P3-48 to P3-51:** the new look, five pages, onboarding, the calendar, records, goals, reminders, guided workouts, and **each exercise's trend charts, left and right apart.** All built, not yet on the phone. **P3-54 to P3-59:** lifting speed per side on the set summary, the setup gate (a wrong camera view blocks scoring), a frame-rate warning and a skeleton restyle, all unseen on the phone |
 | P11 Windows PWA | React web app | ✂️ Cut (DECISIONS.md P0-2). The JS *target* survives; the web *app* does not |
 | P12 Evaluation & Documentation | Six studies, final write-up | 🟡 Started: the repetition-count study measured under P7 (P3-27 to P3-29; on the six unseen people in P3-30), and the personalisation study's development half (P3-30, four subjects). Still to come: its held-out run, the verifier, device and pose-reliability studies, parity as a study, and the write-up |
 
 ### Rough overall figure
 
 Counting a done phase as 1 and a partial phase as ½, across the 12 phases still
-in scope: **9 done + 3 × ½ = 10.5 of 12, roughly 88%** (2026-10-04, end of P3-54).
-The nine done are P0, P1, P2, P3, P5, P7, P8, P9, and P10. P4, P6, and P12 are the three
-partial phases. At the end of P3-52 it read 9.5 of 12 (79%).
+in scope: **6 done + 6 × ½ = 9 of 12, roughly 75%** (2026-10-05, end of P3-59).
+The six done are P0, P1, P2, P3, P5 and P7. P4, P6, P8, P9, P10 and P12 are the six
+partial phases; P9 became partial with P3-35. P3-52 to P3-54 counted P8, P9 and P10 as done and
+read 79% and then 88%; P3-59 restored the count, because none of the three is finished (Layer 1
+and the verifier do not ship, Layer 2 waits for the phone, and nothing since P3-47 has been seen
+on a device). At the end of P3-30 (2026-09-29) it read 8.5 of 12 (71%), and earlier that day 7.5
+of 12 (63%), before P8 and P12 became partial.
 
 **A correction to the previous figure.** It read 5 done + 3 × ½ = 6.5 of 12,
 54%, written at P3-25 when P6, P7 and P10 were the partial phases. P4 became
@@ -321,12 +294,12 @@ past half; the thesis is well short of it.
 
 ### Test suite
 
-Last full run (DECISIONS.md P3-51, 2026-10-04): **2,831 test executions, 0 failures, 0
+Last full run (DECISIONS.md P3-59, 2026-10-05): **3,069 test executions, 0 failures, 0
 errors, 0 skipped**, via `gradlew assemble allTests :app:testDebugUnitTest
 :app:testReleaseUnitTest` (plus `:app:compileDebugAndroidTestKotlin`). Core tests count once per
 target (JVM, JS, both Android variants), so this is executions, not distinct tests. By module and
-target: `core/analysis` 514 JVM (+5 allocation), 503 JS, 503 debug, 503 release; `core/domain` 37
-on each of the four; `:app` 191 debug and 179 release; the MM-Fit tools (`tools/mmfit-eval`) 25.
+target: `core/analysis` 623 JVM (+5 allocation), 612 JS, 612 debug, 612 release; `core/domain` 40
+on each of the four; `:app` 216 debug and 204 release; the MM-Fit tools (`tools/mmfit-eval`) 25.
 `test_subjects.py` and `test_anomaly_study.py` add Python tests. Every test is synthetic: none has
 seen a camera frame or a model. What has run on the phone is recorded in DECISIONS.md, entry by
 entry, and is not a test count.
@@ -518,7 +491,7 @@ current, itemised version.
   in-app licences screen (`ThirdPartyNotices.bsdNotices`).
 - The `:desktop` module is an empty placeholder (intended home for a replay-only
   client).
-- ~~Optional: an `abiFilters` restriction to arm64~~ — done in P3-58: restricted `ndk.abiFilters` to `arm64-v8a` and `armeabi-v7a`, cutting debug APK from 75.3 MB to 53.4 MB (-21.9 MB) and release APK from ~56 MB to 40.5 MB (-15.5 MB); permanently guarded by `ApkPackagingGuardTest`.
+- ~~Optional: an `abiFilters` restriction to arm64~~ — done in P3-58: restricted `ndk.abiFilters` to `arm64-v8a` and `armeabi-v7a`, cutting debug APK from 75.3 MB to 53.4 MB (-21.9 MB) and the release APK to 40.5 MB (its size before was not measured); permanently guarded by `ApkPackagingGuardTest`.
 - UI polish pass — deliberately deferred; lowest priority per CLAUDE.md §21.
 
 ---
