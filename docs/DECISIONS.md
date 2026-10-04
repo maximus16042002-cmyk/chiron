@@ -12532,6 +12532,66 @@ CLAUDE.md §16 permits, and the app never disclosed it. **It is set to `false`.*
 
 ---
 
+## P3-66 — A repetition set survives the app being killed
+
+*2026-10-05. Written before any code. P3-16 stated the gap: "a set under way when the app is
+killed is lost, because nothing is persisted until it ends."*
+
+### The design
+
+**A draft per account.** After every completed repetition record, the set so far is written to a
+draft file. It is the `SessionRecord` that ending the set at that moment would save: the same
+session id, start time, offset and exercise, with the records completed so far. The file is
+`set-draft-<account database name>.json` in the app's private files, one per account (P3-60).
+
+**Written off the camera thread.** The draft is built on the camera thread, a list copy and a
+small object, and written on a single background thread. The real-time path gains no file I/O
+(CLAUDE.md §6). The write is atomic: a temporary file, then a rename, so a kill mid-write leaves
+the previous draft whole.
+
+**The format is the export's (CONTRACTS §10).**
+- The core gains `SessionExport.readSessions(json)`, the inverse of the export it already writes.
+  It reuses `EngineJson.readRep` and `readHold`, which the facade's round trip already tests
+  (P3-22).
+- An export can then be read back: the draft needs it, and a later import could use it.
+
+**Ending the set as now** saves the session through `SessionRecorder` (P3-16).
+- A successful save, or nothing to save, discards the draft.
+- **A failed save keeps it,** so the next launch retries the save. P3-63's toast still reports
+  the failure.
+
+**Recovery, when an account's storage opens** (sign-in, or the app's launch with the account
+already signed in), before the merge:
+- **No draft:** nothing happens.
+- **A draft whose session is already stored** (the app was killed after saving but before
+  discarding): it is discarded.
+- **Otherwise:** the session is saved through the account's repository, so it syncs like any set,
+  and the draft is discarded.
+- **A draft that cannot be read** is renamed `…unreadable.json` and kept for diagnosis, never
+  guessed at and never retried in a loop.
+
+**What is recovered:** the repetition records completed before the kill. A repetition under way
+at the kill is lost, as it would be by any other ending.
+
+**Not covered: holds.** A hold's record exists only when the hold ends (`HoldAnalyser.finish`),
+so there is nothing to draft mid-hold. Recovering a hold would need the analyser to publish
+partial records, which is its own change.
+
+### Tests first
+
+- **Core, every target (`SessionExportReadTest`):**
+  - an export read back and exported again is byte-identical, for repetition and hold sessions
+    with NaN sides, one-sided records, form measures and several sets;
+  - a document that is not an export is refused with a clear error.
+- **App (`SetDraftsTest`, `LiveSetSaverTest`):**
+  - a draft is written after each completed repetition, and a normal end discards it;
+  - a failed save keeps the draft;
+  - recovery saves a leftover draft once, discards one already stored, and sets an unreadable one
+    aside;
+  - drafts of two accounts never mix.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
