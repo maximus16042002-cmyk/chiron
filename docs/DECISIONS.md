@@ -12139,6 +12139,77 @@ skipped**. By module and target:
 
 ---
 
+## P3-60 — One database per account: sessions no longer cross between accounts
+
+*2026-10-05. Written before any code. The owner chose this from the work that needs no phone
+(HANDOVER 8.2 item 7, first found in P3-22).*
+
+### The defect
+
+The app keeps one Room database for everyone who signs in on the phone. Its session tables have
+no owner, and three paths read them for whoever is signed in now:
+- **Sign-in** runs `SessionMerge.pushMissing(uid)`, which uploads **every** session on the phone
+  to the account that just signed in, and `pullMissing(uid)`, which writes that account's
+  sessions into the same database. The next account to sign in then sees both people's history
+  and uploads it to its own account.
+- **The sync worker** does the same after each save.
+- **The dashboard, history, streaks and export** read every session on the phone.
+
+Baselines are keyed by owner already (P3-22), so they do not leak. Nothing here has been seen to
+happen: the owner's phone has had one account. It is a privacy defect in waiting.
+
+### The fix: one database file per account
+
+Each account gets its own database file. The sessions, the baselines, and everything that reads
+them (history, streaks, records, trends, export, sync) see only that account's.
+
+**Why a file, not an owner column:**
+- An owner column changes the schema. That means a Room migration over the owner's real data (79
+  sessions on the phone), and its migration test is instrumented: it runs only on the phone,
+  which is not available. A file per account changes no schema and moves no data.
+- Baselines come along for free, although they were already safe.
+
+**The existing file.** `kinesis.db` is adopted by the first account that signs in after this
+update, and stays that account's.
+- On the owner's phone the owner is already signed in (Firebase restores the session), so the
+  owner keeps every existing session and baseline unchanged.
+- Any later account gets `kinesis-<uid>.db`, or a hash of the id if it is not file-safe.
+- Which account adopted the file is recorded in the app's own preferences, written before the
+  database is opened.
+- **The one case it cannot fix:** if a *different* account were the first to sign in after the
+  update, it would adopt a file holding the previous person's sessions. That is today's
+  behaviour, no worse, and impossible on the owner's phone as it stands.
+
+**Other readers:**
+- **The sync worker** opens the database of the account it was scheduled for. Its unique work
+  name now includes the account, so one account's queued upload never absorbs or blocks
+  another's.
+- **The reminder** reads the most recently signed-in account's sessions to decide whether today's
+  work is done.
+- **Nothing is ever deleted on sign-out.** Each account's data stays on the phone, in its own
+  file, invisible to the others.
+
+**Not changed:**
+- The app's settings (rest length, cues, goal, reminders, favourite workouts) are still per
+  phone, not per account. They never leave the phone.
+- Firestore rules: already one tree per account (P3-19).
+- What is already in an account in the cloud. This cannot be checked from here; with one account
+  ever used on the phone, nothing should have crossed.
+
+### Tests first
+
+- **`AccountDatabaseNamesTest`**, on the JVM:
+  - the first account after the update keeps `kinesis.db`;
+  - the same account always gets the same file, also from a fresh read of the stored registry;
+  - a second account gets its own file, never the first one's;
+  - two later accounts never share a file;
+  - an id that is unsafe for a file name is hashed, never used raw.
+- **Structurally:** the shared, account-less database opener is removed, so no code can open a
+  database without saying whose it is.
+- **Mutation checks:** every account receiving the legacy name; an unsafe id used raw.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
