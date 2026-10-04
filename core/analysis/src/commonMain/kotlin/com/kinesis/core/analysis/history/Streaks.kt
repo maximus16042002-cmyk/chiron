@@ -25,6 +25,16 @@ data class StreakSummary(
 )
 
 /**
+ * One calendar day and the work completed on it - DECISIONS.md P3-48.
+ *
+ * [completedUnits] is the streak's measure (completed repetitions plus completed holds), so a day
+ * is [counted] exactly when [Streaks] would count it.
+ */
+data class DayActivity(val day: LocalDay, val completedUnits: Int) {
+    val counted: Boolean get() = completedUnits > 0
+}
+
+/**
  * Consecutive-day tracking over session history - DECISIONS.md P3-3 and P3-10.
  *
  * P3-3 specified this as "Duolingo-style consecutive-day tracking. Pure local
@@ -79,6 +89,24 @@ object Streaks {
             if (session.completedUnits > 0) days += session.localDay
         }
         return days
+    }
+
+    /**
+     * Every day from [from] to [to] inclusive, oldest first, with the work completed on it - the
+     * week strip on Home and the calendar (DECISIONS.md P3-48). Days without a session are listed
+     * with nothing, not left out, so a gap shows as a gap.
+     *
+     * Each session is bucketed by the offset it was recorded in, as the streak does, and a day is
+     * marked by the same rule: [qualifyingDays] and the counted days here are the same set.
+     */
+    fun activity(sessions: List<SessionRecord>, from: LocalDay, to: LocalDay): List<DayActivity> {
+        if (from > to) return emptyList()
+        val units = IntArray(from.daysUntil(to) + 1)
+        for (session in sessions) {
+            val index = from.daysUntil(session.localDay)
+            if (index in units.indices) units[index] += session.completedUnits
+        }
+        return units.indices.map { DayActivity(from.plusDays(it), units[it]) }
     }
 
     /**

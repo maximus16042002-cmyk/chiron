@@ -1,13 +1,27 @@
 # Kinesis — Project Status
 
-*Snapshot updated 2026-10-01, from the repository as it stands at the end of
-DECISIONS.md P3-47. This file summarises. It is not an authority: where it
+*Snapshot updated 2026-10-04, from the repository as it stands at the end of
+DECISIONS.md P3-48. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date.*
 
 ---
 
 ## Next session starts here
+
+**Latest, P3-48 (2026-10-04): FEATURE_PLAN Batch 1 is built, not yet on the phone.**
+- **The new look:** dark, rounded cards, one orange accent, a sans-serif with tabular figures. It
+  supersedes P3-12's green terminal theme; the skeleton overlay's palette is unchanged. A contrast
+  test holds every colour pair.
+- **Five pages behind a bottom bar:** Home, Workouts, Train, Progress, Profile.
+  - Home shows the last seven days, from a new core function (`Streaks.activity`).
+  - Progress opens every session to its repetitions, with left and right apart.
+- **Onboarding,** three pages, shown on the first launch only.
+- **Back button:** handled. Back on the live screen now returns to the exercise page and saves the
+  set; before, it closed the app.
+- **Owed:** install on the phone (with a backup first), and screenshot each page into
+  `local/phase-b/`.
+- **Next after that:** FEATURE_PLAN Batch 3 (the streak calendar, reminders), then Batch 4.
 
 As of DECISIONS.md P3-38. P9's anomaly study has run on the development subjects, and Layer 4
 does not ship. The owner delegated that choice and asked for a complete app; P3-38 records
@@ -117,7 +131,8 @@ testing resumes.
    analyses remain the owner's decision.
 6. —
 7. ~~Layer 1 in the app~~: not after P3-42's failure. The app shows measurements only.
-8. **FEATURE_PLAN Batches 1, 3 and 4,** with P10's charts.
+8. **FEATURE_PLAN Batches 1, 3 and 4,** with P10's charts. **Batch 1 built (P3-48),** owed on
+   the phone.
 9. **P8 Layer 2, then P9 Part B** (the verifier).
 
 **Also open, not in that sequence:**
@@ -190,7 +205,7 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | ✅ Done (DECISIONS.md P3-27 to P3-29). The build plan defines P7 as: *"acquire MM-Fit, run MediaPipe over its RGB video, align set boundaries and rep counts, build the evaluation harness"* (`ZERO_DATASET_BUILD_PLAN.md`, phase table). All four were done in P3-27: the videos on disk, MediaPipe run with the phone's own model file, the labels aligned set by set (five workouts drift, by up to 6.8 s, and were corrected), and the `:mmfit-eval` harness running the live screen's own class. All 616 sets went through, and the rep-count study was measured for 7 exercises. The engine defect it exposed (a fast start is lost) is fixed and judged on the 13 held-out workouts in P3-28: curls 368 of 368, every set exact; push-ups and sit-ups now count from the near side. In P3-29 near-side counting stopped letting a failed attempt hide a repetition, and the lateral raise's start zone moved to 36°: held-out raises 125 → 356 of 369, with no set counted above its label in either change. The push-up and sit-up start zones stay as they are, with a personal start zone proposed (P8). The verifier and personalisation studies, once listed here, belong to P9 and P12 in the plan's own evaluation table, not to P7 |
 | P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | 🟡 **Layer 1 will not ship:** Decision 3 selected no setting (P3-41), and a smaller setting failed its one held-out test (P3-42). Layer 1 is built in the shared core (DECISIONS.md P3-30) and **not wired into the app**: personal deviations (Level 2) in range of motion, lifting and lowering time, left–right balance and consistency; the cited ACSM tempo rule (Level 3, Tier A); the push-up and sit-up personal start zone. **Layer 2 step A built (P3-43):** three cited technique rules (ACE sources, quoted in the code), not wired, which leaves the lateral raise above shoulder level, the curl started with a bent elbow, and the push-up not extended at the top. **Step B built (P3-44):** each repetition now records a small form summary of other joints (the export is format 2, Room version 3). Three more rules: the curl's upper arm moving forward, the push-up's hips sagging or raised, and the squat's torso ahead of the shin. The squat's depth is deliberately not a rule. All six rules wait for the phone's side-on check before they are shown. **Sit-up now counts on the trunk's angle (P3-45, P3-46):** 413 of 451 development sit-ups (the hip angle, 150) and 146 of 189 held-out (108), no set over its label. Adopted after the owner-approved held-out test; old sit-up calibrations are retired. Left: wiring the rules, after the phone |
 | P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | 🔶 Partial, **in scope since DECISIONS.md P3-34** (the owner, 2026-09-30). Layer 4 is built in the core, not wired: an Isolation Forest (P3-35), and a robust covariance distance added to the comparison before any run (P3-36). The anomaly study ran on the development subjects (P3-37). The forest on F1 + F2 sees only stalls, which the deterministic detectors see as often; the device rule flags 7–30% of unaltered repetitions with 10–40 in the history. Layer 4 does not ship (P3-38, under the owner's delegation); the study stands as a negative result. The verifier (Part B) is not started, and comes after the app work P3-38 orders first |
-| P10 Visualisation & Android | App UI, live screen, dashboard | 🟡 Partial — shell, dashboard, streaks, Health Connect, sync, theme, the calibration flow and the live camera screen (reps and holds, sets saved) done and run on the owner's phone (P3-18 onward); visualisations not built |
+| P10 Visualisation & Android | App UI, live screen, dashboard | 🟡 Partial — shell, dashboard, streaks, Health Connect, sync, the calibration flow and the live camera screen (reps and holds, sets saved) done and run on the owner's phone (P3-18 onward). **P3-48:** the new look, five pages (Home, Workouts, Train, Progress, Profile), a per-session detail page, a seven-day strip, and onboarding, built and not yet on the phone. Charts not built |
 | P11 Windows PWA | React web app | ✂️ Cut (DECISIONS.md P0-2). The JS *target* survives; the web *app* does not |
 | P12 Evaluation & Documentation | Six studies, final write-up | 🟡 Started: the repetition-count study measured under P7 (P3-27 to P3-29; on the six unseen people in P3-30), and the personalisation study's development half (P3-30, four subjects). Still to come: its held-out run, the verifier, device and pose-reliability studies, parity as a study, and the write-up |
 
@@ -233,14 +248,17 @@ DECISIONS.md, entry by entry, and is not a test count.
 
 | Feature | Detail |
 |---|---|
-| **Account sign-in** | Email/password via Firebase Auth. Signed out, the app shows only the sign-in screen. A disclosure above the sign-in button states exactly what leaves the device (session counts, ranges, tempo, hold times, timestamps) and what never does (video, photos, camera frames, analysis). The signed-in email stays visible in the nav bar. |
-| **Exercise library** | All 17 entries, read from the engine's `ExerciseLibrary`, each showing its required camera view, posture, whether it is a hold, its tier, and — for variants — its parent exercise. |
-| **History dashboard** | Current and longest day streak; total sessions, valid reps and hold seconds; per-exercise rep and set counts; mean range of motion shown **left and right separately**, never averaged. |
+| **Account sign-in** | Email/password via Firebase Auth. Signed out, the app shows only the sign-in screen. A disclosure above the sign-in button states exactly what leaves the device (session counts, ranges, tempo, hold times, timestamps) and what never does (video, photos, camera frames, analysis). The signed-in email is shown on Profile, with sign-out. |
+| **First launch** | Three pages (P3-48): what Kinesis is and is not, what stays on the phone, how to place it. Shown once; Profile shows them again. |
+| **Five pages** | Home, Workouts, Train, Progress, Profile behind a bottom bar, hidden while the camera is live (P3-48). The back button walks back through them. |
+| **Exercise library** | Workouts: all 17 entries, read from the engine's `ExerciseLibrary`, filterable by repetitions or holds, each showing its tier and whether it is calibrated; its page shows the required camera view, posture, and — for variants — the parent exercise. |
+| **Home** | Current and longest day streak; total sessions, valid reps and hold seconds; the last seven days, marked where work was completed; "continue" into the last exercise; the last session. |
+| **Progress** | Per-exercise rep and set counts; mean and best range of motion shown **left and right separately**, never averaged; every session, newest first, each opening to its sets and repetitions (whether each counted and why not, left and right range, down and up time). |
 | **Streaks** | Consecutive-day tracking over stored session timestamps, timezone-aware (DECISIONS.md P3-10). |
 | **Daily health context** | Steps, active calories and mean heart rate from Health Connect, read-only, shown *beside* Kinesis's own numbers. Every absence is named honestly — not installed, needs update, permission denied, device too old, read failed — with an in-app "grant access" button. |
 | **Cloud backup/sync** | Completed sessions sync to Firestore under the user's account. Local save always happens first; upload is scheduled afterwards by WorkManager and retried with backoff, so training is never lost to a bad connection. Merge on sign-in pulls history to a new device before the dashboard appears. |
 | **Live analysis screen** | Camera preview with the skeleton drawn over it, portrait only, front camera by default with a switch to the back camera (switching starts a new set; the one in progress is saved). Repetition exercises show rep count, movement phase and tracking state; holds (plank, wall sit, side plank) show time held, hold state and tracking state. **[ END SET ]**, or leaving the screen, finishes the set — an unfinished repetition is recorded as incomplete — and saves it locally, then to sync. Missing model, refused camera permission and an unsuitable camera are each shown as themselves. Debug builds add a Phase B readout (frame rate, largest per-frame angle change, landmark visibility, active camera; Logcat tag `KinesisPhaseB`). **Run on the owner's phone since P3-18**; see P4 for what is still owed. |
-| **Licences** | Linked from the history screen: the pose model's notice (Apache 2.0, from its model card), the app's direct dependencies with the licence each declares, and the full Apache License 2.0 text. |
+| **Licences** | Linked from Profile: the pose model's notice (Apache 2.0, from its model card), the app's direct dependencies with the licence each declares, and the full Apache License 2.0 text. |
 
 ### What the engine can do (built and tested; wired to the camera, run on the owner's phone since P3-18)
 

@@ -1,0 +1,164 @@
+package com.kinesis.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import com.kinesis.core.analysis.history.DashboardSummary
+import com.kinesis.core.analysis.history.DayActivity
+import com.kinesis.core.domain.profile.ExerciseProfile
+import com.kinesis.core.domain.session.LocalDay
+import com.kinesis.core.domain.session.SessionRecord
+import com.kinesis.ui.theme.Accent
+import com.kinesis.ui.theme.Ink
+import com.kinesis.ui.theme.InkFaint
+import com.kinesis.ui.theme.InkSecondary
+import com.kinesis.ui.theme.OnAccent
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+
+/**
+ * Seven days in a row, one mark each: filled where work was completed, empty where none was, and
+ * today ringed. Shape as well as colour - a filled dot against an outlined one - so the strip
+ * reads without colour vision.
+ */
+@Composable
+private fun WeekStrip(week: List<DayActivity>) {
+    val today = week.last().day
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        for (entry in week) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(weekdayLetter(entry.day), style = MaterialTheme.typography.labelSmall, color = InkFaint)
+                Spacer(Modifier.height(6.dp))
+                val mark = Modifier.size(28.dp).clip(CircleShape)
+                Box(
+                    when {
+                        entry.counted -> mark.background(Accent)
+                        entry.day == today -> mark.border(2.dp, Ink, CircleShape)
+                        else -> mark.border(1.dp, InkFaint, CircleShape)
+                    },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (entry.counted) Text("✓", style = MaterialTheme.typography.labelSmall, color = OnAccent)
+                }
+            }
+        }
+    }
+    Spacer(Modifier.height(8.dp))
+    val active = week.count { it.counted }
+    Note(if (active == 1) "Trained on 1 day of the last 7" else "Trained on $active days of the last 7")
+}
+
+/** A day's weekday, as one letter in the phone's language. Day 0 is 1970-01-01, in UTC by definition. */
+private fun weekdayLetter(day: LocalDay): String {
+    val format = SimpleDateFormat("EEEEE", Locale.getDefault())
+    format.timeZone = TimeZone.getTimeZone("UTC")
+    return format.format(Date(day.dayNumber * 86_400_000L))
+}
+
+/**
+ * Home: today at a glance - DECISIONS.md P3-48. The streak and the totals are the core's
+ * (`Dashboard.summarise`, P3-10); this page lays them out and offers the way back into training.
+ */
+@Composable
+fun HomeScreen(
+    summary: DashboardSummary,
+    /** The last seven days, oldest first, ending today - `Streaks.activity`. */
+    week: List<DayActivity>,
+    /** The most recent session, or `null` before the first. */
+    lastSession: SessionRecord?,
+    /** The exercise of the last set recorded, offered as "continue". */
+    quickStart: ExerciseProfile?,
+    onQuickStart: (ExerciseProfile) -> Unit,
+    onBrowse: () -> Unit,
+    onOpenSession: (SessionRecord) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .background(PageBackground)
+            .statusBarsPadding()
+            .padding(horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item { PageTitle("Kinesis", "Your training at a glance") }
+
+        item {
+            KCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🔥", style = MaterialTheme.typography.displayLarge, color = Accent)
+                    Column(Modifier.padding(start = 12.dp)) {
+                        Text(summary.streak.currentDays.toString(), style = MaterialTheme.typography.displayLarge, color = Ink)
+                        Text(
+                            "day streak · longest " + summary.streak.longestDays,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = InkSecondary,
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            KCard {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    NumberBlock(summary.sessionCount.toString(), "sessions", Modifier.weight(1f))
+                    NumberBlock(summary.totalValidReps.toString(), "repetitions", Modifier.weight(1f))
+                    NumberBlock(((summary.totalHoldMs / 1000).toInt()).toString() + " s", "held", Modifier.weight(1f))
+                }
+            }
+        }
+
+        item {
+            KCard {
+                if (quickStart != null) {
+                    Text("Continue", style = MaterialTheme.typography.labelSmall, color = InkSecondary)
+                    Text(quickStart.displayName, style = MaterialTheme.typography.titleLarge, color = Ink)
+                    Spacer(Modifier.height(12.dp))
+                    PrimaryButton("Start " + quickStart.displayName, onClick = { onQuickStart(quickStart) })
+                    Spacer(Modifier.height(8.dp))
+                    SecondaryButton("Choose another exercise", onClick = onBrowse)
+                } else {
+                    Text("Start your first set", style = MaterialTheme.typography.titleLarge, color = Ink)
+                    Spacer(Modifier.height(4.dp))
+                    Note("Pick an exercise, place the phone so your whole body is in view, and start.")
+                    Spacer(Modifier.height(12.dp))
+                    PrimaryButton("Choose an exercise", onClick = onBrowse)
+                }
+            }
+        }
+
+        if (lastSession != null) {
+            item { SectionLabel("Last session") }
+            item { SessionCard(lastSession, onClick = { onOpenSession(lastSession) }) }
+        }
+
+        if (week.isNotEmpty()) {
+            item { SectionLabel("Last 7 days") }
+            item { KCard { WeekStrip(week) } }
+        }
+
+        item { Spacer(Modifier.height(16.dp)) }
+    }
+}

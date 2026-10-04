@@ -10654,6 +10654,92 @@ A SharedPreferences flag shows them once.
 - each page seen on the phone through `adb` screenshots kept in `local/phase-b/`, not in git, and
   described here rather than committed.
 
+### Result — steps 2 and 3 built
+
+*2026-10-04.*
+
+**The shell** (`MainActivity.kt`):
+- **five pages behind a bottom bar** (`Components.kt`: `Tab`, `BottomBar`). The selected page is
+  marked three ways: the accent colour, a bar above its label, and bold text;
+- **still hand-rolled.** The state is the page, where the training flow is, and two detail views
+  (a session; the licences);
+- **the bar is hidden while the camera is live,** so the live screen is the camera and nothing
+  else.
+
+**The back button** (`BackHandler`, from `activity-compose`, already a dependency):
+- out of a detail;
+- then a step back through the training flow, ending at the exercise's page;
+- from there, to Workouts;
+- from any other page, to Home;
+- from Home, out of the app.
+
+**One behaviour changes:** back on the live screen now goes to the exercise's page. Before, there
+was no back handling at all, so back closed the app. Either way, leaving the live screen disposes
+it, and disposing saves the set (`LiveHost`'s `DisposableEffect`), so no set is lost.
+
+**The status bar.** P3-12's text bar was the only thing keeping every screen clear of the status
+bar (edge-to-edge is enforced at targetSdk 35). With that bar gone:
+- each page insets itself;
+- the Train page insets the existing exercise, calibration and live screens as a whole.
+
+**The pages:**
+- **Home** (`HomeScreen.kt`):
+  - the streak, with its count and the longest;
+  - the totals;
+  - "continue" into the exercise of the last set recorded;
+  - the last session;
+  - **the last seven days.** Each day is a filled mark if work was completed on it, empty if not,
+    with today ringed. Shape as well as colour.
+- **Workouts:** the 17 entries; All / Repetitions / Holds; each with its tier and whether it is
+  calibrated.
+- **Train:** the existing screens, unchanged inside. With no exercise chosen, the page points to
+  Workouts.
+- **Progress** (`ProgressScreens.kt`):
+  - the totals;
+  - each exercise's left and right range of motion, mean and best, side by side;
+  - every session, newest first.
+
+  A session opens to its sets and repetitions. Each repetition shows:
+  - whether it counted, and if not, why ("✕ turned back", "✕ unfinished", "✕ not seen");
+  - left and right range, apart;
+  - down and up seconds.
+
+  A side not measured shows "—", never 0.
+- **Profile** (`ProfileScreen.kt`):
+  - the account and sign-out;
+  - the calibrations;
+  - Health Connect;
+  - "what stays on this phone, and what does not", with the export beside it;
+  - About: not a medical device, the introduction again, the licences.
+
+**Onboarding** (`OnboardingScreen.kt`):
+- the three pages as designed, with Skip;
+- shown once, behind a SharedPreferences flag (`kinesis` / `introduced`), before the sign-in
+  screen;
+- Profile's "Introduction and camera setup" clears the flag and shows them again.
+
+**One addition to the core, for the seven days.** Which day "counts" is the streak's rule. If the
+page worked it out for itself, the strip and the streak could disagree. So the core gained
+`Streaks.activity(sessions, from, to)`: every day in the range, oldest first, with the work
+completed on it. `StreakRuleTest` has four new tests, run on JVM and JS:
+- the days are listed in order and none is skipped, and two sessions on one day add up;
+- a day with only abandoned work is not marked, and the marked days **are**
+  `Streaks.qualifyingDays`;
+- a session is placed on the day of the offset it was recorded in;
+- an empty range is empty.
+
+Batch 3's calendar will read the same function.
+
+**Checks:**
+- **all pass:**
+  - the contrast test (step 1);
+  - `StreakRuleTest` on JVM and JS (17 tests);
+  - the app's unit tests;
+  - a debug build;
+- **one is owed:** the pages on the phone. The phone was not connected when this was built, and
+  this machine has no emulator image. The screenshots and their descriptions will be added here
+  when it is.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

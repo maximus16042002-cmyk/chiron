@@ -242,6 +242,61 @@ class StreakRuleTest {
         assertTrue(Streaks.summarise(shuffled, today = day0).currentDays == 5)
     }
 
+    // --- A run of days, for the week strip and the calendar - P3-48 -----------------------------
+
+    @Test
+    fun a_run_of_days_lists_every_day_in_order_with_its_completed_work() {
+        val history = listOf(
+            session(dayAt(-6), reps = 3),
+            session(dayAt(-2), holds = 1),
+            session(dayAt(-2), reps = 2),
+            session(dayAt(0), reps = 1),
+        )
+        val week = Streaks.activity(history, from = day0.plusDays(-6), to = day0)
+
+        assertEquals((-6..0).map { day0.plusDays(it) }, week.map { it.day }, "seven days, oldest first, none skipped")
+        assertEquals(listOf(3, 0, 0, 0, 3, 0, 1), week.map { it.completedUnits }, "two sessions on one day add up")
+        assertEquals(listOf(true, false, false, false, true, false, true), week.map { it.counted })
+    }
+
+    /**
+     * The strip and the streak must not tell different stories: a day marked in one is a day
+     * counted by the other.
+     */
+    @Test
+    fun a_day_with_only_abandoned_work_is_not_marked_as_the_streak_would_not_count_it() {
+        val history = listOf(
+            session(dayAt(-1), abortedReps = 4, tooShortHolds = 2),
+            session(dayAt(0), reps = 1),
+        )
+        val week = Streaks.activity(history, from = day0.plusDays(-1), to = day0)
+
+        assertEquals(listOf(false, true), week.map { it.counted })
+        assertEquals(
+            Streaks.qualifyingDays(history),
+            week.filter { it.counted }.map { it.day }.toSet(),
+            "the strip marks exactly the streak's qualifying days",
+        )
+    }
+
+    @Test
+    fun a_session_is_marked_on_the_day_of_the_offset_it_was_recorded_in() {
+        // 23:30 UTC, recorded at UTC+1: the next local day, as the streak has it.
+        val lateUtc = day0.dayNumber * LocalDay.MILLIS_PER_DAY + 23.5 * 3_600_000.0
+        val week = Streaks.activity(
+            listOf(session(lateUtc, utcOffsetMinutes = 60, reps = 1)),
+            from = day0,
+            to = day0.plusDays(1),
+        )
+        assertEquals(listOf(false, true), week.map { it.counted })
+    }
+
+    @Test
+    fun an_empty_range_is_empty_and_an_empty_history_is_all_unmarked() {
+        assertEquals(emptyList(), Streaks.activity(listOf(session(dayAt(0), reps = 1)), from = day0, to = day0.plusDays(-1)))
+        assertTrue(Streaks.activity(emptyList(), from = day0.plusDays(-6), to = day0).none { it.counted })
+    }
+
     // --- Building history --------------------------------------------------------------------
 
     private fun dayAt(offsetDays: Int): Double =

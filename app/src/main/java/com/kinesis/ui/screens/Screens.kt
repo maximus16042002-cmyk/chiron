@@ -48,6 +48,11 @@ import com.kinesis.ui.theme.InkFaint
 import com.kinesis.ui.theme.Ink
 import com.kinesis.ui.theme.Card
 import com.kinesis.ui.theme.color
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.layout.statusBarsPadding
 
 /**
  * The screens - DECISIONS.md P3-12.
@@ -77,215 +82,78 @@ fun ExerciseSelectionScreen(
     onSelect: (ExerciseProfile) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // DECISIONS.md P3-48: one filter, by what the analysis does - counts repetitions or times a hold.
+    var filter by remember { mutableStateOf("all") }
+    val shown = ExerciseLibrary.all.filter {
+        when (filter) {
+            "reps" -> it !is IsometricExercise
+            "holds" -> it is IsometricExercise
+            else -> true
+        }
+    }
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
             .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            Column(Modifier.padding(vertical = 24.dp)) {
-                Text("KINESIS", style = MaterialTheme.typography.displayLarge)
-                Text(
-                    ExerciseLibrary.profiles.size.toString() + " profiles · " +
-                        ExerciseLibrary.variants.size + " variants · " +
-                        ExerciseLibrary.all.size + " entries",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = InkFaint,
-                )
+            PageTitle(
+                "Workouts",
+                ExerciseLibrary.profiles.size.toString() + " exercises and " + ExerciseLibrary.variants.size + " variants",
+            )
+        }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip("All", filter == "all") { filter = "all" }
+                FilterChip("Repetitions", filter == "reps") { filter = "reps" }
+                FilterChip("Holds", filter == "holds") { filter = "holds" }
             }
         }
-
-        items(ExerciseLibrary.all, key = { it.id }) { profile ->
+        items(shown, key = { it.id }) { profile ->
             ExerciseRow(profile, CalibrationKey.of(profile) in calibratedIds, onClick = { onSelect(profile) })
         }
-
-        item { Spacer(Modifier.height(24.dp)) }
+        item { Spacer(Modifier.height(16.dp)) }
     }
 }
 
 @Composable
 private fun ExerciseRow(profile: ExerciseProfile, calibrated: Boolean, onClick: () -> Unit) {
     val isVariant = profile is ExerciseVariant
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(1.dp, if (isVariant) InkFaint else InkSecondary)
-            .background(Card)
-            .clickable(onClick = onClick)
-            .padding(14.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(profile.displayName, style = MaterialTheme.typography.titleMedium)
-            Text(
-                buildString {
-                    append(profile.requiredView.name.replace('_', ' ').lowercase())
-                    append(" · ")
-                    append(profile.posture.name.lowercase())
-                    if (profile is IsometricExercise) append(" · hold")
-                    if (isVariant) append(" · variant of " + (profile as ExerciseVariant).parent.id)
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = InkFaint,
-            )
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                "TIER " + profile.tier.name,
-                style = MaterialTheme.typography.labelSmall,
-                color = InkSecondary,
-            )
-            // Whether the user has a baseline for it - a variant's being its
-            // parent's (CONTRACTS.md section 3). DECISIONS.md P3-22.
-            Text(
-                when {
-                    !calibrated -> "NOT CALIBRATED"
-                    profile is ExerciseVariant -> "CALIBRATED VIA " + profile.parent.displayName.uppercase()
-                    else -> "CALIBRATED"
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = if (calibrated) Ink else InkFaint,
-            )
-        }
-    }
-}
-
-// --- Dashboard ------------------------------------------------------------------------
-
-/**
- * History, read from stored sessions through `Dashboard.summarise`.
- *
- * The aggregation is the core's; this only lays it out. Baselines are shown
- * per side for each calibrated exercise (P3-22), as values. Deviation from them
- * - "below your normal" - is not shown: it is a Level 2 judgement whose rules
- * are P8's.
- */
-@Composable
-fun DashboardScreen(
-    summary: DashboardSummary,
-    context: ActivityContextResult?,
-    onRequestHealthAccess: (() -> Unit)?,
-    onOpenLicences: () -> Unit,
-    /** Each calibrated exercise's display name and baseline. DECISIONS.md P3-22. */
-    baselines: List<Pair<String, CalibrationBaseline>> = emptyList(),
-    /** Writes P5's export and opens the share sheet. DECISIONS.md P3-25. */
-    onExport: (() -> Unit)? = null,
-    /** An export is being written; taps are ignored until the share sheet opens. */
-    exporting: Boolean = false,
-    modifier: Modifier = Modifier,
-) {
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        item {
-            Column(Modifier.padding(top = 24.dp, bottom = 8.dp)) {
+    KCard(onClick = onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(profile.displayName, style = MaterialTheme.typography.titleMedium, color = Ink)
                 Text(
-                    summary.streak.currentDays.toString(),
-                    style = MaterialTheme.typography.displayLarge,
-                )
-                Text(
-                    "DAY STREAK · longest " + summary.streak.longestDays,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = InkFaint,
-                )
-            }
-        }
-
-        item {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                Stat("SESSIONS", summary.sessionCount.toString(), Modifier.weight(1f))
-                Stat("REPS", summary.totalValidReps.toString(), Modifier.weight(1f))
-                Stat(
-                    "HOLD",
-                    (summary.totalHoldMs / 1000).toInt().toString() + "s",
-                    Modifier.weight(1f),
-                )
-            }
-        }
-
-        if (summary.perExercise.isEmpty()) {
-            item {
-                Text(
-                    "NO SESSIONS RECORDED",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = InkFaint,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
-                )
-            }
-        }
-
-        items(summary.perExercise, key = { it.exerciseId }) { exercise ->
-            Column(
-                Modifier
-                    .fillMaxWidth()
-                    .border(1.dp, InkSecondary)
-                    .background(Card)
-                    .padding(14.dp),
-            ) {
-                Text(exercise.exerciseId, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    exercise.validRepCount.toString() + " reps · " +
-                        exercise.setCount + " sets",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = InkFaint,
-                )
-                // Left and right stay separate here too - a single averaged
-                // range of motion would be the one number CLAUDE.md section 3
-                // exists to prevent.
-                Text(
-                    "ROM  L " + format(exercise.meanRangeOfMotion.left) +
-                        "   R " + format(exercise.meanRangeOfMotion.right),
+                    buildString {
+                        append(profile.requiredView.name.replace('_', ' ').lowercase())
+                        append(" · ")
+                        append(profile.posture.name.lowercase())
+                        append(if (profile is IsometricExercise) " · hold" else " · repetitions")
+                        if (isVariant) append(" · a kind of " + (profile as ExerciseVariant).parent.displayName)
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = InkSecondary,
                 )
             }
-        }
-
-        item { BaselinesPanel(baselines) }
-        item { HealthContextPanel(context, onRequestHealthAccess) }
-        if (onExport != null) {
-            item {
-                Column(Modifier.padding(top = 8.dp)) {
-                    Text(
-                        if (exporting) "[ EXPORTING... ]" else "[ EXPORT DATA ]",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = InkSecondary,
-                        modifier = Modifier
-                            .clickable(onClick = onExport)
-                            .padding(vertical = 12.dp),
-                    )
-                    // CLAUDE.md section 16: say plainly where the data goes.
-                    Text(
-                        "Every session on this phone, and your baselines, as JSON and CSV " +
-                            "files. They leave the phone only if you choose where to send them.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = InkFaint,
-                    )
-                }
+            Column(horizontalAlignment = Alignment.End) {
+                // The tier is what the entry may claim (CLAUDE.md section 8), so it is shown, not hidden.
+                Text("Tier " + profile.tier.name, style = MaterialTheme.typography.labelSmall, color = InkSecondary)
+                // Whether the user has a baseline for it - a variant's being its parent's (CONTRACTS.md
+                // section 3). DECISIONS.md P3-22.
+                Text(
+                    when {
+                        !calibrated -> "not calibrated"
+                        profile is ExerciseVariant -> "calibrated via " + profile.parent.displayName
+                        else -> "✓ calibrated"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (calibrated) Ink else InkFaint,
+                )
             }
         }
-        item {
-            Text(
-                "[ LICENCES ]",
-                style = MaterialTheme.typography.labelSmall,
-                color = InkFaint,
-                modifier = Modifier
-                    .clickable(onClick = onOpenLicences)
-                    .padding(vertical = 12.dp),
-            )
-        }
-        item { Spacer(Modifier.height(24.dp)) }
     }
 }
 
@@ -363,19 +231,6 @@ private fun NoticeRow(notice: ThirdPartyNotice) {
     }
 }
 
-@Composable
-private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(
-        modifier
-            .border(1.dp, InkSecondary)
-            .background(Card)
-            .padding(12.dp),
-    ) {
-        Text(value, style = MaterialTheme.typography.headlineMedium)
-        Text(label, style = MaterialTheme.typography.labelSmall, color = InkFaint)
-    }
-}
-
 /**
  * Daily context from Health Connect, shown beside Kinesis's own numbers and
  * never mixed into them - P3-3's "displayed alongside ... rather than replacing".
@@ -385,7 +240,7 @@ private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
  * why there is nothing to show.
  */
 @Composable
-private fun HealthContextPanel(
+internal fun HealthContextPanel(
     context: ActivityContextResult?,
     onRequestHealthAccess: (() -> Unit)?,
 ) {

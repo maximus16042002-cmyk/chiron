@@ -282,7 +282,7 @@ fun BaselinesPanel(baselines: List<Pair<String, CalibrationBaseline>>) {
         Label("BASELINES")
         if (baselines.isEmpty()) {
             Text(
-                "No exercise calibrated yet. Calibrate one from TRAIN.",
+                "No exercise calibrated yet. Calibrate one from an exercise's page in Workouts.",
                 style = MaterialTheme.typography.bodySmall,
                 color = InkFaint,
             )
