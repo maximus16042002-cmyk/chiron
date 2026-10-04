@@ -317,4 +317,28 @@ class LiveAnalysisBridgeTest {
         }
         assertEquals(initialCount + 1, bridge.publishCount)
     }
+
+    @Test
+    fun focus_zoom_engagement_transition_recomposes_once_and_throttles() {
+        val (bridge, seen) = bridge()
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, isZoomEngaged = false)
+        val initialCount = bridge.publishCount
+
+        // 30 frames with isZoomEngaged = false do not recompose
+        repeat(30) {
+            bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, isZoomEngaged = false)
+        }
+        assertEquals(initialCount, bridge.publishCount)
+
+        // Focus zoom engages: Compose is notified exactly once
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, isZoomEngaged = true)
+        assertEquals(initialCount + 1, bridge.publishCount)
+        assertTrue(seen.last().isZoomEngaged)
+
+        // 30 subsequent frames with isZoomEngaged = true do not recompose
+        repeat(30) {
+            bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, null, isZoomEngaged = true)
+        }
+        assertEquals(initialCount + 1, bridge.publishCount)
+    }
 }

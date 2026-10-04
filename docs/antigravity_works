@@ -435,6 +435,103 @@ Implement the Low Frame-Rate Warning Gate & Telemetry Guard (`HANDOVER.md §8.2 
 - Updated `docs/PROJECT_STATUS.md` with P3-56 summary.
 - Mirrored logs across `docs/antigravity_works.md` and `docs/antigravity_works`.
 
+---
 
+## 7. Phase P3-57: Display-Only Focus Zoom (Auto-Framing) & Progress Report Housekeeping
 
+### Objective
+Implement the Display-Only Focus Zoom & Auto-Framing Engine (`FEATURE_PLAN.md` Batch 2, `HANDOVER.md` §8.3 items 4 & 5, `DECISIONS.md` P3-57) and perform comprehensive project progress documentation synchronization:
+1. Provide intelligent, viewport-constrained auto-framing on live camera preview and skeleton overlay for user ergonomics when exercising far from the camera (e.g. bicep curls, lateral raises, pushdowns) without user physical touch.
+2. Maintain strict invariant of **display-only transformation**: MediaPipe and core pose analysis must always process full-frame camera preview and normalized coordinates; focus zoom is applied exclusively for preview rendering and `SkeletonOverlayView` canvas overlay.
+3. Suppress zoom entirely on whole-body exercises (`squat`, `pushup`, `plank`, `side_plank`, `wall_sit`, `glute_bridge`, `situp`, `lunge`) and prone/supine/side-lying postures, pinning scale to $1.0\times$ full unzoomed frame.
+4. Allocate $+25\%$ vertical headroom for overhead exercises (`shoulder_press`) to avoid clipping hands at lockout.
+5. Apply 15-frame enter/exit debounce hysteresis and exponential moving average smoothing ($\alpha = 0.12$) to eliminate jitter, sudden snaps, or disorienting camera movements.
+6. Guarantee $O(1)$ arithmetic with **zero per-frame heap allocations** on the camera ingestion loop.
+7. Shield the Compose recomposition budget: bridge exposes only a categorical boolean `isZoomEngaged` to `LiveUiState`, triggering **zero extra recompositions** during continuous floating-point zoom scaling.
+8. Perform full repository progress report synchronization across `docs/PROGRESS_REPORT.md`, `docs/PROJECT_STATUS.md`, `docs/HANDOVER.md`, and `docs/DECISIONS.md`.
 
+### Empirical Foundation & Architectural Invariants
+1. **Mathematical Projection & Boundary Clamping:**
+   - Coordinate transformation equations:
+     $$\text{screenX} = (\text{landmark.x} - (\text{centerX} - \frac{0.5}{\text{scale}})) \times \text{scale} \times \text{viewWidth}$$
+     $$\text{screenY} = (\text{landmark.y} - (\text{centerY} - \frac{0.5}{\text{scale}})) \times \text{scale} \times \text{viewHeight}$$
+   - Viewport clamping guarantees the visible sub-window $[cx - \frac{0.5}{s}, cy - \frac{0.5}{s}, cx + \frac{0.5}{s}, cy + \frac{0.5}{s}]$ stays strictly within $[0.0, 1.0]$.
+   - Max zoom capped at $1.8\times$; margin ratio 20%; headroom ratio 25%.
+2. **Whole-Body & Posture Suppression Matrix:**
+   - Exercises suppressed to $1.0\times$: `squat`, `pushup`, `plank`, `side_plank`, `wall_sit`, `glute_bridge`, `situp`, `lunge`.
+   - Postures suppressed to $1.0\times$: `PRONE`, `SUPINE`, `SIDE_LYING_LEFT`, `SIDE_LYING_RIGHT`.
+3. **Debounce Hysteresis:**
+   - 15 consecutive reliable frames required to enter zoom mode.
+   - 15 consecutive missing/degraded frames required to exit zoom back to full frame.
+4. **Zero-Allocation Primitive Step Method:**
+   - `step(landmarks)` and `stepNothingSeen()` update primitive fields directly without instantiating objects on each frame.
+5. **Compose Performance Budget Guard:**
+   - Continuous zoom coordinates are consumed directly by Android hardware Canvas in `SkeletonOverlayView`.
+   - Compose UI observes only `isZoomEngaged`, showing a subtle `⛶ Auto-framed` status pill with zero continuous recompositions.
+
+### Execution Log
+
+#### Step 1: Core Multiplatform Zoom Engine
+- **`core/analysis/src/commonMain/kotlin/.../zoom/FocusZoomTarget.kt`:**
+  - Immutable value class with `scale: Double`, `centerX: Double`, `centerY: Double`.
+  - Defined `FULL_FRAME` companion constant (`scale = 1.0, centerX = 0.5, centerY = 0.5`).
+  - Implemented `mapX(normX)`, `mapY(normY)`, `unmapX(screenNormX)`, and `unmapY(screenNormY)`.
+- **`core/analysis/src/commonMain/kotlin/.../zoom/FocusZoomPolicy.kt`:**
+  - Configurable policy data class with validation (`maxZoom in 1.0..3.0`, `marginRatio in 0.0..0.5`, `headroomRatio in 0.0..0.5`, hysteresis $\ge 1$, $\alpha \in (0.0, 1.0]$).
+- **`core/analysis/src/commonMain/kotlin/.../zoom/FocusZoomCalculator.kt`:**
+  - Implemented bounding box calculation from visible landmarks ($p \ge 0.5$).
+  - Integrated whole-body suppression matrix and overhead headroom preservation.
+  - Implemented debounce hysteresis counters (`framesInTargetZone`, `lostTrackingFrames`).
+  - Implemented exponential moving average smoothing filter on scale and center coordinates.
+  - Provided zero-allocation `step()` and `stepNothingSeen()` updating internal primitive fields.
+
+#### Step 2: Multiplatform Unit Testing Suite
+- **`core/analysis/src/commonTest/kotlin/.../zoom/FocusZoomCalculatorTest.kt`:**
+  - Verified full frame constants and coordinate projection mapping inversion.
+  - Verified policy validation error handling.
+  - Verified whole-body exercise suppression (squats, pushups, planks pinned to $1.0\times$).
+  - Verified overhead exercise headroom expansion (shoulder press allocates 25% upper margin).
+  - Verified enter hysteresis (requires 15 consecutive frames before engaging zoom).
+  - Verified exit hysteresis (requires 15 consecutive frames before disengaging).
+  - Verified viewport boundary clamping ensuring visible sub-window stays in $[0.0, 1.0]$.
+  - Verified exponential moving average smoothing continuity.
+  - Ran against JVM and JS Node targets: **100% passing**.
+
+#### Step 3: Analysis Pipeline Wiring
+- **`LiveRepetitionAnalysis.kt` & `LiveHoldAnalysis.kt`:**
+  - Instantiated `FocusZoomCalculator()`.
+  - Fed landmarks into `focusZoomCalculator.step(landmarks)` during `onFrame()`.
+  - Exposed `zoomTarget: FocusZoomTarget` and `isZoomEngaged: Boolean`.
+
+#### Step 4: UI Engine, Canvas Overlay & Compose Integration
+- **`LiveEngine.kt`:**
+  - Extended `SkeletonSink.submit` with default overload accepting `zoomTarget: FocusZoomTarget = FocusZoomTarget.FULL_FRAME`.
+  - Preserved full backward binary and source compatibility for all mock engines and test fakes.
+- **`OverlayGeometry.kt`:**
+  - Updated `screenX(landmark, width, zoomTarget)` and `screenY(landmark, height, zoomTarget)` to apply zoom target projection before canvas scaling.
+- **`SkeletonOverlayView.kt`:**
+  - Updated to store `currentZoomTarget`.
+  - Applied `OverlayGeometry` zoom projection to all rendered joints, bones, and halos.
+  - Added visual auto-framing corner brackets when zoom is engaged (`scale > 1.05`).
+- **`LiveAnalysisBridge.kt` & `LiveHoldBridge.kt`:**
+  - Added `isZoomEngaged: Boolean` to `LiveUiState` and `LiveHoldUiState`.
+  - Added equality check `isZoomEngaged == current.isZoomEngaged` in `unchanged()` predicate to ensure **0 extra recompositions** during continuous zooming.
+- **`LiveRepetitionEngine.kt` & `LiveHoldEngine.kt`:**
+  - Passed `analysis.zoomTarget` to skeleton sink and `analysis.isZoomEngaged` to bridge.
+- **`Screens.kt` (`LiveCameraLayout`):**
+  - Added `⛶ Auto-framed` status pill badge in the top-start header row when zoom is engaged.
+- **`LiveAnalysisBridgeTest.kt`:**
+  - Added unit test verifying that bridge suppresses recompositions when zoom target floats continuously, emitting only categorical engagements.
+
+#### Step 5: Repository Progress Report Synchronization
+- **`docs/DECISIONS.md`:** Recorded formal architectural decision `## P3-57: Display-Only Focus Zoom & Auto-Framing Engine`.
+- **`docs/HANDOVER.md`:** Updated Table 8.3 items 4 and 5 as resolved by P3-57.
+- **`docs/PROJECT_STATUS.md`:** Updated active phase, completed deliverables, and next priorities.
+- **`docs/PROGRESS_REPORT.md`:** Fully revised and updated progress report across all phases P0 through P10, documenting 90% project completion.
+
+#### Step 6: Full Verification Suite
+- Executed `:core:domain:allTests`: **100% passing**.
+- Executed `:core:analysis:allTests`: **100% passing** (JVM + JS Node).
+- Executed `:app:testDebugUnitTest`: **100% passing**.
+- Executed `SharedCoreSourceGuardTest`: **100% passing** (zero leaks, bilateral signals preserved, no per-frame allocations).
+- Total: **135 actionable Gradle tasks, 0 failures, 0 regressions**.

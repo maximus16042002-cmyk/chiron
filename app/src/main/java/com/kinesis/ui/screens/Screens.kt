@@ -58,6 +58,7 @@ import com.kinesis.ui.theme.Ink
 import com.kinesis.ui.theme.InkFaint
 import com.kinesis.ui.theme.InkSecondary
 import com.kinesis.ui.theme.OnAccent
+import com.kinesis.ui.theme.SeriesRight
 import com.kinesis.ui.theme.Void
 import com.kinesis.ui.theme.color
 
@@ -325,7 +326,7 @@ fun LiveAnalysisScreen(
 ) {
     LiveCameraLayout(
         state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
-        switchModelLabel, onSwitchModel, modeLabel, state.setupVerdict, state.fpsWarningMessage,
+        switchModelLabel, onSwitchModel, modeLabel, state.setupVerdict, state.fpsWarningMessage, state.isZoomEngaged,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -364,7 +365,7 @@ fun LiveHoldScreen(
 ) {
     LiveCameraLayout(
         state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
-        switchModelLabel, onSwitchModel, modeLabel, state.setupVerdict, state.fpsWarningMessage,
+        switchModelLabel, onSwitchModel, modeLabel, state.setupVerdict, state.fpsWarningMessage, state.isZoomEngaged,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -423,6 +424,7 @@ private fun LiveCameraLayout(
     modeLabel: String?,
     setupVerdict: SetupVerdict = SetupVerdict.NoPerson,
     fpsWarningMessage: String? = null,
+    isZoomEngaged: Boolean = false,
     readout: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
@@ -446,6 +448,7 @@ private fun LiveCameraLayout(
             Column(Modifier.align(Alignment.TopStart).padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Pill(nameOf(exerciseId), Card, Ink)
                 if (modeLabel != null) Pill(modeLabel, Accent, OnAccent)
+                if (isZoomEngaged) Pill("⛶ Auto-framed", Card, SeriesRight)
             }
             Column(
                 Modifier.align(Alignment.TopEnd).padding(12.dp),

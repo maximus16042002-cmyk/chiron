@@ -1,5 +1,6 @@
 package com.kinesis.ui.live
 
+import com.kinesis.core.analysis.zoom.FocusZoomTarget
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
 import com.kinesis.storage.SessionRecorder
@@ -8,6 +9,14 @@ import com.kinesis.ui.theme.OverlayState
 /** Where the skeleton is drawn. [SkeletonOverlayView] in the app; a fake in tests. */
 interface SkeletonSink {
     fun submit(landmarks: Landmarks, state: OverlayState, policy: VisibilityPolicy)
+    fun submit(
+        landmarks: Landmarks,
+        state: OverlayState,
+        policy: VisibilityPolicy,
+        zoomTarget: FocusZoomTarget,
+    ) {
+        submit(landmarks, state, policy)
+    }
     fun clear()
 }
 

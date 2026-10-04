@@ -11782,6 +11782,46 @@ In the 2026-09-29 phone session (DECISIONS.md P3-31), doing bicep curls facing t
 
 ---
 
+## P3-57 — Display-Only Focus Zoom (Auto-Framing) and Progress Report Housekeeping
+
+*Decided 2026-10-05. Implements FEATURE_PLAN.md Batch 1 (Focus zoom / auto-framing), HANDOVER.md §8.3 item 4 & item 5, and CLAUDE.md §6 & §21.*
+
+### Context and Motivation
+
+1. **Auto-Framing for Isolated Articulations:** During upper-body or limb-specific movements (e.g. bicep curls, lateral raises, shoulder presses), the subject often occupies only a fraction of the camera view, making joint tracking and angular displacements visually subtle on small mobile screens.
+2. **Display-Only Contract:** Per `FEATURE_PLAN.md` Batch 1 and `CLAUDE.md §21`, auto-framing is strictly **display-only**. Nothing zoomed is ever sent to MediaPipe, and repetition detection, kinematics, and technique rules operate exclusively on full-frame raw landmarks.
+3. **Housekeeping:** `docs/PROGRESS_REPORT.md` had fallen behind across phases P3-31 to P3-56. Comprehensive synchronization aligns project documentation with verified implementation reality.
+
+### Principles and Guardrails (Non-Negotiables)
+
+1. **Strict Display-Only Boundary:** The pose estimator receives raw, unzoomed camera frames. The zoom transform `(scale, centerX, centerY)` affects only viewport rendering and the `SkeletonOverlayView` canvas overlay.
+2. **Whole-Body Exercise Suppression:** Exercises requiring full-body kinetic observation (`squat`, `pushup`, `plank`, `side_plank`, `wall_sit`, `glute_bridge`, `situp`, `lunge`) and prone/supine/side-lying postures are strictly clamped to $1.0\times$ full unzoomed frame (`scale = 1.0, cx = 0.5, cy = 0.5`).
+3. **Overhead Headroom Preservation:** Overhead movements (`shoulder_press`) allocate extra vertical margin above the highest landmarks ($+25\%$ headroom) to prevent hands being clipped at top lockout.
+4. **Hysteresis & Smoothing:**
+   - 15 consecutive frames of reliable landmark visibility are required to engage zoom.
+   - 15 consecutive frames of degraded/lost tracking trigger smooth zoom-out back to $1.0\times$.
+   - Continuous exponential moving average ($\alpha = 0.12$) provides smooth, non-jarring viewport transitions.
+5. **Zero Per-Frame Heap Allocation:** `FocusZoomCalculator.step()` updates primitive fields in $O(1)$ arithmetic without creating objects on the live camera loop.
+6. **Compose Budget Invariant:** `LiveAnalysisBridge` and `LiveHoldBridge` track only the boolean transition `isZoomEngaged == current.isZoomEngaged`. Compose never observes continuous floating-point zoom coordinates; the hardware-accelerated View canvas applies the transform directly.
+
+### What Was Built
+
+1. **Core Domain & Analysis (`core/analysis/.../zoom/`):**
+   - `FocusZoomTarget.kt`: Domain model with `mapX`, `mapY`, `unmapX`, `unmapY` mapping functions.
+   - `FocusZoomPolicy.kt`: Validated policy configuration (`maxZoom = 1.8`, `enterFrames = 15`, `exitFrames = 15`, `smoothingAlpha = 0.12`).
+   - `FocusZoomCalculator.kt`: Zero-allocation auto-framing calculator with whole-body suppression, overhead headroom, hysteresis debouncing, boundary clamping, and EMA smoothing.
+   - `FocusZoomCalculatorTest.kt`: Unit tests verifying target math, policy validation, whole-body suppression, enter/exit hysteresis, viewport clamping, and smoothing.
+2. **Analysis Pipeline & Bridge Integration:**
+   - Integrated into `LiveRepetitionAnalysis` and `LiveHoldAnalysis` with zero-allocation `step()` and `stepNothingSeen()`.
+   - Wired `isZoomEngaged` into `LiveAnalysisBridge`, `LiveHoldBridge`, `LiveRepetitionEngine`, and `LiveHoldEngine`.
+   - Added recomposition throttling unit tests in `LiveAnalysisBridgeTest.kt`.
+3. **Overlay & UI Rendering:**
+   - Updated `OverlayGeometry.kt` with `zoomTarget` coordinate mapping.
+   - Updated `SkeletonOverlayView.kt` to apply zoom and pan transforms to rendered joints, halos, and framing guides with zero per-frame allocations.
+   - Added `⛶ Auto-framed` status pill in `Screens.kt` (`LiveCameraLayout`) when focus zoom is active.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.View
+import com.kinesis.core.analysis.zoom.FocusZoomTarget
 import com.kinesis.core.domain.landmark.LandmarkId
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
@@ -116,13 +117,25 @@ class SkeletonOverlayView @JvmOverloads constructor(
      */
     private val lock = Any()
 
+    private var zoomTarget: FocusZoomTarget = FocusZoomTarget.FULL_FRAME
+
     /** One frame, straight from the pose callback. */
     override fun submit(landmarks: Landmarks, state: OverlayState, policy: VisibilityPolicy) {
+        submit(landmarks, state, policy, FocusZoomTarget.FULL_FRAME)
+    }
+
+    override fun submit(
+        landmarks: Landmarks,
+        state: OverlayState,
+        policy: VisibilityPolicy,
+        zoomTarget: FocusZoomTarget,
+    ) {
         synchronized(lock) {
             smoothing.update(landmarks, SystemClock.uptimeMillis(), policy)
             this.frame = landmarks
             this.overallState = state
             this.policy = policy
+            this.zoomTarget = zoomTarget
         }
         framesSubmitted++
         postInvalidateOnAnimation()
@@ -132,6 +145,7 @@ class SkeletonOverlayView @JvmOverloads constructor(
     override fun clear() {
         synchronized(lock) {
             frame = null
+            zoomTarget = FocusZoomTarget.FULL_FRAME
             smoothing.reset()
         }
         postInvalidateOnAnimation()
@@ -142,7 +156,7 @@ class SkeletonOverlayView @JvmOverloads constructor(
         canvas.drawColor(Color.TRANSPARENT)
         val w = width.toFloat()
         val h = height.toFloat()
-        if (overallState != OverlayState.TRACKED) {
+        if (overallState != OverlayState.TRACKED || zoomTarget.scale > 1.05) {
             drawFramingGuides(canvas, w, h)
         }
         synchronized(lock) { drawFigure(canvas) }
@@ -223,11 +237,11 @@ class SkeletonOverlayView @JvmOverloads constructor(
     // comes from the raw frame's visibility.
     @Suppress("UNUSED_PARAMETER")
     private fun screenX(landmarks: Landmarks, id: LandmarkId, width: Float): Float =
-        OverlayGeometry.screenX(smoothing.x[id.index], displayMirrored, width)
+        OverlayGeometry.screenX(smoothing.x[id.index], displayMirrored, width, zoomTarget)
 
     @Suppress("UNUSED_PARAMETER")
     private fun screenY(landmarks: Landmarks, id: LandmarkId, width: Float): Float =
-        OverlayGeometry.screenY(smoothing.y[id.index], width)
+        OverlayGeometry.screenY(smoothing.y[id.index], width, zoomTarget)
 
     // --- Which state a joint is drawn in ------------------------------------------
 

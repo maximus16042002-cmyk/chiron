@@ -14,6 +14,9 @@ import com.kinesis.core.analysis.setup.SetupGate
 import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.analysis.temporal.RealTimeSignalPipeline
 import com.kinesis.core.analysis.temporal.TemporalConfig
+import com.kinesis.core.analysis.zoom.FocusZoomCalculator
+import com.kinesis.core.analysis.zoom.FocusZoomPolicy
+import com.kinesis.core.analysis.zoom.FocusZoomTarget
 import com.kinesis.core.domain.bilateral.BilateralSignal
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.landmark.Landmarks
@@ -43,6 +46,7 @@ class LiveHoldAnalysis(
     val profile: IsometricExercise,
     val policy: VisibilityPolicy = VisibilityPolicy.PROVISIONAL,
     temporalConfig: TemporalConfig = TemporalConfig.PROVISIONAL,
+    val zoomPolicy: FocusZoomPolicy = FocusZoomPolicy.DEFAULT,
 ) {
 
     private val spec = profile.holdSignal
@@ -51,6 +55,7 @@ class LiveHoldAnalysis(
     private val rightPipeline = RealTimeSignalPipeline(temporalConfig, BilateralRepTracker.DEFAULT_BUFFER_CAPACITY)
     private val setupGate = SetupGate(profile, policy)
     private val fpsMonitor = FrameRateMonitor()
+    private val zoomCalculator = FocusZoomCalculator(profile, zoomPolicy, policy)
 
     val setupVerdict: SetupVerdict get() = setupGate.latestVerdict
     val isSetupReady: Boolean get() = setupGate.isReady
@@ -58,6 +63,12 @@ class LiveHoldAnalysis(
     val frameRateHealth: FrameRateHealth get() = fpsMonitor.health
     val currentFps: Double get() = fpsMonitor.currentFps
     val fpsWarningMessage: String? get() = fpsMonitor.warningMessage
+
+    val zoomScale: Double get() = zoomCalculator.currentScale
+    val zoomCenterX: Double get() = zoomCalculator.currentCenterX
+    val zoomCenterY: Double get() = zoomCalculator.currentCenterY
+    val isZoomEngaged: Boolean get() = zoomCalculator.isEngaged
+    val zoomTarget: FocusZoomTarget get() = zoomCalculator.snapshot()
 
     /** Nothing has been seen before the first frame, so nothing is valid. */
     var frameValidity: FrameValidity = FrameValidity.INVALID
@@ -79,6 +90,7 @@ class LiveHoldAnalysis(
     fun onFrame(timestampMs: Double, landmarks: Landmarks) {
         fpsMonitor.onFrame(timestampMs)
         setupGate.onFrame(landmarks)
+        zoomCalculator.step(landmarks)
         frameValidity = if (!LandmarkNormalizer.hasMeasurableTorso(landmarks)) {
             FrameValidity.INVALID
         } else {
@@ -98,6 +110,7 @@ class LiveHoldAnalysis(
     fun onNothingSeen(timestampMs: Double) {
         fpsMonitor.onFrame(timestampMs)
         setupGate.onNothingSeen()
+        zoomCalculator.stepNothingSeen()
         frameValidity = FrameValidity.INVALID
         rawAngleLeft = Double.NaN
         rawAngleRight = Double.NaN
@@ -109,6 +122,7 @@ class LiveHoldAnalysis(
     /** Ends the attempt and reports it. */
     fun finish(): HoldRecord {
         fpsMonitor.reset()
+        zoomCalculator.reset()
         return analyser.finish()
     }
 }

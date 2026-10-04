@@ -31,6 +31,7 @@ data class LiveUiState(
     val frameRateHealth: FrameRateHealth = FrameRateHealth.HEALTHY,
     val currentFps: Double = Double.NaN,
     val fpsWarningMessage: String? = null,
+    val isZoomEngaged: Boolean = false,
 ) {
     /**
      * How the skeleton should be drawn, derived rather than stored so the
@@ -125,6 +126,7 @@ class LiveAnalysisBridge(
         frameRateHealth: FrameRateHealth = FrameRateHealth.HEALTHY,
         currentFps: Double = Double.NaN,
         fpsWarningMessage: String? = null,
+        isZoomEngaged: Boolean = false,
     ) {
         frameCount++
 
@@ -149,7 +151,8 @@ class LiveAnalysisBridge(
             lastRepValidity == current.lastRepValidity &&
             attention == current.showingAttention &&
             setupVerdict == current.setupVerdict &&
-            frameRateHealth == current.frameRateHealth
+            frameRateHealth == current.frameRateHealth &&
+            isZoomEngaged == current.isZoomEngaged
         if (unchanged) return
 
         publish(
@@ -164,6 +167,7 @@ class LiveAnalysisBridge(
                 frameRateHealth = frameRateHealth,
                 currentFps = currentFps,
                 fpsWarningMessage = fpsWarningMessage,
+                isZoomEngaged = isZoomEngaged,
             ),
         )
     }

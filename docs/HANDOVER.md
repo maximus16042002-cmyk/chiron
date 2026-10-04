@@ -788,10 +788,8 @@ The engineering is far ahead of the thesis: the remaining work is mostly evaluat
    phone); parity as a study. The limitations section must say that Layer 2's rules implement
    thresholds from cited sources and **their agreement with expert human judgement was not measured
    in this work**, and carry every item of section 1.2.
-4. **Deferred app items** (lowest priority, CLAUDE.md §21): the skeleton redesign and a display-only
-   focus zoom (FEATURE_PLAN Batch 1 additions); optionally `abiFilters` to arm64 (about 29 MB off a
-   ~56 MB APK).
-5. **Housekeeping:** `docs/PROGRESS_REPORT.md` is stale; `:desktop` is empty.
+5. **Deferred app items:** ✅ **Done** in DECISIONS.md P3-56 (skeleton visual redesign) and P3-57 (display-only focus zoom auto-framing with zero per-frame allocations).
+6. **Housekeeping:** ✅ **Done** in DECISIONS.md P3-57 (`docs/PROGRESS_REPORT.md` fully refreshed; `:desktop` recognized as candidate replay client placeholder).
 
 ---
 

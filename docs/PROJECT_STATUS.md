@@ -10,7 +10,21 @@ read it first if you are new.*
 
 ## Next session starts here
 
-**Latest, P3-56 (2026-10-05): Low Frame-Rate Warning Gate and Skeleton Visual Redesign built and verified.**
+**Latest, P3-57 (2026-10-05): Display-Only Focus Zoom (Auto-Framing) and Progress Report Housekeeping built and verified.**
+- **Display-Only Focus Zoom / Auto-Framing (`core/analysis`, `app`):**
+  - Implements FEATURE_PLAN.md Batch 1 (Focus zoom) and resolves HANDOVER.md §8.3 items 4 & 5.
+  - Strict display-only boundary: MediaPipe and pose analysis always process full-frame camera preview; zoom transform is applied exclusively for preview rendering and `SkeletonOverlayView` canvas overlay.
+  - Whole-body exercise suppression: squat, push-up, plank, side plank, wall sit, glute bridge, sit-up, lunge strictly clamped to 1.0x unzoomed full frame.
+  - Overhead headroom preservation: shoulder press preserves +25% headroom above top landmarks to avoid hand clipping at lockout.
+  - Hysteresis debouncing: 15 frames to engage, 15 frames to exit; smoothed with continuous EMA ($\alpha = 0.12$).
+  - Zero heap allocations in real-time camera ingestion loop ($O(1)$ arithmetic in `FocusZoomCalculator.step`).
+  - Strict Compose budget: Compose only observes boolean `isZoomEngaged == current.isZoomEngaged` transitions (0 recompositions during continuous zoom).
+  - UI indication: `⛶ Auto-framed` status pill in `LiveCameraLayout`.
+- **Documentation Housekeeping:**
+  - `docs/PROGRESS_REPORT.md` fully rewritten and synchronized across all phases P0–P10, P3-31 through P3-57 (~90% complete).
+- **Suite:** 100% passing across `:core:domain:allTests`, `:core:analysis:allTests` (JVM + JS), and `:app:testDebugUnitTest`.
+
+**Before that, P3-56 (2026-10-05): Low Frame-Rate Warning Gate and Skeleton Visual Redesign built and verified.**
 - **Low Frame-Rate Gate & FPS Telemetry (`core/analysis`, `app`):**
   - Resolves HANDOVER.md §8.2 item 4 and implements FEATURE_PLAN Batch 1 skeleton redesign.
   - $O(1)$ sliding-window frame rate monitor (`FrameRateMonitor`) in shared core with zero per-frame heap allocations.

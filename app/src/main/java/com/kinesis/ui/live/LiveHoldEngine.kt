@@ -34,7 +34,7 @@ class LiveHoldEngine(
         sawPose = true
         analysis.onFrame(timestampMs.toDouble(), landmarks)
         publish()
-        skeleton.submit(landmarks, bridge.state.overlayState, analysis.policy)
+        skeleton.submit(landmarks, bridge.state.overlayState, analysis.policy, analysis.zoomTarget)
         probe?.onFrame(timestampMs, landmarks, analysis.rawAngleLeft, analysis.rawAngleRight)
     }
 
@@ -64,5 +64,6 @@ class LiveHoldEngine(
         frameRateHealth = analysis.frameRateHealth,
         currentFps = analysis.currentFps,
         fpsWarningMessage = analysis.fpsWarningMessage,
+        isZoomEngaged = analysis.isZoomEngaged,
     )
 }
