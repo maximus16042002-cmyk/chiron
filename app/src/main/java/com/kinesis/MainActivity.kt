@@ -48,6 +48,7 @@ import com.kinesis.core.analysis.history.DashboardSummary
 import com.kinesis.core.analysis.history.DayActivity
 import com.kinesis.core.analysis.history.Records
 import com.kinesis.core.analysis.history.Streaks
+import com.kinesis.core.analysis.history.Trends
 import com.kinesis.core.analysis.history.WeekProgress
 import com.kinesis.core.analysis.history.WeeklyGoal
 import com.kinesis.core.analysis.profile.ExerciseLibrary
@@ -94,6 +95,7 @@ import com.kinesis.ui.screens.CalibrationResultScreen
 import com.kinesis.ui.screens.DuringSetState
 import com.kinesis.ui.screens.ExerciseScreen
 import com.kinesis.ui.screens.ExerciseSelectionScreen
+import com.kinesis.ui.screens.ExerciseTrendScreen
 import com.kinesis.ui.screens.GuidedPrepareScreen
 import com.kinesis.ui.screens.GuidedRestScreen
 import com.kinesis.ui.screens.GuidedSummaryScreen
@@ -338,6 +340,8 @@ private fun KinesisApp(
     var tab by remember { mutableStateOf(Tab.HOME) }
     var training: Destination? by remember { mutableStateOf(null) }
     var openSession: SessionRecord? by remember { mutableStateOf(null) }
+    // An exercise's trend page, opened from Progress (P3-51).
+    var openExercise: String? by remember { mutableStateOf(null) }
     var showLicences by remember { mutableStateOf(false) }
 
     var sessions: List<SessionRecord> by remember { mutableStateOf(emptyList()) }
@@ -460,6 +464,7 @@ private fun KinesisApp(
     val goBack: () -> Unit = {
         when {
             openSession != null -> openSession = null
+            openExercise != null -> openExercise = null
             showLicences -> showLicences = false
             tab == Tab.TRAIN && current != null -> {
                 val back = backFrom(current)
@@ -470,7 +475,7 @@ private fun KinesisApp(
             else -> tab = Tab.HOME
         }
     }
-    BackHandler(enabled = openSession != null || showLicences || tab != Tab.HOME, onBack = goBack)
+    BackHandler(enabled = openSession != null || openExercise != null || showLicences || tab != Tab.HOME, onBack = goBack)
 
     val live = tab == Tab.TRAIN && isLive(current)
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -540,6 +545,15 @@ private fun KinesisApp(
 
                 Tab.PROGRESS -> if (openSession != null) {
                     SessionDetailScreen(openSession!!, backLabel = "Progress", onBack = { openSession = null })
+                } else if (openExercise != null) {
+                    val id = openExercise!!
+                    val points = remember(sessions, id) { Trends.of(sessions, id, limit = 12) }
+                    ExerciseTrendScreen(
+                        exerciseId = id,
+                        points = points,
+                        summary = shown.perExercise.firstOrNull { it.exerciseId == id },
+                        onBack = { openExercise = null },
+                    )
                 } else {
                     ProgressScreen(
                         summary = shown,
@@ -548,6 +562,7 @@ private fun KinesisApp(
                         today = today,
                         achievements = achievements,
                         onOpenSession = { openSession = it },
+                        onOpenExercise = { openExercise = it },
                     )
                 }
 
@@ -591,9 +606,11 @@ private fun KinesisApp(
                 if (selected == tab) {
                     // A second tap on the current page returns to its top.
                     openSession = null
+                    openExercise = null
                     showLicences = false
                 } else {
                     openSession = null
+                    openExercise = null
                     showLicences = false
                     tab = selected
                     reloadToken++

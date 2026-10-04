@@ -411,6 +411,8 @@ class SharedCoreSourceGuardTest {
             "WeeklyGoal.kt",
             "Achievements.kt",
             "Reminders.kt",
+            // P3-51: each exercise's trend, read over stored history when its page opens.
+            "Trends.kt",
             // P3-22: calibration runs once, after the calibration set has ended,
             // and the comparison once per completed record. Both take records,
             // which exist only once a movement has finished.

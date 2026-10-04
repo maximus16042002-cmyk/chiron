@@ -9,7 +9,26 @@ of date.*
 
 ## Next session starts here
 
-**Latest, P3-49 (2026-10-04): FEATURE_PLAN Batch 3 is built, not yet on the phone.**
+**Latest, P3-50 and P3-51 (2026-10-04): Batch 4 and P10's charts are built, not yet on the phone.**
+- **The workout generator, in the core:**
+  - a catalogue of the 17 entries (body area, equipment, what the room needs);
+  - the level targets, said to be suggestions;
+  - a named time estimate;
+  - a seeded, deterministic plan grouped by camera view.
+  - 16 tests over 864 plans; one plan pinned exactly on JVM and JS; 4 of 4 mutations caught.
+- **Guided workouts:**
+  - Build, then a plan (leave out, shuffle, save), then each set: prepare, live, auto-started rest,
+    next;
+  - a summary with the workout's totals and records;
+  - favourites and "Repeat last workout", stored as request and seed.
+- **Charts (P10):** each exercise's page from Progress.
+  - **Left and right range of motion as two lines,** never combined: blue and aqua, validated for
+    colour-vision deficiency, with a circle and a square marker and a legend.
+  - Counted repetitions, or seconds held, as columns.
+  - Records, and a table view.
+- **Suite:** 2,831 executions, 0 failed.
+
+**Before that, P3-49: FEATURE_PLAN Batch 3 is built, not yet on the phone.**
 - **Streak freezes** (the owner's rule, derived from history): one earned every 7 days in a row, up
   to 2, and a single missed day spends one. 16 tests; 4 of 4 mutations caught.
 - **A month calendar** on Progress: fire on active days, a snowflake on frozen ones, tap a day for
@@ -40,7 +59,8 @@ of date.*
   set; before, it closed the app.
 - **Owed:** install on the phone (with a backup first), and screenshot each page into
   `local/phase-b/`.
-- **Next:** FEATURE_PLAN Batch 4 (the workout generator and guided workouts), then P10's charts.
+- **Next:** the phone checks of everything since P3-47. Then P9 Part B, the verifier, which needs
+  the scikit-learn §17 check and the owner's approval.
 
 As of DECISIONS.md P3-38. P9's anomaly study has run on the development subjects, and Layer 4
 does not ship. The owner delegated that choice and asked for a complete app; P3-38 records
@@ -150,8 +170,8 @@ testing resumes.
    analyses remain the owner's decision.
 6. —
 7. ~~Layer 1 in the app~~: not after P3-42's failure. The app shows measurements only.
-8. **FEATURE_PLAN Batches 1, 3 and 4,** with P10's charts. **Batch 1 built (P3-48)**
-   and **Batch 3 built (P3-49),** both owed on the phone.
+8. **FEATURE_PLAN Batches 1, 3 and 4,** with P10's charts. **Batch 1 built (P3-48),**
+   **Batch 3 (P3-49), Batch 4 (P3-50) and the charts (P3-51) built,** all owed on the phone.
 9. **P8 Layer 2, then P9 Part B** (the verifier).
 
 **Also open, not in that sequence:**
@@ -224,7 +244,7 @@ The build plan (`docs/ZERO_DATASET_BUILD_PLAN.md`) has 13 phases, P0–P12.
 | P7 Dataset pipeline | MM-Fit → MediaPipe → evaluation harness | ✅ Done (DECISIONS.md P3-27 to P3-29). The build plan defines P7 as: *"acquire MM-Fit, run MediaPipe over its RGB video, align set boundaries and rep counts, build the evaluation harness"* (`ZERO_DATASET_BUILD_PLAN.md`, phase table). All four were done in P3-27: the videos on disk, MediaPipe run with the phone's own model file, the labels aligned set by set (five workouts drift, by up to 6.8 s, and were corrected), and the `:mmfit-eval` harness running the live screen's own class. All 616 sets went through, and the rep-count study was measured for 7 exercises. The engine defect it exposed (a fast start is lost) is fixed and judged on the 13 held-out workouts in P3-28: curls 368 of 368, every set exact; push-ups and sit-ups now count from the near side. In P3-29 near-side counting stopped letting a failed attempt hide a repetition, and the lateral raise's start zone moved to 36°: held-out raises 125 → 356 of 369, with no set counted above its label in either change. The push-up and sit-up start zones stay as they are, with a personal start zone proposed (P8). The verifier and personalisation studies, once listed here, belong to P9 and P12 in the plan's own evaluation table, not to P7 |
 | P8 Form Engine | Layer 1 deviation rules, Layer 2 cited technique rules | 🟡 **Layer 1 will not ship:** Decision 3 selected no setting (P3-41), and a smaller setting failed its one held-out test (P3-42). Layer 1 is built in the shared core (DECISIONS.md P3-30) and **not wired into the app**: personal deviations (Level 2) in range of motion, lifting and lowering time, left–right balance and consistency; the cited ACSM tempo rule (Level 3, Tier A); the push-up and sit-up personal start zone. **Layer 2 step A built (P3-43):** three cited technique rules (ACE sources, quoted in the code), not wired, which leaves the lateral raise above shoulder level, the curl started with a bent elbow, and the push-up not extended at the top. **Step B built (P3-44):** each repetition now records a small form summary of other joints (the export is format 2, Room version 3). Three more rules: the curl's upper arm moving forward, the push-up's hips sagging or raised, and the squat's torso ahead of the shin. The squat's depth is deliberately not a rule. All six rules wait for the phone's side-on check before they are shown. **Sit-up now counts on the trunk's angle (P3-45, P3-46):** 413 of 451 development sit-ups (the hip angle, 150) and 146 of 189 held-out (108), no set over its label. Adopted after the owner-approved held-out test; old sit-up calibrations are retired. Left: wiring the rules, after the phone |
 | P9 ML Layer | Exercise verifier, Layer 4 personal anomaly detection | 🔶 Partial, **in scope since DECISIONS.md P3-34** (the owner, 2026-09-30). Layer 4 is built in the core, not wired: an Isolation Forest (P3-35), and a robust covariance distance added to the comparison before any run (P3-36). The anomaly study ran on the development subjects (P3-37). The forest on F1 + F2 sees only stalls, which the deterministic detectors see as often; the device rule flags 7–30% of unaltered repetitions with 10–40 in the history. Layer 4 does not ship (P3-38, under the owner's delegation); the study stands as a negative result. The verifier (Part B) is not started, and comes after the app work P3-38 orders first |
-| P10 Visualisation & Android | App UI, live screen, dashboard | 🟡 Partial — shell, dashboard, streaks, Health Connect, sync, the calibration flow and the live camera screen (reps and holds, sets saved) done and run on the owner's phone (P3-18 onward). **P3-48:** the new look, five pages (Home, Workouts, Train, Progress, Profile), a per-session detail page, a seven-day strip, and onboarding, built and not yet on the phone. Charts not built |
+| P10 Visualisation & Android | App UI, live screen, dashboard | 🟡 Partial — shell, dashboard, streaks, Health Connect, sync, the calibration flow and the live camera screen (reps and holds, sets saved) done and run on the owner's phone (P3-18 onward). **P3-48 to P3-51:** the new look, five pages, onboarding, the calendar, records, goals, reminders, guided workouts, and **each exercise's trend charts, left and right apart.** All built, not yet on the phone |
 | P11 Windows PWA | React web app | ✂️ Cut (DECISIONS.md P0-2). The JS *target* survives; the web *app* does not |
 | P12 Evaluation & Documentation | Six studies, final write-up | 🟡 Started: the repetition-count study measured under P7 (P3-27 to P3-29; on the six unseen people in P3-30), and the personalisation study's development half (P3-30, four subjects). Still to come: its held-out run, the verifier, device and pose-reliability studies, parity as a study, and the write-up |
 

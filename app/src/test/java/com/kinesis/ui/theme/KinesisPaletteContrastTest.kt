@@ -41,6 +41,20 @@ class KinesisPaletteContrastTest {
         }
     }
 
+    /**
+     * The charts' two series, left and right (P3-51), are marks: at least 3:1 on the card they are
+     * drawn on. Their separation under colour-vision deficiency was checked with the data-viz
+     * validator when they were chosen (CVD ΔE 19.6, normal-vision ΔE 20.9) and is recorded there.
+     */
+    @Test
+    fun the_chart_series_stand_out_on_the_card() {
+        for ((name, series) in listOf("left" to KinesisPalette.SERIES_LEFT, "right" to KinesisPalette.SERIES_RIGHT)) {
+            val r = ratio(series, KinesisPalette.CARD)
+            assertTrue("the $name series on the card is $r:1, under 3:1", r >= 3.0)
+        }
+        assertTrue("the two series must differ from the accent", KinesisPalette.ACCENT !in setOf(KinesisPalette.SERIES_LEFT, KinesisPalette.SERIES_RIGHT))
+    }
+
     /** The main button's words, canvas on accent, read as text. */
     @Test
     fun text_on_the_accent_button_reads() {

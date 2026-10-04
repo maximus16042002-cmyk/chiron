@@ -11401,6 +11401,46 @@ Following the data-visualisation method this session used, and checked with its 
 **Not drawn:** a trend line, a fit, or any "improving" label. A chart shows measurements; it does
 not judge them.
 
+### Result
+
+*2026-10-04.*
+
+**The core:** `Trends.of` (`history/Trends.kt`, classified post-rep). `TrendsTest`, 6 tests on JVM
+and JS, as listed above.
+
+**Mutation:** the two sides averaged in `Trends` was caught twice, by `TrendsTest` and by the
+permanent bilateral-integrity guard (`SharedCoreSourceGuardTest`). The file was restored and
+checked.
+
+**The page:** `ExerciseTrendScreen`, opened by tapping an exercise on Progress, with "‹ Progress"
+and the back button to return. In order:
+- a readout of the selected set;
+- the range chart, with its legend;
+- the columns;
+- the records;
+- "The same as a table".
+
+**The colours:**
+- `KinesisPalette.SERIES_LEFT` / `SERIES_RIGHT`;
+- `KinesisPaletteContrastTest` gains a test: each series is at least 3:1 on the card, and neither
+  is the accent;
+- the CVD and normal-vision separation was measured with the data-viz validator when the colours
+  were chosen, and is recorded in the design above.
+
+**The axis:** `NiceAxis`, with 3 JUnit tests: round ticks, every value inside, a flat series still
+has a span.
+
+**One departure from the design:** the columns are grey with the selected set in the accent, not
+one series colour. That is the method's "emphasis" form. The accent already means selection in this
+app, and blue would have read as "left".
+
+**Not yet done: looking at it.**
+- The method's last step is to render the chart and look for collisions and overflow.
+- No phone was connected and this machine has no emulator image, so the chart has not been seen.
+- That is owed with the other phone checks, and the screenshot goes to `local/phase-b/`.
+
+**Suite:** 2,831 executions, 0 failed.
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

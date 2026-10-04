@@ -67,6 +67,8 @@ fun ProgressScreen(
     /** `Achievements.of` - P3-49. */
     achievements: List<Achievement>,
     onOpenSession: (SessionRecord) -> Unit,
+    /** Opens an exercise's trend page (P3-51). */
+    onOpenExercise: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selectedDay: LocalDay? by remember { mutableStateOf(null) }
@@ -100,7 +102,7 @@ fun ProgressScreen(
         if (summary.perExercise.isNotEmpty()) {
             item { SectionLabel("By exercise") }
             items(summary.perExercise, key = { "exercise-" + it.exerciseId }) { exercise ->
-                KCard {
+                KCard(onClick = { onOpenExercise(exercise.exerciseId) }) {
                     Text(nameOf(exercise.exerciseId), style = MaterialTheme.typography.titleMedium, color = Ink)
                     Text(
                         if (exercise.totalHoldMs > 0.0 && exercise.validRepCount == 0) {

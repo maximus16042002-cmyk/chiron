@@ -48,6 +48,13 @@ object KinesisPalette {
 
     /** Something needs the user's eye. Amber, as the overlay's attention state, never red. */
     const val ATTENTION: Long = 0xFFFFB000
+
+    /**
+     * The charts' left and right series - DECISIONS.md P3-51: the data-viz reference palette's dark
+     * steps for blue and aqua, validated on [CARD]. Orange is left to [ACCENT].
+     */
+    const val SERIES_LEFT: Long = 0xFF3987E5
+    const val SERIES_RIGHT: Long = 0xFF199E70
 }
 
 val Canvas = Color(KinesisPalette.CANVAS)
@@ -59,6 +66,8 @@ val InkFaint = Color(KinesisPalette.INK_FAINT)
 val Accent = Color(KinesisPalette.ACCENT)
 val OnAccent = Color(KinesisPalette.ON_ACCENT)
 val Attention = Color(KinesisPalette.ATTENTION)
+val SeriesLeft = Color(KinesisPalette.SERIES_LEFT)
+val SeriesRight = Color(KinesisPalette.SERIES_RIGHT)
 
 /** The camera area's backdrop, shared with the overlay so the two cannot drift apart. */
 val Void = Color(OverlayState.BACKGROUND_ARGB.toInt())
