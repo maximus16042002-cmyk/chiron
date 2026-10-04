@@ -5,9 +5,6 @@ import com.kinesis.core.analysis.deviation.DeviationRules
 import com.kinesis.core.analysis.profile.ExerciseVariant
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.profile.RepetitionExercise
-import com.kinesis.core.analysis.technique.TechniqueRules
-import com.kinesis.core.analysis.verifier.ExerciseVerifier
-import com.kinesis.core.analysis.verifier.VerificationResult
 import com.kinesis.core.domain.finding.Finding
 import com.kinesis.core.domain.profile.TechniqueAuthority
 import com.kinesis.core.domain.profile.TierAProfile
@@ -35,6 +32,11 @@ import com.kinesis.core.domain.rep.RepRecord
  * Each finding is composed in the core with its own rule version. A hold gets
  * the comparison and no finding.
  *
+ * **Not called here, on purpose:** Layer 2's cited rules (`TechniqueRules`) and the exercise
+ * verifier. Both are built, tested and wired to nothing - Layer 2 waits for the phone's side-on
+ * check and the owner's decision, the verifier failed on new people (DECISIONS.md P3-42, P3-59).
+ * The app's set summary shows measurements only, so none of these findings reach the screen.
+ *
  * Because the result is computed from the record and the baseline rather than
  * stored with the record, analysing an old repetition again after the baseline
  * or the rules change is simply calling this again - CLAUDE.md section 15.
@@ -51,25 +53,11 @@ object PostRepAnalysis {
      */
     const val VERSION: String = "p8-layer1-1"
 
-    private val defaultVerifier by lazy { ExerciseVerifier() }
-
-    fun analyse(
-        profile: RepetitionExercise,
-        rep: RepRecord,
-        baseline: RepetitionBaseline?,
-        verifier: ExerciseVerifier = defaultVerifier,
-    ): RepetitionAnalysisResult {
+    fun analyse(profile: RepetitionExercise, rep: RepRecord, baseline: RepetitionBaseline?): RepetitionAnalysisResult {
         requireOwnBaseline(profile, baseline)
         val findings = ArrayList<Finding>()
         if (baseline != null) findings += DeviationRules.evaluate(profile, rep, baseline)
-        techniqueAuthorityOf(profile)?.let { authority ->
-            AcsmTempoRule.evaluate(authority, profile, rep)?.let { findings += it }
-            findings += TechniqueRules.evaluate(authority, profile, rep)
-        }
-        val verification = verifier.verify(profile.id, rep.movementContext)
-        if (verification is VerificationResult.Mismatch) {
-            findings += verification.finding
-        }
+        techniqueAuthorityOf(profile)?.let { authority -> AcsmTempoRule.evaluate(authority, profile, rep)?.let { findings += it } }
         val comparison = baseline?.let {
             val timingSide = timingSideOf(rep)
             val descent = if (timingSide == null) it.descentMs.perRepetition else it.descentMs.perSide.on(timingSide)

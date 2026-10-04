@@ -7,15 +7,15 @@ import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.analysis.technique.TechniqueRules
+import com.kinesis.core.analysis.verifier.ExerciseVerifier
+import com.kinesis.core.analysis.verifier.VerificationResult
 import com.kinesis.core.analysis.verifier.VerifierParityGolden
 import com.kinesis.core.domain.analysis.BaselineReference
 import com.kinesis.core.domain.bilateral.BilateralSignal
 import com.kinesis.core.domain.bilateral.Side
 import com.kinesis.core.domain.calibration.HoldBaseline
 import com.kinesis.core.domain.calibration.RepetitionBaseline
-import com.kinesis.core.domain.finding.ClaimLevel
 import com.kinesis.core.domain.finding.Deviation
-import com.kinesis.core.domain.finding.DeviationDirection
 import com.kinesis.core.domain.finding.TechniqueFault
 import com.kinesis.core.domain.rep.MovementContext
 import com.kinesis.core.domain.rep.RepRecord
@@ -166,11 +166,15 @@ class PostRepAnalysisTest {
         assertEquals("p8-layer1-1", PostRepAnalysis.VERSION)
     }
 
+    /**
+     * P3-42 and P3-59: the set summary shows measurements only. Layer 2's cited rules wait for
+     * the phone's side-on check (P3-43) and the owner's decision, so the post-rep analysis does
+     * not run them. This lateral raise breaks the raise rule and must still carry no fault.
+     */
     @Test
-    fun tier_a_repetition_with_technique_fault_produces_level_3_technique_fault_with_citation() {
+    fun a_repetition_that_breaks_a_layer_two_rule_carries_no_technique_fault() {
         val raise = ExerciseLibrary.lateralRaise
-        // Arm raised above shoulder level (trough > 90° + 20° = 110°)
-        val rep = RepRecord(
+        val aboveShoulder = RepRecord(
             repIndex = 1,
             attributedSide = null,
             startMs = 0.0,
@@ -184,20 +188,23 @@ class PostRepAnalysisTest {
             resampledLeft = DoubleArray(64) { 20.0 },
             resampledRight = DoubleArray(64) { 22.0 },
         )
-        val result = PostRepAnalysis.analyse(raise, rep, null)
-        val fault = assertIs<TechniqueFault>(result.findings.single { it is TechniqueFault })
-        assertEquals(ClaimLevel.L3_TECHNIQUE, fault.level)
-        assertEquals(TechniqueRules.RAISED_ABOVE_SHOULDER_LEVEL, fault.faultId)
-        assertEquals(TechniqueRules.SOURCE_LATERAL_RAISE, fault.sourceRef)
-        assertTrue(fault.sourceRef.isNotEmpty())
-        assertTrue(fault.displayText.contains("raised above shoulder level"))
+        // The rule itself fires on this repetition, so its absence below is the wiring's doing.
+        assertTrue(TechniqueRules.evaluate(raise.techniqueAuthority, raise, aboveShoulder).isNotEmpty())
+        val findings = PostRepAnalysis.analyse(raise, aboveShoulder, null).findings
+        assertTrue(findings.none { it is TechniqueFault }, "a Layer 2 fault reached the result: " + findings)
     }
 
+    /**
+     * P3-59: the exercise verifier is built and evaluated, and wired to nothing. A push-up's
+     * movement under a sit-up selection is a mismatch the verifier itself reports, and the
+     * post-rep analysis must not pass it on.
+     */
     @Test
-    fun verifier_mismatch_produces_level_2_deviation_warning() {
-        // Sample 0 from golden is a bicep curl. We test analyzing it under squat profile.
-        val curlVector = VerifierParityGolden.VECTORS[0]
-        assertEquals("bicep_curl", curlVector.trueExercise)
+    fun a_movement_the_verifier_calls_a_mismatch_carries_no_verifier_finding() {
+        val pushup = VerifierParityGolden.VECTORS.first { it.trueExercise == "pushup" }
+        val situp = ExerciseLibrary.situp
+        val context = MovementContext(pushup.rawFeatures)
+        assertIs<VerificationResult.Mismatch>(ExerciseVerifier().verify(situp.id, context))
         val rep = RepRecord(
             repIndex = 1,
             attributedSide = null,
@@ -211,41 +218,12 @@ class PostRepAnalysisTest {
             ascentMs = 1_000.0,
             resampledLeft = DoubleArray(64) { 170.0 },
             resampledRight = DoubleArray(64) { 170.0 },
-            movementContext = MovementContext(curlVector.rawFeatures),
+            movementContext = context,
         )
-        val result = PostRepAnalysis.analyse(squat, rep, null)
-        val warning = assertIs<Deviation>(result.findings.single { it is Deviation && it.metric == "exercise_verifier" })
-        assertEquals(ClaimLevel.L2_DEVIATION, warning.level)
-        assertEquals(DeviationDirection.UNUSUAL_FOR_YOU, warning.direction)
-        assertTrue(warning.displayText.contains("This looks like a different exercise"))
-        assertTrue(warning.displayText.contains("Bicep Curl"))
-    }
-
-    @Test
-    fun verifier_match_and_unverified_produce_no_verifier_findings() {
-        val curlVector = VerifierParityGolden.VECTORS[0]
-        val rep = RepRecord(
-            repIndex = 1,
-            attributedSide = null,
-            startMs = 0.0,
-            endMs = 2_000.0,
-            validity = RepValidity.VALID,
-            rangeOfMotion = BilateralSignal(90.0, 90.0),
-            peakValue = BilateralSignal(170.0, 170.0),
-            troughValue = BilateralSignal(80.0, 80.0),
-            descentMs = 1_000.0,
-            ascentMs = 1_000.0,
-            resampledLeft = DoubleArray(64) { 170.0 },
-            resampledRight = DoubleArray(64) { 170.0 },
-            movementContext = MovementContext(curlVector.rawFeatures),
+        val findings = PostRepAnalysis.analyse(situp, rep, null).findings
+        assertTrue(
+            findings.none { it is Deviation && it.metric == ExerciseVerifier.METRIC_NAME },
+            "a verifier warning reached the result: " + findings,
         )
-        // 1. Matches selected exercise (bicep_curl) -> no warning
-        val matchResult = PostRepAnalysis.analyse(curl, rep, null)
-        assertTrue(matchResult.findings.none { it is Deviation && it.metric == "exercise_verifier" })
-
-        // 2. Unverified exercise (e.g. gluteBridge) -> no warning
-        val unverified = ExerciseLibrary.gluteBridge
-        val unverifiedResult = PostRepAnalysis.analyse(unverified, rep, null)
-        assertTrue(unverifiedResult.findings.none { it is Deviation && it.metric == "exercise_verifier" })
     }
 }

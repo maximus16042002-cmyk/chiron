@@ -166,6 +166,12 @@ class ExerciseVerifier(
      * Verifies a completed repetition's [MovementContext] against the user's selected exercise.
      */
     fun verify(selectedExerciseId: String, movementContext: MovementContext?): VerificationResult {
+        if (selectedExerciseId in FILMED_FROM_ANOTHER_VIEW) {
+            return VerificationResult.Unverified(
+                selectedExercise = selectedExerciseId,
+                reason = "MM-Fit films '$selectedExerciseId' from a different camera view than the app requires (unverified).",
+            )
+        }
         if (!VERIFIED_EXERCISES.contains(selectedExerciseId)) {
             return VerificationResult.Unverified(
                 selectedExercise = selectedExerciseId,
@@ -226,17 +232,29 @@ class ExerciseVerifier(
         const val METRIC_NAME: String = "exercise_verifier"
 
         /**
-         * Exercises covered and validated by MM-Fit and the verifier model.
-         * Uncovered exercises (plank, side plank, wall sit, glute bridge, etc.) receive no verification.
+         * Exercises the model has seen from the camera view the app requires: MM-Fit films the
+         * push-up and sit-up side-on, and the seated lateral raise and shoulder press front-on,
+         * as the app does. "Covered" is all this means - on the development folds some people's
+         * correct repetitions were warned 33-100% of the time on three of these four (P3-59).
+         * Uncovered exercises (plank, side plank, wall sit, glute bridge, etc.) receive no
+         * verification.
          */
         val VERIFIED_EXERCISES: Set<String> = setOf(
-            "bicep_curl",
             "lateral_raise",
-            "lunge",
             "pushup",
-            "row",
             "shoulder_press",
             "situp",
+        )
+
+        /**
+         * In MM-Fit's classes, but filmed there from a different view than the app requires
+         * (P3-34): the model has never seen the app's camera condition for them, so a verdict
+         * would be a claim about a condition it was not measured on - CLAUDE.md section 22.
+         */
+        val FILMED_FROM_ANOTHER_VIEW: Set<String> = setOf(
+            "bicep_curl",
+            "lunge",
+            "row",
             "squat",
         )
 

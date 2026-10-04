@@ -13,7 +13,7 @@ import kotlin.test.assertTrue
  * Parity and verification test for the Exercise Verifier - DECISIONS.md P3-52, CLAUDE.md §18.
  *
  * Verifies that pure Kotlin evaluation matches Python scikit-learn LogisticRegression
- * to <= 1e-9 relative parity across all classes on held-out test vectors.
+ * to within 1e-9 across all classes on 25 development-subject vectors (P3-59: not held-out).
  *
  * Also verifies Level 2 mismatch finding emissions and unverified exercise safeguards.
  */
@@ -64,14 +64,14 @@ class ExerciseVerifierParityTest {
 
     @Test
     fun mismatched_movement_emits_level_two_deviation_warning_only() {
-        // User selected bicep_curl, but performed push-up
+        // User selected sit-up, but performed a push-up
         val pushupVector = VerifierParityGolden.VECTORS.first { it.trueExercise == "pushup" }
         val ctx = MovementContext(pushupVector.rawFeatures)
 
-        val result = verifier.verify("bicep_curl", ctx)
+        val result = verifier.verify("situp", ctx)
         val mismatch = assertIs<VerificationResult.Mismatch>(result)
 
-        assertEquals("bicep_curl", mismatch.selectedExercise)
+        assertEquals("situp", mismatch.selectedExercise)
         assertEquals("pushup", mismatch.predictedExercise)
         assertTrue(mismatch.confidence >= 0.50)
         assertTrue(mismatch.selectedProbability < 0.25)
@@ -83,6 +83,24 @@ class ExerciseVerifierParityTest {
         assertEquals(ExerciseVerifier.METRIC_NAME, finding.metric)
         assertEquals(PretrainedExerciseVerifierModel.MODEL_VERSION, finding.ruleVersion)
         assertTrue("This looks like a different exercise: Push-up" in finding.displayText)
+    }
+
+    /**
+     * P3-59: MM-Fit films the curl, squat, lunge and row from a different view than the app
+     * requires (P3-34), so the model has never seen the app's camera condition for them -
+     * CLAUDE.md section 22. They get no verification, even for a movement it would call a
+     * confident mismatch.
+     */
+    @Test
+    fun exercises_mm_fit_films_from_another_view_are_not_verified() {
+        val pushupVector = VerifierParityGolden.VECTORS.first { it.trueExercise == "pushup" }
+        val ctx = MovementContext(pushupVector.rawFeatures)
+
+        for (profileId in listOf("bicep_curl", "squat", "lunge", "row")) {
+            val unverified = assertIs<VerificationResult.Unverified>(verifier.verify(profileId, ctx), profileId)
+            assertTrue("different camera view" in unverified.reason, unverified.reason)
+        }
+        assertEquals(setOf("pushup", "situp", "lateral_raise", "shoulder_press"), ExerciseVerifier.VERIFIED_EXERCISES)
     }
 
     @Test
