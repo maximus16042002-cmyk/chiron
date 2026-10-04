@@ -12284,6 +12284,37 @@ in P3-21. Done now, while the owner is busy with the phone, because it needs nei
 - **If anything fails in a way not fixable within this batch,** the batch is reverted whole and
   the failure recorded here. A half-upgraded toolchain is worse than either end.
 
+### Result (2026-10-05): done, nothing reverted
+
+- **The versions:** AGP 8.9.1, compileSdk 36 in all three Android modules, Health Connect 1.1.0.
+  No source file changed.
+- **AGP installed what it needed:** Android SDK Platform 36 (revision 2) and Build-Tools 35.0.0,
+  under licences already accepted on this machine.
+- **The full suite** (`assemble allTests :app:testDebugUnitTest :app:testReleaseUnitTest
+  :app:compileDebugAndroidTestKotlin`): **3,081 test executions, 0 failed**, the same count as
+  P3-60. Debug and release both assembled. `OfflineManifestGuardTest` and
+  `ApkPackagingGuardTest` pass unweakened.
+- **APK size:** debug 53,794,785 → 53,497,824 bytes; release (unsigned) 40,574,042 → 40,590,422.
+- **Lint runs again.**
+  - `:app:lintDebug` completed for the first time since P1-1, so P1-1's exclusion in
+    `:core:domain` and `:core:analysis` is removed, and their lint runs too.
+  - **Findings:** 0 errors in all three modules; 0 warnings in the two core modules. In `:app`, 81
+    warnings and 3 informational notes (`AutoboxingStateCreation`). The warnings:
+    - 63 "a newer version exists" (57 dependencies, 6 AGP);
+    - 14 style hints (`UseKtx`);
+    - `OldTargetApi` (targetSdk 35, kept on purpose);
+    - `ObsoleteSdkInt`;
+    - `ApplySharedPref` (P3-60's synchronous `commit()`, deliberate);
+    - **`MissingApplicationIcon`.**
+  - Lint is not added to the suite command. It stays a separate step.
+- **Found by lint, not fixed here: the app has no launcher icon.** The manifest sets none, so the
+  phone shows Android's default. It is a product gap, for its own entry.
+- **Still open:** targetSdk 36. It changes Android 16's behaviour for the app (for example,
+  edge-to-edge is enforced), and only the phone can check that.
+- **Unseen on the phone,** like everything since P3-47.
+
+**Next entry: P3-62.**
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

@@ -57,8 +57,8 @@ gradlew assemble allTests :app:testDebugUnitTest
 Compiles every target and runs every JVM, JS and Android unit test. That
 includes the JVM/JavaScript golden-file parity suite (`EngineParityTest`) and
 the per-frame allocation guards, which run in a JVM of their own
-(`jvmAllocationTest`). Android Lint is excluded because it cannot run on this
-machine's JDK 25 — `docs/DECISIONS.md` P1-1. The `js()` target is not optional:
+(`jvmAllocationTest`). Android Lint is run separately (`gradlew lint`); it could
+not run on this machine's JDK 25 until AGP 8.9.1 — `docs/DECISIONS.md` P1-1, P3-61. The `js()` target is not optional:
 it carries the cross-platform parity result.
 
 **On a phone** (USB debugging on):

@@ -67,7 +67,7 @@ operational distillation) > everything else. If `CLAUDE.md` disagrees with the o
 ### 0.3 How work is done here (the pattern every session followed)
 
 1. **Read** the relevant DECISIONS entries before changing anything.
-2. **Write a design entry first** (next number: **P3-61**). It states what will be built and every
+2. **Write a design entry first** (next number: **P3-62**). It states what will be built and every
    choice the source documents leave open. Commit it before any code. For studies, the protocol and
    pass rule are fixed and committed (sometimes tagged, e.g. `p3-42-frozen`) **before** any data is
    looked at.
@@ -104,7 +104,7 @@ Before doing anything:
    - every technique rule cites a published source; no accuracy number may be attached to one;
    - never state a number that was not measured on this system;
    - never use held-out MM-Fit data without the owner's explicit approval and a frozen protocol.
-3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-61),
+3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-62),
    tests first, implement in the core, mutation-check new guard tests, run the full suite
    (HANDOVER 9.2), append a Result section, commit, push.
 4. Ask the owner before: installing anything on their phone (back up first, HANDOVER 9.4), using
@@ -456,7 +456,7 @@ Each item is one DECISIONS.md entry. Search for the entry number for its detail.
 
 ### Phase 1 and 2: core types, kinematics, temporal
 
-- **P1-1** Android Lint fails on JDK 25 (environmental; lint is excluded from the suite).
+- **P1-1** Android Lint fails on JDK 25 (environmental; lint was excluded from the suite until P3-61's AGP 8.9.1 fixed it).
 - **P1-2** Where each type lives. **P1-3** Claim-level enforcement by a capability token.
 - **P1-4** Provisional constants. **P1-5** The front-camera mirroring assumption, stated.
 - **P2-1** P2's scope. **P2-2** The old prototype at `E:\kinesis_old` was inspected read-only; it is
@@ -811,7 +811,7 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 | 2 | **The push-up personal start zone:** adopt or not (the sit-up's was retired with the trunk driver) | P3-29, P3-30 |
 | 3 | **Squats side-on:** count the near knee only (as the row does), use an angled camera, or accept squats as untested. The far knee is often untracked side-on, and a squat counts only when both knees complete | P3-23 "For the owner" item 1; still untouched (P3-29, P3-30) |
 | 4 | **A low frame rate:** a gate weighted by time, or a warning | P3-56 built a warning below 12 results a second (the Antigravity agent's choice, not the owner's); a gate is still open |
-| 5 | **The AGP 8.9.1 and compileSdk 36 batch** (needed for the stable Health Connect 1.1.0; probably also the way out of P1-1's lint exclusion) | P3-19, P3-21 ("its own small batch, later") |
+| 5 | ~~The AGP 8.9.1 and compileSdk 36 batch~~ **Done in P3-61** (stable Health Connect 1.1.0; lint runs again). **Still open: targetSdk 36**, which changes Android 16's run-time behaviour and needs the phone | P3-19, P3-21 ("its own small batch, later") |
 | 6 | **Per-side tempo for simultaneous exercises** (squat, push-up…): needs `RepRecord` to keep each side's phase times, a change touching Room, sync and the golden file | P3-22 |
 | 7 | ~~Local sessions are not partitioned by account~~ **Fixed in P3-60:** each account has its own database file on the phone; the existing file stays with the first account signed in after the update (the owner). The app's settings are still per phone | P3-22, P3-25, P3-60 |
 | 8 | **Whether a calibration hold should be one hold or several** (several would give the sway a spread) | P3-22 |
@@ -855,9 +855,9 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 - **No emulator image is installed.** MediaPipe ships no x86_64 library, so an emulator cannot run the
   live screen anyway.
 - **Versions (from `gradle/libs.versions.toml` and `app/build.gradle.kts`):** Kotlin 2.1.21; AGP
-  8.7.3; KSP 2.1.21-2.0.1; Compose BOM 2024.12.01; Activity Compose 1.9.3; Lifecycle 2.8.7; core-ktx
+  8.9.1 (P3-61); KSP 2.1.21-2.0.1; Compose BOM 2024.12.01; Activity Compose 1.9.3; Lifecycle 2.8.7; core-ktx
   1.15.0; Room 2.7.1; WorkManager 2.10.0; CameraX 1.4.1; MediaPipe Tasks Vision 0.10.21; Firebase BoM
-  33.7.0 (Auth, Firestore); **Health Connect 1.1.0-beta01**; compileSdk and targetSdk 35; minSdk 24;
+  33.7.0 (Auth, Firestore); **Health Connect 1.1.0** (stable, P3-61); compileSdk 36, targetSdk 35; minSdk 24;
   Java/JVM target 17.
 
 ### 9.2 Commands
@@ -885,7 +885,7 @@ then review the diff.
 | Windows "paging file too small", a failing shell, or PowerShell failing to load | The Kotlin compile daemon has eaten memory. `gradlew --stop`, then stop **that PID only** |
 | Another agent's log or decision entry says "done", "blocks", "validated" | Check the code. P3-59 found a gate that blocked nothing, a zoom that moved only the skeleton, and pooled figures that hid 100% false-warning rates. The tests passed in every case, because each test's fixture shared the code's mistake |
 | A background task "completed" but the build failed | The exit code was written to a log, not returned: always read the log's `exit=` line |
-| Android Lint fails | Known incompatibility with JDK 25 (P1-1). Lint is not part of the suite |
+| Android Lint | Fixed by AGP 8.9.1 (P3-61): `gradlew lint` runs on all three modules, 0 errors. Not part of the suite command; run it separately |
 | Bash heredocs mangle `\n` inside generated Kotlin strings | Write files with an editor tool, not heredocs |
 
 ### 9.4 Phone procedures
@@ -1207,6 +1207,6 @@ figure can be regenerated rather than trusted.
 ---
 
 *When you finish a piece of work:*
-1. *add its entry to `docs/DECISIONS.md` (next: **P3-61**);*
+1. *add its entry to `docs/DECISIONS.md` (next: **P3-62**);*
 2. *update `docs/PROJECT_STATUS.md`'s "Next session starts here";*
 3. *update sections 7 and 8 of this file.*

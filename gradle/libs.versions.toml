@@ -1,6 +1,6 @@
 # Single source of truth for versions. No module declares a version inline.
 [versions]
-agp = "8.7.3"
+agp = "8.9.1"
 kotlin = "2.1.21"
 coreKtx = "1.15.0"
 junit = "4.13.2"
@@ -9,7 +9,7 @@ espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.8.7"
 activityCompose = "1.9.3"
 composeBom = "2024.12.01"
-healthConnect = "1.1.0-beta01"
+healthConnect = "1.1.0"
 room = "2.7.1"
 cameraX = "1.4.1"
 mediapipe = "0.10.21"

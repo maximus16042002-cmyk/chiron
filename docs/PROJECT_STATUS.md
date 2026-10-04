@@ -511,7 +511,7 @@ current, itemised version.
 | Language | Kotlin 2.1.21 |
 | Shared engine | Kotlin Multiplatform — Android, JVM and JS targets. All analysis logic lives in `commonMain`; nothing analytical is written twice. |
 | Android | compileSdk / targetSdk 35, minSdk 24, Java/JVM target 17 |
-| Build | Gradle (wrapper), Android Gradle Plugin 8.7.3, KSP 2.1.21-2.0.1, version catalog in `gradle/libs.versions.toml` |
+| Build | Gradle (wrapper), Android Gradle Plugin 8.9.1 (P3-61), KSP 2.1.21-2.0.1, version catalog in `gradle/libs.versions.toml` |
 | UI | Jetpack Compose (BOM 2024.12.01), Material 3, Activity Compose 1.9.3, Lifecycle 2.8.7. Skeleton drawn on a plain Android `View`/Canvas, not Compose. |
 | Theme | P3-48's dark fitness look: canvas `#0E0F12`, cards `#1A1C21`, one orange accent `#FF6B35`, sans-serif with tabular figures; amber `#FFB000` for attention (never red, for colour-blind users). It replaced P3-12's phosphor-green monospace theme. The skeleton overlay's own four-state palette is unchanged |
 
@@ -523,7 +523,7 @@ current, itemised version.
 | MediaPipe Tasks Vision | 0.10.21 | On-device pose estimation. Google's telemetry backend is excluded so it adds no network permission. | P3-13 |
 | BlazePose GHUM 3D Lite model | card 2021-04-16 | `pose_landmarker_lite.task`, shipped unmodified. Apache 2.0. | P3-13, P3-17 |
 | Room (+ KSP compiler) | 2.7.1 | Local session storage — the source of truth | P3-12 |
-| Health Connect client | 1.1.0-beta01 | Read-only steps, active calories, heart rate. Upgraded from alpha11 in P3-19 §7; the stable 1.1.0 needs AGP 8.9.1 and compileSdk 36, an owner decision | P3-11, P3-19 |
+| Health Connect client | 1.1.0 | Read-only steps, active calories, heart rate. alpha11 → beta01 in P3-19 §7 → stable 1.1.0 in P3-61, with AGP 8.9.1 and compileSdk 36 (targetSdk stays 35) | P3-11, P3-19, P3-61 |
 | Firebase BoM → Auth, Firestore | 33.7.0 | Account sign-in and session sync (the one deliberate exception to "no cloud") | P3-14 |
 | WorkManager | 2.10.0 | Background, retrying sync uploads | P3-14 |
 | JUnit | 4.13.2 | Android unit tests; `kotlin.test` for the shared core | — |
