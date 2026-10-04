@@ -1,6 +1,7 @@
 package com.kinesis.storage
 
 import android.content.Context
+import androidx.core.content.edit
 import java.security.MessageDigest
 
 /**
@@ -65,7 +66,7 @@ class PreferencesAccountRegistry(context: Context) : AccountRegistry {
     override fun read(key: String): String? = preferences.getString(key, null)
 
     override fun write(key: String, value: String) {
-        preferences.edit().putString(key, value).commit()
+        preferences.edit(commit = true) { putString(key, value) }
     }
 
     private companion object {

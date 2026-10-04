@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -372,7 +373,7 @@ private fun KinesisApp(
     var weekGoal: WeekProgress? by remember { mutableStateOf(null) }
     var achievements: List<Achievement> by remember { mutableStateOf(emptyList()) }
     val settings = LocalContext.current.let { remember(it) { AppSettings(it) } }
-    var goalDays by remember { mutableStateOf(settings.weeklyGoalDays) }
+    var goalDays by remember { mutableIntStateOf(settings.weeklyGoalDays) }
     var duringSet by remember {
         mutableStateOf(DuringSetState(settings.repTone, settings.repVibrate, settings.spokenCounts, settings.restSeconds))
     }
@@ -380,7 +381,7 @@ private fun KinesisApp(
     // The signed-in user's baselines, by calibration id. Re-read with the history.
     var baselines: Map<String, CalibrationBaseline> by remember(uid) { mutableStateOf(emptyMap()) }
     var context: ActivityContextResult? by remember { mutableStateOf(null) }
-    var reloadToken by remember { mutableStateOf(0) }
+    var reloadToken by remember { mutableIntStateOf(0) }
 
     // The same offset the recorder files sessions under, daylight saving
     // included - P3-16. rawOffset ignored it.

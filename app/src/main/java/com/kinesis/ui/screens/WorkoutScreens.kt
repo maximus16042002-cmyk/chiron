@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -55,7 +56,7 @@ import kotlin.math.roundToInt
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WorkoutBuilderScreen(initial: PlanRequest?, onMake: (minutes: Int, focus: Focus, level: Level, equipment: Equipment) -> Unit) {
-    var minutes by remember { mutableStateOf(initial?.minutes ?: 20) }
+    var minutes by remember { mutableIntStateOf(initial?.minutes ?: 20) }
     var focus by remember { mutableStateOf(initial?.focus ?: Focus.FULL_BODY) }
     var level by remember { mutableStateOf(initial?.level ?: Level.BEGINNER) }
     var equipment by remember { mutableStateOf(initial?.equipment ?: Equipment.NONE) }

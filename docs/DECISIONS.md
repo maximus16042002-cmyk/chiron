@@ -12439,6 +12439,36 @@ larger change with its own entry.
 
 ---
 
+## P3-64 — Lint's code findings, tidied
+
+*2026-10-05. Housekeeping after P3-61 made lint run again. Behaviour is unchanged.*
+
+**Fixed (16 of `:app`'s 83 issues):**
+- **11 `UseKtx`, in `AppSettings`:** `preferences.edit().putX(…).apply()` became
+  `preferences.edit { putX(…) }`. Same call underneath: KTX's `edit` applies asynchronously by
+  default, as before.
+- **`ApplySharedPref` and a twelfth `UseKtx`, in P3-60's registry:** `edit(commit = true) { … }`,
+  still synchronous on purpose.
+- **3 `AutoboxingStateCreation`:** `mutableIntStateOf` for three `Int` states (the weekly goal,
+  the history reload token, the workout builder's minutes).
+
+**Kept, with the reason:**
+- **`ObsoleteSdkInt`** on the `POST_NOTIFICATIONS` request. The permission is API 33 and the app
+  supports 24. Lint infers the check is redundant from what precedes it, and removing it would rest
+  on that inference.
+- **`OldTargetApi`:** targetSdk 35 is deliberate (P3-61).
+- **2 `UseKtx` in `FrameUpright`,** the per-frame camera path. A style change there is not worth
+  any risk while it cannot be checked on the phone.
+- **63 version notices,** each an upgrade with its own §17 check.
+
+**Checks:**
+- `:app` debug and release unit tests pass.
+- Lint: 83 issues → 67, 0 errors.
+
+**Next entry: P3-65.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
