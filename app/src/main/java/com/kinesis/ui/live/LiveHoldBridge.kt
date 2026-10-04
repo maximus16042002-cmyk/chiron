@@ -21,7 +21,6 @@ data class LiveHoldUiState(
     val frameRateHealth: FrameRateHealth = FrameRateHealth.HEALTHY,
     val currentFps: Double = Double.NaN,
     val fpsWarningMessage: String? = null,
-    val isZoomEngaged: Boolean = false,
 ) {
     /**
      * Derived, as in [LiveUiState], so the overlay and the readout cannot
@@ -71,7 +70,6 @@ class LiveHoldBridge(
         frameRateHealth: FrameRateHealth = FrameRateHealth.HEALTHY,
         currentFps: Double = Double.NaN,
         fpsWarningMessage: String? = null,
-        isZoomEngaged: Boolean = false,
     ) {
         frameCount++
         val heldSeconds = (heldMs / 1000.0).toInt()
@@ -79,8 +77,7 @@ class LiveHoldBridge(
             holdState == current.holdState &&
             frameValidity == current.frameValidity &&
             setupVerdict == current.setupVerdict &&
-            frameRateHealth == current.frameRateHealth &&
-            isZoomEngaged == current.isZoomEngaged
+            frameRateHealth == current.frameRateHealth
         if (unchanged) return
         publish(
             LiveHoldUiState(
@@ -92,7 +89,6 @@ class LiveHoldBridge(
                 frameRateHealth = frameRateHealth,
                 currentFps = currentFps,
                 fpsWarningMessage = fpsWarningMessage,
-                isZoomEngaged = isZoomEngaged,
             ),
         )
     }

@@ -11,9 +11,6 @@ import com.kinesis.core.analysis.rep.RepSink
 import com.kinesis.core.analysis.setup.SetupGate
 import com.kinesis.core.analysis.setup.SetupVerdict
 import com.kinesis.core.analysis.temporal.TemporalConfig
-import com.kinesis.core.analysis.zoom.FocusZoomCalculator
-import com.kinesis.core.analysis.zoom.FocusZoomPolicy
-import com.kinesis.core.analysis.zoom.FocusZoomTarget
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
@@ -58,7 +55,6 @@ class LiveRepetitionAnalysis(
     val profile: RepetitionExercise,
     val policy: VisibilityPolicy = VisibilityPolicy.PROVISIONAL,
     temporalConfig: TemporalConfig = TemporalConfig.PROVISIONAL,
-    val zoomPolicy: FocusZoomPolicy = FocusZoomPolicy.DEFAULT,
     /**
      * Every completed repetition record, as it completes - post-rep path, a few
      * times a minute. The platform collects them for the session recorder.
@@ -69,7 +65,6 @@ class LiveRepetitionAnalysis(
     private val tracker = BilateralRepTracker(profile, temporalConfig)
     private val setupGate = SetupGate(profile, policy)
     private val fpsMonitor = FrameRateMonitor()
-    private val zoomCalculator = FocusZoomCalculator(profile, zoomPolicy, policy)
 
     val setupVerdict: SetupVerdict get() = setupGate.latestVerdict
     val isSetupReady: Boolean get() = setupGate.isReady
@@ -77,12 +72,6 @@ class LiveRepetitionAnalysis(
     val frameRateHealth: FrameRateHealth get() = fpsMonitor.health
     val currentFps: Double get() = fpsMonitor.currentFps
     val fpsWarningMessage: String? get() = fpsMonitor.warningMessage
-
-    val zoomScale: Double get() = zoomCalculator.currentScale
-    val zoomCenterX: Double get() = zoomCalculator.currentCenterX
-    val zoomCenterY: Double get() = zoomCalculator.currentCenterY
-    val isZoomEngaged: Boolean get() = zoomCalculator.isEngaged
-    val zoomTarget: FocusZoomTarget get() = zoomCalculator.snapshot()
 
     /** Nothing has been seen before the first frame, so nothing is valid. */
     var frameValidity: FrameValidity = FrameValidity.INVALID
@@ -128,7 +117,6 @@ class LiveRepetitionAnalysis(
     fun onFrame(timestampMs: Double, landmarks: Landmarks) {
         fpsMonitor.onFrame(timestampMs)
         setupGate.onFrame(landmarks)
-        zoomCalculator.step(landmarks)
         frameValidity = if (!LandmarkNormalizer.hasMeasurableTorso(landmarks)) {
             FrameValidity.INVALID
         } else {
@@ -148,7 +136,6 @@ class LiveRepetitionAnalysis(
     fun onNothingSeen(timestampMs: Double) {
         fpsMonitor.onFrame(timestampMs)
         setupGate.onNothingSeen()
-        zoomCalculator.stepNothingSeen()
         frameValidity = FrameValidity.INVALID
         tracker.onFrame(timestampMs, NOTHING_SEEN, policy, sink)
     }
@@ -159,7 +146,6 @@ class LiveRepetitionAnalysis(
      */
     fun finish(timestampMs: Double) {
         fpsMonitor.reset()
-        zoomCalculator.reset()
         tracker.finish(timestampMs, sink)
     }
 

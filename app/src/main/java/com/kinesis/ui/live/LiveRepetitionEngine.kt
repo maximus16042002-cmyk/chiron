@@ -46,7 +46,7 @@ class LiveRepetitionEngine(
         lastTimestampMs = timestampMs.toDouble()
         analysis.onFrame(lastTimestampMs, landmarks)
         publish()
-        skeleton.submit(landmarks, bridge.state.overlayState, analysis.policy, analysis.zoomTarget)
+        skeleton.submit(landmarks, bridge.state.overlayState, analysis.policy)
         probe?.onFrame(timestampMs, landmarks, analysis.rawAngleLeft, analysis.rawAngleRight)
     }
 
@@ -82,6 +82,5 @@ class LiveRepetitionEngine(
         frameRateHealth = analysis.frameRateHealth,
         currentFps = analysis.currentFps,
         fpsWarningMessage = analysis.fpsWarningMessage,
-        isZoomEngaged = analysis.isZoomEngaged,
     )
 }
