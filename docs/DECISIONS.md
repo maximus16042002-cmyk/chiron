@@ -12636,6 +12636,40 @@ Settings, and open it again. The set should appear in history with the repetitio
 
 ---
 
+## P3-67 — The P3-66 build installed on the owner's phone, and first shown
+
+*2026-10-07. The owner approved the install ("i told maam i will show it now") and showed the app
+to their teacher straight after. The owner's verdict: "its amazing".*
+
+**Before the install** (HANDOVER 9.4):
+- **The installed build was P3-46's** (`e7fe84d3…bcb941c0e6a`, last updated 2026-10-02). It was
+  pulled to `local/backup-2026-10-07/previous-app.apk` for a quick rollback.
+- **Backup** to `local/backup-2026-10-07/` (not in git): every database and preference file, with
+  `SHA256SUMS.txt`.
+  - `kinesis.db`'s SHA-256 on the phone and in the copy are identical (`1253329e…08e79`).
+  - The copy: integrity "ok", Room version 3, 79 sessions, 79 sets, 258 repetitions, 4 holds and
+    1 baseline, as at P3-47.
+
+**The install:**
+- `adb install -r` of the debug APK built from `7cc2214`: SHA-256 `e474d5f6…10e6ae`, label
+  "Chiron", targetSdk 35.
+- Result: "Success". Nothing was uninstalled.
+
+**Checked afterwards:**
+- A cold launch took 1,583 ms, the process kept running, and the crash buffer was empty.
+- **P3-60's adoption worked on real data.** `kinesis-accounts.xml` names the signed-in account as
+  both the current account and the legacy file's owner. No second database was created.
+- A read-only copy of the live database: integrity "ok", version 3, and the same 79 / 79 / 258 / 4
+  / 1.
+
+**Not yet checked on the device:** everything in HANDOVER 8.1. That includes the setup gate
+(5a), crash recovery (5b), screenshots of every page, and P4's tests 3–12. The owner's
+demonstration is not recorded here as evidence of any of them.
+
+**Next entry: P3-68.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

@@ -67,7 +67,7 @@ operational distillation) > everything else. If `CLAUDE.md` disagrees with the o
 ### 0.3 How work is done here (the pattern every session followed)
 
 1. **Read** the relevant DECISIONS entries before changing anything.
-2. **Write a design entry first** (next number: **P3-67**). It states what will be built and every
+2. **Write a design entry first** (next number: **P3-68**). It states what will be built and every
    choice the source documents leave open. Commit it before any code. For studies, the protocol and
    pass rule are fixed and committed (sometimes tagged, e.g. `p3-42-frozen`) **before** any data is
    looked at.
@@ -104,7 +104,7 @@ Before doing anything:
    - every technique rule cites a published source; no accuracy number may be attached to one;
    - never state a number that was not measured on this system;
    - never use held-out MM-Fit data without the owner's explicit approval and a frozen protocol.
-3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-67),
+3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-68),
    tests first, implement in the core, mutation-check new guard tests, run the full suite
    (HANDOVER 9.2), append a Result section, commit, push.
 4. Ask the owner before: installing anything on their phone (back up first, HANDOVER 9.4), using
@@ -742,8 +742,9 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 - **On the phone, at some point:** the live screen on both cameras; counting curls (side-on); saving
   sets; sync to the account; Health Connect; the export; one calibration (front-on curls, to be
   redone); the P3-46 build with Room v3.
-- **The build installed on the phone is P3-46's** (`app-debug.apk`, SHA-256 `e7fe84d3dee6bbd8…
-  bcb941c0e6a`, from commit `a0c7f73`). Nothing built since is installed.
+- **The build installed on the phone is P3-66's** (`app-debug.apk`, SHA-256 `e474d5f6…10e6ae`, from
+  commit `7cc2214`), installed 2026-10-07 after a verified backup (P3-67). The previous build is kept at
+  `local/backup-2026-10-07/previous-app.apk`.
 - **Built and unit-tested only, never seen on a device:** everything in P3-48 to P3-51 (the new UI,
   calendar, freezes, records, goal, achievements, reminders and notifications, rest timer, cues and
   speech, the workout generator and guided mode, charts), the sit-up trunk driver's live
@@ -1212,6 +1213,6 @@ figure can be regenerated rather than trusted.
 ---
 
 *When you finish a piece of work:*
-1. *add its entry to `docs/DECISIONS.md` (next: **P3-67**);*
+1. *add its entry to `docs/DECISIONS.md` (next: **P3-68**);*
 2. *update `docs/PROJECT_STATUS.md`'s "Next session starts here";*
 3. *update sections 7 and 8 of this file.*
