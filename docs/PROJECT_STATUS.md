@@ -20,9 +20,9 @@ read it first if you are new.*
 - **P3-72:** holds survive the app being killed.
 - **P3-74 (the owner's decision):** the six cited technique rules are shown after each set as "Form notes", with their sources and a note that their accuracy is unmeasured.
 - **P3-76:** the live skeleton draws the measured angle at its joint, per side, with the core's number, and flashes on each counted repetition. Installed on the phone (P3-77).
-- **The latest build is on the phone (P3-73).** Data verified intact: 103 sessions, 364
-  repetitions, 6 holds, 1 baseline.
-- **Code is finished** for everything buildable without the phone: 3,195 test executions, 0 failed.
+- **The latest build is on the phone (P3-77).** Data verified intact (P3-73: 103 sessions, 364
+  repetitions, 6 holds, 1 baseline; database unchanged since).
+- **Code is finished** for everything buildable without the phone: 3,261 test executions, 0 failed (P3-76).
 - **The report is drafted** in `docs/report/`.
 - **Owed:**
   - one phone session (HANDOVER 8.1, items 5a–5c and P4's tests);
