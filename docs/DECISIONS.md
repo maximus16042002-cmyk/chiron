@@ -12978,6 +12978,68 @@ empty sets.
 
 ---
 
+## P3-74 — The owner turns the cited technique rules on: "Form notes" on the set summary
+
+*2026-10-11. Written before the code. The owner's decision on HANDOVER 8.2 item 12, made in
+writing: "i think we should do it or else the app loses its meaning...litrally doesnt check
+form". It is taken **before** the phone's side-on check that P3-43 and P3-46 asked for. The owner
+accepts that risk, and it is stated here and in the report.*
+
+### What is shown
+
+**Layer 2's six cited rules (P3-43, P3-44), for Tier A exercises only, appear once per set as a
+"Form notes" card on the set summary.** For each rule that fired, the card shows:
+- how many of the set's repetitions it fired on ("2 of 5 repetitions");
+- the first such repetition's sentence, composed in the core. It is a measurement and a guideline
+  ("…about 132°. ACE presses until the arms are fully extended at the elbows; Chiron says so only
+  below 160°");
+- its source, verbatim.
+
+**A footnote on the card:** "From published exercise guidelines. How often these notes agree with
+a coach's judgement has not been measured."
+
+**Nothing is said during a set,** and nothing on a set with no note.
+
+### What stays off
+
+- **Layer 1** (P3-42: failed its held-out test).
+- **The ACSM tempo message** (P3-30: it fired on 93–100% of MM-Fit curls).
+- **The exercise verifier** (P3-59).
+- **Layer 4** (P3-38).
+
+The card selects the six rules **by fault id**, so a finding of any other kind (the ACSM rule is
+also a `TechniqueFault`, and Layer 1's findings are `Deviation`s) cannot reach it.
+
+### Where it lives
+
+- **`PostRepAnalysis`** runs `TechniqueRules` again for profiles with a Tier A authority (P3-53's
+  wiring, taken out in P3-59). The claim-level types already make it impossible for a Tier B or
+  C profile.
+- **The grouping is analysis, so it is in the core:** `FormNotes.of(results)`. The app only draws
+  it.
+
+### Tests first
+
+- **`PostRepAnalysisTest`:**
+  - P3-59's guard ("a repetition that breaks a Layer 2 rule carries no technique fault") is
+    replaced by its opposite for Tier A;
+  - a new guard says a Tier B profile never carries one;
+  - the verifier guard stays.
+- **`FormNotesTest`:**
+  - notes group by rule, in a fixed order, with counts;
+  - the ACSM fault and every `Deviation` are excluded;
+  - a set with no rule firing gives no notes.
+
+### The risk accepted
+
+- **The rules have not been checked side-on on the phone.** P3-46 found MM-Fit's push-up "sag"
+  implausible (51° for one person), and MM-Fit's curls are face-on.
+- **If a rule fires on the owner's good repetitions,** its 20° tolerance or the view is wrong, and
+  that rule is the first thing to revisit.
+- **No accuracy is claimed** (CLAUDE.md §12a).
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

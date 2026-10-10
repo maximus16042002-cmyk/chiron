@@ -172,32 +172,39 @@ class PostRepAnalysisTest {
     }
 
     /**
-     * P3-42 and P3-59: the set summary shows measurements only. Layer 2's cited rules wait for
-     * the phone's side-on check (P3-43) and the owner's decision, so the post-rep analysis does
-     * not run them. This lateral raise breaks the raise rule and must still carry no fault.
+     * DECISIONS.md P3-74, the owner's decision: Layer 2's cited rules run on the post-rep path again,
+     * for Tier A. This lateral raise breaks the raise rule, and its result carries the fault with
+     * its source.
      */
     @Test
-    fun a_repetition_that_breaks_a_layer_two_rule_carries_no_technique_fault() {
+    fun a_tier_a_repetition_that_breaks_a_layer_two_rule_carries_its_cited_fault() {
         val raise = ExerciseLibrary.lateralRaise
-        val aboveShoulder = RepRecord(
-            repIndex = 1,
-            attributedSide = null,
-            startMs = 0.0,
-            endMs = 2_000.0,
-            validity = RepValidity.VALID,
-            rangeOfMotion = BilateralSignal(104.0, 78.0),
-            peakValue = BilateralSignal(20.0, 22.0),
-            troughValue = BilateralSignal(124.0, 100.0),
-            descentMs = 1_000.0,
-            ascentMs = 1_000.0,
-            resampledLeft = DoubleArray(64) { 20.0 },
-            resampledRight = DoubleArray(64) { 22.0 },
-        )
-        // The rule itself fires on this repetition, so its absence below is the wiring's doing.
-        assertTrue(TechniqueRules.evaluate(raise.techniqueAuthority, raise, aboveShoulder).isNotEmpty())
-        val findings = PostRepAnalysis.analyse(raise, aboveShoulder, null).findings
-        assertTrue(findings.none { it is TechniqueFault }, "a Layer 2 fault reached the result: " + findings)
+        val findings = PostRepAnalysis.analyse(raise, aboveShoulder(), null).findings
+        val fault = findings.filterIsInstance<TechniqueFault>().single { it.faultId == TechniqueRules.RAISED_ABOVE_SHOULDER_LEVEL }
+        assertEquals(TechniqueRules.SOURCE_LATERAL_RAISE, fault.sourceRef)
     }
+
+    /** The same movement under a Tier B profile (the seated shoulder press) carries no Level 3 finding. */
+    @Test
+    fun a_tier_b_repetition_never_carries_a_technique_fault() {
+        val findings = PostRepAnalysis.analyse(ExerciseLibrary.shoulderPress, aboveShoulder(), null).findings
+        assertTrue(findings.none { it is TechniqueFault }, "a Tier B result carried a Level 3 finding: $findings")
+    }
+
+    private fun aboveShoulder() = RepRecord(
+        repIndex = 1,
+        attributedSide = null,
+        startMs = 0.0,
+        endMs = 2_000.0,
+        validity = RepValidity.VALID,
+        rangeOfMotion = BilateralSignal(104.0, 78.0),
+        peakValue = BilateralSignal(20.0, 22.0),
+        troughValue = BilateralSignal(124.0, 100.0),
+        descentMs = 1_000.0,
+        ascentMs = 1_000.0,
+        resampledLeft = DoubleArray(64) { 20.0 },
+        resampledRight = DoubleArray(64) { 22.0 },
+    )
 
     /**
      * P3-59: the exercise verifier is built and evaluated, and wired to nothing. A push-up's

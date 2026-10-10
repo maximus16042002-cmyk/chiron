@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import com.kinesis.core.analysis.calibration.CalibrationGuide
 import com.kinesis.core.analysis.calibration.CalibrationOutcome
 import com.kinesis.core.analysis.speed.LiftingSpeed
+import com.kinesis.core.analysis.technique.FormNote
+import com.kinesis.core.analysis.technique.FormNotes
 import com.kinesis.core.analysis.speed.RepetitionSpeed
 import com.kinesis.core.analysis.speed.SetSpeedSummary
 import com.kinesis.core.analysis.profile.ExerciseVariant
@@ -333,6 +335,8 @@ fun SetSummaryScreen(
     val set = session.sets.single()
     val reps = (set as? RepetitionSetRecord)?.reps.orEmpty().associateBy { it.repIndex }
     val holds = (set as? HoldSetRecord)?.holds.orEmpty()
+    // Layer 2's cited rules, once per set - DECISIONS.md P3-74. Grouped in the core.
+    val formNotes = remember(results) { FormNotes.of(results.filterIsInstance<RepetitionAnalysisResult>()) }
     val speeds = remember(profile, set) {
         if (set is RepetitionSetRecord && profile is RepetitionExercise) LiftingSpeed.summarise(profile, set.reps) else null
     }
@@ -380,6 +384,9 @@ fun SetSummaryScreen(
         }
         if (speeds != null && speeds.repetitions.any { it.speed.left.isFinite() || it.speed.right.isFinite() }) {
             item { SpeedCard(speeds) }
+        }
+        if (formNotes.isNotEmpty()) {
+            item { FormNotesCard(formNotes) }
         }
         items(results) { result ->
             when (result) {
@@ -470,6 +477,32 @@ private fun HoldRow(result: HoldAnalysisResult, hold: HoldRecord?) {
             Beside("Sway", comparison.sway, ::degrees)
             Beside("Held for", comparison.heldMs, ::seconds)
         }
+    }
+}
+
+/**
+ * Form notes - DECISIONS.md P3-74: each cited rule that fired in the set, how often, its first
+ * sentence and its source. Every word is the core's; the card only lays them out.
+ */
+@Composable
+private fun FormNotesCard(notes: List<FormNote>) {
+    KCard {
+        Text("Form notes", style = MaterialTheme.typography.titleMedium, color = Ink)
+        for (note in notes) {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                note.repetitionsFlagged.toString() + " of " + note.repetitionsJudged +
+                    if (note.repetitionsJudged == 1) " repetition" else " repetitions",
+                style = MaterialTheme.typography.labelLarge,
+                color = Attention,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(note.example, style = MaterialTheme.typography.bodySmall, color = Ink)
+            Spacer(Modifier.height(2.dp))
+            Text("Source: " + note.sourceRef, style = MaterialTheme.typography.labelSmall, color = InkSecondary)
+        }
+        Spacer(Modifier.height(10.dp))
+        Note(FormNotes.FOOTNOTE)
     }
 }
 

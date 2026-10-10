@@ -5,6 +5,7 @@ import com.kinesis.core.analysis.deviation.DeviationRules
 import com.kinesis.core.analysis.profile.ExerciseVariant
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.profile.RepetitionExercise
+import com.kinesis.core.analysis.technique.TechniqueRules
 import com.kinesis.core.domain.finding.Finding
 import com.kinesis.core.domain.profile.TechniqueAuthority
 import com.kinesis.core.domain.profile.TierAProfile
@@ -32,10 +33,10 @@ import com.kinesis.core.domain.rep.RepRecord
  * Each finding is composed in the core with its own rule version. A hold gets
  * the comparison and no finding.
  *
- * **Not called here, on purpose:** Layer 2's cited rules (`TechniqueRules`) and the exercise
- * verifier. Both are built, tested and wired to nothing - Layer 2 waits for the phone's side-on
- * check and the owner's decision, the verifier failed on new people (DECISIONS.md P3-42, P3-59).
- * The app's set summary shows measurements only, so none of these findings reach the screen.
+ * **Layer 2's cited rules (`TechniqueRules`) run here for Tier A** since DECISIONS.md P3-74, the
+ * owner's decision; the set summary shows them once per set through `FormNotes`. **Not called
+ * here, on purpose:** the exercise verifier, which failed on new people (P3-59). Layer 1's
+ * deviations and the ACSM message are computed and never shown (P3-42, P3-30).
  *
  * Because the result is computed from the record and the baseline rather than
  * stored with the record, analysing an old repetition again after the baseline
@@ -57,7 +58,12 @@ object PostRepAnalysis {
         requireOwnBaseline(profile, baseline)
         val findings = ArrayList<Finding>()
         if (baseline != null) findings += DeviationRules.evaluate(profile, rep, baseline)
-        techniqueAuthorityOf(profile)?.let { authority -> AcsmTempoRule.evaluate(authority, profile, rep)?.let { findings += it } }
+        techniqueAuthorityOf(profile)?.let { authority ->
+            AcsmTempoRule.evaluate(authority, profile, rep)?.let { findings += it }
+            // Layer 2's cited rules, on the owner's decision - DECISIONS.md P3-74. Shown once per
+            // set through FormNotes, which leaves the ACSM message above out.
+            findings += TechniqueRules.evaluate(authority, profile, rep)
+        }
         val comparison = baseline?.let {
             val timingSide = timingSideOf(rep)
             val descent = if (timingSide == null) it.descentMs.perRepetition else it.descentMs.perSide.on(timingSide)
