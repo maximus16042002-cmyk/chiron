@@ -13067,6 +13067,21 @@ also a `TechniqueFault`, and Layer 1's findings are `Deviation`s) cannot reach i
 
 ---
 
+## P3-75 — The P3-74 build installed on the owner's phone
+
+*2026-10-11.*
+
+- **Backup** to `local/backup-2026-10-11c/` (not in git), with `SHA256SUMS.txt`.
+  - `kinesis.db`'s hash on the phone and in the copy are identical (`ca9bbd6b…5cfcd`), unchanged.
+- **The install:** `adb install -r` of the debug APK built from `750f280`, SHA-256
+  `71f167e8…8fd612b`. Result: "Success".
+- **After launch:** a cold launch took 3,796 ms, the process kept running, and the crash buffer was
+  empty.
+
+**Next entry: P3-76.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
