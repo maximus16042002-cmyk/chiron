@@ -121,8 +121,10 @@ class LiveSetSaverTest {
         assertEquals("the set never reached local storage", 1, local.saved.size)
         val set = local.saved.single().sets.single() as RepetitionSetRecord
         assertEquals("squat", set.exerciseId)
+        // The near-side squat (DECISIONS.md P3-68): the unfinished squat is reported once per knee
+        // still under way, and counted by neither.
         assertEquals(
-            listOf(RepValidity.VALID, RepValidity.VALID, RepValidity.INCOMPLETE),
+            listOf(RepValidity.VALID, RepValidity.VALID, RepValidity.INCOMPLETE, RepValidity.INCOMPLETE),
             set.reps.map { it.validity },
         )
         assertEquals(2, set.completedUnits)

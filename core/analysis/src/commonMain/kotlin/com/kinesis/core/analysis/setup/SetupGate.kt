@@ -20,6 +20,12 @@ import com.kinesis.core.domain.profile.ExerciseProfile
 class SetupGate(
     val profile: ExerciseProfile,
     val policy: VisibilityPolicy = VisibilityPolicy.PROVISIONAL,
+    /**
+     * Whether the caller acts on [isScoringBlocked]. When it does not, [message] gives each
+     * verdict's [SetupVerdict.adviceMessage], which never says counting is paused - DECISIONS.md
+     * P3-68.
+     */
+    val blocks: Boolean = true,
 ) {
     /** This frame's verdict, undebounced. Diagnostic; the screen reads [message]. */
     var latestVerdict: SetupVerdict = SetupVerdict.NoPerson
@@ -63,7 +69,11 @@ class SetupGate(
             if (clearFrames >= OPEN_FRAMES) isScoringBlocked = false
         }
 
-        val said = if (verdict === SetupVerdict.Ready) null else verdict.coachingMessage
+        val said = when {
+            verdict === SetupVerdict.Ready -> null
+            blocks -> verdict.coachingMessage
+            else -> verdict.adviceMessage
+        }
         if (said == candidate) {
             candidateFrames++
         } else {

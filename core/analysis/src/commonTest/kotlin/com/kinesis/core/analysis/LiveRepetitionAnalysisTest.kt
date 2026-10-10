@@ -61,14 +61,19 @@ class LiveRepetitionAnalysisTest {
     fun validity_is_judged_against_the_profiles_required_landmarks() {
         val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.squat)
 
-        analysis.feed(body(visibilityOf = mapOf(LandmarkId.RIGHT_ANKLE to 0.55)))
+        analysis.feed(body(visibilityOf = mapOf(LandmarkId.RIGHT_HIP to 0.55)))
         assertEquals(FrameValidity.DEGRADED, analysis.frameValidity)
 
-        analysis.feed(body(visibilityOf = mapOf(LandmarkId.RIGHT_ANKLE to 0.10)))
+        analysis.feed(body(visibilityOf = mapOf(LandmarkId.RIGHT_HIP to 0.10)))
         assertEquals(FrameValidity.INVALID, analysis.frameValidity)
 
         // The wrists are not a squat's concern.
         analysis.feed(body(visibilityOf = mapOf(LandmarkId.LEFT_WRIST to 0.0)))
+        assertEquals(FrameValidity.VALID, analysis.frameValidity)
+
+        // DECISIONS.md P3-68: nor, since the squat counts its near knee, are the far knee and
+        // ankle a side-on camera often cannot see.
+        analysis.feed(body(visibilityOf = mapOf(LandmarkId.RIGHT_KNEE to 0.0, LandmarkId.RIGHT_ANKLE to 0.0)))
         assertEquals(FrameValidity.VALID, analysis.frameValidity)
     }
 
@@ -155,12 +160,12 @@ class LiveRepetitionAnalysisTest {
     /**
      * A set ends while a repetition is under way. The finished ones and the
      * unfinished one all reach the recorder, the last marked INCOMPLETE rather
-     * than dropped or counted - DECISIONS.md P3-16.
+     * than dropped or counted - DECISIONS.md P3-16. On [PairedKneeFixture], the paired path.
      */
     @Test
     fun finishing_mid_repetition_records_every_repetition_and_an_incomplete_one() {
         val records = ArrayList<RepRecord>()
-        val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.squat, onRepetition = { records += it })
+        val analysis = LiveRepetitionAnalysis(PairedKneeFixture.instance, onRepetition = { records += it })
         squat(analysis, reps = 2)
         for (step in 1..15) analysis.feed(body(knees = 170.0 - 100.0 * step / 30.0))
 
@@ -170,6 +175,26 @@ class LiveRepetitionAnalysisTest {
         assertEquals(listOf(RepValidity.VALID, RepValidity.VALID, RepValidity.INCOMPLETE), records.map { it.validity })
         assertEquals(2, analysis.repCount, "the unfinished repetition was counted")
         assertEquals(RepValidity.INCOMPLETE, analysis.lastRepValidity)
+    }
+
+    /**
+     * The near-side squat (DECISIONS.md P3-68) counts each squat once, from whichever knee
+     * completes it. An unfinished squat blocks nothing (P3-29), so each knee still under way
+     * reports its own INCOMPLETE record, as the push-up's do: two records, never a count.
+     */
+    @Test
+    fun a_near_side_squat_finished_mid_repetition_counts_only_the_completed_ones() {
+        val records = ArrayList<RepRecord>()
+        val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.squat, onRepetition = { records += it })
+        squat(analysis, reps = 2)
+        for (step in 1..15) analysis.feed(body(knees = 170.0 - 100.0 * step / 30.0))
+
+        analysis.finish(clock)
+
+        assertEquals(2, analysis.repCount, "an unfinished squat was counted, or a finished one twice")
+        assertEquals(listOf(RepValidity.VALID, RepValidity.VALID), records.take(2).map { it.validity })
+        assertEquals(List(2) { RepValidity.INCOMPLETE }, records.drop(2).map { it.validity })
+        assertTrue(records.all { it.attributedSide == null }, "a near-side squat belongs to no side")
     }
 
     @Test
@@ -234,7 +259,11 @@ class LiveRepetitionAnalysisTest {
 
         assertEquals(3, analysis.repCount)
         assertFalse(analysis.isScoringBlocked)
-        assertTrue(assertNotNull(analysis.setupMessage).contains("side", ignoreCase = true))
+        val message = assertNotNull(analysis.setupMessage)
+        assertTrue(message.contains("side", ignoreCase = true))
+        // DECISIONS.md P3-68: the app runs report-only, so the screen must not say counting is
+        // paused while it counts.
+        assertFalse(message.contains("paused", ignoreCase = true), message)
     }
 
     /** Turning away mid-repetition: the repetition in progress ends uncounted, as an occlusion would. */

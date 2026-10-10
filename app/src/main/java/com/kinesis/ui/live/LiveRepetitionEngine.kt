@@ -37,11 +37,11 @@ class LiveRepetitionEngine(
 
     @Volatile
     private var repetitionListener: ((String, List<RepRecord>) -> Unit)? = null
-    // The app blocks scoring on a wrong camera view - CLAUDE.md section 10, DECISIONS.md P3-59.
+    // A wrong camera view is reported, not blocked - DECISIONS.md P3-68, replacing P3-59.
     private val analysis = LiveRepetitionAnalysis(
         profile,
         policy,
-        setupEnforcement = SetupEnforcement.BLOCK_SCORING,
+        setupEnforcement = SetupEnforcement.REPORT_ONLY,
         onRepetition = { record ->
             reps += record
             // Post-rep, a few times a minute: a copy for the draft (P3-66).

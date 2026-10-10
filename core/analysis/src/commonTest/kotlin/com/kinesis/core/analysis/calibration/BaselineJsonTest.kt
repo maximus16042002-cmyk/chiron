@@ -1,5 +1,6 @@
 package com.kinesis.core.analysis.calibration
 
+import com.kinesis.core.analysis.PairedKneeFixture
 import com.kinesis.core.analysis.calibration.CalibrationFixtures.oneSided
 import com.kinesis.core.analysis.calibration.CalibrationFixtures.paired
 import com.kinesis.core.analysis.profile.ExerciseLibrary
@@ -26,6 +27,11 @@ class BaselineJsonTest {
 
     private fun squatBaseline() = assertIs<RepetitionBaseline>(
         calibrated(Calibration.fromRepetitions(ExerciseLibrary.squat, (0 until 8).map { paired(it + 1, 100.0 + it, 90.0 + it) }, 1_234.5, "session-1")),
+    )
+
+    // The paired squat as it was until DECISIONS.md P3-68: the shipped squat no longer pairs.
+    private fun pairedBaseline() = assertIs<RepetitionBaseline>(
+        calibrated(Calibration.fromRepetitions(PairedKneeFixture.instance, (0 until 8).map { paired(it + 1, 100.0 + it, 90.0 + it) }, 1_234.5, "session-1")),
     )
 
     private fun rowBaseline() = assertIs<RepetitionBaseline>(
@@ -77,7 +83,7 @@ class BaselineJsonTest {
 
     @Test
     fun all_three_kinds_of_asymmetry_survive() {
-        assertIs<AsymmetryBaseline.Paired>(BaselineJson.read(BaselineJson.write(squatBaseline())).let { (it as RepetitionBaseline).asymmetry })
+        assertIs<AsymmetryBaseline.Paired>(BaselineJson.read(BaselineJson.write(pairedBaseline())).let { (it as RepetitionBaseline).asymmetry })
         assertIs<AsymmetryBaseline.BetweenSideMedians>((BaselineJson.read(BaselineJson.write(curlBaseline())) as RepetitionBaseline).asymmetry)
         assertEquals(AsymmetryBaseline.NotMeasurable, (BaselineJson.read(BaselineJson.write(rowBaseline())) as RepetitionBaseline).asymmetry)
     }

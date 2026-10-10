@@ -157,17 +157,20 @@ class ViewAndSideContractTest {
      * sit-up to near-side-only: on MM-Fit their far side was measurable in 42% and
      * 53% of frames, and both counted a repetition only when both sides completed
      * one - 5 of 649 push-ups and 101 of 640 sit-ups counted (P3-27).
+     *
+     * P3-68 added the squat, on the owner's decision after the phone session of 2026-10-07: side-on
+     * the far knee is often hidden behind the near leg. The goblet squat inherits it from its parent.
      */
     @Test
     fun the_near_side_only_entries_are_exactly_the_decided_ones() {
         assertEquals(
-            listOf("pushup", "row", "situp"),
+            listOf("goblet_squat", "pushup", "row", "situp", "squat"),
             repetitionProfiles
                 .filter { it.analysedSides == AnalysedSides.NEAR_SIDE_ONLY }
                 .map { it.id }
                 .sorted(),
             "a near-side-only profile gives up symmetry entirely; adding one is a " +
-                "decision that belongs in DECISIONS.md (P3-8, P3-28)",
+                "decision that belongs in DECISIONS.md (P3-8, P3-28, P3-68)",
         )
     }
 
@@ -242,6 +245,16 @@ class ViewAndSideContractTest {
         assertEquals(10, counted.count { it.validity == RepValidity.VALID }, counted.map { it.validity }.toString())
         for (record in counted) {
             assertTrue(record.rangeOfMotion.asymmetry().isNaN(), "a near-side push-up reported a symmetry number")
+        }
+    }
+
+    /** DECISIONS.md P3-68: the squat, side-on, from the near knee alone. */
+    @Test
+    fun a_side_on_squat_counts_every_repetition_from_the_near_knee_alone() {
+        val counted = run(ExerciseLibrary.squat, oneArmedTrack(reps = 10, start = 175.0, far = 78.0))
+        assertEquals(10, counted.count { it.validity == RepValidity.VALID }, counted.map { it.validity }.toString())
+        for (record in counted) {
+            assertTrue(record.rangeOfMotion.asymmetry().isNaN(), "a near-side squat reported a symmetry number")
         }
     }
 
@@ -324,19 +337,27 @@ class ViewAndSideContractTest {
      * The contrast that proves the near-side handling is not a no-op applied
      * everywhere.
      *
-     * A squat analyses both sides. Losing one knee for the whole set is a
+     * A lunge analyses both sides. Losing one knee for the whole set is a
      * *failure*, not a supported mode, and it must not quietly produce a full
-     * count as though nothing were wrong.
+     * count as though nothing were wrong. (The squat was this test's subject until
+     * DECISIONS.md P3-68 made it near-side-only.)
      */
     @Test
     fun a_both_sides_profile_does_not_report_a_full_count_from_half_a_body() {
+        val seenWhole = run(ExerciseLibrary.lunge, twoArmedTrack(reps = 10, start = 175.0, far = 78.0))
+        assertEquals(
+            10,
+            seenWhole.count { it.validity == RepValidity.VALID },
+            "with both knees seen the lunge must count all ten, or the assertion below is vacuous",
+        )
+
         val counted = run(
-            ExerciseLibrary.squat,
-            oneArmedTrack(reps = 10, start = 168.0, far = 78.0),
+            ExerciseLibrary.lunge,
+            oneArmedTrack(reps = 10, start = 175.0, far = 78.0),
         )
         assertFalse(
             counted.count { it.validity == RepValidity.VALID } == 10,
-            "a squat with one knee invisible for the whole set reported a full count, " +
+            "a lunge with one knee invisible for the whole set reported a full count, " +
                 "which would hide the failure rather than surface it",
         )
     }

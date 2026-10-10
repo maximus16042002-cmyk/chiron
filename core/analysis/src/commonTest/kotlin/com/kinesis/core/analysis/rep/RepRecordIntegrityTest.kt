@@ -1,6 +1,6 @@
 package com.kinesis.core.analysis.rep
 
-import com.kinesis.core.analysis.profile.ArchetypeProfiles
+import com.kinesis.core.analysis.PairedKneeFixture
 import com.kinesis.core.domain.landmark.LandmarkId
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
@@ -28,7 +28,9 @@ import kotlin.test.assertTrue
  */
 class RepRecordIntegrityTest {
 
-    private val squat = ArchetypeProfiles.squat
+    // The paired squat as it was until DECISIONS.md P3-68: this guard is on the paired path, which
+    // the shipped squat no longer takes and the lateral raise, glute bridge and others still do.
+    private val squat = PairedKneeFixture.instance
     private val frameMs = 33.0
 
     private class Track {

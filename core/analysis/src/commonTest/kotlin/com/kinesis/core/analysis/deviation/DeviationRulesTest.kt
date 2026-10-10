@@ -1,5 +1,6 @@
 package com.kinesis.core.analysis.deviation
 
+import com.kinesis.core.analysis.PairedKneeFixture
 import com.kinesis.core.analysis.calibration.Calibration
 import com.kinesis.core.analysis.calibration.CalibrationFixtures.TOP_LEFT
 import com.kinesis.core.analysis.calibration.CalibrationFixtures.TOP_RIGHT
@@ -44,6 +45,10 @@ class DeviationRulesTest {
      * right always 10.
      */
     private val squatBaseline by lazy { baseline(squat, (0 until 8).map { paired(it + 1, 100.0 + it, 90.0 + it) }) }
+
+    // The paired squat as it was until DECISIONS.md P3-68, for the paired asymmetry rule.
+    private val pairedKnee = PairedKneeFixture.instance
+    private val pairedBaseline by lazy { baseline(pairedKnee, (0 until 8).map { paired(it + 1, 100.0 + it, 90.0 + it) }) }
 
     /** Left arm 0.9 s bending, 0.7 s straightening; right arm 1.2 s and 1.0 s. No spread: the floor rules. */
     private val curlBaseline by lazy {
@@ -136,16 +141,16 @@ class DeviationRulesTest {
     @Test
     fun paired_asymmetry_is_judged_against_the_habitual_offset() {
         // Left minus right 18.5 against a habitual 10 with no spread: (18.5 - 10) / 3 = 2.83.
-        val deviations = DeviationRules.deviations(squat, paired(9, 103.5, 85.0), squatBaseline)
+        val deviations = DeviationRules.deviations(pairedKnee, paired(9, 103.5, 85.0), pairedBaseline)
         assertEquals(8.5 / 3.0, deviations.asymmetry, 1e-12)
-        val asymmetry = DeviationRules.evaluate(squat, paired(9, 103.5, 85.0), squatBaseline).filter { it.metric == "asymmetry_lr" }
+        val asymmetry = DeviationRules.evaluate(pairedKnee, paired(9, 103.5, 85.0), pairedBaseline).filter { it.metric == "asymmetry_lr" }
         assertEquals(DeviationDirection.ABOVE_BASELINE, asymmetry.single().direction)
     }
 
     @Test
     fun a_habitual_difference_between_the_sides_is_not_an_asymmetry_finding() {
         // Left minus right is 10, exactly the habitual offset.
-        assertEquals(0.0, DeviationRules.deviations(squat, paired(9, 103.5, 93.5), squatBaseline).asymmetry, 1e-12)
+        assertEquals(0.0, DeviationRules.deviations(pairedKnee, paired(9, 103.5, 93.5), pairedBaseline).asymmetry, 1e-12)
     }
 
     @Test

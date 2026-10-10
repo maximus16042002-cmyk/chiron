@@ -1,5 +1,6 @@
 package com.kinesis.core.analysis.calibration
 
+import com.kinesis.core.analysis.PairedKneeFixture
 import com.kinesis.core.analysis.calibration.CalibrationFixtures.hold
 import com.kinesis.core.analysis.calibration.CalibrationFixtures.oneSided
 import com.kinesis.core.analysis.calibration.CalibrationFixtures.paired
@@ -43,6 +44,10 @@ class PostRepAnalysisTest {
         )
 
     private val squatBaseline by lazy { baseline(squat, (0 until 8).map { paired(it + 1, 100.0 + it, 90.0 + it) }) }
+
+    // The paired squat as it was until DECISIONS.md P3-68, for the paired asymmetry rule.
+    private val pairedKnee = PairedKneeFixture.instance
+    private val pairedBaseline by lazy { baseline(pairedKnee, (0 until 8).map { paired(it + 1, 100.0 + it, 90.0 + it) }) }
 
     private val curlBaseline by lazy {
         baseline(
@@ -161,7 +166,7 @@ class PostRepAnalysisTest {
     @Test
     fun a_repetition_unlike_its_baseline_carries_layer_ones_findings() {
         // Left 8.5° short of its usual: shallower, and left-minus-right 8.5° off its habitual 10.
-        val findings = PostRepAnalysis.analyse(squat, paired(9, 95.0, 93.5), squatBaseline).findings
+        val findings = PostRepAnalysis.analyse(pairedKnee, paired(9, 95.0, 93.5), pairedBaseline).findings
         assertEquals(setOf("rom_left", "asymmetry_lr"), findings.map { (it as Deviation).metric }.toSet())
         assertEquals("p8-layer1-1", PostRepAnalysis.VERSION)
     }

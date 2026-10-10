@@ -67,7 +67,7 @@ operational distillation) > everything else. If `CLAUDE.md` disagrees with the o
 ### 0.3 How work is done here (the pattern every session followed)
 
 1. **Read** the relevant DECISIONS entries before changing anything.
-2. **Write a design entry first** (next number: **P3-68**). It states what will be built and every
+2. **Write a design entry first** (next number: **P3-69**). It states what will be built and every
    choice the source documents leave open. Commit it before any code. For studies, the protocol and
    pass rule are fixed and committed (sometimes tagged, e.g. `p3-42-frozen`) **before** any data is
    looked at.
@@ -104,7 +104,7 @@ Before doing anything:
    - every technique rule cites a published source; no accuracy number may be attached to one;
    - never state a number that was not measured on this system;
    - never use held-out MM-Fit data without the owner's explicit approval and a frozen protocol.
-3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-68),
+3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-69),
    tests first, implement in the core, mutation-check new guard tests, run the full suite
    (HANDOVER 9.2), append a Result section, commit, push.
 4. Ask the owner before: installing anything on their phone (back up first, HANDOVER 9.4), using
@@ -754,8 +754,8 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 
 ### 7.3 Tests
 
-- **The last full run (P3-66, 2026-10-05):** **3,137 test executions, 0 failed, 0 skipped.** By
-  module and target: `core/analysis` 628 JVM (+5 allocation), 617 JS, 617 debug, 617 release;
+- **The last full run (P3-68, 2026-10-11):** **3,161 test executions, 0 failed, 0 skipped.** By
+  module and target: `core/analysis` 634 JVM (+5 allocation), 623 JS, 623 debug, 623 release;
   `core/domain` 40 on each of the four; `:app` 240 debug and 228 release; `tools/mmfit-eval` 25.
   Python tests (`test_subjects.py`, `test_anomaly_study.py`) are separate.
 - **The command:** section 9.2.
@@ -812,7 +812,7 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 |---|---|---|
 | 1 | **The calibration count.** 5–8 valid repetitions per side now; the convergence study says about 12–20 | P3-30 S4, P3-40, P3-42 |
 | 2 | **The push-up personal start zone:** adopt or not (the sit-up's was retired with the trunk driver) | P3-29, P3-30 |
-| 3 | **Squats side-on:** count the near knee only (as the row does), use an angled camera, or accept squats as untested. The far knee is often untracked side-on, and a squat counts only when both knees complete | P3-23 "For the owner" item 1; still untouched (P3-29, P3-30) |
+| 3 | ~~Squats side-on~~ **Decided P3-68: the near knee counts.** Originally: **Squats side-on:** count the near knee only (as the row does), use an angled camera, or accept squats as untested. The far knee is often untracked side-on, and a squat counts only when both knees complete | P3-23 "For the owner" item 1; still untouched (P3-29, P3-30) |
 | 4 | **A low frame rate:** a gate weighted by time, or a warning | P3-56 built a warning below 12 results a second (the Antigravity agent's choice, not the owner's); a gate is still open |
 | 5 | ~~The AGP 8.9.1 and compileSdk 36 batch~~ **Done in P3-61** (stable Health Connect 1.1.0; lint runs again). **Still open: targetSdk 36**, which changes Android 16's run-time behaviour and needs the phone | P3-19, P3-21 ("its own small batch, later") |
 | 6 | **Per-side tempo for simultaneous exercises** (squat, push-up…): needs `RepRecord` to keep each side's phase times, a change touching Room, sync and the golden file | P3-22 |
@@ -1213,6 +1213,6 @@ figure can be regenerated rather than trusted.
 ---
 
 *When you finish a piece of work:*
-1. *add its entry to `docs/DECISIONS.md` (next: **P3-68**);*
+1. *add its entry to `docs/DECISIONS.md` (next: **P3-69**);*
 2. *update `docs/PROJECT_STATUS.md`'s "Next session starts here";*
 3. *update sections 7 and 8 of this file.*

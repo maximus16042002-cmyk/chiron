@@ -202,16 +202,36 @@ class ArchetypeProfileTest {
             counted.all { it.attributedSide == null },
             "a simultaneous repetition belongs to no single side",
         )
+        assertEquals(6, tracker.repetitionCount)
+    }
+
+    /**
+     * DECISIONS.md P3-68: side-on, the far knee is often hidden behind the near leg. Each squat
+     * the near knee completes counts, and with one side unmeasured no left-right difference exists.
+     */
+    @Test
+    fun a_squat_counts_from_the_near_knee_when_the_far_knee_is_never_seen() {
+        val tracker = BilateralRepTracker(ArchetypeProfiles.squat)
+        val counted = ArrayList<RepRecord>()
+        for ((timestamp, frame) in squatTrack(reps = 4, hideRight = true)) {
+            tracker.onFrame(timestamp, frame, policy) { counted += it }
+        }
+
+        assertEquals(4, tracker.repetitionCount, "a hidden far knee must not stop the count")
+        assertEquals(List(4) { RepValidity.VALID }, counted.map { it.validity })
+        assertTrue(counted.all { it.rangeOfMotion.right.isNaN() }, "the unseen knee was given a value")
+        assertTrue(counted.all { it.rangeOfMotion.asymmetry().isNaN() }, "a one-sided squat claimed a symmetry")
     }
 
     /**
      * A simultaneous repetition still carries both sides separately, which is
      * what makes asymmetry measurable at all. Here the left knee is deliberately
-     * shallower than the right.
+     * shallower than the right. On [PairedKneeFixture]: the shipped squat counts the near knee only
+     * since DECISIONS.md P3-68, and claims no asymmetry.
      */
     @Test
     fun a_simultaneous_repetition_keeps_the_two_sides_separately_attributable() {
-        val tracker = BilateralRepTracker(ArchetypeProfiles.squat)
+        val tracker = BilateralRepTracker(PairedKneeFixture.instance)
         val counted = ArrayList<RepRecord>()
         for ((timestamp, frame) in squatTrack(reps = 3, leftBottom = 95.0, rightBottom = 70.0)) {
             tracker.onFrame(timestamp, frame, policy) { counted += it }
@@ -232,7 +252,7 @@ class ArchetypeProfileTest {
 
     @Test
     fun a_simultaneous_repetition_flushes_pending_slots_when_overwritten() {
-        val tracker = BilateralRepTracker(ArchetypeProfiles.squat)
+        val tracker = BilateralRepTracker(PairedKneeFixture.instance)
         val counted = ArrayList<RepRecord>()
         
         val frames = ArrayList<Pair<Double, Landmarks>>()
@@ -282,11 +302,12 @@ class ArchetypeProfileTest {
      * A squat still under way when the set ends is INCOMPLETE on both knees, and
      * the paired repetition must say so. It used to be reported ABORTED - "turned
      * back before reaching depth" - which is a claim about the movement the
-     * system never observed. DECISIONS.md P3-16.
+     * system never observed. DECISIONS.md P3-16. On [PairedKneeFixture], the paired path the squat
+     * used until P3-68.
      */
     @Test
     fun a_simultaneous_repetition_unfinished_when_the_set_ends_is_incomplete_not_aborted() {
-        val tracker = BilateralRepTracker(ArchetypeProfiles.squat)
+        val tracker = BilateralRepTracker(PairedKneeFixture.instance)
         val counted = ArrayList<RepRecord>()
         val frames = squatTrack(reps = 1)
         for ((timestamp, frame) in frames) tracker.onFrame(timestamp, frame, policy) { counted += it }
@@ -363,11 +384,12 @@ class ArchetypeProfileTest {
         reps: Int,
         leftBottom: Double = 70.0,
         rightBottom: Double = 70.0,
+        hideRight: Boolean = false,
     ): List<Pair<Double, Landmarks>> {
         val frames = ArrayList<Pair<Double, Landmarks>>()
         var index = 0
         fun emit(leftKnee: Double, rightKnee: Double) {
-            frames += (index * frameMs) to legFrame(leftKnee, rightKnee)
+            frames += (index * frameMs) to legFrame(leftKnee, rightKnee, hideRight)
             index++
         }
 
@@ -419,14 +441,16 @@ class ArchetypeProfileTest {
     }
 
     /** As [armFrame], for hip-knee-ankle. */
-    private fun legFrame(leftKneeDeg: Double, rightKneeDeg: Double): Landmarks {
+    private fun legFrame(leftKneeDeg: Double, rightKneeDeg: Double, hideRight: Boolean = false): Landmarks {
         val packed = DoubleArray(Landmarks.PACKED_SIZE)
         fun put(id: LandmarkId, x: Double, y: Double) {
             val base = id.index * Landmarks.STRIDE
             packed[base] = x
             packed[base + 1] = y
             packed[base + 2] = 0.0
-            packed[base + 3] = 0.95
+            // A hidden far knee and ankle: present, as MediaPipe always reports, but below any floor.
+            val hidden = hideRight && (id == LandmarkId.RIGHT_KNEE || id == LandmarkId.RIGHT_ANKLE)
+            packed[base + 3] = if (hidden) 0.05 else 0.95
         }
         fun leg(hip: LandmarkId, knee: LandmarkId, ankle: LandmarkId, x: Double, deg: Double) {
             put(hip, x, 0.50)

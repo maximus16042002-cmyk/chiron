@@ -12670,6 +12670,80 @@ demonstration is not recorded here as evidence of any of them.
 
 ---
 
+## P3-68 — The demonstration day: the view gate advises, and the squat counts its near knee
+
+*2026-10-07, recorded 2026-10-11. Two changes made on the phone during the owner's demonstration
+to their teacher, then rebuilt as proper code with tests. The owner's words: "bro its not
+counting", then "i wanna do squats", side-on.*
+
+### What happened on the phone (P3-67's build)
+
+The database after the first attempts (`local/p4-2026-10-07/`, not in git):
+- **16:38, two squat sets with no record at all.** P3-59's gate blocked scoring.
+- **16:40, a squat set of three records, none counted.**
+  - The first was a full squat on both knees (range 119° left, 132° right) ending as
+    `INSUFFICIENT_DATA`: the gate closed mid-repetition.
+  - The next two had only the right (near) knee measured (17° and 26° of range).
+- The owner reported the far side's joints drawn dim side-on, which is the skeleton correctly
+  showing them unseen.
+
+**So P3-59's gate, unmeasured on the phone, misjudged the owner's real side-on setup,** which is
+exactly the risk P3-59 wrote down. And the squat, which counted only when both knees completed,
+lost most squats to the far knee hiding behind the near leg: P3-23's open question 1, now
+answered by the owner.
+
+### Decided
+
+1. **A wrong camera view is reported, not blocked (`SetupEnforcement.REPORT_ONLY` in both app
+   engines).**
+   - The message no longer says "counting paused" while counting continues. `SetupVerdict` gains
+     `adviceMessage` ("Turn side-on to the camera"), which `SetupGate` shows when it does not
+     block.
+   - **This departs from CLAUDE.md §10's MUST** ("block scoring … rather than produce confident
+     nonsense") until the view estimator is measured on the phone. The blocking path stays built
+     and tested, so turning it back on is a one-line change once its thresholds are trusted.
+2. **The squat counts the near knee (`AnalysedSides.NEAR_SIDE_ONLY`),** as the push-up, sit-up
+   and row do.
+   - Its required landmarks become the torso (both shoulders and hips), as for those profiles, so
+     an unseen far knee no longer invalidates the frame.
+   - No left–right comparison is claimed for the squat from now on. The goblet squat inherits all
+     of this.
+
+### Tests
+
+- `ViewAndSideContractTest`:
+  - the near-side list now includes `squat` and `goblet_squat`;
+  - a new test counts 10 of 10 side-on squats from one knee, with no symmetry number;
+  - the "half a body is not a full count" guard moves from the squat to the lunge, which still
+    pairs, and is checked non-vacuous.
+- `EngineParity`:
+  - the squat scenario now runs the near-side path;
+  - a new `pairedLunge` scenario keeps the paired path's JVM/JS parity, which the squat used to
+    carry;
+  - the golden file was regenerated from the JVM and passes on JS.
+- `SetupGateTest`: the advice message never says "paused" when not blocking.
+- Other tests that used the squat as their paired example were moved to `PairedKneeFixture`.
+
+**Mutation checks, 2 of 2 caught:** the squat set back to both sides; the advice message replaced
+by the blocking one.
+
+**The full suite:** 3,161 test executions, 0 failed (`core/analysis` 634 JVM, 623 JS, 623 debug,
+623 release; `:app` 240 debug and 228 release).
+
+### Owed
+
+- **On the phone:**
+  - five slow side-on squats should count five;
+  - the view advice should appear when facing the camera, and counting should continue.
+- **Before the gate ever blocks again,** measure `CameraViewEstimator`'s ratio on the owner's real
+  side-on and front-on setups.
+- **MM-Fit:** its squats are filmed face-on and were never part of the counting study (P3-27), so
+  no recorded figure changes.
+
+**Next entry: P3-69.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

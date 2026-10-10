@@ -8,6 +8,7 @@ import com.kinesis.core.domain.landmark.VisibilityPolicy
 import com.kinesis.core.domain.rep.MovementPhase
 import com.kinesis.ui.theme.OverlayState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.PI
@@ -100,15 +101,18 @@ class LiveRepetitionEngineTest {
     }
 
     /**
-     * DECISIONS.md P3-59: the app's engine blocks scoring on a wrong camera view (CLAUDE.md
-     * section 10), and the screen is told why. A squat must be filmed side-on.
+     * DECISIONS.md P3-68, replacing P3-59's blocking: the app reports a wrong camera view and
+     * keeps counting. The screen says which view the exercise wants, and never that counting is
+     * paused while it counts. A squat must be filmed side-on.
      */
     @Test
-    fun a_squat_filmed_front_on_is_not_counted_and_the_screen_says_why() {
+    fun a_squat_filmed_front_on_is_counted_and_the_screen_names_the_view() {
         squatSet(reps = 3, halfSpan = FRONT_ON)
 
-        assertEquals(0, published.last().repCount)
-        assertTrue(published.last().setupMessage!!.contains("paused"))
+        assertEquals(3, published.last().repCount)
+        val message = published.last().setupMessage!!
+        assertTrue(message, message.contains("side-on"))
+        assertFalse(message, message.contains("paused"))
     }
 
     /**

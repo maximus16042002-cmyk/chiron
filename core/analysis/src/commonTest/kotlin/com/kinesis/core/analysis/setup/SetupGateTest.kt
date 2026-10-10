@@ -103,6 +103,19 @@ class SetupGateTest {
         assertTrue(gate.message!!.contains("paused"))
     }
 
+    /**
+     * DECISIONS.md P3-68: a gate whose caller does not block - the app's, since P3-68 - names the
+     * view it wants and never claims that counting is paused.
+     */
+    @Test
+    fun a_gate_that_does_not_block_names_the_view_without_saying_counting_is_paused() {
+        val gate = SetupGate(squat, blocks = false)
+        repeat(10) { gate.onFrame(sideOn) }
+        repeat(15) { gate.onFrame(frontOn) }
+        assertEquals("Turn side-on to the camera", gate.message)
+        assertFalse(gate.message!!.contains("paused"))
+    }
+
     @Test
     fun reset_blocks_again_and_says_nobody_is_in_shot() {
         val gate = SetupGate(squat)

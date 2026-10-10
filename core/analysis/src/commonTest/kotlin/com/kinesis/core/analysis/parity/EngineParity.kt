@@ -54,8 +54,17 @@ object EngineParity {
     private const val STANDING = 170.0
     private const val FLAT = 180.0
 
-    fun squat(): List<String> {
-        val run = Run("""{"id": "squat"}""", seed = 7)
+    /** The near-side squat since DECISIONS.md P3-68. */
+    fun squat(): List<String> = kneeSet("squat")
+
+    /**
+     * The same movements through the lunge, which still pairs its two knees: the paired path's
+     * parity, which the squat carried until DECISIONS.md P3-68.
+     */
+    fun pairedLunge(): List<String> = kneeSet("lunge")
+
+    private fun kneeSet(id: String): List<String> {
+        val run = Run("""{"id": "$id"}""", seed = 7)
         run.stand(20)
         run.squatTo(125.0) // turns back above depth: ABORTED
         run.stand(15)

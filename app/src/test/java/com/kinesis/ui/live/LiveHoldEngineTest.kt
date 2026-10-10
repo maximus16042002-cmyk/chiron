@@ -8,6 +8,7 @@ import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
 import com.kinesis.ui.theme.OverlayState
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.PI
@@ -91,18 +92,21 @@ class LiveHoldEngineTest {
     }
 
     /**
-     * DECISIONS.md P3-59: the app's hold engine blocks scoring on a wrong camera view too. A
-     * plank filmed from the head end is not credited, and the screen says why.
+     * DECISIONS.md P3-68, replacing P3-59's blocking: the hold engine reports a wrong camera view
+     * and keeps timing. A plank filmed from the head end is credited, and the screen asks for the
+     * side-on view without saying the hold is paused.
      */
     @Test
-    fun a_plank_filmed_from_the_wrong_side_is_not_held_and_the_screen_says_why() {
+    fun a_plank_filmed_from_the_wrong_side_is_held_and_the_screen_names_the_view() {
         repeat(150) {
             engine.onLandmarks(plank(178.0, spread = 0.15), clockMs)
             clockMs += 33
         }
 
-        assertEquals(0, published.last().heldSeconds)
-        assertTrue(published.last().setupMessage!!.contains("paused"))
+        assertTrue(published.last().heldSeconds > 0)
+        val message = published.last().setupMessage!!
+        assertTrue(message, message.contains("side-on"))
+        assertFalse(message, message.contains("paused"))
     }
 
     /**

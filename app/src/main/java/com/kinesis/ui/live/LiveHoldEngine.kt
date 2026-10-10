@@ -24,8 +24,8 @@ class LiveHoldEngine(
     private val probe: PhaseBProbe? = null,
 ) : LiveEngine {
 
-    // The app blocks scoring on a wrong camera view - CLAUDE.md section 10, DECISIONS.md P3-59.
-    private val analysis = LiveHoldAnalysis(profile, policy, setupEnforcement = SetupEnforcement.BLOCK_SCORING)
+    // A wrong camera view is reported, not blocked - DECISIONS.md P3-68, replacing P3-59.
+    private val analysis = LiveHoldAnalysis(profile, policy, setupEnforcement = SetupEnforcement.REPORT_ONLY)
 
     private var sawPose = false
     private var ended = false

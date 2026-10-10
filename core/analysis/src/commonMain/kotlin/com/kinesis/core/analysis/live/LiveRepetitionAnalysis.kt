@@ -64,7 +64,7 @@ class LiveRepetitionAnalysis(
 ) {
 
     private val tracker = BilateralRepTracker(profile, temporalConfig)
-    private val setupGate = SetupGate(profile, policy)
+    private val setupGate = SetupGate(profile, policy, blocks = setupEnforcement == SetupEnforcement.BLOCK_SCORING)
     private val fpsMonitor = FrameRateMonitor()
 
     /** The setup line for the screen, or `null` when there is nothing to say. Debounced. */

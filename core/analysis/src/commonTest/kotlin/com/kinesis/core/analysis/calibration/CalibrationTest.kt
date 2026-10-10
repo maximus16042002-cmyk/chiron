@@ -1,5 +1,6 @@
 package com.kinesis.core.analysis.calibration
 
+import com.kinesis.core.analysis.PairedKneeFixture
 import com.kinesis.core.analysis.calibration.CalibrationFixtures.curve
 import com.kinesis.core.analysis.calibration.CalibrationFixtures.hold
 import com.kinesis.core.analysis.calibration.CalibrationFixtures.oneSided
@@ -33,6 +34,9 @@ import kotlin.test.assertTrue
 class CalibrationTest {
 
     private val squat = ExerciseLibrary.squat
+
+    // The paired squat as it was until DECISIONS.md P3-68, for the tests of paired asymmetry.
+    private val pairedKnee = PairedKneeFixture.instance
     private val curl = ExerciseLibrary.bicepCurl
     private val row = ExerciseLibrary.row
     private val plank = ExerciseLibrary.plank
@@ -91,7 +95,7 @@ class CalibrationTest {
     fun too_few_valid_repetitions_means_no_baseline_and_says_so_plainly() {
         val reps = (1..4).map { paired(it, 100.0, 90.0) } +
             (5..7).map { paired(it, 30.0, 30.0, RepValidity.ABORTED) }
-        val outcome = assertIs<CalibrationOutcome.TooFewRepetitions>(calibrate(squat, reps))
+        val outcome = assertIs<CalibrationOutcome.TooFewRepetitions>(calibrate(pairedKnee, reps))
         assertEquals(4, outcome.validLeft)
         assertEquals(4, outcome.validRight)
         assertEquals(5, outcome.requiredPerSide)
@@ -182,9 +186,19 @@ class CalibrationTest {
 
     @Test
     fun asymmetry_is_paired_when_both_sides_share_each_repetition() {
-        val baseline = repetitionBaseline(calibrate(squat, eightSquats()))
+        val baseline = repetitionBaseline(calibrate(pairedKnee, eightSquats()))
         val paired = assertIs<AsymmetryBaseline.Paired>(baseline.asymmetry)
         assertEquals(RobustStatistic(10.0, 0.0, 8), paired.leftMinusRight)
+    }
+
+    /**
+     * DECISIONS.md P3-68: the shipped squat counts the near knee only, so its baseline claims no
+     * left-right difference, even from repetitions that happen to carry both sides.
+     */
+    @Test
+    fun the_near_side_squat_has_no_asymmetry_baseline() {
+        val baseline = repetitionBaseline(calibrate(squat, eightSquats()))
+        assertEquals(AsymmetryBaseline.NotMeasurable, baseline.asymmetry)
     }
 
     @Test

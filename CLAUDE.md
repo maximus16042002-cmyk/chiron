@@ -179,6 +179,10 @@ judgement — trunk compensation, incomplete lockout, body-line deviation).
   approximate distance, view angle, and camera stability before scoring.
 - **MUST**: when required setup conditions are clearly invalid, block
   scoring/technique analysis rather than produce confident nonsense.
+- **Currently relaxed by `docs/DECISIONS.md` P3-68:** the app reports a wrong
+  camera view without blocking, because the view estimator misjudged the owner's
+  real setup on the phone. Blocking returns once its thresholds are measured
+  there; the blocking path stays built and tested.
 
 ## 11. Analysis modes
 

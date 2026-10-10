@@ -109,10 +109,15 @@ class BilateralPhaseTest {
      * Under SIMULTANEOUS semantics a repetition is counted when the second side
      * returns to the top. The display phase reaches TOP on that same frame, so
      * the readout never shows a finished repetition that has not been counted.
+     *
+     * On [PairedKneeFixture], the paired squat as it was until
+     * DECISIONS.md P3-68. A near-side profile (the squat since P3-68, the push-up, row and sit-up)
+     * counts when the first knee returns, so the trailing side's ASCENDING can still be shown for
+     * its lag - a few frames. That is recorded in P3-68, not pinned here.
      */
     @Test
-    fun a_squat_shows_top_on_the_same_frame_its_repetition_is_counted() {
-        val tracker = BilateralRepTracker(ArchetypeProfiles.squat)
+    fun a_paired_squat_shows_top_on_the_same_frame_its_repetition_is_counted() {
+        val tracker = BilateralRepTracker(PairedKneeFixture.instance)
         var previousCount = 0
         var previousShown = IDLE
         var countedFrames = 0

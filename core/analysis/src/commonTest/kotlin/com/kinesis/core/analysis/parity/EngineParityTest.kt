@@ -21,6 +21,15 @@ class EngineParityTest {
     fun a_squat_set_matches_the_golden_file_on_this_target() =
         check("squat", EngineParityGolden.squat, EngineParity.squat())
 
+    /**
+     * DECISIONS.md P3-68: the squat counts its near knee only, so the paired path - both sides
+     * waiting for each other, one side alone, a lagging side - is run through the lunge, which
+     * still pairs, with the squat scenario's movements.
+     */
+    @Test
+    fun a_paired_lunge_set_matches_the_golden_file_on_this_target() =
+        check("pairedLunge", EngineParityGolden.pairedLunge, EngineParity.pairedLunge())
+
     @Test
     fun a_plank_hold_matches_the_golden_file_on_this_target() =
         check("plank", EngineParityGolden.plank, EngineParity.plank())

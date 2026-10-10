@@ -50,7 +50,7 @@ class LiveHoldAnalysis(
     private val analyser = HoldAnalyser(profile)
     private val leftPipeline = RealTimeSignalPipeline(temporalConfig, BilateralRepTracker.DEFAULT_BUFFER_CAPACITY)
     private val rightPipeline = RealTimeSignalPipeline(temporalConfig, BilateralRepTracker.DEFAULT_BUFFER_CAPACITY)
-    private val setupGate = SetupGate(profile, policy)
+    private val setupGate = SetupGate(profile, policy, blocks = setupEnforcement == SetupEnforcement.BLOCK_SCORING)
     private val fpsMonitor = FrameRateMonitor()
 
     /** The setup line for the screen, or `null` when there is nothing to say. Debounced. */

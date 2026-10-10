@@ -98,8 +98,14 @@ class SquatProfile : TierAProfile(), RepetitionExercise {
 
     override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.SIMULTANEOUS
 
-    /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
-    override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+    /**
+     * The knee nearer the camera counts - DECISIONS.md P3-68, the owner's decision on P3-23's open
+     * question. Side-on, the far knee is often hidden behind the near leg, and a squat counted
+     * only when both knees completed. Near-side counting is the push-up's and the row's: whichever
+     * knee completes counts, and the same squat seen by both is counted once. No left-right
+     * comparison is claimed for the squat.
+     */
+    override val analysedSides: AnalysedSides = AnalysedSides.NEAR_SIDE_ONLY
 
     /** Moving away from the start is the lowering - DECISIONS.md P3-30. */
     override val awayFromStart: Contraction = Contraction.ECCENTRIC
@@ -123,10 +129,15 @@ class SquatProfile : TierAProfile(), RepetitionExercise {
         maxRepDurationMs = 15_000.0,
     )
 
+    /**
+     * The torso, as for the push-up and the row (P3-8, P3-28): `ValidityGate` invalidates a frame
+     * on any required landmark below the floor, so requiring the far knee and ankle a side-on
+     * camera often cannot see would discard exactly the frames near-side counting exists to keep.
+     * DECISIONS.md P3-68.
+     */
     override val requiredLandmarks: RequiredLandmarks = RequiredLandmarks.of(
+        LandmarkId.LEFT_SHOULDER, LandmarkId.RIGHT_SHOULDER,
         LandmarkId.LEFT_HIP, LandmarkId.RIGHT_HIP,
-        LandmarkId.LEFT_KNEE, LandmarkId.RIGHT_KNEE,
-        LandmarkId.LEFT_ANKLE, LandmarkId.RIGHT_ANKLE,
     )
 }
 

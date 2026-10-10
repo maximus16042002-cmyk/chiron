@@ -22,6 +22,12 @@ sealed class SetupVerdict {
     abstract val blocksScoring: Boolean
     abstract val coachingMessage: String
 
+    /**
+     * The message when nothing is blocked - DECISIONS.md P3-68. The app reports a wrong view
+     * without pausing, so it must not say counting is paused while it counts.
+     */
+    open val adviceMessage: String get() = coachingMessage
+
     /** Framing and view suit the profile. */
     object Ready : SetupVerdict() {
         override val blocksScoring: Boolean get() = false
@@ -68,6 +74,11 @@ sealed class SetupVerdict {
             CameraView.SIDE_ON -> "Turn side-on to the camera — counting paused"
             CameraView.FRONT_ON -> "Face the camera — counting paused"
             CameraView.ANGLED_45 -> "Stand at a 45° angle to the camera — counting paused"
+        }
+        override val adviceMessage: String get() = when (requiredView) {
+            CameraView.SIDE_ON -> "Turn side-on to the camera"
+            CameraView.FRONT_ON -> "Face the camera"
+            CameraView.ANGLED_45 -> "Stand at a 45° angle to the camera"
         }
     }
 }
