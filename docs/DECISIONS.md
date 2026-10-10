@@ -12744,6 +12744,30 @@ by the blocking one.
 
 ---
 
+## P3-69 — The P3-68 build installed on the owner's phone
+
+*2026-10-11.*
+
+**Before the install:**
+- **Backup** to `local/backup-2026-10-11/` (not in git), with `SHA256SUMS.txt`.
+  - `kinesis.db`'s hash on the phone and in the copy are identical (`ca9bbd6b…5cfcd`).
+  - The copy: integrity "ok", Room version 3, 103 sessions, 103 sets, 364 repetitions, 6 holds and
+    1 baseline.
+- **The previous build** was the demonstration hotfix (`a2b14420…`). It was pulled beside the
+  backup.
+
+**The install:**
+- `adb install -r` of the debug APK built from `64e7d5d`, SHA-256 `99b4bbd1…0b478b`.
+- Result: "Success".
+- A cold launch took 3,736 ms, the process kept running, and the crash buffer was empty.
+
+**Still owed:** the side-on squat check and the view advice from P3-68's "Owed" list. The owner
+chose not to exercise today.
+
+**Next entry: P3-70.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
