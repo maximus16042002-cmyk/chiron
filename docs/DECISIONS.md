@@ -13038,6 +13038,33 @@ also a `TechniqueFault`, and Layer 1's findings are `Deviation`s) cannot reach i
   that rule is the first thing to revisit.
 - **No accuracy is claimed** (CLAUDE.md §12a).
 
+### Result (2026-10-11)
+
+- **Core:**
+  - `PostRepAnalysis` runs `TechniqueRules.evaluate` for Tier A authorities;
+  - `technique/FormNotes.kt` holds `FormNote`, `FormNotes.of`, `SHOWN` (the seven fault ids of the
+    six rules, in a fixed order) and `FOOTNOTE`.
+- **App:** `FormNotesCard` on `SetSummaryScreen`, after the lifting-speed card, only when a note
+  exists. All of its text comes from the core.
+- **Tests:**
+  - `FormNotesTest`: 4, on every target;
+  - `PostRepAnalysisTest`: the Tier A fault reaches the result with its source; a Tier B result
+    never carries one.
+- **Mutation checks, 3 of 3 caught:**
+  - the rules not run;
+  - the ACSM fault let into the notes;
+  - a repetition flagged on both sides counted twice.
+- **The full suite:** 3,215 test executions, 0 failed (`core/analysis` 645 JVM, 634 JS; `:app`
+  245 debug and 233 release).
+- **The report** (`docs/report/`) says the notes are shown, and keeps the limitation that their
+  accuracy is unmeasured. Commit `b696117` held the code; the documents followed in the next
+  commit.
+- **For the phone:**
+  - five good side-on push-ups, curls and squats should give **no** form note;
+  - if they do, record the rule, the measured value and the view before changing a tolerance.
+
+**Next entry: P3-75.**
+
 ---
 
 ## CLOSED — Bicep curl repetition semantics

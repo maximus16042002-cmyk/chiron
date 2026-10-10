@@ -67,7 +67,7 @@ operational distillation) > everything else. If `CLAUDE.md` disagrees with the o
 ### 0.3 How work is done here (the pattern every session followed)
 
 1. **Read** the relevant DECISIONS entries before changing anything.
-2. **Write a design entry first** (next number: **P3-74**). It states what will be built and every
+2. **Write a design entry first** (next number: **P3-75**). It states what will be built and every
    choice the source documents leave open. Commit it before any code. For studies, the protocol and
    pass rule are fixed and committed (sometimes tagged, e.g. `p3-42-frozen`) **before** any data is
    looked at.
@@ -104,7 +104,7 @@ Before doing anything:
    - every technique rule cites a published source; no accuracy number may be attached to one;
    - never state a number that was not measured on this system;
    - never use held-out MM-Fit data without the owner's explicit approval and a frozen protocol.
-3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-74),
+3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-75),
    tests first, implement in the core, mutation-check new guard tests, run the full suite
    (HANDOVER 9.2), append a Result section, commit, push.
 4. Ask the owner before: installing anything on their phone (back up first, HANDOVER 9.4), using
@@ -608,6 +608,7 @@ Each item is one DECISIONS.md entry. Search for the entry number for its detail.
 - **P3-71** The lunge counts its near knee. The paired path's JVM/JS parity moved to the lateral
   raise.
 - **P3-72** A hold survives the app being killed too.
+- **P3-74** The owner turned the cited technique rules on: "Form notes" once per set, Tier A only.
 - **The report:** `docs/report/REPORT.md` and `docs/report/EVALUATION.md` (drafts; the phone
   studies and the authors' "Use of AI tools" section are owed).
 
@@ -771,8 +772,8 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 
 ### 7.3 Tests
 
-- **The last full run (P3-72, 2026-10-11):** **3,195 test executions, 0 failed, 0 skipped.** By
-  module and target: `core/analysis` 640 JVM (+5 allocation), 629 JS, 629 debug, 629 release;
+- **The last full run (P3-74, 2026-10-11):** **3,215 test executions, 0 failed, 0 skipped.** By
+  module and target: `core/analysis` 645 JVM (+5 allocation), 634 JS, 634 debug, 634 release;
   `core/domain` 40 on each of the four; `:app` 245 debug and 233 release; `tools/mmfit-eval` 25.
   Python tests (`test_subjects.py`, `test_anomaly_study.py`) are separate.
 - **The command:** section 9.2.
@@ -838,7 +839,7 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 | 9 | **A setup assistant that enforces each exercise's camera view** (CLAUDE.md §10) | Built in P3-55, corrected in P3-59; since P3-68 it advises only, because it misjudged the owner's real setup. Blocking returns once measured on the phone |
 | 10 | **The verifier's held-out run, and whether it should ship at all.** Part B was built without the approval this row asked for (P3-52, under "do whatever you want"). P3-59 recommends fixing a shipping rule (for example, a ceiling on any person's false-warning rate) before any held-out run | P3-34, P3-52, P3-59 |
 | 11 | **Approval for any other use of held-out data** | CLAUDE.md, P3-30 |
-| 12 | **After the phone checks:** whether to show Layer 2's rules on the set summary. P3-53 showed them early, with Layer 1's messages; P3-59 took all findings off again | P3-43, P3-44, P3-53, P3-59 |
+| 12 | ~~Whether to show Layer 2's rules~~ **Decided P3-74: shown as "Form notes" once per set.** Originally: whether to show Layer 2's rules on the set summary. P3-53 showed them early, with Layer 1's messages; P3-59 took all findings off again | P3-43, P3-44, P3-53, P3-59 |
 | 13 | **Before the repository is ever made public:** review `google-services.json`, the API key's restrictions, rotating the key | P3-20 |
 | 14 | The six curl features in P3-30's Decision 3 rule (probably moot while Layer 1 is out) | P3-32, P3-33 |
 | 15 | ~~The app's name~~ **Decided:** Chiron, everywhere a user reads (P3-65) | P3-62, P3-65 |
@@ -1230,6 +1231,6 @@ figure can be regenerated rather than trusted.
 ---
 
 *When you finish a piece of work:*
-1. *add its entry to `docs/DECISIONS.md` (next: **P3-74**);*
+1. *add its entry to `docs/DECISIONS.md` (next: **P3-75**);*
 2. *update `docs/PROJECT_STATUS.md`'s "Next session starts here";*
 3. *update sections 7 and 8 of this file.*

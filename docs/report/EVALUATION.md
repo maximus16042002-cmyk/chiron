@@ -460,8 +460,9 @@ We state these plainly, as the project plan requires.
 
 1. **No technique accuracy figure exists.** Chiron's technique rules implement thresholds from
    cited sources (the ACE exercise library, the NSCA, and Cook, Burton and Hoogenboom 2006). Their
-   agreement with expert human judgement was not measured in this work. They are not shown in the
-   app yet.
+   agreement with expert human judgement was not measured in this work. They are shown after each
+   set as "Form notes", with that statement on the card, and they have not yet been checked
+   against good repetitions filmed side-on on the phone [P3-74].
 2. **Personalisation is not shown to improve fault detection.** What was measured is flag rates on
    ordinary repetitions (an upper bound on false alarms) and detection of planted arithmetic
    changes.

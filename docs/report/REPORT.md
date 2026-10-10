@@ -67,8 +67,10 @@ movement. People differ in build, flexibility and habit. We wanted a system that
 
 - **Not a medical or diagnostic tool.** It measures movement; it does not diagnose, treat or
   predict injury.
-- **Not a judge of technique.** Technique rules from published sources are built but switched
-  off, because no data exists here to measure how often they are right (section 4.7).
+- **Not a certified judge of technique.** After each set it shows "Form notes" from six rules
+  whose thresholds come from published exercise guidelines. How often they agree with a coach
+  was not measured, because no labelled data exists here, and the app says so on the card
+  (section 4.7).
 - **Not a video recorder.** No video is stored or uploaded.
 
 ---
@@ -127,7 +129,9 @@ stand.
 - the count;
 - each repetition's range of motion per side;
 - the lifting speed per side, and how much it slowed through the set;
-- with a calibration, each value beside the person's own usual one.
+- with a calibration, each value beside the person's own usual one;
+- "Form notes" for any of the six cited technique rules that fired: how many repetitions, the
+  measured value, the guideline and its source [P3-74].
 
 ---
 
@@ -220,7 +224,7 @@ Every statement the engine can make carries a claim level:
 | Layer | What it does | Status |
 |---|---|---|
 | 1. Deviation rules | Compare a repetition with the person's own baseline (Level 2) | Built; **failed its held-out test, not in the app** |
-| 2. Technique rules | Six rules with thresholds cited from published sources, for Tier A exercises only (Level 3) | Built; **off**, as their accuracy cannot be measured without labelled data |
+| 2. Technique rules | Six rules with thresholds cited from published sources, for Tier A exercises only (Level 3) | **Shown once per set as "Form notes"** with each rule's source [P3-74]; their accuracy is unmeasured, which the card states |
 | 3. Supervised quality classifiers | — | Removed from scope: no labelled data |
 | 4. Personal anomaly detection | An Isolation Forest fitted to the person's own history | Built and studied; **negative result, not in the app** |
 
@@ -360,9 +364,8 @@ for exactly that reason.
    personal messages on new people.
 3. **The camera-view check:** measure it on the phone, then let it block counting from a wrong
    view again.
-4. **The lunge:** near-side counting, as for the squat.
-5. **Technique rules:** an expert-labelled dataset would be needed before any could be shown with
-   a stated accuracy.
+4. **Technique rules:** check each against good repetitions filmed side-on on the phone; an
+   expert-labelled dataset would be needed before any could be given a stated accuracy.
 
 ### 9.3 Limitations
 
