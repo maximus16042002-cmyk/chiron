@@ -32,7 +32,8 @@ interface LiveEngine {
      * that arrive afterwards are ignored.
      *
      * @return `false` if nothing was handed over - the set had already ended, or
-     *   the camera never saw anyone. A set nobody was seen in is not a set.
+     *   the camera never saw anyone, or nothing was recorded (no repetition record; a hold
+     *   never measured, DECISIONS.md P3-70). A set with nothing in it is not a set.
      */
     fun closeSetInto(recorder: SessionRecorder, startedAtEpochMs: Double): Boolean
 

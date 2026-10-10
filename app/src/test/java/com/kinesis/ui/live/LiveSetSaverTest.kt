@@ -269,6 +269,50 @@ class LiveSetSaverTest {
         assertEquals(0, savedCallbacks)
     }
 
+    /** DECISIONS.md P3-70: someone was seen, nothing was recorded - nothing to save. */
+    @Test
+    fun a_repetition_set_with_no_record_at_all_is_not_saved() = runBlocking {
+        val engine = squatEngine()
+        engine.feed(170.0, frames = 60) // standing, seen, never moving
+
+        val outcome = saver(engine).endSet().await()
+
+        assertSame(SetSaveOutcome.NothingToSave, outcome)
+        assertTrue(local.saved.isEmpty())
+        assertTrue("an empty set left a draft", draftFiles().isEmpty())
+    }
+
+    /** A turned-back repetition is recorded movement, so its set is still saved. */
+    @Test
+    fun a_set_holding_only_a_turned_back_repetition_is_still_saved() = runBlocking {
+        val engine = squatEngine()
+        engine.feed(170.0, frames = 10)
+        for (step in 1..15) engine.feed(170.0 - 40.0 * step / 15.0)
+        for (step in 1..15) engine.feed(130.0 + 40.0 * step / 15.0)
+        engine.feed(170.0, frames = 10)
+
+        val outcome = saver(engine).endSet().await()
+
+        val set = (outcome as SetSaveOutcome.Saved).session.sets.single() as RepetitionSetRecord
+        assertTrue(set.reps.isNotEmpty())
+        assertTrue(set.reps.all { it.validity == RepValidity.ABORTED })
+        assertEquals(0, set.completedUnits)
+    }
+
+    /** DECISIONS.md P3-70: a hold whose analyser measured no frame is not saved. */
+    @Test
+    fun a_hold_never_measured_is_not_saved() = runBlocking {
+        val engine = LiveHoldEngine(ArchetypeProfiles.plank, LiveHoldBridge("plank") { }, NoSkeleton)
+        val unseen = Landmarks.fromPacked(DoubleArray(Landmarks.PACKED_SIZE)) // a pose, every landmark invisible
+        repeat(60) {
+            engine.onLandmarks(unseen, clockMs)
+            clockMs += 33
+        }
+
+        assertSame(SetSaveOutcome.NothingToSave, saver(engine).endSet().await())
+        assertTrue(local.saved.isEmpty())
+    }
+
     @Test
     fun a_hold_is_saved_as_a_hold_and_never_as_repetitions() = runBlocking {
         val engine = LiveHoldEngine(ArchetypeProfiles.plank, LiveHoldBridge("plank") { }, NoSkeleton)

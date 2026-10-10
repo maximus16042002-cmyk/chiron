@@ -20,7 +20,7 @@ sealed interface SetSaveOutcome {
      */
     data class Saved(val session: SessionRecord) : SetSaveOutcome
 
-    /** Nobody was ever seen, so there was no set to write. */
+    /** Nobody was ever seen, or nothing was recorded (P3-70), so there was no set to write. */
     data object NothingToSave : SetSaveOutcome
 
     /** The local write failed, for whatever reason (DECISIONS.md P3-63). */

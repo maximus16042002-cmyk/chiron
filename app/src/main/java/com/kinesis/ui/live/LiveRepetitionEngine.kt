@@ -85,6 +85,8 @@ class LiveRepetitionEngine(
         if (!sawPose) return false
         // A repetition still under way becomes an INCOMPLETE record here.
         analysis.finish(lastTimestampMs)
+        // Seen, but nothing recorded: no measurement, so nothing to save - DECISIONS.md P3-70.
+        if (reps.isEmpty()) return false
         recorder.closeRepetitionSet(analysis.profile.id, startedAtEpochMs, reps.toList())
         return true
     }

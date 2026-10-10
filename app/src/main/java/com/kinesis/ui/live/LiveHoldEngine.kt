@@ -54,7 +54,10 @@ class LiveHoldEngine(
         if (ended) return false
         ended = true
         if (!sawPose) return false
-        recorder.closeHoldSet(analysis.profile.id, startedAtEpochMs, listOf(analysis.finish()))
+        val hold = analysis.finish()
+        // Seen, but never measured: no measurement, so nothing to save - DECISIONS.md P3-70.
+        if (hold.coverage <= 0.0) return false
+        recorder.closeHoldSet(analysis.profile.id, startedAtEpochMs, listOf(hold))
         return true
     }
 

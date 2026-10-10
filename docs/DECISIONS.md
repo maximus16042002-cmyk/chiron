@@ -12768,6 +12768,95 @@ chose not to exercise today.
 
 ---
 
+## P3-70 — What the owner's real training shows, and empty sets no longer saved
+
+*2026-10-11. Read from a copy of P3-69's backup (`local/backup-2026-10-11/`), never from the
+phone's live database. The owner's own training, 2026-09-25 to 2026-10-08: 103 sets.*
+
+### What it is, and is not
+
+These records have **no ground truth**: nobody counted the repetitions alongside, so they show
+what the app *recorded*, not whether it was right. Each figure below is a description of the
+phone's behaviour, not an accuracy.
+
+### Findings
+
+1. **53 of 103 sets are empty: a repetition set with no record at all, or a hold measured for 0
+   frames.**
+   - In 45 cases, an empty set of the same exercise is followed 1–3 s later (once 102 s) by the
+     real one.
+   - The code shows one way this happens: switching camera replaces the engine and ends the set
+     (P3-16), and a set in which a pose was seen is saved even if nothing completed. The owner's
+     sets were often filmed by a helper, whose first act would be to switch to the back camera.
+   - **Not proven:** nothing records which camera a set used.
+   - Empty sets earn no streak day (P3-10), but they double the "sessions" count, fill the
+     history, and are uploaded.
+2. **The near-side squat (P3-68's demonstration build) counted.** In the one squat set on it
+   (2026-10-07 17:04), 5 records were counted, each with 102–119° of range on the near (right)
+   knee. The 40 squat sets before it counted 6 of 51 records, most lost as `INSUFFICIENT_DATA`.
+   With no count to compare against, this is consistent with P3-68, not proof of it.
+3. **The lunge loses most repetitions side-on.**
+   - Its one set (2026-10-08) counted 1 of 23 records; 20 were `INSUFFICIENT_DATA`, each with one
+     knee unmeasured.
+   - It is the squat's problem: the lunge still pairs both knees (`BOTH`).
+   - Making it near-side is the same decision the owner made for the squat (P3-68). It is listed
+     for the owner, not made here.
+4. **Many curls, push-ups and raises end as "turned back" (`ABORTED`)** with small ranges
+   (often 5–60°).
+   - Since 2026-10-07: curls 31 of 46 records, push-ups 9 of 15.
+   - These are movements that started a repetition and returned before the far zone: partial
+     repetitions, preparation, or movement filmed from the wrong view. They are not counted, as
+     designed. Which of these they were is not knowable from the records.
+5. **The plank** was measured for 12% of one 82 s attempt (9.8 s held), and its other attempt was
+   empty. The body was mostly not measured: the view, the distance, or the lying posture's
+   landmarks. To check on the phone.
+
+### Decided: a set with nothing in it is not saved
+
+**P3-16 already declined to save a set in which no pose was ever seen.** The same now holds for:
+- a repetition set that ended with **no record at all**;
+- a hold whose analyser **measured no frame** (coverage 0).
+
+These carry no measurement. Saving them doubled the session count in real use, and when a
+camera switch is the cause, it splits one set into an empty one and a real one.
+`SessionRecorder` is unchanged; the engines report "nothing to save", which the screens already
+handle.
+
+**What still saves:**
+- a set with only turned-back, unfinished or insufficient records, because those are recorded
+  movement;
+- a hold measured for any time at all.
+
+**Tests first:** `LiveSetSaverTest` and the hold engine's tests.
+- A repetition set in which someone was seen but nothing was recorded is not saved.
+- A hold never measured is not saved.
+- A set holding only an aborted repetition is still saved.
+
+### Result (2026-10-11)
+
+- **The engines:** `LiveRepetitionEngine.closeSetInto` returns false when the set has no record;
+  `LiveHoldEngine.closeSetInto` returns false when the hold's coverage is 0. Both report "nothing
+  to save", which also discards the draft (P3-66).
+- **Tests:** 3 new in `LiveSetSaverTest`.
+  - The two "not saved" tests failed against the old engines.
+  - The third first asserted a single aborted record. A near-side squat records each knee's
+    turned-back attempt (P3-68), so it now asserts only aborted records, and none counted.
+- **Mutation checks, 3 of 3 caught:** either check removed; and dropping a set with no
+  *counted* record, which would wrongly discard sets of turned-back attempts.
+- **The full suite:** 3,167 test executions, 0 failed (`:app` 243 debug and 231 release).
+- **Not changed:** the 53 empty sets already on the phone and in the account. They stay as
+  recorded history. Removing them would need a delete that the append-only store and the
+  Firestore rules do not allow (P3-14).
+
+**For the owner:**
+- The lunge has the squat's side-on problem (finding 3). Making it near-side is the same decision
+  P3-68 made for the squat.
+- Check the plank's view on the phone (finding 5).
+
+**Next entry: P3-71.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
