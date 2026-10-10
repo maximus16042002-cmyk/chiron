@@ -10,7 +10,24 @@ read it first if you are new.*
 
 ## Next session starts here
 
-**Latest, P3-66 (2026-10-05): a repetition set survives the app being killed** (drafted after each repetition, saved on the next launch).
+**Latest, P3-67 to P3-73 (2026-10-07 to 10-11): demonstrated, and finished in code.**
+- **Shown to the owner's teacher (P3-67).** It was fixed on the spot and then properly (P3-68):
+  - the view gate advises instead of blocking;
+  - the squat counts its near knee.
+- **The owner's real training (103 sets) read in P3-70.** Half the sets were empty camera-switch
+  splits, which are no longer saved.
+- **P3-71:** the lunge counts its near knee.
+- **P3-72:** holds survive the app being killed.
+- **The latest build is on the phone (P3-73).** Data verified intact: 103 sessions, 364
+  repetitions, 6 holds, 1 baseline.
+- **Code is finished** for everything buildable without the phone: 3,195 test executions, 0 failed.
+- **The report is drafted** in `docs/report/`.
+- **Owed:**
+  - one phone session (HANDOVER 8.1, items 5a–5c and P4's tests);
+  - the authors' "Use of AI tools" section;
+  - per-side tempo, targetSdk 36 and re-enabling the view block, each of which needs the phone.
+
+**Before that, P3-66 (2026-10-05): a repetition set survives the app being killed** (drafted after each repetition, saved on the next launch).
 
 **Before that, P3-61 to P3-65 (2026-10-05):** the toolchain batch (AGP 8.9.1, compileSdk 36, stable Health Connect; lint runs again), a launcher icon, failed saves always reported, lint tidied, and **the app is now called Chiron** on the phone, with cloud backup off. None of it seen on the phone yet.
 
