@@ -12954,6 +12954,30 @@ only when the hold ends … its own change." This is that change.*
 
 ---
 
+## P3-73 — The P3-72 build installed on the owner's phone
+
+*2026-10-11, at the owner's direction ("do whatever you want bro").*
+
+**Before the install:**
+- **Backup** to `local/backup-2026-10-11b/` (not in git), with `SHA256SUMS.txt`.
+  - `kinesis.db`'s hash on the phone and in the copy are identical (`ca9bbd6b…5cfcd`), unchanged
+    since P3-69.
+- **The previous build** was P3-68's (`99b4bbd1…`). It was pulled beside the backup.
+
+**The install:**
+- `adb install -r` of the debug APK built from `deaaa76`, SHA-256 `7751df11…6a630`.
+- Result: "Success".
+- A cold launch took 4,123 ms, the process kept running, and the crash buffer was empty.
+- A read-only copy of the live database afterwards: integrity "ok", 103 sessions, 364
+  repetitions, 6 holds and 1 baseline, unchanged.
+
+**On the device, unchecked:** P3-68's squat, P3-71's lunge, P3-72's hold recovery and P3-70's
+empty sets.
+
+**Next entry: P3-74.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
