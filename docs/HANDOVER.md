@@ -67,7 +67,7 @@ operational distillation) > everything else. If `CLAUDE.md` disagrees with the o
 ### 0.3 How work is done here (the pattern every session followed)
 
 1. **Read** the relevant DECISIONS entries before changing anything.
-2. **Write a design entry first** (next number: **P3-76**). It states what will be built and every
+2. **Write a design entry first** (next number: **P3-78**). It states what will be built and every
    choice the source documents leave open. Commit it before any code. For studies, the protocol and
    pass rule are fixed and committed (sometimes tagged, e.g. `p3-42-frozen`) **before** any data is
    looked at.
@@ -104,7 +104,7 @@ Before doing anything:
    - every technique rule cites a published source; no accuracy number may be attached to one;
    - never state a number that was not measured on this system;
    - never use held-out MM-Fit data without the owner's explicit approval and a frozen protocol.
-3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-76),
+3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-78),
    tests first, implement in the core, mutation-check new guard tests, run the full suite
    (HANDOVER 9.2), append a Result section, commit, push.
 4. Ask the owner before: installing anything on their phone (back up first, HANDOVER 9.4), using
@@ -823,6 +823,15 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 5c. **The view advice (P3-68):** turn the wrong way for a few seconds. The banner should advise
    ("Turn side-on to the camera") and counting should continue. Before the gate ever blocks again,
    record `CameraViewEstimator`'s lateral ratio on the owner's real side-on and front-on setups.
+5d. **The angle arc and rep flash (P3-76):**
+   - during side-on squats and curls, the arc should stay on the knee or elbow, and its number
+     should look believable as the joint bends;
+   - each counted repetition should flash once, and a half repetition should not flash;
+   - after five good repetitions, the summary should show no Form note that seems wrong (P3-74);
+   - the render test can be re-run any time with `adb shell am instrument -w -e class
+     com.kinesis.ui.live.SkeletonOverlayRenderTest com.kinesis.test/androidx.test.runner.AndroidJUnitRunner`
+     after installing both APKs with `adb install -r`. Never use `connectedDebugAndroidTest`, which
+     uninstalls the app.
 6. **Second real account against the Firestore rules, and the API key's restrictions** (section 11).
 7. **A second person,** for P4's device study (the evidence so far is one person, one phone, mostly
    the front camera).
@@ -1234,6 +1243,6 @@ figure can be regenerated rather than trusted.
 ---
 
 *When you finish a piece of work:*
-1. *add its entry to `docs/DECISIONS.md` (next: **P3-76**);*
+1. *add its entry to `docs/DECISIONS.md` (next: **P3-78**);*
 2. *update `docs/PROJECT_STATUS.md`'s "Next session starts here";*
 3. *update sections 7 and 8 of this file.*
