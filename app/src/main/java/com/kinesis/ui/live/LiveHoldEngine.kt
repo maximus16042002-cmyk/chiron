@@ -28,6 +28,10 @@ class LiveHoldEngine(
     // A wrong camera view is reported, not blocked - DECISIONS.md P3-68, replacing P3-59.
     private val analysis = LiveHoldAnalysis(profile, policy, setupEnforcement = SetupEnforcement.REPORT_ONLY)
 
+    init {
+        skeleton.measuring(profile.holdSignal.joint)
+    }
+
     private var sawPose = false
     private var ended = false
 
@@ -56,7 +60,7 @@ class LiveHoldEngine(
         analysis.onFrame(timestampMs.toDouble(), landmarks)
         maybeSnapshot(timestampMs.toDouble())
         publish()
-        skeleton.submit(landmarks, bridge.state.overlayState, analysis.policy)
+        skeleton.submit(landmarks, bridge.state.overlayState, analysis.policy, analysis.angleLeft, analysis.angleRight)
         probe?.onFrame(timestampMs, landmarks, analysis.rawAngleLeft, analysis.rawAngleRight)
     }
 

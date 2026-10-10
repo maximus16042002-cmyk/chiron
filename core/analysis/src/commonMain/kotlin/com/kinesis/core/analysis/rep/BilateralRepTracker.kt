@@ -105,6 +105,14 @@ class BilateralRepTracker(
         private set
 
     /**
+     * Each side's angle after filtering - the value its repetition machine stepped on this frame.
+     * `NaN` where that side was not measured. What the live skeleton shows, so the number on screen
+     * is the number counting is decided on (DECISIONS.md P3-76). Read-only, O(1).
+     */
+    val angleLeft: Double get() = leftPipeline.current
+    val angleRight: Double get() = rightPipeline.current
+
+    /**
      * A side's cycle waiting for the other side to catch up, under
      * [RepetitionSemantics.SIMULTANEOUS]. At most one is ever held.
      */

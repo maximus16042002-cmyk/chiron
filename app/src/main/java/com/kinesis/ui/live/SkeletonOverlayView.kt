@@ -6,7 +6,11 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.os.SystemClock
 import android.util.AttributeSet
+import android.util.TypedValue
 import android.view.View
+import com.kinesis.core.analysis.kinematics.DrivingSignal
+import com.kinesis.core.analysis.kinematics.JointAngleId
+import com.kinesis.core.analysis.kinematics.SegmentInclination
 import com.kinesis.core.domain.landmark.LandmarkId
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
@@ -34,6 +38,15 @@ import com.kinesis.ui.theme.OverlayState
  * built once, and [onDraw] walks a fixed connection table. A `Paint` allocated
  * per frame would be thirty per second feeding the garbage collector during
  * exactly the window where a pause shows.
+ *
+ * ### The angle arc and the rep flash - DECISIONS.md P3-76
+ *
+ * At the joint the exercise measures, each measured side gets an arc between its two bones and a
+ * label with the core's angle - the filtered value counting is decided on, never computed here and
+ * never averaged across sides. A counted repetition makes the figure glow briefly and a "+1" rise
+ * from the head. Still nothing allocated per frame: labels come from a table built once
+ * ([AngleGauge.label]), each arc is written into one reused [GaugeArc], and the float overloads of
+ * `drawArc` and `drawRoundRect` take no `RectF`.
  */
 class SkeletonOverlayView @JvmOverloads constructor(
     context: Context,
@@ -67,6 +80,20 @@ class SkeletonOverlayView @JvmOverloads constructor(
      */
     private var overallState: OverlayState = OverlayState.TRACKED
 
+    /** What the exercise measures - told once by the engine (P3-76). `null` draws no arc. */
+    @Volatile
+    private var signal: DrivingSignal? = null
+
+    /** The core's angle on each side for the frame held, `NaN` where unmeasured (P3-76). */
+    private var angleLeft = Double.NaN
+    private var angleRight = Double.NaN
+
+    /** When the last repetition was counted, on the [SystemClock.uptimeMillis] clock (P3-76). */
+    @Volatile
+    private var countedAtMs: Long = RepFlash.NEVER
+
+    private val gauge = GaugeArc()
+
     private val paints: Map<OverlayState, Paint> = OverlayState.entries.associateWith { state ->
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = state.argb.toInt()
@@ -89,6 +116,57 @@ class SkeletonOverlayView @JvmOverloads constructor(
             color = Color.argb(55, Color.red(base), Color.green(base), Color.blue(base))
             style = Paint.Style.FILL
         }
+    }
+
+    // --- P3-76: the angle arc, its label, and the rep flash -------------------------------
+
+    private val density = resources.displayMetrics.density
+
+    private fun sp(value: Float): Float =
+        TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, value, resources.displayMetrics)
+
+    /** The wedge between the bones: the joint's own state colour, faint. */
+    private val arcFillPaints: Map<OverlayState, Paint> = OverlayState.entries.associateWith { state ->
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            val base = state.argb.toInt()
+            color = Color.argb(70, Color.red(base), Color.green(base), Color.blue(base))
+            style = Paint.Style.FILL
+        }
+    }
+
+    private val arcStrokePaints: Map<OverlayState, Paint> = OverlayState.entries.associateWith { state ->
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = state.argb.toInt()
+            style = Paint.Style.STROKE
+            strokeWidth = 2.5f * density
+            strokeCap = Paint.Cap.ROUND
+        }
+    }
+
+    private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        textSize = sp(14f)
+        isFakeBoldText = true
+    }
+
+    /** A dark pill behind the number, so it reads over any background. */
+    private val labelBackPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.argb(170, 0, 0, 0)
+        style = Paint.Style.FILL
+    }
+
+    private val flashPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+    }
+
+    private val plusOnePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.WHITE
+        textSize = sp(26f)
+        isFakeBoldText = true
+        textAlign = Paint.Align.CENTER
+        setShadowLayer(6f * density, 0f, 0f, Color.argb(200, 0, 0, 0))
     }
 
     private val framingGuidePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -117,14 +195,35 @@ class SkeletonOverlayView @JvmOverloads constructor(
     private val lock = Any()
 
     /** One frame, straight from the pose callback. */
-    override fun submit(landmarks: Landmarks, state: OverlayState, policy: VisibilityPolicy) {
+    override fun submit(landmarks: Landmarks, state: OverlayState, policy: VisibilityPolicy) =
+        submit(landmarks, state, policy, Double.NaN, Double.NaN)
+
+    /** One frame with the core's angle on each side - DECISIONS.md P3-76. */
+    override fun submit(
+        landmarks: Landmarks,
+        state: OverlayState,
+        policy: VisibilityPolicy,
+        angleLeft: Double,
+        angleRight: Double,
+    ) {
         synchronized(lock) {
             smoothing.update(landmarks, SystemClock.uptimeMillis(), policy)
             this.frame = landmarks
             this.overallState = state
             this.policy = policy
+            this.angleLeft = angleLeft
+            this.angleRight = angleRight
         }
         framesSubmitted++
+        postInvalidateOnAnimation()
+    }
+
+    override fun measuring(signal: DrivingSignal) {
+        this.signal = signal
+    }
+
+    override fun repetitionCounted() {
+        countedAtMs = SystemClock.uptimeMillis()
         postInvalidateOnAnimation()
     }
 
@@ -145,10 +244,12 @@ class SkeletonOverlayView @JvmOverloads constructor(
         if (overallState != OverlayState.TRACKED) {
             drawFramingGuides(canvas, w, h)
         }
+        val flashing = RepFlash.intensity(SystemClock.uptimeMillis(), countedAtMs) > 0f
         synchronized(lock) { drawFigure(canvas) }
         // Keep animating while the figure pulses, so the pulse does not freeze if
-        // pose results stall. Stops by itself when the state changes.
-        if (overallState.pulses) postInvalidateOnAnimation()
+        // pose results stall. Stops by itself when the state changes. Likewise
+        // while a repetition's flash fades (P3-76).
+        if (overallState.pulses || flashing) postInvalidateOnAnimation()
     }
 
     private fun drawFramingGuides(canvas: Canvas, w: Float, h: Float) {
@@ -181,10 +282,27 @@ class SkeletonOverlayView @JvmOverloads constructor(
         // SkeletonColouring.strokeScale so it can be tested without a View. Every
         // state's width is set each draw; only a state that pulses ever changes.
         val now = SystemClock.uptimeMillis()
-        val density = resources.displayMetrics.density
         for (state in STATES) {
             paints.getValue(state).strokeWidth =
                 state.strokeDp * density * SkeletonColouring.strokeScale(state, now)
+        }
+
+        // P3-76: a counted repetition's glow, under the figure.
+        val flash = RepFlash.intensity(now, countedAtMs)
+        if (flash > 0f) {
+            flashPaint.alpha = (190 * flash).toInt()
+            for (connection in CONNECTIONS) {
+                val from = connection.first
+                val to = connection.second
+                val state = segmentState(landmarks, from, to)
+                if (state == OverlayState.UNTRACKED) continue
+                flashPaint.strokeWidth = paints.getValue(state).strokeWidth * (1f + 2.5f * flash)
+                canvas.drawLine(
+                    screenX(landmarks, from, w), screenY(landmarks, from, w),
+                    screenX(landmarks, to, w), screenY(landmarks, to, w),
+                    flashPaint,
+                )
+            }
         }
 
         for (connection in CONNECTIONS) {
@@ -217,6 +335,72 @@ class SkeletonOverlayView @JvmOverloads constructor(
             canvas.drawCircle(x, y, radius * 2.2f, jointHaloPaints.getValue(state))
             canvas.drawCircle(x, y, radius, jointPaints.getValue(state))
         }
+
+        drawGauge(canvas, landmarks, w, left = true)
+        drawGauge(canvas, landmarks, w, left = false)
+        drawPlusOne(canvas, landmarks, w, now)
+    }
+
+    /**
+     * One side's angle arc and label - DECISIONS.md P3-76. Drawn only where the core measured that
+     * side: the number is the core's, the arc is where it was measured.
+     */
+    private fun drawGauge(canvas: Canvas, landmarks: Landmarks, w: Float, left: Boolean) {
+        val measured = signal ?: return
+        val label = AngleGauge.label(if (left) angleLeft else angleRight) ?: return
+        val maxRadius = 46f * density
+        val minRadius = 16f * density
+        val textWidth = labelPaint.measureText(label)
+        val halfW = textWidth / 2f + 7f * density
+        // Past the arc by the label's own half-width, so the pill sits clear of both bones.
+        val gap = 6f * density + halfW
+        val state: OverlayState = when (measured) {
+            is JointAngleId -> {
+                val p = if (left) measured.proximal.leftId else measured.proximal.rightId
+                val v = if (left) measured.vertex.leftId else measured.vertex.rightId
+                val d = if (left) measured.distal.leftId else measured.distal.rightId
+                AngleGauge.joint(
+                    screenX(landmarks, p, w), screenY(landmarks, p, w),
+                    screenX(landmarks, v, w), screenY(landmarks, v, w),
+                    screenX(landmarks, d, w), screenY(landmarks, d, w),
+                    maxRadius, minRadius, gap, gauge,
+                )
+                jointState(landmarks, v)
+            }
+            is SegmentInclination -> {
+                val lower = if (left) measured.lower.leftId else measured.lower.rightId
+                val upper = if (left) measured.upper.leftId else measured.upper.rightId
+                AngleGauge.inclination(
+                    screenX(landmarks, lower, w), screenY(landmarks, lower, w),
+                    screenX(landmarks, upper, w), screenY(landmarks, upper, w),
+                    maxRadius, minRadius, gap, gauge,
+                )
+                jointState(landmarks, lower)
+            }
+        }
+        if (!gauge.visible) return
+        val r = gauge.radius
+        val cx = gauge.centreX
+        val cy = gauge.centreY
+        canvas.drawArc(cx - r, cy - r, cx + r, cy + r, gauge.startDeg, gauge.sweepDeg, true, arcFillPaints.getValue(state))
+        canvas.drawArc(cx - r, cy - r, cx + r, cy + r, gauge.startDeg, gauge.sweepDeg, false, arcStrokePaints.getValue(state))
+
+        val halfH = labelPaint.textSize * 0.72f
+        val lx = gauge.labelX
+        val ly = gauge.labelY
+        canvas.drawRoundRect(lx - halfW, ly - halfH, lx + halfW, ly + halfH, halfH, halfH, labelBackPaint)
+        canvas.drawText(label, lx - textWidth / 2f, ly + labelPaint.textSize * 0.35f, labelPaint)
+    }
+
+    /** "+1" rising from the head and fading, while a counted repetition's flash lasts (P3-76). */
+    private fun drawPlusOne(canvas: Canvas, landmarks: Landmarks, w: Float, now: Long) {
+        val progress = RepFlash.progress(now, countedAtMs)
+        if (progress >= 1f) return
+        if (landmarks.visibility(LandmarkId.NOSE) < policy.marginal) return
+        val x = screenX(landmarks, LandmarkId.NOSE, w)
+        val y = screenY(landmarks, LandmarkId.NOSE, w) - (40f + 50f * progress) * density
+        plusOnePaint.alpha = (255 * (1f - progress)).toInt()
+        canvas.drawText(PLUS_ONE, x, y, plusOnePaint)
     }
 
     // Drawn from the steadied positions; which state a joint is drawn in still
@@ -244,6 +428,8 @@ class SkeletonOverlayView @JvmOverloads constructor(
     )
 
     private companion object {
+
+        const val PLUS_ONE = "+1"
 
         /** An array, so iterating it each draw allocates no iterator. */
         val STATES: Array<OverlayState> = OverlayState.entries.toTypedArray()

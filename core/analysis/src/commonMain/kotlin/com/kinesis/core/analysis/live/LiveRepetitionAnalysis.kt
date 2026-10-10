@@ -111,6 +111,13 @@ class LiveRepetitionAnalysis(
     val rawAngleRight: Double get() = tracker.rawAngleRight
 
     /**
+     * The angle the live skeleton shows, per side: the filtered value each side's repetition
+     * machine stepped on, never averaged across sides - DECISIONS.md P3-76.
+     */
+    val angleLeft: Double get() = tracker.angleLeft
+    val angleRight: Double get() = tracker.angleRight
+
+    /**
      * One phase for the readout, reduced from the two sides by a named rule.
      * Display only - see [BilateralPhase] for what this loses and why nothing
      * downstream may consume it.

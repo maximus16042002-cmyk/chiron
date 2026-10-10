@@ -609,6 +609,8 @@ Each item is one DECISIONS.md entry. Search for the entry number for its detail.
   raise.
 - **P3-72** A hold survives the app being killed too.
 - **P3-74** The owner turned the cited technique rules on: "Form notes" once per set, Tier A only.
+- **P3-76** The live skeleton shows the angle being counted, per side, as an arc with a degree label,
+  and flashes with a rising "+1" on each counted repetition. Installed after a verified backup (P3-77).
 - **The report:** `docs/report/REPORT.md` and `docs/report/EVALUATION.md` (drafts; the phone
   studies and the authors' "Use of AI tools" section are owed).
 
@@ -761,8 +763,9 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 - **On the phone, at some point:** the live screen on both cameras; counting curls (side-on); saving
   sets; sync to the account; Health Connect; the export; one calibration (front-on curls, to be
   redone); the P3-46 build with Room v3.
-- **The build installed on the phone is P3-74's** (SHA-256 `71f167e8…8fd612b`, commit `750f280`), installed
-  2026-10-11 after a verified backup (P3-75).
+- **The build installed on the phone is P3-76's** (SHA-256 `2fe9129c…2afb3c`), installed 2026-10-11
+  after a verified backup (P3-77). Its angle arc and rep flash were rendered on the phone by a test,
+  but have not been seen with a person in front of the camera.
 - **Built and unit-tested only, never seen on a device:** everything in P3-48 to P3-51 (the new UI,
   calendar, freezes, records, goal, achievements, reminders and notifications, rest timer, cues and
   speech, the workout generator and guided mode, charts), the sit-up trunk driver's live
@@ -772,9 +775,9 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 
 ### 7.3 Tests
 
-- **The last full run (P3-74, 2026-10-11):** **3,215 test executions, 0 failed, 0 skipped.** By
-  module and target: `core/analysis` 645 JVM (+5 allocation), 634 JS, 634 debug, 634 release;
-  `core/domain` 40 on each of the four; `:app` 245 debug and 233 release; `tools/mmfit-eval` 25.
+- **The last full run (P3-76, 2026-10-11):** **3,261 test executions, 0 failed, 0 skipped.** By
+  module and target: `core/analysis` 648 JVM (+5 allocation), 637 JS, 637 debug, 637 release;
+  `core/domain` 40 on each of the four; `:app` 262 debug and 250 release; `tools/mmfit-eval` 25.
   Python tests (`test_subjects.py`, `test_anomaly_study.py`) are separate.
 - **The command:** section 9.2.
 - **Every test is synthetic.** None has seen a camera frame or a model; device evidence is recorded

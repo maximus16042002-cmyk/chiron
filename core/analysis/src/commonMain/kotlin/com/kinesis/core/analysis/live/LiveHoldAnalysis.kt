@@ -81,6 +81,13 @@ class LiveHoldAnalysis(
     var rawAngleRight: Double = Double.NaN
         private set
 
+    /**
+     * The angle the live skeleton shows, per side: the filtered value the hold is judged on,
+     * never averaged across sides - DECISIONS.md P3-76. `NaN` where that side was not measured.
+     */
+    val angleLeft: Double get() = leftPipeline.current
+    val angleRight: Double get() = rightPipeline.current
+
     fun onFrame(timestampMs: Double, landmarks: Landmarks) {
         fpsMonitor.onFrame(timestampMs)
         setupGate.onFrame(landmarks)

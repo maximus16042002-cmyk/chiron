@@ -1,5 +1,7 @@
 package com.kinesis.ui.live
 
+import com.kinesis.core.analysis.kinematics.DrivingSignal
+import com.kinesis.core.analysis.kinematics.JointAngleId
 import com.kinesis.core.analysis.profile.ArchetypeProfiles
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.landmark.LandmarkId
@@ -25,8 +27,24 @@ class LiveRepetitionEngineTest {
     private class RecordingSkeleton : SkeletonSink {
         val states = ArrayList<OverlayState>()
         var clears = 0
+        val measured = ArrayList<DrivingSignal>()
+        var lastLeft = Double.NaN
+        var lastRight = Double.NaN
+        /** For each counted repetition, how many frames had been drawn when it was signalled. */
+        val flashes = ArrayList<Int>()
         override fun submit(landmarks: Landmarks, state: OverlayState, policy: VisibilityPolicy) {
             states += state
+        }
+        override fun submit(landmarks: Landmarks, state: OverlayState, policy: VisibilityPolicy, angleLeft: Double, angleRight: Double) {
+            states += state
+            lastLeft = angleLeft
+            lastRight = angleRight
+        }
+        override fun measuring(signal: DrivingSignal) {
+            measured += signal
+        }
+        override fun repetitionCounted() {
+            flashes += states.size
         }
         override fun clear() {
             clears++
@@ -139,6 +157,66 @@ class LiveRepetitionEngineTest {
         assertTrue("published " + bridge.publishCount + " times for " + frames + " frames", bridge.publishCount < 30)
     }
 
+    // --- DECISIONS.md P3-76: the angle arc and the rep flash ---------------------------
+
+    @Test
+    fun the_skeleton_is_told_once_which_signal_is_measured() {
+        assertEquals(listOf<DrivingSignal>(JointAngleId.KNEE), skeleton.measured)
+    }
+
+    /** The angle shown is the core's, per side; the screen computes none. */
+    @Test
+    fun each_frame_carries_the_cores_angle_on_each_side() {
+        repeat(20) { feed(170.0) }
+        assertEquals(170.0, skeleton.lastLeft, 1e-6)
+        assertEquals(170.0, skeleton.lastRight, 1e-6)
+
+        // Moving, the shown angle is the filtered one, which lags the raw 155 measured last.
+        for (step in 1..3) feed(170.0 - 5.0 * step)
+        assertTrue("shown " + skeleton.lastLeft, skeleton.lastLeft > 155.0 + 1e-6 && skeleton.lastLeft < 170.0)
+    }
+
+    /** Each side keeps its own number: the far knee unseen shows no angle, the near one keeps its own. */
+    @Test
+    fun an_unseen_side_carries_no_angle_and_the_other_keeps_its_own() {
+        repeat(20) {
+            engine.onLandmarks(body(150.0, rightAnkleVisibility = 0.05), clockMs)
+            clockMs += 33
+        }
+        assertEquals(150.0, skeleton.lastLeft, 1e-6)
+        assertTrue("right " + skeleton.lastRight, skeleton.lastRight.isNaN())
+    }
+
+    /** Once per counted repetition, on the frame that counted it. */
+    @Test
+    fun each_counted_repetition_flashes_once_on_the_frame_it_was_counted() {
+        val counts = ArrayList<Int>()
+        repeat(10) { feed(170.0); counts += bridge.state.repCount }
+        repeat(3) {
+            for (step in 1..30) { feed(170.0 - 100.0 * step / 30.0); counts += bridge.state.repCount }
+            for (step in 1..30) { feed(70.0 + 100.0 * step / 30.0); counts += bridge.state.repCount }
+            repeat(10) { feed(170.0); counts += bridge.state.repCount }
+        }
+
+        // The frame (0-based) whose count rose; the flash comes just before that frame is drawn.
+        val countedAt = counts.indices.filter { it > 0 && counts[it] > counts[it - 1] }
+        assertEquals(3, skeleton.flashes.size)
+        assertEquals(countedAt, skeleton.flashes)
+    }
+
+    /** An attempt that turns back before depth is not counted, so it does not flash. */
+    @Test
+    fun an_aborted_attempt_does_not_flash() {
+        repeat(10) { feed(170.0) }
+        for (step in 1..15) feed(170.0 - 40.0 * step / 15.0)
+        for (step in 1..15) feed(130.0 + 40.0 * step / 15.0)
+        repeat(10) { feed(170.0) }
+
+        assertTrue("the attempt was not reported as aborted", OverlayState.ATTENTION in skeleton.states)
+        assertEquals(0, bridge.state.repCount)
+        assertTrue("flashed: " + skeleton.flashes, skeleton.flashes.isEmpty())
+    }
+
     // --- Synthetic frames ---------------------------------------------------------------
 
     private fun squatSet(reps: Int, halfSpan: Double = SIDE_ON): Int {
@@ -157,7 +235,7 @@ class LiveRepetitionEngineTest {
     }
 
     /** [halfSpan]: half the left-right gap across the frame; 0.05 over a 0.30 torso reads side-on. */
-    private fun body(knees: Double, halfSpan: Double = SIDE_ON): Landmarks {
+    private fun body(knees: Double, halfSpan: Double = SIDE_ON, rightAnkleVisibility: Double = 0.95): Landmarks {
         val packed = DoubleArray(Landmarks.PACKED_SIZE)
         fun put(id: LandmarkId, x: Double, y: Double) {
             packed[id.index * Landmarks.STRIDE] = x
@@ -175,6 +253,7 @@ class LiveRepetitionEngineTest {
         put(LandmarkId.RIGHT_KNEE, right, 0.72)
         put(LandmarkId.LEFT_ANKLE, left + 0.15 * sin(radians), 0.72 - 0.15 * cos(radians))
         put(LandmarkId.RIGHT_ANKLE, right + 0.15 * sin(radians), 0.72 - 0.15 * cos(radians))
+        packed[LandmarkId.RIGHT_ANKLE.index * Landmarks.STRIDE + 3] = rightAnkleVisibility
         return Landmarks.fromPacked(packed)
     }
 

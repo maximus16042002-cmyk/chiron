@@ -121,9 +121,12 @@ The app has five tabs:
 
 **During a set**, the live screen shows the camera with a skeleton drawn over it. Each joint is
 coloured by how confidently it is seen: dim joints are ones the camera cannot see, often the far
-limb when side-on, and the app does not measure from them. The screen also shows the count and
-the movement phase. If the camera view does not suit the exercise, the screen advises how to
-stand.
+limb when side-on, and the app does not measure from them. At the joint the exercise is counted
+on, each side the app can measure gets an arc between its two bones and the angle in degrees. That
+number is the filtered angle the count is decided on; left and right are shown separately, never
+averaged. Each counted repetition makes the skeleton glow briefly, and a "+1" rises from the head.
+The screen also shows the count and the movement phase. If the camera view does not suit the
+exercise, the screen advises how to stand.
 
 **After a set**, the summary shows:
 - the count;

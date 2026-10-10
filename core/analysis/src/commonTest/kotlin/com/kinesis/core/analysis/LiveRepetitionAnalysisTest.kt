@@ -226,6 +226,44 @@ class LiveRepetitionAnalysisTest {
     }
 
     /**
+     * DECISIONS.md P3-76: the angle the skeleton shows is the filtered one the repetition machine
+     * steps on - not the raw one, which jitters, and not one recomputed by the screen.
+     */
+    @Test
+    fun the_shown_angle_is_the_filtered_value_counting_is_decided_on() {
+        val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.squat)
+        repeat(20) { analysis.feed(body(knees = 170.0)) }
+        assertEquals(170.0, analysis.angleLeft, 1e-9)
+        assertEquals(170.0, analysis.angleRight, 1e-9)
+
+        for (step in 1..3) analysis.feed(body(knees = 170.0 - 5.0 * step))
+
+        // The filter lags the raw measurement on the way down: between it and where it came from.
+        assertEquals(155.0, analysis.rawAngleLeft, 1e-9)
+        assertTrue(analysis.angleLeft > 155.0 + 1e-6 && analysis.angleLeft < 170.0, "angle " + analysis.angleLeft)
+        assertEquals(analysis.angleLeft, analysis.angleRight, 1e-9)
+
+        analysis.onNothingSeen(clock)
+        assertTrue(analysis.angleLeft.isNaN() && analysis.angleRight.isNaN())
+    }
+
+    /** Each side its own: a hidden right arm shows no right angle, and the left keeps its own. */
+    @Test
+    fun the_shown_angle_stays_per_side() {
+        val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.bicepCurl)
+        val hidden = mapOf(LandmarkId.RIGHT_WRIST to 0.05)
+        repeat(20) { analysis.feed(body(leftElbow = 90.0, visibilityOf = hidden)) }
+
+        assertEquals(90.0, analysis.angleLeft, 1e-9)
+        assertTrue(analysis.angleRight.isNaN(), "right " + analysis.angleRight)
+
+        val both = LiveRepetitionAnalysis(ArchetypeProfiles.bicepCurl)
+        repeat(20) { both.feed(body(leftElbow = 90.0, rightElbow = 120.0)) }
+        assertEquals(90.0, both.angleLeft, 1e-9)
+        assertEquals(120.0, both.angleRight, 1e-9)
+    }
+
+    /**
      * DECISIONS.md P3-59: the app blocks scoring on a wrong camera view. This figure's shoulders
      * span about half its torso, which reads as angled; a squat must be filmed side-on.
      */

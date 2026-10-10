@@ -1,6 +1,7 @@
 package com.kinesis.ui.live
 
 import com.kinesis.core.analysis.hold.HoldState
+import com.kinesis.core.analysis.kinematics.DrivingSignal
 import com.kinesis.core.analysis.profile.ArchetypeProfiles
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.landmark.LandmarkId
@@ -26,8 +27,21 @@ class LiveHoldEngineTest {
     private class RecordingSkeleton : SkeletonSink {
         val states = ArrayList<OverlayState>()
         var clears = 0
+        val measured = ArrayList<DrivingSignal>()
+        var lastLeft = Double.NaN
+        var flashes = 0
         override fun submit(landmarks: Landmarks, state: OverlayState, policy: VisibilityPolicy) {
             states += state
+        }
+        override fun submit(landmarks: Landmarks, state: OverlayState, policy: VisibilityPolicy, angleLeft: Double, angleRight: Double) {
+            states += state
+            lastLeft = angleLeft
+        }
+        override fun measuring(signal: DrivingSignal) {
+            measured += signal
+        }
+        override fun repetitionCounted() {
+            flashes++
         }
         override fun clear() {
             clears++
@@ -64,6 +78,16 @@ class LiveHoldEngineTest {
             "published " + bridge.publishCount + " times for 900 frames",
             bridge.publishCount in 30..40,
         )
+    }
+
+    /** DECISIONS.md P3-76: the hold's signal is drawn with the core's angle; a hold never flashes. */
+    @Test
+    fun the_hold_shows_its_signal_and_the_cores_angle_and_never_flashes() {
+        feed(176.0, frames = 60)
+
+        assertEquals(listOf<DrivingSignal>(ArchetypeProfiles.plank.holdSignal.joint), skeleton.measured)
+        assertEquals(176.0, skeleton.lastLeft, 1e-6)
+        assertEquals(0, skeleton.flashes)
     }
 
     @Test

@@ -13082,6 +13082,158 @@ also a `TechniqueFault`, and Layer 1's findings are `Deviation`s) cannot reach i
 
 ---
 
+## P3-76 — The live skeleton shows the angle being counted, and flashes on a counted repetition
+
+*2026-10-11. The owner's request: "the mediapipe skeleton is very basic and dull". Of four
+proposals they chose two: a live angle arc and a rep flash.*
+
+### What was wrong
+
+The overlay drew twelve lines and their joints in one colour, which carries only tracking state
+(P3-12). It showed *that* the body was found, never *what* was being measured. A user doing a curl
+could not see that the elbow was the joint being counted, or how far it had bent.
+
+### The decision
+
+**1. An angle arc at the measured joint, per side.**
+- Where the profile's driving signal is a joint angle (`JointAngleId`), an arc is drawn at its vertex
+  on each side, between the two bones. A small label beside it shows the angle in whole degrees.
+- Where the signal is a segment's inclination (the sit-up's trunk, P3-45), the arc is drawn at the
+  segment's lower end, from the image horizontal to the segment.
+- **The number is the core's.** The value shown is the side's filtered angle, which is exactly what
+  the repetition machine steps on. The core now exposes it as `angleLeft` / `angleRight`, from the
+  pipeline's current value, so nothing is computed twice and nothing is computed in the UI
+  (CLAUDE.md §2).
+- `rawAngleLeft` / `rawAngleRight` stay diagnostic (P3-17). The display uses the filtered value
+  because that is the number counting is decided on. The raw value also jitters frame to frame.
+- **Each side is its own arc with its own number** (CLAUDE.md §3).
+  - A side the core could not measure (`NaN`) gets no arc.
+  - Nothing is averaged or substituted. A front-on curl shows two arcs. A side-on squat normally shows
+    one, the near knee, because the far side is usually unmeasurable.
+  - If the far side is measured, it is shown, because the core measured it.
+- **The arc agrees with the number.** Both axes are in frame widths and the view scales them
+  uniformly (P3-16), and every profile measures in `IMAGE_2D`. So the arc swept between the drawn
+  bones is the angle the core computed, apart from the overlay's position steadying (P3-13).
+  Mirroring reflects the arc and leaves its size unchanged.
+- **Drawing geometry only.** `AngleGauge`, a pure object tested on the JVM, turns three screen points
+  into an arc start, a sweep and a label position. It decides nothing about the movement. (The label's
+  position changed after the device render: see the result.)
+
+**2. A flash on each counted repetition.**
+- When the repetition count rises, the figure gets a brief bright glow and a "+1" rises from the
+  head, fading over about half a second.
+- **Driven by the count, which only VALID repetitions raise.** A rejected or aborted attempt does not
+  flash. The overlay's attention colour still reports those, as before.
+- The decay curve is `RepFlash.intensity`, a pure function tested on the JVM.
+
+### What is unchanged
+
+- **The four `OverlayState` colours and their meanings.** `SkeletonPaletteLegibilityTest` still
+  guards them. The arc takes its vertex joint's state colour, so an arc on a barely seen joint is dim.
+- **CLAUDE.md §6.**
+  - Compose still never sees a frame. The angle travels with the frame into the overlay View.
+  - The rep flash is triggered from the engine, on the pose thread, by an O(1) comparison of the
+    count.
+  - Nothing is allocated per frame. The degree labels are built once (−180° to 180°), and the arcs
+    and label backdrops use the float overloads of `drawArc` and `drawRoundRect`.
+- **No measurement changes.** No record, finding, golden file or count moves. The core gains two
+  read-only getters per live analysis.
+
+### Tests first
+
+- **Core:**
+  - The displayed angle is the filtered value the machine stepped on.
+  - It stays per side: a hidden right arm leaves the right `NaN` while the left is finite.
+  - It is `NaN` after nothing is seen.
+  - The same holds for a hold.
+- **`AngleGauge`:**
+  - A right angle sweeps 90°.
+  - The sweep is always the interior angle and never above 180°.
+  - Mirroring keeps the sweep's size.
+  - The label sits on the bisector, outside the arc.
+  - Missing or degenerate points give no gauge.
+  - The inclination arc sweeps from horizontal to the segment.
+- **`RepFlash`:** full at the moment of counting, decreasing, zero after the flash and before any
+  repetition.
+- **Engines:**
+  - The sink is told which signal is measured.
+  - It receives the core's angles with each frame.
+  - It is told of each counted repetition exactly once, and never of an aborted one.
+
+### Result
+
+*2026-10-11.*
+
+- **Built as designed, with one change found on the device: where the label goes.**
+  - The design put each label opposite the angle, on the open side of the joint, to keep it off the
+    forearm at the top of a curl.
+  - Rendered on the phone, that put each arm's number on the torso, far from its arc.
+  - The label now sits inside the angle it reads, on the bisector, like a protractor reading. It is
+    pushed past the arc by its own half-width, so it clears both bones.
+  - At a curl's top (40°) the pill just meets the upper-arm line. It stays readable and attached.
+- **Tests: 22 new, written before the code.**
+  - Core: 3 tests, run on every target.
+  - `AngleGaugeTest`: 8 tests.
+  - `RepFlashTest`: 3 tests.
+  - The engines: 6 tests.
+  - `SkeletonOverlayRenderTest`: 2 tests, on the device.
+    - With angles, the real View draws an arc. With both sides `NaN`, it draws exactly what it drew
+      before. A counted repetition changes the picture.
+    - Run with `adb shell am instrument`, never `connectedDebugAndroidTest` (P3-23).
+- **Mutation checks: 10 deliberate faults, 10 caught.** Each was put into the code, the tests were
+  run, and the file was put back byte for byte. The faults:
+  - flashing on every frame;
+  - swapping the sides in the engine;
+  - showing the raw angle;
+  - the hold engine not naming its signal;
+  - the label on the open side;
+  - drawing the reflex angle;
+  - a flash that never fades;
+  - the core showing the raw angle;
+  - averaging the two sides, in both the repetition tracker and the hold analysis.
+- **Three tests were too weak on the first pass, and were strengthened.**
+  - Constant input could not tell raw from filtered. The engine test now moves the angle.
+  - Openings in only one direction never exercised the reflex case. The gauge test now opens both
+    ways.
+  - A hidden side is `NaN` whatever is averaged into it. The core tests now show two different
+    visible sides.
+- **The suite:** `gradlew assemble allTests :app:testDebugUnitTest :app:testReleaseUnitTest`, plus
+  `:app:assembleDebugAndroidTest`.
+  - Total: **3,261 test executions, 0 failed, 0 skipped.**
+  - `core/analysis`: 648 JVM (+5 allocation), 637 JS, 637 debug, 637 release.
+  - `core/domain`: 40 on each target.
+  - `:app`: 262 debug, 250 release.
+  - `tools/mmfit-eval`: 25.
+  - No golden file, count or record moved.
+- **Pictures** of the front-on curl, the side-on squat and the flash, rendered on the phone, are in
+  `local/phase-b/p3-76/` (not in git). They were deleted from the phone after copying.
+- **Not yet seen with a person in front of the camera.** The arc follows the steadied skeleton and
+  the label follows the core's filtered angle. On a live body the two should agree within the
+  steadying's lag; the next session at the phone checks that.
+
+**Next entry: P3-77.**
+
+---
+
+## P3-77 — The P3-76 build installed on the owner's phone
+
+*2026-10-11.*
+
+- **Backup** to `local/backup-2026-10-11d/` (not in git), with `SHA256SUMS.txt`.
+  - Every file's hash on the phone matched the copy's.
+  - `kinesis.db` was `ca9bbd6b…5cfcd`, unchanged since P3-75.
+- **The install:** `adb install -r` of the debug APK, SHA-256 `2fe9129c…2afb3c`, with the test APK
+  beside it for the render test. Both returned "Success".
+  - The installed APK, pulled back from the phone, has the same hash as the build.
+- **After:**
+  - `kinesis.db`'s hash on the phone was unchanged.
+  - A cold launch took 1,766 ms, the process kept running, and the crash buffer was empty.
+  - Nothing was uninstalled. The test package `com.kinesis.test` remains installed; it holds no data.
+
+**Next entry: P3-78.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

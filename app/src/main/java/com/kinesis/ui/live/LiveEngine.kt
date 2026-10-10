@@ -1,5 +1,6 @@
 package com.kinesis.ui.live
 
+import com.kinesis.core.analysis.kinematics.DrivingSignal
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
 import com.kinesis.core.domain.rep.HoldRecord
@@ -11,6 +12,23 @@ import com.kinesis.ui.theme.OverlayState
 interface SkeletonSink {
     fun submit(landmarks: Landmarks, state: OverlayState, policy: VisibilityPolicy)
     fun clear()
+
+    /**
+     * Which signal the exercise measures, told once when the engine is built, so the skeleton can
+     * draw its angle where it is measured - DECISIONS.md P3-76.
+     */
+    fun measuring(signal: DrivingSignal) {}
+
+    /**
+     * One frame with the core's angle on each side - the filtered value counting or holding is
+     * decided on, `NaN` where a side was not measured (P3-76). The skeleton shows these numbers and
+     * computes none of its own.
+     */
+    fun submit(landmarks: Landmarks, state: OverlayState, policy: VisibilityPolicy, angleLeft: Double, angleRight: Double) =
+        submit(landmarks, state, policy)
+
+    /** The count has just risen: a repetition was counted on this frame (P3-76). */
+    fun repetitionCounted() {}
 }
 
 /**

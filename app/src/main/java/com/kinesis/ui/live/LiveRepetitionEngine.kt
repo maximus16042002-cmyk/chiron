@@ -49,6 +49,13 @@ class LiveRepetitionEngine(
         },
     )
 
+    /** The count the skeleton last flashed for: a rise is a counted repetition (P3-76). */
+    private var flashedCount = 0
+
+    init {
+        skeleton.measuring(profile.repSignal.joint)
+    }
+
     private var lastTimestampMs = Double.NaN
     private var sawPose = false
     private var ended = false
@@ -60,7 +67,12 @@ class LiveRepetitionEngine(
         lastTimestampMs = timestampMs.toDouble()
         analysis.onFrame(lastTimestampMs, landmarks)
         publish()
-        skeleton.submit(landmarks, bridge.state.overlayState, analysis.policy)
+        // Only a VALID repetition raises the count, so only a counted one flashes. O(1) per frame.
+        if (analysis.repCount > flashedCount) {
+            flashedCount = analysis.repCount
+            skeleton.repetitionCounted()
+        }
+        skeleton.submit(landmarks, bridge.state.overlayState, analysis.policy, analysis.angleLeft, analysis.angleRight)
         probe?.onFrame(timestampMs, landmarks, analysis.rawAngleLeft, analysis.rawAngleRight)
     }
 

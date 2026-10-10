@@ -70,6 +70,28 @@ class LiveHoldAnalysisTest {
         assertEquals(HoldValidity.VALID, analysis.finish().validity)
     }
 
+    /**
+     * DECISIONS.md P3-76: the angle the skeleton shows for a hold is the filtered one the hold is
+     * judged on, per side - the hidden far side shows nothing - and nothing once nobody is seen.
+     */
+    @Test
+    fun the_shown_angle_is_the_filtered_value_per_side() {
+        val analysis = LiveHoldAnalysis(ArchetypeProfiles.plank)
+        analysis.feed(plank(hipDeg = 172.0, farSideVisibility = 0.05), frames = 30)
+
+        assertEquals(172.0, analysis.angleLeft, 1e-9)
+        assertTrue(analysis.angleRight.isNaN(), "right " + analysis.angleRight)
+
+        analysis.onNothingSeen(clock)
+        assertTrue(analysis.angleLeft.isNaN() && analysis.angleRight.isNaN())
+
+        // Both sides seen and different: each keeps its own, nothing is averaged.
+        val both = LiveHoldAnalysis(ArchetypeProfiles.plank)
+        both.feed(plank(hipDeg = 172.0, rightHipDeg = 166.0), frames = 30)
+        assertEquals(172.0, both.angleLeft, 1e-9)
+        assertEquals(166.0, both.angleRight, 1e-9)
+    }
+
     /** Both sides seen, one sagging out of tolerance: not held. */
     @Test
     fun a_hold_is_credited_only_while_every_measured_side_is_within_tolerance() {
