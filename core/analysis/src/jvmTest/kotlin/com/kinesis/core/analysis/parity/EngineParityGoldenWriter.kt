@@ -40,8 +40,9 @@ class EngineParityGoldenWriter {
             // DECISIONS.md P3-35.
             "layerFourScores" to EngineParity.layerFourScores(),
             "layerTwoFindings" to EngineParity.layerTwoFindings(),
-            // DECISIONS.md P3-68: the paired path, once the squat's, now the lunge's.
-            "pairedLunge" to EngineParity.pairedLunge(),
+            // DECISIONS.md P3-71: the lunge near-side; the paired path through the lateral raise.
+            "lunge" to EngineParity.lunge(),
+            "pairedRaise" to EngineParity.pairedRaise(),
         )
         for ((name, lines) in scenarios) {
             out.append("\n    val ").append(name).append(": List<String> = listOf(\n")

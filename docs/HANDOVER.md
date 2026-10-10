@@ -67,7 +67,7 @@ operational distillation) > everything else. If `CLAUDE.md` disagrees with the o
 ### 0.3 How work is done here (the pattern every session followed)
 
 1. **Read** the relevant DECISIONS entries before changing anything.
-2. **Write a design entry first** (next number: **P3-71**). It states what will be built and every
+2. **Write a design entry first** (next number: **P3-73**). It states what will be built and every
    choice the source documents leave open. Commit it before any code. For studies, the protocol and
    pass rule are fixed and committed (sometimes tagged, e.g. `p3-42-frozen`) **before** any data is
    looked at.
@@ -104,7 +104,7 @@ Before doing anything:
    - every technique rule cites a published source; no accuracy number may be attached to one;
    - never state a number that was not measured on this system;
    - never use held-out MM-Fit data without the owner's explicit approval and a frozen protocol.
-3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-71),
+3. Work in this order for any change: design entry in DECISIONS.md first (next number P3-73),
    tests first, implement in the core, mutation-check new guard tests, run the full suite
    (HANDOVER 9.2), append a Result section, commit, push.
 4. Ask the owner before: installing anything on their phone (back up first, HANDOVER 9.4), using
@@ -753,9 +753,9 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 
 ### 7.3 Tests
 
-- **The last full run (P3-70, 2026-10-11):** **3,167 test executions, 0 failed, 0 skipped.** By
-  module and target: `core/analysis` 634 JVM (+5 allocation), 623 JS, 623 debug, 623 release;
-  `core/domain` 40 on each of the four; `:app` 243 debug and 231 release; `tools/mmfit-eval` 25.
+- **The last full run (P3-72, 2026-10-11):** **3,195 test executions, 0 failed, 0 skipped.** By
+  module and target: `core/analysis` 640 JVM (+5 allocation), 629 JS, 629 debug, 629 release;
+  `core/domain` 40 on each of the four; `:app` 245 debug and 233 release; `tools/mmfit-eval` 25.
   Python tests (`test_subjects.py`, `test_anomaly_study.py`) are separate.
 - **The command:** section 9.2.
 - **Every test is synthetic.** None has seen a camera frame or a model; device evidence is recorded
@@ -1087,7 +1087,7 @@ figure can be regenerated rather than trusted.
 
 - A live session holds exactly one set, so the "sessions" count counts sets (P3-16).
 - A repetition set survives the app being killed: its completed repetitions are drafted and saved on
-  the next launch (P3-66). A hold under way is still lost. A save that fails is always reported, and
+  the next launch (P3-66), and so does a hold (P3-72). A save that fails is always reported, and
   its draft is retried on the next launch (P3-63, P3-66).
 - A set ended with the back button during a guided workout is saved but not counted in that workout's
   summary (P3-50).
@@ -1212,6 +1212,6 @@ figure can be regenerated rather than trusted.
 ---
 
 *When you finish a piece of work:*
-1. *add its entry to `docs/DECISIONS.md` (next: **P3-71**);*
+1. *add its entry to `docs/DECISIONS.md` (next: **P3-73**);*
 2. *update `docs/PROJECT_STATUS.md`'s "Next session starts here";*
 3. *update sections 7 and 8 of this file.*

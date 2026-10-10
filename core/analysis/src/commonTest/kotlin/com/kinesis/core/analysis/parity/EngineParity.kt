@@ -52,16 +52,36 @@ object EngineParity {
 
     const val FRAME_MS = 33.0
     private const val STANDING = 170.0
+    private const val HANGING = 15.0
     private const val FLAT = 180.0
 
     /** The near-side squat since DECISIONS.md P3-68. */
     fun squat(): List<String> = kneeSet("squat")
 
+    /** The lunge, near-side since DECISIONS.md P3-71, through the squat scenario's movements. */
+    fun lunge(): List<String> = kneeSet("lunge")
+
     /**
-     * The same movements through the lunge, which still pairs its two knees: the paired path's
-     * parity, which the squat carried until DECISIONS.md P3-68.
+     * The paired path - both sides waiting for each other, one side alone, a lagging side - through
+     * the lateral raise, which pairs both arms. The squat carried it until DECISIONS.md P3-68, the
+     * lunge until P3-71.
      */
-    fun pairedLunge(): List<String> = kneeSet("lunge")
+    fun pairedRaise(): List<String> {
+        val run = Run("""{"id": "lateral_raise"}""", seed = 41)
+        run.rest(20)
+        run.raiseTo(55.0) // turns back below the far zone: ABORTED
+        run.rest(15)
+        repeat(3) {
+            run.raiseTo(92.0) // VALID
+            run.rest(12)
+        }
+        run.raiseTo(90.0, rightSeen = false) // the right arm unseen: one-sided
+        run.rest(15)
+        run.raiseTo(90.0, rightLag = 5) // the right arm five frames behind
+        run.rest(15)
+        repeat(18) { run.shoulders(HANGING + 3.0 * it, HANGING + 3.0 * it) } // under way when the set ends
+        return run.finish()
+    }
 
     private fun kneeSet(id: String): List<String> {
         val run = Run("""{"id": "$id"}""", seed = 7)
@@ -374,6 +394,45 @@ object EngineParity {
             val radians = (if (hidden) STANDING else degrees) * PI / 180.0
             put(knee, x, 0.70, if (hidden) 0.0 else seen)
             put(ankle, x + 0.2 * sin(radians), 0.70 - 0.2 * cos(radians), if (hidden) 0.0 else seen)
+        }
+
+        fun rest(frames: Int) = repeat(frames) { shoulders(HANGING, HANGING) }
+
+        /** Both arms raised out to [peak] and lowered, the right [rightLag] frames behind. */
+        fun raiseTo(peak: Double, rightSeen: Boolean = true, rightLag: Int = 0, half: Int = 25) {
+            for (step in 0 until 2 * half + rightLag) {
+                shoulders(raise(step, peak, half), if (rightSeen) raise(step - rightLag, peak, half) else Double.NaN)
+            }
+        }
+
+        private fun raise(step: Int, peak: Double, half: Int): Double = when {
+            step < 0 -> HANGING
+            step < half -> HANGING + (peak - HANGING) * (step + 1) / half.toDouble()
+            step < 2 * half -> peak - (peak - HANGING) * (step - half + 1) / half.toDouble()
+            else -> HANGING
+        }
+
+        /**
+         * A seated body, front-on, whose upper arms make exactly these angles with the trunk; `NaN`
+         * hides that arm. The elbows stay straight.
+         */
+        fun shoulders(left: Double, right: Double) {
+            clear(0.9)
+            put(LandmarkId.NOSE, 0.50, 0.12, 0.9)
+            put(LandmarkId.LEFT_HIP, 0.42, 0.62, 0.95)
+            put(LandmarkId.RIGHT_HIP, 0.58, 0.62, 0.95)
+            upperArm(LandmarkId.LEFT_SHOULDER, LandmarkId.LEFT_ELBOW, LandmarkId.LEFT_WRIST, 0.42, -1.0, left)
+            upperArm(LandmarkId.RIGHT_SHOULDER, LandmarkId.RIGHT_ELBOW, LandmarkId.RIGHT_WRIST, 0.58, 1.0, right)
+            push()
+        }
+
+        private fun upperArm(shoulder: LandmarkId, elbow: LandmarkId, wrist: LandmarkId, x: Double, outward: Double, degrees: Double) {
+            val hidden = degrees.isNaN()
+            val radians = (if (hidden) HANGING else degrees) * PI / 180.0
+            val seen = if (hidden) 0.0 else 0.95
+            put(shoulder, x, 0.30, 0.95)
+            put(elbow, x + outward * 0.15 * sin(radians), 0.30 + 0.15 * cos(radians), seen)
+            put(wrist, x + outward * 0.28 * sin(radians), 0.30 + 0.28 * cos(radians), seen)
         }
 
         /** A side-on plank whose hip angle - shoulder, hip, knee - is exactly [hipDegrees]. */

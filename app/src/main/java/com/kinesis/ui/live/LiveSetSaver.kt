@@ -1,5 +1,6 @@
 package com.kinesis.ui.live
 
+import com.kinesis.core.domain.session.HoldSetRecord
 import com.kinesis.core.domain.session.RepetitionSetRecord
 import com.kinesis.core.domain.session.SessionRecord
 import com.kinesis.storage.SessionRecorder
@@ -88,6 +89,17 @@ class LiveSetSaver(
                         startedAtEpochMs = startedAtEpochMs,
                         utcOffsetMinutes = utcOffsetMinutes,
                         sets = listOf(RepetitionSetRecord(exerciseId, startedAtEpochMs, records)),
+                    ),
+                )
+            }
+            // A hold's draft, refreshed about once a second - DECISIONS.md P3-72.
+            engine.observeHolds { exerciseId, hold ->
+                drafts.write(
+                    SessionRecord(
+                        sessionId = sessionId,
+                        startedAtEpochMs = startedAtEpochMs,
+                        utcOffsetMinutes = utcOffsetMinutes,
+                        sets = listOf(HoldSetRecord(exerciseId, startedAtEpochMs, listOf(hold))),
                     ),
                 )
             }

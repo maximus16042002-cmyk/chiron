@@ -164,13 +164,13 @@ class ViewAndSideContractTest {
     @Test
     fun the_near_side_only_entries_are_exactly_the_decided_ones() {
         assertEquals(
-            listOf("goblet_squat", "pushup", "row", "situp", "squat"),
+            listOf("goblet_squat", "lunge", "pushup", "reverse_lunge", "row", "situp", "squat"),
             repetitionProfiles
                 .filter { it.analysedSides == AnalysedSides.NEAR_SIDE_ONLY }
                 .map { it.id }
                 .sorted(),
             "a near-side-only profile gives up symmetry entirely; adding one is a " +
-                "decision that belongs in DECISIONS.md (P3-8, P3-28, P3-68)",
+                "decision that belongs in DECISIONS.md (P3-8, P3-28, P3-68, P3-71)",
         )
     }
 
@@ -245,6 +245,16 @@ class ViewAndSideContractTest {
         assertEquals(10, counted.count { it.validity == RepValidity.VALID }, counted.map { it.validity }.toString())
         for (record in counted) {
             assertTrue(record.rangeOfMotion.asymmetry().isNaN(), "a near-side push-up reported a symmetry number")
+        }
+    }
+
+    /** DECISIONS.md P3-71: the lunge, side-on, from the near knee alone. */
+    @Test
+    fun a_side_on_lunge_counts_every_repetition_from_the_near_knee_alone() {
+        val counted = run(ExerciseLibrary.lunge, oneArmedTrack(reps = 10, start = 175.0, far = 78.0))
+        assertEquals(10, counted.count { it.validity == RepValidity.VALID }, counted.map { it.validity }.toString())
+        for (record in counted) {
+            assertTrue(record.rangeOfMotion.asymmetry().isNaN(), "a near-side lunge reported a symmetry number")
         }
     }
 
@@ -337,27 +347,29 @@ class ViewAndSideContractTest {
      * The contrast that proves the near-side handling is not a no-op applied
      * everywhere.
      *
-     * A lunge analyses both sides. Losing one knee for the whole set is a
-     * *failure*, not a supported mode, and it must not quietly produce a full
-     * count as though nothing were wrong. (The squat was this test's subject until
-     * DECISIONS.md P3-68 made it near-side-only.)
+     * A profile that pairs both knees analyses both sides. Losing one knee for the
+     * whole set is a *failure*, not a supported mode, and it must not quietly
+     * produce a full count as though nothing were wrong. Run on the test-only
+     * [com.kinesis.core.analysis.PairedKneeFixture]: the squat (P3-68) and then the
+     * lunge (P3-71) became near-side-only, and no shipped knee profile pairs now.
      */
     @Test
     fun a_both_sides_profile_does_not_report_a_full_count_from_half_a_body() {
-        val seenWhole = run(ExerciseLibrary.lunge, twoArmedTrack(reps = 10, start = 175.0, far = 78.0))
+        val paired = com.kinesis.core.analysis.PairedKneeFixture.instance
+        val seenWhole = run(paired, twoArmedTrack(reps = 10, start = 175.0, far = 78.0))
         assertEquals(
             10,
             seenWhole.count { it.validity == RepValidity.VALID },
-            "with both knees seen the lunge must count all ten, or the assertion below is vacuous",
+            "with both knees seen the paired profile must count all ten, or the assertion below is vacuous",
         )
 
         val counted = run(
-            ExerciseLibrary.lunge,
+            paired,
             oneArmedTrack(reps = 10, start = 175.0, far = 78.0),
         )
         assertFalse(
             counted.count { it.validity == RepValidity.VALID } == 10,
-            "a lunge with one knee invisible for the whole set reported a full count, " +
+            "a paired profile with one knee invisible for the whole set reported a full count, " +
                 "which would hide the failure rather than surface it",
         )
     }

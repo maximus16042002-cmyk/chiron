@@ -120,6 +120,9 @@ class LiveHoldAnalysis(
         analyser.step(timestampMs, Double.NaN)
     }
 
+    /** The hold as [finish] would report it now, without ending it - DECISIONS.md P3-72. */
+    fun snapshot(): HoldRecord = analyser.snapshot()
+
     /** Ends the attempt and reports it. */
     fun finish(): HoldRecord {
         fpsMonitor.reset()

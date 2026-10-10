@@ -313,6 +313,39 @@ class LiveSetSaverTest {
         assertTrue(local.saved.isEmpty())
     }
 
+    /** DECISIONS.md P3-72: a hold's draft exists while it runs and goes once it is saved. */
+    @Test
+    fun a_holds_draft_follows_it_and_is_removed_when_it_is_saved() = runBlocking {
+        val engine = LiveHoldEngine(ArchetypeProfiles.plank, LiveHoldBridge("plank") { }, NoSkeleton)
+        val saver = saver(engine)
+        repeat(150) {
+            engine.onLandmarks(plank(), clockMs)
+            clockMs += 33
+        }
+
+        val draft = SessionExport.readSessions(draftFiles().single().readText()).single()
+        val hold = (draft.sets.single() as HoldSetRecord).holds.single()
+        assertTrue("the draft holds the hold so far: " + hold.totalHoldMs, hold.totalHoldMs > 3_000.0)
+
+        saver.endSet().await()
+        assertTrue("the draft outlived the saved hold", draftFiles().isEmpty())
+    }
+
+    /** The draft is refreshed about once a second of frame time, never per frame. */
+    @Test
+    fun a_holds_draft_is_written_about_once_a_second_not_per_frame() = runBlocking {
+        var writes = 0
+        val counting = SetDrafts(draftDirectory) { task -> writes++; task.run() }
+        val engine = LiveHoldEngine(ArchetypeProfiles.plank, LiveHoldBridge("plank") { }, NoSkeleton)
+        LiveSetSaver(engine, repository, scope, "hold-1", 1_760_000_000_000.0, 330, onSaved = {}, drafts = counting)
+        repeat(300) { // ten seconds at 30 frames a second
+            engine.onLandmarks(plank(), clockMs)
+            clockMs += 33
+        }
+
+        assertTrue("$writes draft writes over ten seconds", writes in 9..11)
+    }
+
     @Test
     fun a_hold_is_saved_as_a_hold_and_never_as_repetitions() = runBlocking {
         val engine = LiveHoldEngine(ArchetypeProfiles.plank, LiveHoldBridge("plank") { }, NoSkeleton)

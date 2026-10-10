@@ -12857,6 +12857,103 @@ handle.
 
 ---
 
+## P3-71 — The lunge counts its near knee; the paired path's parity moves to the lateral raise
+
+*2026-10-11. Written before the code. The owner: "finish the coding part please", after P3-70
+recorded that the lunge has the squat's side-on problem and named the decision as the squat's.
+Taken as that decision, for the same reason P3-68 gives.*
+
+### The evidence
+
+The owner's one side-on lunge set (2026-10-08) counted 1 of 23 records. 20 of them were
+`INSUFFICIENT_DATA` with one knee unmeasured (P3-70, finding 3): the far knee behind the near
+leg, as for the squat.
+
+### The change
+
+- **The lunge becomes `NEAR_SIDE_ONLY`.**
+  - Both knees flex on every lunge (P3-7), so the near knee alone carries the movement.
+  - Its required landmarks become the torso (both shoulders and hips), as for the squat (P3-68).
+  - No left–right comparison is claimed for the lunge. The reverse lunge inherits all of this.
+- **The parity suite loses no coverage.**
+  - P3-68 moved the paired path's JVM/JS parity scenario to the lunge. It moves again, to a new
+    `pairedRaise` scenario: the lateral raise, which pairs both arms, is front-on and is the
+    best-measured exercise (146 of 150 on unseen people, P3-30).
+  - The scenario: one raise turned back, three counted raises, one with the right arm unseen,
+    one with the right arm lagging, and one under way when the set ends.
+  - A test checks that the scenario really pairs: at least one record measured on both sides,
+    and one on one side alone.
+  - The lunge's scenario stays, renamed `lunge`, now exercising the near-side path.
+  - The golden file is regenerated and reviewed.
+- **"Half a body is not a full count"** (`ViewAndSideContractTest`) moves from the lunge to the
+  test-only `PairedKneeFixture` (P3-68), which still pairs knees.
+
+---
+
+## P3-72 — A hold survives the app being killed too
+
+*2026-10-11. Written before the code. P3-66 drafted repetition sets only: "A hold's record exists
+only when the hold ends … its own change." This is that change.*
+
+**Design:**
+- **`HoldAnalyser.snapshot()`** is the record `finish()` would return at this moment, computed
+  from the running totals without ending the hold or changing any state.
+  - Constant time and space. The longest unbroken stretch includes the stretch under way.
+  - `finish()` and `snapshot()` build the record through one function, so they cannot drift.
+- **`LiveHoldEngine`** takes a snapshot at most once per second of frame time, never per frame,
+  and only once something has been measured (P3-70: a hold never measured is not a set).
+- **The draft** is written through P3-66's `SetDrafts`. The engine reports it through a hold
+  listener, and `LiveSetSaver` writes it as a hold set under the set's session id. Ending, saving,
+  discarding and recovery are all P3-66's, unchanged.
+- **What is recovered:** the hold up to its last snapshot, at most a second short of the kill.
+
+**Tests first:**
+- **In the core:**
+  - a snapshot followed at once by `finish()` gives the same record;
+  - an analyser snapshotted on every frame finishes exactly as one never snapshotted;
+  - a snapshot mid-stretch counts that stretch as unbroken so far.
+- **In the app:**
+  - a hold's draft appears while it runs and goes when it is saved;
+  - drafts are written about once a second, not per frame.
+
+### Results of P3-71 and P3-72 (2026-10-11)
+
+**P3-71, the lunge:**
+- `NEAR_SIDE_ONLY`, with the torso as its required landmarks; the reverse lunge inherits it.
+- The near-side list test now names `lunge` and `reverse_lunge`. A new test counts 10 of 10
+  side-on lunges from one knee, with no symmetry number.
+- The half-a-body guard runs on `PairedKneeFixture`.
+- Parity: the `lunge` scenario replaces `pairedLunge`, and a new `pairedRaise` (the lateral
+  raise) carries the paired path.
+  - A test checks the scenario has at least three counted raises and one measured on one side
+    alone.
+  - The golden file was regenerated. Only the lunge's and the new raise's sections changed;
+    every earlier scenario is byte-identical. Both pass on JVM and JS.
+- **Mutation, 1 of 1 caught:** the lunge set back to both sides.
+
+**P3-72, holds:**
+- `HoldAnalyser.snapshot()` and `finish()` share one record construction.
+- `LiveHoldAnalysis.snapshot()`; `LiveEngine.observeHolds`; the hold engine snapshots at most
+  once per 1,000 ms of frame time, once coverage is above 0; `LiveSetSaver` drafts hold sets.
+- **Tests:** `HoldSnapshotTest` (3, every target) and `LiveSetSaverTest` (+2). Over ten seconds at
+  30 frames a second, the draft was written 9–11 times.
+- **Mutations, 4 of 4 caught:**
+  - the snapshot ignoring the stretch under way;
+  - the snapshot closing the stretch (changing state);
+  - no throttle;
+  - the saver not listening to holds.
+
+**The full suite:** 3,195 test executions, 0 failed (`core/analysis` 640 JVM, 629 JS, 629 debug,
+629 release; `:app` 245 debug and 233 release).
+
+**Unseen on the phone.** The checks:
+- five side-on lunges should count five;
+- a plank force-stopped mid-hold should appear in history on the next launch.
+
+**Next entry: P3-73.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

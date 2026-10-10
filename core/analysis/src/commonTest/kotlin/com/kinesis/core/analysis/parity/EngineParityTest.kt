@@ -27,8 +27,24 @@ class EngineParityTest {
      * still pairs, with the squat scenario's movements.
      */
     @Test
-    fun a_paired_lunge_set_matches_the_golden_file_on_this_target() =
-        check("pairedLunge", EngineParityGolden.pairedLunge, EngineParity.pairedLunge())
+    fun a_lunge_set_matches_the_golden_file_on_this_target() =
+        check("lunge", EngineParityGolden.lunge, EngineParity.lunge())
+
+    /** DECISIONS.md P3-71: the paired path's parity, through the lateral raise. */
+    @Test
+    fun a_paired_raise_set_matches_the_golden_file_on_this_target() =
+        check("pairedRaise", EngineParityGolden.pairedRaise, EngineParity.pairedRaise())
+
+    /**
+     * The paired scenario must really exercise pairing, or its parity proves nothing about it:
+     * counted raises measured on both arms, and one measured on the left alone.
+     */
+    @Test
+    fun the_paired_raise_scenario_really_pairs_and_really_goes_one_sided() {
+        val records = EngineParity.pairedRaise().filter { it.startsWith("records|") }.joinToString(" ")
+        assertTrue(Regex("\"validity\":\"VALID\"").findAll(records).count() >= 3, "fewer than three counted raises")
+        assertTrue(records.contains("\"right\":null"), "no raise was measured on one side alone")
+    }
 
     @Test
     fun a_plank_hold_matches_the_golden_file_on_this_target() =

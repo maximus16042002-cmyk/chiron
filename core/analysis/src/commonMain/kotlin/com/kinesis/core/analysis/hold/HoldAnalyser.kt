@@ -132,7 +132,25 @@ class HoldAnalyser(val profile: IsometricExercise) {
     fun finish(): HoldRecord {
         closeCurrentStretch()
         state = HoldState.ENDED
+        return record(longestUnbrokenMs)
+    }
 
+    /**
+     * The record [finish] would return at this moment, without ending the hold or changing any
+     * state - DECISIONS.md P3-72, for the draft that lets a hold survive the app being killed.
+     * The stretch under way counts as unbroken so far, as [finish] would close it. Constant time.
+     */
+    fun snapshot(): HoldRecord {
+        val current = if (state == HoldState.HOLDING && !currentStretchStartMs.isNaN() && !lastHeldTimestampMs.isNaN()) {
+            lastHeldTimestampMs - currentStretchStartMs
+        } else {
+            0.0
+        }
+        return record(if (current > longestUnbrokenMs) current else longestUnbrokenMs)
+    }
+
+    /** One construction for [finish] and [snapshot], so the two cannot drift apart. */
+    private fun record(longestUnbroken: Double): HoldRecord {
         val coverage = if (totalFrames == 0) 0.0 else measuredFrames.toDouble() / totalFrames
         val validity = when {
             totalFrames == 0 -> HoldValidity.INSUFFICIENT_DATA
@@ -147,7 +165,7 @@ class HoldAnalyser(val profile: IsometricExercise) {
             endMs = if (lastTimestampMs.isNaN()) 0.0 else lastTimestampMs,
             validity = validity,
             totalHoldMs = totalHoldMs,
-            longestUnbrokenMs = longestUnbrokenMs,
+            longestUnbrokenMs = longestUnbroken,
             breakCount = breakCount,
             meanAbsDeviation = if (heldFrames == 0) Double.NaN else deviationSum / heldFrames,
             maxAbsDeviation = if (heldFrames == 0) Double.NaN else maxAbsDeviation,

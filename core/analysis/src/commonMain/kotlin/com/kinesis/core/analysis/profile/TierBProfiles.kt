@@ -81,8 +81,13 @@ class LungeProfile : TierBProfile(), RepetitionExercise {
      */
     override val repetitionSemantics: RepetitionSemantics = RepetitionSemantics.SIMULTANEOUS
 
-    /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
-    override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+    /**
+     * The knee nearer the camera counts - DECISIONS.md P3-71, the squat's decision (P3-68) for the
+     * same reason: side-on, the far knee is often hidden behind the near leg, and on the owner's
+     * phone 20 of 23 lunge records were lost to it (P3-70). Both knees flex on every lunge (P3-7),
+     * so the near one carries the movement. No left-right comparison is claimed for the lunge.
+     */
+    override val analysedSides: AnalysedSides = AnalysedSides.NEAR_SIDE_ONLY
 
     /** Moving away from the start is the lowering - DECISIONS.md P3-30. */
     override val awayFromStart: Contraction = Contraction.ECCENTRIC
@@ -99,10 +104,10 @@ class LungeProfile : TierBProfile(), RepetitionExercise {
         maxRepDurationMs = 15_000.0,
     )
 
+    /** The torso, as for the squat (P3-68): an unseen far knee must not invalidate the frame. P3-71. */
     override val requiredLandmarks: RequiredLandmarks = RequiredLandmarks.of(
+        LandmarkId.LEFT_SHOULDER, LandmarkId.RIGHT_SHOULDER,
         LandmarkId.LEFT_HIP, LandmarkId.RIGHT_HIP,
-        LandmarkId.LEFT_KNEE, LandmarkId.RIGHT_KNEE,
-        LandmarkId.LEFT_ANKLE, LandmarkId.RIGHT_ANKLE,
     )
 }
 

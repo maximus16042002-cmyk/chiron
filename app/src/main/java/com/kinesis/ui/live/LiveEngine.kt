@@ -2,6 +2,7 @@ package com.kinesis.ui.live
 
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
+import com.kinesis.core.domain.rep.HoldRecord
 import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.storage.SessionRecorder
 import com.kinesis.ui.theme.OverlayState
@@ -44,4 +45,11 @@ interface LiveEngine {
      * no record until it ends, so a hold engine never calls it.
      */
     fun observeRepetitions(listener: (exerciseId: String, records: List<RepRecord>) -> Unit) {}
+
+    /**
+     * Calls [listener] with the exercise and the hold as it stands, at most about once a second
+     * of frame time, once anything has been measured - DECISIONS.md P3-72, for the hold's draft.
+     * Called on the camera thread. A repetition engine never calls it.
+     */
+    fun observeHolds(listener: (exerciseId: String, hold: HoldRecord) -> Unit) {}
 }
