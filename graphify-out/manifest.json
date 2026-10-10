@@ -1,0 +1,2288 @@
+{
+  ".claude/settings.json": {
+    "mtime": 1791542303.2644067,
+    "seen": 1791542546.9952877,
+    "ast_hash": "35634d404b44d0c52889d16146fcaf8a",
+    "semantic_hash": "35634d404b44d0c52889d16146fcaf8a"
+  },
+  "app/build.gradle.kts": {
+    "mtime": 1791148607.9250104,
+    "seen": 1791542546.9952984,
+    "ast_hash": "e4f2f05a8616edf49a8bbe03d232837b",
+    "semantic_hash": "e4f2f05a8616edf49a8bbe03d232837b"
+  },
+  "app/google-services.json": {
+    "mtime": 1790025773.0957806,
+    "seen": 1791542546.995303,
+    "ast_hash": "0ee8169f1cbf6fde053436facbf8a8b6",
+    "semantic_hash": "0ee8169f1cbf6fde053436facbf8a8b6"
+  },
+  "app/schemas/com.kinesis.storage.KinesisDatabase/1.json": {
+    "mtime": 1790519596.6041954,
+    "seen": 1791542546.9953058,
+    "ast_hash": "57c69e71c9a8d9fe56e57c98c76e2f51",
+    "semantic_hash": "57c69e71c9a8d9fe56e57c98c76e2f51"
+  },
+  "app/schemas/com.kinesis.storage.KinesisDatabase/2.json": {
+    "mtime": 1790520040.517478,
+    "seen": 1791542546.9953084,
+    "ast_hash": "de8943ade2cab760f48d7e42c8b37538",
+    "semantic_hash": "de8943ade2cab760f48d7e42c8b37538"
+  },
+  "app/schemas/com.kinesis.storage.KinesisDatabase/3.json": {
+    "mtime": 1790928627.0819106,
+    "seen": 1791542546.99531,
+    "ast_hash": "2b7c0bea4468b27728fead91d67dd1ae",
+    "semantic_hash": "2b7c0bea4468b27728fead91d67dd1ae"
+  },
+  "app/src/androidTest/java/com/kinesis/camera/FramePipelineBenchmark.kt": {
+    "mtime": 1790279637.9146788,
+    "seen": 1791542546.9953125,
+    "ast_hash": "ef88d3f311a820db7193fee7a15abd38",
+    "semantic_hash": "ef88d3f311a820db7193fee7a15abd38"
+  },
+  "app/src/androidTest/java/com/kinesis/camera/LiveRotationOnDeviceTest.kt": {
+    "mtime": 1790279372.3303647,
+    "seen": 1791542546.9953141,
+    "ast_hash": "212c4afb7759bf8f12e9266d03a1f705",
+    "semantic_hash": "212c4afb7759bf8f12e9266d03a1f705"
+  },
+  "app/src/androidTest/java/com/kinesis/camera/PoseLandmarkerOnDeviceTest.kt": {
+    "mtime": 1790274635.1058078,
+    "seen": 1791542546.995316,
+    "ast_hash": "8ba122fd661003989c5f0f4e5ddc5ef9",
+    "semantic_hash": "8ba122fd661003989c5f0f4e5ddc5ef9"
+  },
+  "app/src/androidTest/java/com/kinesis/camera/SyntheticRgbaFrame.kt": {
+    "mtime": 1790278995.0229323,
+    "seen": 1791542546.995318,
+    "ast_hash": "33fce5782fc59451375e4d18fc3b3d92",
+    "semantic_hash": "33fce5782fc59451375e4d18fc3b3d92"
+  },
+  "app/src/androidTest/java/com/kinesis/camera/UprightFramesOnDeviceTest.kt": {
+    "mtime": 1790279013.9460847,
+    "seen": 1791542546.9953196,
+    "ast_hash": "ab580de09cea3b3931792c2b0d5b5cbe",
+    "semantic_hash": "ab580de09cea3b3931792c2b0d5b5cbe"
+  },
+  "app/src/androidTest/java/com/kinesis/health/HealthConnectOnDeviceTest.kt": {
+    "mtime": 1790367476.1906002,
+    "seen": 1791542546.9953218,
+    "ast_hash": "afecf6176c913fe29cd33c6ff69559dd",
+    "semantic_hash": "afecf6176c913fe29cd33c6ff69559dd"
+  },
+  "app/src/androidTest/java/com/kinesis/storage/KinesisDatabaseMigrationTest.kt": {
+    "mtime": 1790928689.0380237,
+    "seen": 1791542546.9953237,
+    "ast_hash": "a29c6a3a9c53f6984bb4ae9623667c2b",
+    "semantic_hash": "a29c6a3a9c53f6984bb4ae9623667c2b"
+  },
+  "app/src/androidTest/java/com/kinesis/ui/live/LiveScreenClippingTest.kt": {
+    "mtime": 1790277366.787735,
+    "seen": 1791542546.995325,
+    "ast_hash": "f874cb4ffd988654c752d131de7d44fe",
+    "semantic_hash": "f874cb4ffd988654c752d131de7d44fe"
+  },
+  "app/src/debug/java/com/kinesis/diagnostics/PhaseBProbes.kt": {
+    "mtime": 1790397997.1686332,
+    "seen": 1791542546.995327,
+    "ast_hash": "53cd7ca69c90ebc73c689562a554738a",
+    "semantic_hash": "53cd7ca69c90ebc73c689562a554738a"
+  },
+  "app/src/debug/java/com/kinesis/diagnostics/PoseModelSwitch.kt": {
+    "mtime": 1790397585.2448037,
+    "seen": 1791542546.9953287,
+    "ast_hash": "d7548843cc2ae74ecbe34bdafdefabfe",
+    "semantic_hash": "d7548843cc2ae74ecbe34bdafdefabfe"
+  },
+  "app/src/main/java/com/google/android/datatransport/DataTransportStandIns.kt": {
+    "mtime": 1790274720.4599226,
+    "seen": 1791542546.9953303,
+    "ast_hash": "412c380f7038bcb2c9db0fa8f322cf07",
+    "semantic_hash": "412c380f7038bcb2c9db0fa8f322cf07"
+  },
+  "app/src/main/java/com/google/android/datatransport/cct/CCTDestination.kt": {
+    "mtime": 1790274604.9966805,
+    "seen": 1791542546.9953322,
+    "ast_hash": "63e4afe8cfd1c39bcfdb37157ffe3d9f",
+    "semantic_hash": "63e4afe8cfd1c39bcfdb37157ffe3d9f"
+  },
+  "app/src/main/java/com/google/android/datatransport/runtime/TransportRuntime.kt": {
+    "mtime": 1790274604.9966805,
+    "seen": 1791542546.9953341,
+    "ast_hash": "3f9fd24f7fe0fcb9cc84e803ff860c48",
+    "semantic_hash": "3f9fd24f7fe0fcb9cc84e803ff860c48"
+  },
+  "app/src/main/java/com/kinesis/MainActivity.kt": {
+    "mtime": 1791152871.3201365,
+    "seen": 1791542546.9953358,
+    "ast_hash": "1841c659b409abce7baf62437952a617",
+    "semantic_hash": "1841c659b409abce7baf62437952a617"
+  },
+  "app/src/main/java/com/kinesis/calibration/CalibrationCoordinator.kt": {
+    "mtime": 1790521099.3303893,
+    "seen": 1791542546.995338,
+    "ast_hash": "a9e8ed97cf2ebb0a9852fbd09c71ba05",
+    "semantic_hash": "a9e8ed97cf2ebb0a9852fbd09c71ba05"
+  },
+  "app/src/main/java/com/kinesis/camera/CameraPermission.kt": {
+    "mtime": 1790117639.2661932,
+    "seen": 1791542546.9953396,
+    "ast_hash": "9f601fc7bdaf8f3af638bfbff84466a9",
+    "semantic_hash": "9f601fc7bdaf8f3af638bfbff84466a9"
+  },
+  "app/src/main/java/com/kinesis/camera/FrameUpright.kt": {
+    "mtime": 1790367236.882557,
+    "seen": 1791542546.995342,
+    "ast_hash": "b74afe6a4887c09b739310b337fcec12",
+    "semantic_hash": "b74afe6a4887c09b739310b337fcec12"
+  },
+  "app/src/main/java/com/kinesis/camera/HandOverTimes.kt": {
+    "mtime": 1790279130.0143886,
+    "seen": 1791542546.995344,
+    "ast_hash": "b8f1e153f6d144c4118aac29b57c0d93",
+    "semantic_hash": "b8f1e153f6d144c4118aac29b57c0d93"
+  },
+  "app/src/main/java/com/kinesis/camera/LiveCamera.kt": {
+    "mtime": 1790279107.0041728,
+    "seen": 1791542546.9953456,
+    "ast_hash": "51b4f98aed05d3a62d541819f2aa78d9",
+    "semantic_hash": "51b4f98aed05d3a62d541819f2aa78d9"
+  },
+  "app/src/main/java/com/kinesis/camera/LiveOrientation.kt": {
+    "mtime": 1790278065.452664,
+    "seen": 1791542546.9953475,
+    "ast_hash": "82e0eee7c49e8cfb621faecaae0787fa",
+    "semantic_hash": "82e0eee7c49e8cfb621faecaae0787fa"
+  },
+  "app/src/main/java/com/kinesis/camera/PoseLandmarkerSource.kt": {
+    "mtime": 1790279129.980271,
+    "seen": 1791542546.9953492,
+    "ast_hash": "415af6875fbbc89ee8b28bb6f6685734",
+    "semantic_hash": "415af6875fbbc89ee8b28bb6f6685734"
+  },
+  "app/src/main/java/com/kinesis/camera/PoseModelAsset.kt": {
+    "mtime": 1790397578.4130733,
+    "seen": 1791542546.995351,
+    "ast_hash": "0e746732050c9aa3eda08c0817c40f17",
+    "semantic_hash": "0e746732050c9aa3eda08c0817c40f17"
+  },
+  "app/src/main/java/com/kinesis/diagnostics/PhaseBProbe.kt": {
+    "mtime": 1790279107.0041728,
+    "seen": 1791542546.9953535,
+    "ast_hash": "2270e821825ff43f3c4e89fe0152514d",
+    "semantic_hash": "2270e821825ff43f3c4e89fe0152514d"
+  },
+  "app/src/main/java/com/kinesis/export/ExportFiles.kt": {
+    "mtime": 1791152458.9147182,
+    "seen": 1791542546.9953554,
+    "ast_hash": "a59fcf4857b746046168a9c7f2816c7f",
+    "semantic_hash": "a59fcf4857b746046168a9c7f2816c7f"
+  },
+  "app/src/main/java/com/kinesis/health/ActivityContext.kt": {
+    "mtime": 1790367358.0409837,
+    "seen": 1791542546.9953573,
+    "ast_hash": "15cc77a8933c7e7817fd5e89da6f1a24",
+    "semantic_hash": "15cc77a8933c7e7817fd5e89da6f1a24"
+  },
+  "app/src/main/java/com/kinesis/health/HealthConnectActivityContextSource.kt": {
+    "mtime": 1790367448.8633742,
+    "seen": 1791542546.995359,
+    "ast_hash": "300edc67ea3f761bec23eec7c3949cd5",
+    "semantic_hash": "300edc67ea3f761bec23eec7c3949cd5"
+  },
+  "app/src/main/java/com/kinesis/health/HealthConnectPermissionFlow.kt": {
+    "mtime": 1789926564.09504,
+    "seen": 1791542546.9953609,
+    "ast_hash": "8255799c3757904da1fef91129552ffa",
+    "semantic_hash": "8255799c3757904da1fef91129552ffa"
+  },
+  "app/src/main/java/com/kinesis/health/HealthPermissionsRationaleActivity.kt": {
+    "mtime": 1791152458.9157758,
+    "seen": 1791542546.9953623,
+    "ast_hash": "6457ebad9a8fd0490ec974a8395e3818",
+    "semantic_hash": "6457ebad9a8fd0490ec974a8395e3818"
+  },
+  "app/src/main/java/com/kinesis/licenses/ThirdPartyNotices.kt": {
+    "mtime": 1790397698.584634,
+    "seen": 1791542546.9953642,
+    "ast_hash": "1593f2b40a3973be7bc4c207542cb09f",
+    "semantic_hash": "1593f2b40a3973be7bc4c207542cb09f"
+  },
+  "app/src/main/java/com/kinesis/pose/PoseAdapter.kt": {
+    "mtime": 1790132915.0987306,
+    "seen": 1791542546.9953659,
+    "ast_hash": "00ee2144ec5b24fd2ccaca9fdf65d0c6",
+    "semantic_hash": "00ee2144ec5b24fd2ccaca9fdf65d0c6"
+  },
+  "app/src/main/java/com/kinesis/reminders/ReminderTiming.kt": {
+    "mtime": 1791127541.6358073,
+    "seen": 1791542546.9953675,
+    "ast_hash": "04458cdaf66751a1ba9f51d376b62de4",
+    "semantic_hash": "04458cdaf66751a1ba9f51d376b62de4"
+  },
+  "app/src/main/java/com/kinesis/reminders/ReminderWork.kt": {
+    "mtime": 1791152458.9157758,
+    "seen": 1791542546.9953694,
+    "ast_hash": "b8a1ff62fe66b6db9fda9a52bade2842",
+    "semantic_hash": "b8a1ff62fe66b6db9fda9a52bade2842"
+  },
+  "app/src/main/java/com/kinesis/settings/AppSettings.kt": {
+    "mtime": 1791150559.2446425,
+    "seen": 1791542546.9953716,
+    "ast_hash": "a80868daf3c752ef2d4cac05c6303d9e",
+    "semantic_hash": "a80868daf3c752ef2d4cac05c6303d9e"
+  },
+  "app/src/main/java/com/kinesis/settings/PlanRequestCodec.kt": {
+    "mtime": 1791128882.5213985,
+    "seen": 1791542546.9953732,
+    "ast_hash": "9f9a8f8e60578773c145c067a264d908",
+    "semantic_hash": "9f9a8f8e60578773c145c067a264d908"
+  },
+  "app/src/main/java/com/kinesis/storage/AccountDatabases.kt": {
+    "mtime": 1791150559.2446425,
+    "seen": 1791542546.995375,
+    "ast_hash": "9ae758a6fbfa7b40961104b50f5bf8da",
+    "semantic_hash": "9ae758a6fbfa7b40961104b50f5bf8da"
+  },
+  "app/src/main/java/com/kinesis/storage/BaselineStorage.kt": {
+    "mtime": 1790520892.4824934,
+    "seen": 1791542546.9953763,
+    "ast_hash": "7c1b54785a29890be79b683e81a4af0e",
+    "semantic_hash": "7c1b54785a29890be79b683e81a4af0e"
+  },
+  "app/src/main/java/com/kinesis/storage/KinesisDatabase.kt": {
+    "mtime": 1791145784.5985377,
+    "seen": 1791542546.9953783,
+    "ast_hash": "7512d426f375f66bcef6649fcc6c25a7",
+    "semantic_hash": "7512d426f375f66bcef6649fcc6c25a7"
+  },
+  "app/src/main/java/com/kinesis/storage/SessionEntities.kt": {
+    "mtime": 1790928618.6628456,
+    "seen": 1791542546.9953809,
+    "ast_hash": "ebd19da4983cd2ec8d563f7b57239694",
+    "semantic_hash": "ebd19da4983cd2ec8d563f7b57239694"
+  },
+  "app/src/main/java/com/kinesis/storage/SessionMapping.kt": {
+    "mtime": 1790928618.6628456,
+    "seen": 1791542546.995383,
+    "ast_hash": "bb45dd36697e79b8fedb3e02b126cf35",
+    "semantic_hash": "bb45dd36697e79b8fedb3e02b126cf35"
+  },
+  "app/src/main/java/com/kinesis/storage/SessionRecorder.kt": {
+    "mtime": 1790132252.6826172,
+    "seen": 1791542546.9953847,
+    "ast_hash": "1b46281641c21b3044b0a6c0899f2db3",
+    "semantic_hash": "1b46281641c21b3044b0a6c0899f2db3"
+  },
+  "app/src/main/java/com/kinesis/storage/SessionRepository.kt": {
+    "mtime": 1789926009.2658978,
+    "seen": 1791542546.9953864,
+    "ast_hash": "d119159e6b6b654359517712a55c43d8",
+    "semantic_hash": "d119159e6b6b654359517712a55c43d8"
+  },
+  "app/src/main/java/com/kinesis/storage/SetDrafts.kt": {
+    "mtime": 1791152968.4366076,
+    "seen": 1791542546.9953878,
+    "ast_hash": "1c748909a7727d26b558d0434257dc50",
+    "semantic_hash": "1c748909a7727d26b558d0434257dc50"
+  },
+  "app/src/main/java/com/kinesis/sync/AuthGateway.kt": {
+    "mtime": 1790027240.1153522,
+    "seen": 1791542546.9953897,
+    "ast_hash": "1fe70a6ef494b01da71a534ec2c2d6e8",
+    "semantic_hash": "1fe70a6ef494b01da71a534ec2c2d6e8"
+  },
+  "app/src/main/java/com/kinesis/sync/FirebaseSync.kt": {
+    "mtime": 1790366541.1098595,
+    "seen": 1791542546.9953914,
+    "ast_hash": "6c5bdd16c15c25367ce587fddde77986",
+    "semantic_hash": "6c5bdd16c15c25367ce587fddde77986"
+  },
+  "app/src/main/java/com/kinesis/sync/SessionDocument.kt": {
+    "mtime": 1790928618.6628456,
+    "seen": 1791542546.995393,
+    "ast_hash": "6ef3ffeb03d3e833a35bd428c4ce032f",
+    "semantic_hash": "6ef3ffeb03d3e833a35bd428c4ce032f"
+  },
+  "app/src/main/java/com/kinesis/sync/SessionSync.kt": {
+    "mtime": 1790027666.8249276,
+    "seen": 1791542546.9953952,
+    "ast_hash": "4794486593c428358e6454c84c2408b0",
+    "semantic_hash": "4794486593c428358e6454c84c2408b0"
+  },
+  "app/src/main/java/com/kinesis/sync/SessionSyncWorker.kt": {
+    "mtime": 1791145797.4130144,
+    "seen": 1791542546.9953966,
+    "ast_hash": "100780f7c614f3dbe32ebb01d64c4d35",
+    "semantic_hash": "100780f7c614f3dbe32ebb01d64c4d35"
+  },
+  "app/src/main/java/com/kinesis/sync/SyncingSessionRepository.kt": {
+    "mtime": 1790520729.8726523,
+    "seen": 1791542546.9953983,
+    "ast_hash": "77e960e93cabf0f68dc03dd7faf1ab80",
+    "semantic_hash": "77e960e93cabf0f68dc03dd7faf1ab80"
+  },
+  "app/src/main/java/com/kinesis/ui/live/LiveAnalysisBridge.kt": {
+    "mtime": 1791144491.0140483,
+    "seen": 1791542546.9954002,
+    "ast_hash": "bf2ab377f40527d651fc242ef9df3458",
+    "semantic_hash": "bf2ab377f40527d651fc242ef9df3458"
+  },
+  "app/src/main/java/com/kinesis/ui/live/LiveEngine.kt": {
+    "mtime": 1791152801.8139255,
+    "seen": 1791542546.9954016,
+    "ast_hash": "81df77d771cd6c59a7164de54963216c",
+    "semantic_hash": "81df77d771cd6c59a7164de54963216c"
+  },
+  "app/src/main/java/com/kinesis/ui/live/LiveHoldBridge.kt": {
+    "mtime": 1791144491.0140483,
+    "seen": 1791542546.9954035,
+    "ast_hash": "9673f6b7afe65c4932325ac98ec0e307",
+    "semantic_hash": "9673f6b7afe65c4932325ac98ec0e307"
+  },
+  "app/src/main/java/com/kinesis/ui/live/LiveHoldEngine.kt": {
+    "mtime": 1791653100.8546395,
+    "seen": 1791663611.428389,
+    "ast_hash": "fc18ec1191a0c69f771ddfd1314824c7",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/kinesis/ui/live/LiveHost.kt": {
+    "mtime": 1791152819.1843247,
+    "seen": 1791542546.995407,
+    "ast_hash": "2016c96dd7ba08e1dc01423aff393de0",
+    "semantic_hash": "2016c96dd7ba08e1dc01423aff393de0"
+  },
+  "app/src/main/java/com/kinesis/ui/live/LiveRepetitionEngine.kt": {
+    "mtime": 1791653100.8769658,
+    "seen": 1791663611.4283917,
+    "ast_hash": "fd9fa11b033d9b5a896913405d0db1ad",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/kinesis/ui/live/LiveSetSaver.kt": {
+    "mtime": 1791152968.7731433,
+    "seen": 1791542546.9954107,
+    "ast_hash": "a09ca8097e5a2888fe4e6473912ac559",
+    "semantic_hash": "a09ca8097e5a2888fe4e6473912ac559"
+  },
+  "app/src/main/java/com/kinesis/ui/live/OverlayGeometry.kt": {
+    "mtime": 1791144092.1566818,
+    "seen": 1791542546.9954128,
+    "ast_hash": "44664ec5a10f6d453e99a9b00560251b",
+    "semantic_hash": "44664ec5a10f6d453e99a9b00560251b"
+  },
+  "app/src/main/java/com/kinesis/ui/live/RepFeedback.kt": {
+    "mtime": 1791128281.6351607,
+    "seen": 1791542546.9954145,
+    "ast_hash": "e4761cd018cc49060a76dc2fea802a2d",
+    "semantic_hash": "e4761cd018cc49060a76dc2fea802a2d"
+  },
+  "app/src/main/java/com/kinesis/ui/live/SkeletonColouring.kt": {
+    "mtime": 1790528985.717291,
+    "seen": 1791542546.9954162,
+    "ast_hash": "1d423394466211345ed3eb37c5adecd2",
+    "semantic_hash": "1d423394466211345ed3eb37c5adecd2"
+  },
+  "app/src/main/java/com/kinesis/ui/live/SkeletonOverlayView.kt": {
+    "mtime": 1791144107.7574446,
+    "seen": 1791542546.9954176,
+    "ast_hash": "7e8ba5ee90378af403e5529355f3fdda",
+    "semantic_hash": "7e8ba5ee90378af403e5529355f3fdda"
+  },
+  "app/src/main/java/com/kinesis/ui/live/SkeletonSmoothing.kt": {
+    "mtime": 1790527427.802695,
+    "seen": 1791542546.995419,
+    "ast_hash": "68fdbbac4231fc5daffafd53d10a3bb5",
+    "semantic_hash": "68fdbbac4231fc5daffafd53d10a3bb5"
+  },
+  "app/src/main/java/com/kinesis/ui/screens/AuthScreen.kt": {
+    "mtime": 1791152458.918864,
+    "seen": 1791542546.995421,
+    "ast_hash": "e8425d255eba59bf752594c4aff152f9",
+    "semantic_hash": "e8425d255eba59bf752594c4aff152f9"
+  },
+  "app/src/main/java/com/kinesis/ui/screens/CalendarCard.kt": {
+    "mtime": 1791126124.0570898,
+    "seen": 1791542546.9954224,
+    "ast_hash": "58e6bd2fe92081e7b58b3e496cdeb341",
+    "semantic_hash": "58e6bd2fe92081e7b58b3e496cdeb341"
+  },
+  "app/src/main/java/com/kinesis/ui/screens/CalibrationScreens.kt": {
+    "mtime": 1791143981.6946168,
+    "seen": 1791542546.995424,
+    "ast_hash": "6429728f2a6d5f9609de94370935883f",
+    "semantic_hash": "6429728f2a6d5f9609de94370935883f"
+  },
+  "app/src/main/java/com/kinesis/ui/screens/Components.kt": {
+    "mtime": 1791126725.0883112,
+    "seen": 1791542546.9954257,
+    "ast_hash": "9df9fcf93f2d097c7ac9bbe5e41f07a7",
+    "semantic_hash": "9df9fcf93f2d097c7ac9bbe5e41f07a7"
+  },
+  "app/src/main/java/com/kinesis/ui/screens/HomeScreen.kt": {
+    "mtime": 1791152458.921327,
+    "seen": 1791542546.9954276,
+    "ast_hash": "723c0552bd9b81d779c668a0b06209bd",
+    "semantic_hash": "723c0552bd9b81d779c668a0b06209bd"
+  },
+  "app/src/main/java/com/kinesis/ui/screens/OnboardingScreen.kt": {
+    "mtime": 1791152458.921327,
+    "seen": 1791542546.995429,
+    "ast_hash": "40620ec8af129387e435ff5e7b15ae48",
+    "semantic_hash": "40620ec8af129387e435ff5e7b15ae48"
+  },
+  "app/src/main/java/com/kinesis/ui/screens/ProfileScreen.kt": {
+    "mtime": 1791152458.921327,
+    "seen": 1791542546.995431,
+    "ast_hash": "0ad357a540122b21d36c864655f39466",
+    "semantic_hash": "0ad357a540122b21d36c864655f39466"
+  },
+  "app/src/main/java/com/kinesis/ui/screens/ProgressScreens.kt": {
+    "mtime": 1791129387.1312385,
+    "seen": 1791542546.9954326,
+    "ast_hash": "db90d1c543c820309e0f8b88e73f6d20",
+    "semantic_hash": "db90d1c543c820309e0f8b88e73f6d20"
+  },
+  "app/src/main/java/com/kinesis/ui/screens/ReminderCard.kt": {
+    "mtime": 1791152458.922677,
+    "seen": 1791542546.9954343,
+    "ast_hash": "1c75baddca64079bdda6ced6d5e9e326",
+    "semantic_hash": "1c75baddca64079bdda6ced6d5e9e326"
+  },
+  "app/src/main/java/com/kinesis/ui/screens/RestTimerCard.kt": {
+    "mtime": 1791128969.0015082,
+    "seen": 1791542546.995436,
+    "ast_hash": "6de1149a9e728dbd048f2f8eb9f74c61",
+    "semantic_hash": "6de1149a9e728dbd048f2f8eb9f74c61"
+  },
+  "app/src/main/java/com/kinesis/ui/screens/Screens.kt": {
+    "mtime": 1791152458.922677,
+    "seen": 1791542546.9954379,
+    "ast_hash": "88308b0c2fce7aa73098fca25b51aa2a",
+    "semantic_hash": "88308b0c2fce7aa73098fca25b51aa2a"
+  },
+  "app/src/main/java/com/kinesis/ui/screens/TrendCharts.kt": {
+    "mtime": 1791129359.5534575,
+    "seen": 1791542546.9954395,
+    "ast_hash": "b8513d66b840a4d76c699c2a038df047",
+    "semantic_hash": "b8513d66b840a4d76c699c2a038df047"
+  },
+  "app/src/main/java/com/kinesis/ui/screens/WorkoutScreens.kt": {
+    "mtime": 1791152458.9237337,
+    "seen": 1791542546.9954417,
+    "ast_hash": "b37919d30dc2b8d7a08e5f2df1c0210a",
+    "semantic_hash": "b37919d30dc2b8d7a08e5f2df1c0210a"
+  },
+  "app/src/main/java/com/kinesis/ui/theme/KinesisTheme.kt": {
+    "mtime": 1791129295.1431234,
+    "seen": 1791542546.9954433,
+    "ast_hash": "894e5d1cf00ad7e8fba1f5c5d180b4ef",
+    "semantic_hash": "894e5d1cf00ad7e8fba1f5c5d180b4ef"
+  },
+  "app/src/main/java/com/kinesis/ui/theme/SkeletonPalette.kt": {
+    "mtime": 1790023450.1095023,
+    "seen": 1791542546.9954453,
+    "ast_hash": "3ad7b2c0449563f6c588996da45cb54a",
+    "semantic_hash": "3ad7b2c0449563f6c588996da45cb54a"
+  },
+  "app/src/release/java/com/kinesis/diagnostics/PhaseBProbes.kt": {
+    "mtime": 1790397619.5608857,
+    "seen": 1791542546.9954467,
+    "ast_hash": "a7614e9c114176fe3ec430f45043cf65",
+    "semantic_hash": "a7614e9c114176fe3ec430f45043cf65"
+  },
+  "app/src/release/java/com/kinesis/diagnostics/PoseModelSwitch.kt": {
+    "mtime": 1790397964.7170224,
+    "seen": 1791542546.9954486,
+    "ast_hash": "c919e592dfa4e21dbee08a6572b9bd61",
+    "semantic_hash": "c919e592dfa4e21dbee08a6572b9bd61"
+  },
+  "app/src/testDebug/java/com/kinesis/diagnostics/PhaseBStatsTest.kt": {
+    "mtime": 1790397543.671808,
+    "seen": 1791542546.9954503,
+    "ast_hash": "00f155d28af70dceba39318089e8eee0",
+    "semantic_hash": "00f155d28af70dceba39318089e8eee0"
+  },
+  "app/src/testDebug/java/com/kinesis/diagnostics/PoseModelSwitchTest.kt": {
+    "mtime": 1790397556.4405923,
+    "seen": 1791542546.9954522,
+    "ast_hash": "3390d6673547da28800e58a05d176ad3",
+    "semantic_hash": "3390d6673547da28800e58a05d176ad3"
+  },
+  "app/src/testRelease/java/com/kinesis/diagnostics/ReleaseHasNoModelSwitchTest.kt": {
+    "mtime": 1790397557.4927773,
+    "seen": 1791542546.9954536,
+    "ast_hash": "d46c2356714480ff466f2851f7bed3bb",
+    "semantic_hash": "d46c2356714480ff466f2851f7bed3bb"
+  },
+  "app/src/testRelease/java/com/kinesis/diagnostics/ReleaseHasNoPhaseBProbeTest.kt": {
+    "mtime": 1790397620.692647,
+    "seen": 1791542546.9954576,
+    "ast_hash": "578a604a823589d58cb4b1a9b048052b",
+    "semantic_hash": "578a604a823589d58cb4b1a9b048052b"
+  },
+  "app/src/test/java/com/kinesis/ApkPackagingGuardTest.kt": {
+    "mtime": 1791141885.9042478,
+    "seen": 1791542546.9954593,
+    "ast_hash": "9e3a1c4d3b8287c57a49eafcfea63cd4",
+    "semantic_hash": "9e3a1c4d3b8287c57a49eafcfea63cd4"
+  },
+  "app/src/test/java/com/kinesis/AppNameGuardTest.kt": {
+    "mtime": 1791152443.6972637,
+    "seen": 1791542546.9954615,
+    "ast_hash": "2e9e443b5c5068f287ec613c5070b3b7",
+    "semantic_hash": "2e9e443b5c5068f287ec613c5070b3b7"
+  },
+  "app/src/test/java/com/kinesis/IconGuardTest.kt": {
+    "mtime": 1791149293.6062496,
+    "seen": 1791542546.9954634,
+    "ast_hash": "2f0b467a641cc014a302610e4ae539b5",
+    "semantic_hash": "2f0b467a641cc014a302610e4ae539b5"
+  },
+  "app/src/test/java/com/kinesis/OfflineManifestGuardTest.kt": {
+    "mtime": 1791152342.0027084,
+    "seen": 1791542546.9954653,
+    "ast_hash": "b4c1c998932ce94aeee0e5aad098dfd4",
+    "semantic_hash": "b4c1c998932ce94aeee0e5aad098dfd4"
+  },
+  "app/src/test/java/com/kinesis/calibration/CalibrationCoordinatorTest.kt": {
+    "mtime": 1790696038.5559008,
+    "seen": 1791542546.995467,
+    "ast_hash": "e233bc80391dab54ef044fa05e2a9e13",
+    "semantic_hash": "e233bc80391dab54ef044fa05e2a9e13"
+  },
+  "app/src/test/java/com/kinesis/camera/CameraFacingParityTest.kt": {
+    "mtime": 1790132637.3292956,
+    "seen": 1791542546.9954689,
+    "ast_hash": "9cb55191ac5296671ad8bab3b8e0bb58",
+    "semantic_hash": "9cb55191ac5296671ad8bab3b8e0bb58"
+  },
+  "app/src/test/java/com/kinesis/camera/HandOverTimesTest.kt": {
+    "mtime": 1790279258.228406,
+    "seen": 1791542546.9954703,
+    "ast_hash": "f6b061300dd14fc625482aee596e7dc3",
+    "semantic_hash": "f6b061300dd14fc625482aee596e7dc3"
+  },
+  "app/src/test/java/com/kinesis/camera/LiveCameraFrameShapeTest.kt": {
+    "mtime": 1790119381.2521794,
+    "seen": 1791542546.9954722,
+    "ast_hash": "536b0bf754daea8e3ca70e28893592bd",
+    "semantic_hash": "536b0bf754daea8e3ca70e28893592bd"
+  },
+  "app/src/test/java/com/kinesis/camera/LiveOrientationTest.kt": {
+    "mtime": 1790277916.0600443,
+    "seen": 1791542546.9954736,
+    "ast_hash": "50a9782b848bdb42c81557d536f65c3d",
+    "semantic_hash": "50a9782b848bdb42c81557d536f65c3d"
+  },
+  "app/src/test/java/com/kinesis/camera/MediaPipeTelemetryStandInTest.kt": {
+    "mtime": 1790274388.383387,
+    "seen": 1791542546.9954755,
+    "ast_hash": "103b3580318e0e132e7f46fcea40ee8f",
+    "semantic_hash": "103b3580318e0e132e7f46fcea40ee8f"
+  },
+  "app/src/test/java/com/kinesis/camera/ReleaseModelAssetsTest.kt": {
+    "mtime": 1790397558.632152,
+    "seen": 1791542546.9954772,
+    "ast_hash": "a90b376a77edf4b653b0a0e22c5b0219",
+    "semantic_hash": "a90b376a77edf4b653b0a0e22c5b0219"
+  },
+  "app/src/test/java/com/kinesis/export/ExportFilesTest.kt": {
+    "mtime": 1791152537.2992587,
+    "seen": 1791542546.9954789,
+    "ast_hash": "4ddda21d0cd83730aa5af114ecc714b6",
+    "semantic_hash": "4ddda21d0cd83730aa5af114ecc714b6"
+  },
+  "app/src/test/java/com/kinesis/export/ExportProviderGuardTest.kt": {
+    "mtime": 1790542765.6800056,
+    "seen": 1791542546.9954805,
+    "ast_hash": "378eb9b1a2c68b2f959cb80e9d767ae3",
+    "semantic_hash": "378eb9b1a2c68b2f959cb80e9d767ae3"
+  },
+  "app/src/test/java/com/kinesis/health/ActivityContextAbsenceTest.kt": {
+    "mtime": 1789919267.2674909,
+    "seen": 1791542546.9954824,
+    "ast_hash": "44db83d8cca138a408d66898f1cfa3c5",
+    "semantic_hash": "44db83d8cca138a408d66898f1cfa3c5"
+  },
+  "app/src/test/java/com/kinesis/health/FakeActivityContextSource.kt": {
+    "mtime": 1789919217.4124005,
+    "seen": 1791542546.9954839,
+    "ast_hash": "6ae57dc7ab294350b408cfaf4a7a54e1",
+    "semantic_hash": "6ae57dc7ab294350b408cfaf4a7a54e1"
+  },
+  "app/src/test/java/com/kinesis/health/FakeHealthConnectClient.kt": {
+    "mtime": 1790365559.021526,
+    "seen": 1791542546.9954858,
+    "ast_hash": "747eed11aff11544857e099867f8fa78",
+    "semantic_hash": "747eed11aff11544857e099867f8fa78"
+  },
+  "app/src/test/java/com/kinesis/health/HealthConnectExceptionTest.kt": {
+    "mtime": 1790367388.403113,
+    "seen": 1791542546.9954875,
+    "ast_hash": "f98f3d87dbcfd52d2e3e88143475b41b",
+    "semantic_hash": "f98f3d87dbcfd52d2e3e88143475b41b"
+  },
+  "app/src/test/java/com/kinesis/health/HealthMetricReadTest.kt": {
+    "mtime": 1790367428.9833272,
+    "seen": 1791542546.9954894,
+    "ast_hash": "de1564bc965109cbe8d356107242937f",
+    "semantic_hash": "de1564bc965109cbe8d356107242937f"
+  },
+  "app/src/test/java/com/kinesis/licenses/ThirdPartyNoticesTest.kt": {
+    "mtime": 1790397791.1917517,
+    "seen": 1791542546.9954908,
+    "ast_hash": "abba2fcdd6256afe3babd0740216e294",
+    "semantic_hash": "abba2fcdd6256afe3babd0740216e294"
+  },
+  "app/src/test/java/com/kinesis/pose/AspectCorrectionRegressionTest.kt": {
+    "mtime": 1790118926.5305395,
+    "seen": 1791542546.9954927,
+    "ast_hash": "7cb77fc76bf725ac6a4b10c7716a49c7",
+    "semantic_hash": "7cb77fc76bf725ac6a4b10c7716a49c7"
+  },
+  "app/src/test/java/com/kinesis/pose/MirroringRegressionTest.kt": {
+    "mtime": 1790118960.890146,
+    "seen": 1791542546.9954944,
+    "ast_hash": "08df3637b1dfa0cd17236e7274eb8d5b",
+    "semantic_hash": "08df3637b1dfa0cd17236e7274eb8d5b"
+  },
+  "app/src/test/java/com/kinesis/reminders/ReminderTimingTest.kt": {
+    "mtime": 1791127554.1990156,
+    "seen": 1791542546.9954963,
+    "ast_hash": "e3aca06b5de983a089a2445e3548aa64",
+    "semantic_hash": "e3aca06b5de983a089a2445e3548aa64"
+  },
+  "app/src/test/java/com/kinesis/settings/PlanRequestCodecTest.kt": {
+    "mtime": 1791128881.4892733,
+    "seen": 1791542546.995498,
+    "ast_hash": "ae697e270152767626c460c4a5448546",
+    "semantic_hash": "ae697e270152767626c460c4a5448546"
+  },
+  "app/src/test/java/com/kinesis/storage/AccountDatabaseNamesTest.kt": {
+    "mtime": 1791145768.6479108,
+    "seen": 1791542546.9954996,
+    "ast_hash": "9e17ae75d26581ed3d7acc611b3b68cc",
+    "semantic_hash": "9e17ae75d26581ed3d7acc611b3b68cc"
+  },
+  "app/src/test/java/com/kinesis/storage/BaselineMappingTest.kt": {
+    "mtime": 1790519666.641199,
+    "seen": 1791542546.995501,
+    "ast_hash": "b82ba4f247ea75792f80864759e5baeb",
+    "semantic_hash": "b82ba4f247ea75792f80864759e5baeb"
+  },
+  "app/src/test/java/com/kinesis/storage/BaselinesStayOnThePhoneTest.kt": {
+    "mtime": 1790519698.666642,
+    "seen": 1791542546.995503,
+    "ast_hash": "1edeea314fbccc1428210df9b6aa23dc",
+    "semantic_hash": "1edeea314fbccc1428210df9b6aa23dc"
+  },
+  "app/src/test/java/com/kinesis/storage/DatabaseVersionGuardTest.kt": {
+    "mtime": 1790519689.5863543,
+    "seen": 1791542546.9955049,
+    "ast_hash": "91a9e47606453ef3cfdf5de445959791",
+    "semantic_hash": "91a9e47606453ef3cfdf5de445959791"
+  },
+  "app/src/test/java/com/kinesis/storage/SessionMappingTest.kt": {
+    "mtime": 1790928661.063392,
+    "seen": 1791542546.9955068,
+    "ast_hash": "bd7496145ef174a619d092c381d79544",
+    "semantic_hash": "bd7496145ef174a619d092c381d79544"
+  },
+  "app/src/test/java/com/kinesis/storage/SessionRecorderTest.kt": {
+    "mtime": 1790398881.790684,
+    "seen": 1791542546.9955084,
+    "ast_hash": "823b17c039304618629abb6f36a5330f",
+    "semantic_hash": "823b17c039304618629abb6f36a5330f"
+  },
+  "app/src/test/java/com/kinesis/storage/SetDraftsTest.kt": {
+    "mtime": 1791152948.7493758,
+    "seen": 1791542546.9955103,
+    "ast_hash": "0fef9217f0785c5703e4482c728d1343",
+    "semantic_hash": "0fef9217f0785c5703e4482c728d1343"
+  },
+  "app/src/test/java/com/kinesis/storage/UtcOffsetTest.kt": {
+    "mtime": 1790119948.887389,
+    "seen": 1791542546.9955118,
+    "ast_hash": "d61cd554c84bdc5497a42a88c325b148",
+    "semantic_hash": "d61cd554c84bdc5497a42a88c325b148"
+  },
+  "app/src/test/java/com/kinesis/sync/SessionDocumentFormTest.kt": {
+    "mtime": 1790928647.1700087,
+    "seen": 1791542546.9955137,
+    "ast_hash": "9d756da9a94bf89cdce8031635bfd299",
+    "semantic_hash": "9d756da9a94bf89cdce8031635bfd299"
+  },
+  "app/src/test/java/com/kinesis/sync/SessionDocumentHoldFieldsTest.kt": {
+    "mtime": 1790520606.8598733,
+    "seen": 1791542546.995515,
+    "ast_hash": "918b594ebcb41ceecb5860cb39809da4",
+    "semantic_hash": "918b594ebcb41ceecb5860cb39809da4"
+  },
+  "app/src/test/java/com/kinesis/sync/SessionMergeTest.kt": {
+    "mtime": 1790027333.7153366,
+    "seen": 1791542546.995517,
+    "ast_hash": "897f9e59fbd198c18ac008aa5a9e4943",
+    "semantic_hash": "897f9e59fbd198c18ac008aa5a9e4943"
+  },
+  "app/src/test/java/com/kinesis/sync/SyncOutageTest.kt": {
+    "mtime": 1790027303.6042545,
+    "seen": 1791542546.9955187,
+    "ast_hash": "03ddd59f4ac8f1024294511111f242fb",
+    "semantic_hash": "03ddd59f4ac8f1024294511111f242fb"
+  },
+  "app/src/test/java/com/kinesis/ui/live/LiveAnalysisBridgeTest.kt": {
+    "mtime": 1791144397.5328796,
+    "seen": 1791542546.9955208,
+    "ast_hash": "bcf0c91209bf13741cf3825377e4391e",
+    "semantic_hash": "bcf0c91209bf13741cf3825377e4391e"
+  },
+  "app/src/test/java/com/kinesis/ui/live/LiveHoldEngineTest.kt": {
+    "mtime": 1791653067.306069,
+    "seen": 1791663611.4284537,
+    "ast_hash": "ca8c3d294580b7c97438868602fe5c1b",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/kinesis/ui/live/LiveRepetitionEngineTest.kt": {
+    "mtime": 1791653066.8956623,
+    "seen": 1791663611.4284546,
+    "ast_hash": "2758e0efb376efb8f57bcd1574e18932",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/kinesis/ui/live/LiveSetSaverTest.kt": {
+    "mtime": 1791653046.171964,
+    "seen": 1791663611.4284556,
+    "ast_hash": "3282a7b091460f767e6109aeb6c36ae0",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/kinesis/ui/live/RepCountWatcherTest.kt": {
+    "mtime": 1791128279.5616758,
+    "seen": 1791542546.9955275,
+    "ast_hash": "9f53ffdfd10fc2ff69926e8556f63f6d",
+    "semantic_hash": "9f53ffdfd10fc2ff69926e8556f63f6d"
+  },
+  "app/src/test/java/com/kinesis/ui/live/SkeletonColouringTest.kt": {
+    "mtime": 1790528705.2248373,
+    "seen": 1791542546.9955292,
+    "ast_hash": "0ee39fde2a1063f5bf100a668c72b553",
+    "semantic_hash": "0ee39fde2a1063f5bf100a668c72b553"
+  },
+  "app/src/test/java/com/kinesis/ui/live/SkeletonPulseTest.kt": {
+    "mtime": 1790119013.599226,
+    "seen": 1791542546.9955308,
+    "ast_hash": "12f4044df495e6f98402738d1ec87673",
+    "semantic_hash": "12f4044df495e6f98402738d1ec87673"
+  },
+  "app/src/test/java/com/kinesis/ui/live/SkeletonSmoothingTest.kt": {
+    "mtime": 1790527231.8730736,
+    "seen": 1791542546.9955328,
+    "ast_hash": "d7228ef16442e43aaa47fefe53c4a181",
+    "semantic_hash": "d7228ef16442e43aaa47fefe53c4a181"
+  },
+  "app/src/test/java/com/kinesis/ui/screens/NiceAxisTest.kt": {
+    "mtime": 1791129384.4488802,
+    "seen": 1791542546.9955344,
+    "ast_hash": "dd4d84ca1c54aaba6866b1b3c1bc0737",
+    "semantic_hash": "dd4d84ca1c54aaba6866b1b3c1bc0737"
+  },
+  "app/src/test/java/com/kinesis/ui/screens/RestTimerTest.kt": {
+    "mtime": 1791128280.599021,
+    "seen": 1791542546.995536,
+    "ast_hash": "9111d4ce00ac96be4e9181418104d058",
+    "semantic_hash": "9111d4ce00ac96be4e9181418104d058"
+  },
+  "app/src/test/java/com/kinesis/ui/theme/KinesisPaletteContrastTest.kt": {
+    "mtime": 1791129295.1393268,
+    "seen": 1791542546.995538,
+    "ast_hash": "bdbf9c1a2453be8678dfa2df65818ee0",
+    "semantic_hash": "bdbf9c1a2453be8678dfa2df65818ee0"
+  },
+  "app/src/test/java/com/kinesis/ui/theme/SkeletonPaletteLegibilityTest.kt": {
+    "mtime": 1789926409.4820457,
+    "seen": 1791542546.9955397,
+    "ast_hash": "650a8f3fb839a3ceb4fd792ae05607c7",
+    "semantic_hash": "650a8f3fb839a3ceb4fd792ae05607c7"
+  },
+  "build.gradle.kts": {
+    "mtime": 1790026955.9466875,
+    "seen": 1791542546.9955416,
+    "ast_hash": "034529c51728af9cf37986f00928d003",
+    "semantic_hash": "034529c51728af9cf37986f00928d003"
+  },
+  "core/analysis/build.gradle.kts": {
+    "mtime": 1791149131.2890067,
+    "seen": 1791542546.995543,
+    "ast_hash": "115d3947db45a69034baec5e064140a3",
+    "semantic_hash": "115d3947db45a69034baec5e064140a3"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/JsonNumber.kt": {
+    "mtime": 1790542573.9321122,
+    "seen": 1791542546.9955447,
+    "ast_hash": "f6bcb5fc65dd81349f9b437d93b7eb64",
+    "semantic_hash": "f6bcb5fc65dd81349f9b437d93b7eb64"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/JsonText.kt": {
+    "mtime": 1790519769.4353836,
+    "seen": 1791542546.9955466,
+    "ast_hash": "a36307a01a487776593d05a18d25f1a1",
+    "semantic_hash": "a36307a01a487776593d05a18d25f1a1"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/KinesisEngine.kt": {
+    "mtime": 1790928997.525595,
+    "seen": 1791542546.995548,
+    "ast_hash": "f217d60d7807ec276a82a842cf534cb9",
+    "semantic_hash": "f217d60d7807ec276a82a842cf534cb9"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/anomaly/AnomalyFeatures.kt": {
+    "mtime": 1790802447.0287392,
+    "seen": 1791542546.9955497,
+    "ast_hash": "55c71a8ea08279cfde46f45fbe3ca309",
+    "semantic_hash": "55c71a8ea08279cfde46f45fbe3ca309"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/anomaly/IsolationForest.kt": {
+    "mtime": 1790801689.326426,
+    "seen": 1791542546.9955516,
+    "ast_hash": "d8307dcc04fc56409bd05e7ec415c943",
+    "semantic_hash": "d8307dcc04fc56409bd05e7ec415c943"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/anomaly/PersonalAnomalyModel.kt": {
+    "mtime": 1790802447.0287392,
+    "seen": 1791542546.9955533,
+    "ast_hash": "728f1f53a753039b960db00d937dbbf2",
+    "semantic_hash": "728f1f53a753039b960db00d937dbbf2"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/anomaly/RobustDistance.kt": {
+    "mtime": 1790803209.1486993,
+    "seen": 1791542546.9955554,
+    "ast_hash": "51cbc3a1bfc216b0384fd1501b9938c8",
+    "semantic_hash": "51cbc3a1bfc216b0384fd1501b9938c8"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/anomaly/SplitMix64.kt": {
+    "mtime": 1790709673.5203152,
+    "seen": 1791542546.9955568,
+    "ast_hash": "9fdef561d97c794865d0a40afc41c6be",
+    "semantic_hash": "9fdef561d97c794865d0a40afc41c6be"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/calibration/BaselineJson.kt": {
+    "mtime": 1790519969.7286532,
+    "seen": 1791542546.9955587,
+    "ast_hash": "325070fcdd1937d12201061ff5553535",
+    "semantic_hash": "325070fcdd1937d12201061ff5553535"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/calibration/Calibration.kt": {
+    "mtime": 1790930446.315365,
+    "seen": 1791542546.995562,
+    "ast_hash": "458f5335719519e7804aaf1749679c78",
+    "semantic_hash": "458f5335719519e7804aaf1749679c78"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/calibration/CalibrationGuide.kt": {
+    "mtime": 1791152458.9257386,
+    "seen": 1791542546.995565,
+    "ast_hash": "96d288ceadd3318a60c512bfb4e648e2",
+    "semantic_hash": "96d288ceadd3318a60c512bfb4e648e2"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/calibration/CalibrationPolicy.kt": {
+    "mtime": 1790398231.5125976,
+    "seen": 1791542546.9955683,
+    "ast_hash": "36210de564e10c29efd25ba3b09f22e2",
+    "semantic_hash": "36210de564e10c29efd25ba3b09f22e2"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/calibration/CurveDistance.kt": {
+    "mtime": 1790696127.1688268,
+    "seen": 1791542546.9955742,
+    "ast_hash": "c7240c23066eb9d29c100df0fbc236f3",
+    "semantic_hash": "c7240c23066eb9d29c100df0fbc236f3"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/calibration/PostRepAnalysis.kt": {
+    "mtime": 1791143810.2824721,
+    "seen": 1791542546.9955828,
+    "ast_hash": "df195900e6c36fc06c918eb5fba1648a",
+    "semantic_hash": "df195900e6c36fc06c918eb5fba1648a"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/calibration/RobustStatistics.kt": {
+    "mtime": 1790519672.93077,
+    "seen": 1791542546.99559,
+    "ast_hash": "2dd0f9730fbba4033ec6d85080ba10e8",
+    "semantic_hash": "2dd0f9730fbba4033ec6d85080ba10e8"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/deviation/AcsmTempoRule.kt": {
+    "mtime": 1790697094.4698641,
+    "seen": 1791542546.995596,
+    "ast_hash": "7011d7f5cfd92d48d96f920d3e800ec4",
+    "semantic_hash": "7011d7f5cfd92d48d96f920d3e800ec4"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/deviation/DeviationPolicy.kt": {
+    "mtime": 1790695706.7030458,
+    "seen": 1791542546.9955995,
+    "ast_hash": "068d3c79c19b01e1bf1bc032df22bae2",
+    "semantic_hash": "068d3c79c19b01e1bf1bc032df22bae2"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/deviation/DeviationRules.kt": {
+    "mtime": 1790697085.8054724,
+    "seen": 1791542546.9956036,
+    "ast_hash": "3d3d06112c74fced1dc9ac12bb8c9109",
+    "semantic_hash": "3d3d06112c74fced1dc9ac12bb8c9109"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/deviation/PersonalStartZone.kt": {
+    "mtime": 1790930446.31637,
+    "seen": 1791542546.995607,
+    "ast_hash": "bb72c841d88a99511ab9d2247fca99db",
+    "semantic_hash": "bb72c841d88a99511ab9d2247fca99db"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/deviation/References.kt": {
+    "mtime": 1790697062.3674536,
+    "seen": 1791542546.99561,
+    "ast_hash": "a52710996331d015e4d0455dbe2de508",
+    "semantic_hash": "a52710996331d015e4d0455dbe2de508"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/deviation/RepFeatures.kt": {
+    "mtime": 1790697067.1562645,
+    "seen": 1791542546.9956138,
+    "ast_hash": "aec45a0e7b51fc3f4c2aeec26ec39d61",
+    "semantic_hash": "aec45a0e7b51fc3f4c2aeec26ec39d61"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/export/SessionExport.kt": {
+    "mtime": 1791152969.1097095,
+    "seen": 1791542546.9956174,
+    "ast_hash": "10957df70f7d9d1c167b7a04b1972259",
+    "semantic_hash": "10957df70f7d9d1c167b7a04b1972259"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/fps/FrameRateMonitor.kt": {
+    "mtime": 1791140133.4550102,
+    "seen": 1791542546.9956203,
+    "ast_hash": "528522c7ab5aa1522c7f7818b70b90c2",
+    "semantic_hash": "528522c7ab5aa1522c7f7818b70b90c2"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/geometry/Geometry.kt": {
+    "mtime": 1789850003.9680133,
+    "seen": 1791542546.9956234,
+    "ast_hash": "199ba7470e976872fcdcf5abeaddec8c",
+    "semantic_hash": "199ba7470e976872fcdcf5abeaddec8c"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/history/Achievements.kt": {
+    "mtime": 1791127015.0073216,
+    "seen": 1791542546.995626,
+    "ast_hash": "38a4a656ed0b9fb916cbdc38aa2da6a5",
+    "semantic_hash": "38a4a656ed0b9fb916cbdc38aa2da6a5"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/history/Dashboard.kt": {
+    "mtime": 1791127076.7624307,
+    "seen": 1791542546.995629,
+    "ast_hash": "07c27d18b3bc2b71bdebf219d0efde57",
+    "semantic_hash": "07c27d18b3bc2b71bdebf219d0efde57"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/history/Records.kt": {
+    "mtime": 1791128848.5595062,
+    "seen": 1791542546.9956322,
+    "ast_hash": "9ef8973b29576c5a4b71ec87f96ab1d1",
+    "semantic_hash": "9ef8973b29576c5a4b71ec87f96ab1d1"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/history/Reminders.kt": {
+    "mtime": 1791127451.2815316,
+    "seen": 1791542546.9956353,
+    "ast_hash": "aad64723e6787ebb4a30d504bfed505a",
+    "semantic_hash": "aad64723e6787ebb4a30d504bfed505a"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/history/Streaks.kt": {
+    "mtime": 1791125997.7809227,
+    "seen": 1791542546.9956384,
+    "ast_hash": "2a383c1681e06422ddbb16cdc441a084",
+    "semantic_hash": "2a383c1681e06422ddbb16cdc441a084"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/history/Trends.kt": {
+    "mtime": 1791129276.175201,
+    "seen": 1791542546.9956412,
+    "ast_hash": "a143f09f2448c295152b403f4a8c6d6f",
+    "semantic_hash": "a143f09f2448c295152b403f4a8c6d6f"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/history/WeeklyGoal.kt": {
+    "mtime": 1791127013.9465413,
+    "seen": 1791542546.9956443,
+    "ast_hash": "cb83aba16b50b9caf23021d752fe378a",
+    "semantic_hash": "cb83aba16b50b9caf23021d752fe378a"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/hold/HoldAnalyser.kt": {
+    "mtime": 1790519698.7822824,
+    "seen": 1791542546.9956474,
+    "ast_hash": "05510486c236e290802045e821eba408",
+    "semantic_hash": "05510486c236e290802045e821eba408"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/hold/HoldReading.kt": {
+    "mtime": 1790132165.4584856,
+    "seen": 1791542546.9956505,
+    "ast_hash": "bd38a28bdaab27ba9e62fb084136d673",
+    "semantic_hash": "bd38a28bdaab27ba9e62fb084136d673"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/kinematics/BodyPoint.kt": {
+    "mtime": 1790929640.7449307,
+    "seen": 1791542546.9956536,
+    "ast_hash": "e336a42fd42f2d0bb7a893780eeb504d",
+    "semantic_hash": "e336a42fd42f2d0bb7a893780eeb504d"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/kinematics/JointAngles.kt": {
+    "mtime": 1790930007.799907,
+    "seen": 1791542546.9956567,
+    "ast_hash": "2a5460decb8ef1b32fb29068358f5468",
+    "semantic_hash": "2a5460decb8ef1b32fb29068358f5468"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/kinematics/LandmarkVelocity.kt": {
+    "mtime": 1790119068.0807402,
+    "seen": 1791542546.9956648,
+    "ast_hash": "c4f766cb44c516ac8e801bc3a7ff29fe",
+    "semantic_hash": "c4f766cb44c516ac8e801bc3a7ff29fe"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/landmark/LandmarkNormalizer.kt": {
+    "mtime": 1791144429.5488317,
+    "seen": 1791542546.995669,
+    "ast_hash": "f20abc735f9b0ec00b695df0e783994b",
+    "semantic_hash": "f20abc735f9b0ec00b695df0e783994b"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/landmark/ValidityGate.kt": {
+    "mtime": 1790132083.4482336,
+    "seen": 1791542546.995672,
+    "ast_hash": "b6436e563db88a2b33bb1d6ad1f3a527",
+    "semantic_hash": "b6436e563db88a2b33bb1d6ad1f3a527"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/live/LiveHoldAnalysis.kt": {
+    "mtime": 1791653007.7983367,
+    "seen": 1791663611.4285023,
+    "ast_hash": "9e39a75aada335d6b5f5c4480636adad",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/live/LiveRepetitionAnalysis.kt": {
+    "mtime": 1791653008.2097445,
+    "seen": 1791663611.428503,
+    "ast_hash": "2199eeb2135c28ac1337e530f26c1150",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/profile/ArchetypeProfiles.kt": {
+    "mtime": 1791663545.4948127,
+    "seen": 1791663611.428504,
+    "ast_hash": "87e148920014168b45a69b268eaaf4d8",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/profile/ExerciseKinds.kt": {
+    "mtime": 1790929577.12495,
+    "seen": 1791542546.9956844,
+    "ast_hash": "0b089a42d3739053173673ff8cc7d323",
+    "semantic_hash": "0b089a42d3739053173673ff8cc7d323"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/profile/ExerciseLibrary.kt": {
+    "mtime": 1790928132.6051388,
+    "seen": 1791542546.9956877,
+    "ast_hash": "9deca6759f0aca0b93c5ae79223b8ce0",
+    "semantic_hash": "9deca6759f0aca0b93c5ae79223b8ce0"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/profile/ExerciseVariant.kt": {
+    "mtime": 1789901671.421338,
+    "seen": 1791542546.9956906,
+    "ast_hash": "6242ef0f35c7ea529cef0d895e5ee631",
+    "semantic_hash": "6242ef0f35c7ea529cef0d895e5ee631"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/profile/TierBProfiles.kt": {
+    "mtime": 1790930446.315365,
+    "seen": 1791542546.9956942,
+    "ast_hash": "f2d12b6fdda91dcb4d7da8f8dede5bf6",
+    "semantic_hash": "f2d12b6fdda91dcb4d7da8f8dede5bf6"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/profile/TierCProfiles.kt": {
+    "mtime": 1789904024.204064,
+    "seen": 1791542546.9956973,
+    "ast_hash": "fbe3a537786f35beab74678ed094aab4",
+    "semantic_hash": "fbe3a537786f35beab74678ed094aab4"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/rep/BilateralPhase.kt": {
+    "mtime": 1790117880.0453312,
+    "seen": 1791542546.9957,
+    "ast_hash": "f506866a1cf877ccf1385c7e6cfca833",
+    "semantic_hash": "f506866a1cf877ccf1385c7e6cfca833"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/rep/BilateralRepTracker.kt": {
+    "mtime": 1791134533.1619956,
+    "seen": 1791542546.995703,
+    "ast_hash": "61c2ced261c74f4b650bca3bda6dd6e5",
+    "semantic_hash": "61c2ced261c74f4b650bca3bda6dd6e5"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/rep/FormTracker.kt": {
+    "mtime": 1790928981.9784198,
+    "seen": 1791542546.995706,
+    "ast_hash": "df4fdf1a028384a67d58881fa7847aa0",
+    "semantic_hash": "df4fdf1a028384a67d58881fa7847aa0"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/rep/RepFsm.kt": {
+    "mtime": 1790804715.595657,
+    "seen": 1791542546.9957092,
+    "ast_hash": "aa8b34f9691276814726fc2d24561b2c",
+    "semantic_hash": "aa8b34f9691276814726fc2d24561b2c"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/setup/CameraViewEstimator.kt": {
+    "mtime": 1791138217.9418101,
+    "seen": 1791542546.9957125,
+    "ast_hash": "ae49e87522ddce0c48fc82f2ccd66fac",
+    "semantic_hash": "ae49e87522ddce0c48fc82f2ccd66fac"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/setup/SetupAssistant.kt": {
+    "mtime": 1791144574.4364142,
+    "seen": 1791542546.9957156,
+    "ast_hash": "5099412b4705f456a09786e2508dd993",
+    "semantic_hash": "5099412b4705f456a09786e2508dd993"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/setup/SetupGate.kt": {
+    "mtime": 1791663545.61052,
+    "seen": 1791663611.4285161,
+    "ast_hash": "a498af5fa60061045e37b6fbdaed13da",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/setup/SetupVerdict.kt": {
+    "mtime": 1791652999.0700524,
+    "seen": 1791663611.428517,
+    "ast_hash": "8973bd92587d4a990c44848282782677",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/speed/LiftingSpeed.kt": {
+    "mtime": 1791144062.4317467,
+    "seen": 1791542546.9957254,
+    "ast_hash": "e7b678466e695db446df27f6a7226f47",
+    "semantic_hash": "e7b678466e695db446df27f6a7226f47"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/technique/TechniqueRules.kt": {
+    "mtime": 1791152458.9317498,
+    "seen": 1791542546.9957285,
+    "ast_hash": "9dd98055c3503b9672964086cbb8af4d",
+    "semantic_hash": "9dd98055c3503b9672964086cbb8af4d"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/temporal/DoubleRingBuffer.kt": {
+    "mtime": 1789850076.9295886,
+    "seen": 1791542546.9957318,
+    "ast_hash": "d708638209c7b0be8a3f0f2f4df08970",
+    "semantic_hash": "d708638209c7b0be8a3f0f2f4df08970"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/temporal/EmaSmoother.kt": {
+    "mtime": 1790708306.3182814,
+    "seen": 1791542546.9957347,
+    "ast_hash": "6469bc900baebb5077f8c268d523f4f7",
+    "semantic_hash": "6469bc900baebb5077f8c268d523f4f7"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/temporal/GapInterpolator.kt": {
+    "mtime": 1789850168.8068,
+    "seen": 1791542546.9957378,
+    "ast_hash": "284991c1df49859cf484000002ecd859",
+    "semantic_hash": "284991c1df49859cf484000002ecd859"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/temporal/MedianOutlierGate.kt": {
+    "mtime": 1790181036.5660908,
+    "seen": 1791542546.995741,
+    "ast_hash": "99818b627790c382e42ff6a0cfe0fe92",
+    "semantic_hash": "99818b627790c382e42ff6a0cfe0fe92"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/temporal/RealTimeSignalPipeline.kt": {
+    "mtime": 1790708311.2050955,
+    "seen": 1791542546.995744,
+    "ast_hash": "a5bfb1298d0b370dfc98ae8c7c169207",
+    "semantic_hash": "a5bfb1298d0b370dfc98ae8c7c169207"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/temporal/SignalMetrics.kt": {
+    "mtime": 1789850200.2649565,
+    "seen": 1791542546.9957469,
+    "ast_hash": "3c7914f7ff6db316d962d4c4473ff0b9",
+    "semantic_hash": "3c7914f7ff6db316d962d4c4473ff0b9"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/temporal/SignalResampler.kt": {
+    "mtime": 1789850186.1449869,
+    "seen": 1791542546.9957502,
+    "ast_hash": "4f76f367b5d6e76cf6bd9d003ccb78c2",
+    "semantic_hash": "4f76f367b5d6e76cf6bd9d003ccb78c2"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/temporal/TemporalConfig.kt": {
+    "mtime": 1790708320.2815435,
+    "seen": 1791542546.9957535,
+    "ast_hash": "3bbca2e40d626c57e33f61f4b6146912",
+    "semantic_hash": "3bbca2e40d626c57e33f61f4b6146912"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/verifier/ExerciseVerifier.kt": {
+    "mtime": 1791143812.3606303,
+    "seen": 1791542546.9957569,
+    "ast_hash": "a45e1965f2457b7cad760253472b083c",
+    "semantic_hash": "a45e1965f2457b7cad760253472b083c"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/verifier/ExerciseVerifierModel.kt": {
+    "mtime": 1791135195.6950016,
+    "seen": 1791542546.9957602,
+    "ast_hash": "29ba884dd3ce1d55898cf7356b4aed4a",
+    "semantic_hash": "29ba884dd3ce1d55898cf7356b4aed4a"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/verifier/MovementContextTracker.kt": {
+    "mtime": 1791134341.4489646,
+    "seen": 1791542546.9957633,
+    "ast_hash": "a1831a01b729748b600a9809d4ff9baf",
+    "semantic_hash": "a1831a01b729748b600a9809d4ff9baf"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/verifier/PretrainedExerciseVerifierModel.kt": {
+    "mtime": 1791135286.115425,
+    "seen": 1791542546.9957657,
+    "ast_hash": "d70cfe4079c2395e49d0f12dca39f3b1",
+    "semantic_hash": "d70cfe4079c2395e49d0f12dca39f3b1"
+  },
+  "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/workout/WorkoutGenerator.kt": {
+    "mtime": 1791128763.0380375,
+    "seen": 1791542546.9957678,
+    "ast_hash": "b62d4b2322c351e4fb2e6132f0da1c53",
+    "semantic_hash": "b62d4b2322c351e4fb2e6132f0da1c53"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/ArchetypeProfileTest.kt": {
+    "mtime": 1791652562.5465312,
+    "seen": 1791663611.428532,
+    "ast_hash": "e6eb0b8ea0cd4336098d8493eb63f7ec",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/BilateralPhaseTest.kt": {
+    "mtime": 1791652592.4411056,
+    "seen": 1791663611.428533,
+    "ast_hash": "4dfc014e3ffef2a005372d93c0fe10c0",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/DashboardSummaryTest.kt": {
+    "mtime": 1790398430.8045688,
+    "seen": 1791542546.9957728,
+    "ast_hash": "e9b3af8aaa6a337eeaa29592579bf60f",
+    "semantic_hash": "e9b3af8aaa6a337eeaa29592579bf60f"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/FilterAblationTest.kt": {
+    "mtime": 1790133376.8486884,
+    "seen": 1791542546.9957747,
+    "ast_hash": "6d86839608eaec582b55fc3a2e61c3dd",
+    "semantic_hash": "6d86839608eaec582b55fc3a2e61c3dd"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/FormJsonTest.kt": {
+    "mtime": 1790928965.15087,
+    "seen": 1791542546.9957762,
+    "ast_hash": "e9faa878ece3f442c48fc1e0d7db6a4f",
+    "semantic_hash": "e9faa878ece3f442c48fc1e0d7db6a4f"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/HoldReadingTest.kt": {
+    "mtime": 1790119466.0879872,
+    "seen": 1791542546.995778,
+    "ast_hash": "e3c25d7d2cc7f24c74843fee6f9e3e50",
+    "semantic_hash": "e3c25d7d2cc7f24c74843fee6f9e3e50"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/HoldSteadinessTest.kt": {
+    "mtime": 1790398356.7591753,
+    "seen": 1791542546.9957795,
+    "ast_hash": "f8cf606210ef048cdead5e971ae944bb",
+    "semantic_hash": "f8cf606210ef048cdead5e971ae944bb"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/IsometricSeparationTest.kt": {
+    "mtime": 1789903779.3044689,
+    "seen": 1791542546.9957814,
+    "ast_hash": "1b430da65a20b8de98b729acebd757b6",
+    "semantic_hash": "1b430da65a20b8de98b729acebd757b6"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/JsonNumberTest.kt": {
+    "mtime": 1790541944.5179808,
+    "seen": 1791542546.995783,
+    "ast_hash": "e07654ee9a40be3e56353ed7e1a406b7",
+    "semantic_hash": "e07654ee9a40be3e56353ed7e1a406b7"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/KinematicsTest.kt": {
+    "mtime": 1789850248.3185825,
+    "seen": 1791542546.995785,
+    "ast_hash": "11802b9f5785e4c4b808c2e3665a820e",
+    "semantic_hash": "11802b9f5785e4c4b808c2e3665a820e"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/LiveHoldAnalysisTest.kt": {
+    "mtime": 1791144544.3127587,
+    "seen": 1791542546.9957867,
+    "ast_hash": "a2dc5a822ddbfbea8e590dce4687e670",
+    "semantic_hash": "a2dc5a822ddbfbea8e590dce4687e670"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/LiveRepetitionAnalysisTest.kt": {
+    "mtime": 1791653021.6745512,
+    "seen": 1791663611.428543,
+    "ast_hash": "6c70a8e7b2fca6581af9110c3491bf49",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/NormalizationAndValidityTest.kt": {
+    "mtime": 1790119045.524029,
+    "seen": 1791542546.9957902,
+    "ast_hash": "2524478bbde187b6248656734dd0af2d",
+    "semantic_hash": "2524478bbde187b6248656734dd0af2d"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/RealTimeBudgetTest.kt": {
+    "mtime": 1789851356.2256024,
+    "seen": 1791542546.9957922,
+    "ast_hash": "a0b7e8566cc31ded482d9b7ed4b7aab7",
+    "semantic_hash": "a0b7e8566cc31ded482d9b7ed4b7aab7"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/RepFsmDeterminismTest.kt": {
+    "mtime": 1789856031.9395192,
+    "seen": 1791542546.9957938,
+    "ast_hash": "6a3791b23b0dc3bce34ca56baa565251",
+    "semantic_hash": "6a3791b23b0dc3bce34ca56baa565251"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/StreakFreezeRuleTest.kt": {
+    "mtime": 1791125869.171566,
+    "seen": 1791542546.9957957,
+    "ast_hash": "b79ab09da908c56637218a4a0adb1a98",
+    "semantic_hash": "b79ab09da908c56637218a4a0adb1a98"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/StreakRuleTest.kt": {
+    "mtime": 1791125892.849033,
+    "seen": 1791542546.9957972,
+    "ast_hash": "8b514d8054ec9cd0e70bfec6a2fbdca5",
+    "semantic_hash": "8b514d8054ec9cd0e70bfec6a2fbdca5"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/TemporalPipelineTest.kt": {
+    "mtime": 1790133367.8990614,
+    "seen": 1791542546.9957988,
+    "ast_hash": "494bfb36e24d6242b41cceed0fc4fc50",
+    "semantic_hash": "494bfb36e24d6242b41cceed0fc4fc50"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/TierAProfileTest.kt": {
+    "mtime": 1790612029.2948062,
+    "seen": 1791542546.9958005,
+    "ast_hash": "42aab9faed4318c0573f33e3fe102249",
+    "semantic_hash": "42aab9faed4318c0573f33e3fe102249"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/TierBProfileTest.kt": {
+    "mtime": 1790930446.31637,
+    "seen": 1791542546.9958026,
+    "ast_hash": "563f34fbc4ec48f73eb4b2f576187a12",
+    "semantic_hash": "563f34fbc4ec48f73eb4b2f576187a12"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/TierCProfileTest.kt": {
+    "mtime": 1789903752.731346,
+    "seen": 1791542546.9958043,
+    "ast_hash": "8f980b013701b85e50f39101e9aafcd6",
+    "semantic_hash": "8f980b013701b85e50f39101e9aafcd6"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/VariantInheritanceTest.kt": {
+    "mtime": 1789901647.0387323,
+    "seen": 1791542546.995806,
+    "ast_hash": "5eba1a3c6e929592bf021b14f494cd3e",
+    "semantic_hash": "5eba1a3c6e929592bf021b14f494cd3e"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/ViewAndSideContractTest.kt": {
+    "mtime": 1791652691.350375,
+    "seen": 1791663611.4285562,
+    "ast_hash": "4f2b020b56191c819375dc5686d2b5af",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/anomaly/AnomalyFeaturesTest.kt": {
+    "mtime": 1790709497.8982432,
+    "seen": 1791542546.9958098,
+    "ast_hash": "fb8d9a965633dad092631c2a297a611b",
+    "semantic_hash": "fb8d9a965633dad092631c2a297a611b"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/anomaly/AnomalyTestReps.kt": {
+    "mtime": 1790709743.2717206,
+    "seen": 1791542546.9958112,
+    "ast_hash": "9bd68943a7d6ac2256bf209fa9b4d6a3",
+    "semantic_hash": "9bd68943a7d6ac2256bf209fa9b4d6a3"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/anomaly/IsolationForestTest.kt": {
+    "mtime": 1790709743.2707205,
+    "seen": 1791542546.9958131,
+    "ast_hash": "61757c3ccd8bc8cf53f721ef74afc849",
+    "semantic_hash": "61757c3ccd8bc8cf53f721ef74afc849"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/anomaly/PersonalAnomalyModelTest.kt": {
+    "mtime": 1790801526.8482027,
+    "seen": 1791542546.9958146,
+    "ast_hash": "0574783c0f3ae671544e052638149607",
+    "semantic_hash": "0574783c0f3ae671544e052638149607"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/anomaly/RobustDistanceTest.kt": {
+    "mtime": 1790802384.5543058,
+    "seen": 1791542546.9958165,
+    "ast_hash": "c707e8896b8ec809ed78b99378411a53",
+    "semantic_hash": "c707e8896b8ec809ed78b99378411a53"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/anomaly/SplitMix64Test.kt": {
+    "mtime": 1790709407.0575612,
+    "seen": 1791542546.9958181,
+    "ast_hash": "aeb89f111b9c11b28d50ffd9fa47b612",
+    "semantic_hash": "aeb89f111b9c11b28d50ffd9fa47b612"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/calibration/BaselineJsonTest.kt": {
+    "mtime": 1791652717.7724657,
+    "seen": 1791663611.4285626,
+    "ast_hash": "5dd91ba926ca12b39c6c0afb073aac82",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/calibration/CalibrationFixtures.kt": {
+    "mtime": 1790398260.3690917,
+    "seen": 1791542546.9958215,
+    "ast_hash": "8a9b87fffb9d021373a5e917650a5b5c",
+    "semantic_hash": "8a9b87fffb9d021373a5e917650a5b5c"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/calibration/CalibrationGuideTest.kt": {
+    "mtime": 1791126375.1413956,
+    "seen": 1791542546.9958234,
+    "ast_hash": "5b7c10a04c275846ebcd99619f44114a",
+    "semantic_hash": "5b7c10a04c275846ebcd99619f44114a"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/calibration/CalibrationTest.kt": {
+    "mtime": 1791652727.10803,
+    "seen": 1791663611.4285655,
+    "ast_hash": "19f8dccee64656ea52f1a686f4d3e7bf",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/calibration/FacadeCalibrationTest.kt": {
+    "mtime": 1790696037.5114157,
+    "seen": 1791542546.9958267,
+    "ast_hash": "e977fbd26746b25dccab792d6c4a61cd",
+    "semantic_hash": "e977fbd26746b25dccab792d6c4a61cd"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/calibration/PostRepAnalysisTest.kt": {
+    "mtime": 1791652750.5254188,
+    "seen": 1791663611.4285674,
+    "ast_hash": "2092b5d7c78fcc355e94053f88e48100",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/calibration/RobustStatisticsTest.kt": {
+    "mtime": 1790398276.1103323,
+    "seen": 1791542546.99583,
+    "ast_hash": "1878893fe4356785d206c1c8dba4ee80",
+    "semantic_hash": "1878893fe4356785d206c1c8dba4ee80"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/deviation/AcsmTempoRuleTest.kt": {
+    "mtime": 1790696084.97292,
+    "seen": 1791542546.9958317,
+    "ast_hash": "dc623b3a379a05a8a4144b3e95a72adc",
+    "semantic_hash": "dc623b3a379a05a8a4144b3e95a72adc"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/deviation/DeviationRulesTest.kt": {
+    "mtime": 1791652750.1738994,
+    "seen": 1791663611.4285705,
+    "ast_hash": "389218575b9451a85dbb5c7168995c10",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/deviation/PersonalStartZoneTest.kt": {
+    "mtime": 1790930457.3312964,
+    "seen": 1791542546.9958353,
+    "ast_hash": "7ceaa9d9f70d3d05c78f12f0c11bf608",
+    "semantic_hash": "7ceaa9d9f70d3d05c78f12f0c11bf608"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/deviation/RepFeaturesAndReferencesTest.kt": {
+    "mtime": 1790695827.7074933,
+    "seen": 1791542546.9958375,
+    "ast_hash": "a5c5d228c0875a660370935e06ede98b",
+    "semantic_hash": "a5c5d228c0875a660370935e06ede98b"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/export/SessionExportFixture.kt": {
+    "mtime": 1790542083.900351,
+    "seen": 1791542546.9958389,
+    "ast_hash": "1adad4b44b234b8d65235e98c4e16cbb",
+    "semantic_hash": "1adad4b44b234b8d65235e98c4e16cbb"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/export/SessionExportGolden.kt": {
+    "mtime": 1790928479.5601282,
+    "seen": 1791542546.9958408,
+    "ast_hash": "515286516ac3e2630e5665aa279d737e",
+    "semantic_hash": "515286516ac3e2630e5665aa279d737e"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/export/SessionExportReadTest.kt": {
+    "mtime": 1791152722.7442694,
+    "seen": 1791542546.995843,
+    "ast_hash": "4528bbaed3d5b9689acb315bb3acb778",
+    "semantic_hash": "4528bbaed3d5b9689acb315bb3acb778"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/export/SessionExportTest.kt": {
+    "mtime": 1790542141.69276,
+    "seen": 1791542546.9958446,
+    "ast_hash": "d35a0747889a4221a7aaa4d0b01d52be",
+    "semantic_hash": "d35a0747889a4221a7aaa4d0b01d52be"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/fps/FrameRateMonitorTest.kt": {
+    "mtime": 1791140140.8081515,
+    "seen": 1791542546.9958465,
+    "ast_hash": "b88896f4b71868835cc1364ca4f7aa28",
+    "semantic_hash": "b88896f4b71868835cc1364ca4f7aa28"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/history/AchievementsTest.kt": {
+    "mtime": 1791126932.5865202,
+    "seen": 1791542546.995848,
+    "ast_hash": "4cf6ef7c4689031b73f744011f5d3b12",
+    "semantic_hash": "4cf6ef7c4689031b73f744011f5d3b12"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/history/HistoryFixtures.kt": {
+    "mtime": 1791126929.0361996,
+    "seen": 1791542546.9958496,
+    "ast_hash": "7fdef26c969a38c48861d7ea93c9ea6e",
+    "semantic_hash": "7fdef26c969a38c48861d7ea93c9ea6e"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/history/RecordsTest.kt": {
+    "mtime": 1791128848.5581126,
+    "seen": 1791542546.9958515,
+    "ast_hash": "fd9b262c5be0ff0ca696dd0abfbb08f7",
+    "semantic_hash": "fd9b262c5be0ff0ca696dd0abfbb08f7"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/history/RemindersTest.kt": {
+    "mtime": 1791127450.0835083,
+    "seen": 1791542546.9958534,
+    "ast_hash": "26fce6a8d252c81153fad0351adcf408",
+    "semantic_hash": "26fce6a8d252c81153fad0351adcf408"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/history/TrendsTest.kt": {
+    "mtime": 1791129219.331813,
+    "seen": 1791542546.995855,
+    "ast_hash": "741a29f9bf49ce776d106a0e5bbacba8",
+    "semantic_hash": "741a29f9bf49ce776d106a0e5bbacba8"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/history/WeeklyGoalTest.kt": {
+    "mtime": 1791126931.4351356,
+    "seen": 1791542546.995857,
+    "ast_hash": "1a6eb8d0a669a4544ad5ee527a4ab713",
+    "semantic_hash": "1a6eb8d0a669a4544ad5ee527a4ab713"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/kinematics/TrunkInclinationTest.kt": {
+    "mtime": 1790929603.6435554,
+    "seen": 1791542546.9958584,
+    "ast_hash": "695c3d689e2d71274fe020adf7110393",
+    "semantic_hash": "695c3d689e2d71274fe020adf7110393"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/parity/EngineParity.kt": {
+    "mtime": 1791652821.767214,
+    "seen": 1791663611.4285855,
+    "ast_hash": "e7960a79b945b126ce911f9996494e55",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/parity/EngineParityGolden.kt": {
+    "mtime": 1791652859.7554586,
+    "seen": 1791663611.4285865,
+    "ast_hash": "f2006b1c29223712909a7c22f648dac4",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/parity/EngineParityTest.kt": {
+    "mtime": 1791652821.7327585,
+    "seen": 1791663611.4285872,
+    "ast_hash": "ca40cb7e2a1e7ad4ad58112cf8ac850d",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/rep/CurlSettingsTest.kt": {
+    "mtime": 1790529712.064856,
+    "seen": 1791542546.995865,
+    "ast_hash": "c556d9b229759c3923a7c1db874596cd",
+    "semantic_hash": "c556d9b229759c3923a7c1db874596cd"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/rep/FormTrackerTest.kt": {
+    "mtime": 1790928278.916907,
+    "seen": 1791542546.9958665,
+    "ast_hash": "a8c889102e6f6076d563cb0623eb45b6",
+    "semantic_hash": "a8c889102e6f6076d563cb0623eb45b6"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/rep/GapToleranceTest.kt": {
+    "mtime": 1790609661.940742,
+    "seen": 1791542546.9958684,
+    "ast_hash": "63ce48d738e55ec44720304178c946b9",
+    "semantic_hash": "63ce48d738e55ec44720304178c946b9"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/rep/RepRecordIntegrityTest.kt": {
+    "mtime": 1791652770.8422456,
+    "seen": 1791663611.4285908,
+    "ast_hash": "f1170c3a700b45bfeda23e550ff02546",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/rep/ZoneJumpTest.kt": {
+    "mtime": 1790804715.8149548,
+    "seen": 1791542546.9958718,
+    "ast_hash": "ac080109193f96c044b886330eedc53a",
+    "semantic_hash": "ac080109193f96c044b886330eedc53a"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/setup/CameraViewEstimatorTest.kt": {
+    "mtime": 1791138281.1765893,
+    "seen": 1791542546.9958735,
+    "ast_hash": "239375637e08d936ee437bf0c66b5c87",
+    "semantic_hash": "239375637e08d936ee437bf0c66b5c87"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/setup/SetupAssistantTest.kt": {
+    "mtime": 1791144263.1421175,
+    "seen": 1791542546.9958754,
+    "ast_hash": "1457d04bcf8d5e8b5df11dbe31fd35f9",
+    "semantic_hash": "1457d04bcf8d5e8b5df11dbe31fd35f9"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/setup/SetupGateTest.kt": {
+    "mtime": 1791653032.8632412,
+    "seen": 1791663611.4285955,
+    "ast_hash": "8c70f909a323ccc4abfb25709601742a",
+    "semantic_hash": ""
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/speed/LiftingSpeedTest.kt": {
+    "mtime": 1791143922.5433023,
+    "seen": 1791542546.9958785,
+    "ast_hash": "9f1aa5bf391b89579450b27a60f97dc6",
+    "semantic_hash": "9f1aa5bf391b89579450b27a60f97dc6"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/technique/TechniqueRulesTest.kt": {
+    "mtime": 1790928322.384391,
+    "seen": 1791542546.9958801,
+    "ast_hash": "2f10bfd92eb3cb3d604066db2170fa2b",
+    "semantic_hash": "2f10bfd92eb3cb3d604066db2170fa2b"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/temporal/SmoothingRateTest.kt": {
+    "mtime": 1790708148.105944,
+    "seen": 1791542546.995882,
+    "ast_hash": "8938aca6400ca534827a970849900b2b",
+    "semantic_hash": "8938aca6400ca534827a970849900b2b"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/verifier/ExerciseVerifierParityTest.kt": {
+    "mtime": 1791143768.0249875,
+    "seen": 1791542546.9958835,
+    "ast_hash": "adcf00ab8a4c7021cef7d0eb7d59438e",
+    "semantic_hash": "adcf00ab8a4c7021cef7d0eb7d59438e"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/verifier/MovementContextTrackerTest.kt": {
+    "mtime": 1791134409.3548186,
+    "seen": 1791542546.9958854,
+    "ast_hash": "8d999f8959f4d85762f5bda8ade35bd4",
+    "semantic_hash": "8d999f8959f4d85762f5bda8ade35bd4"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/verifier/VerifierParityGolden.kt": {
+    "mtime": 1791135286.1174252,
+    "seen": 1791542546.995887,
+    "ast_hash": "942da32184b7552c2f8e6fce4acfc559",
+    "semantic_hash": "942da32184b7552c2f8e6fce4acfc559"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/workout/WorkoutGeneratorTest.kt": {
+    "mtime": 1791128709.1522286,
+    "seen": 1791542546.9958887,
+    "ast_hash": "37dc051a629726821c8805e622726f0c",
+    "semantic_hash": "37dc051a629726821c8805e622726f0c"
+  },
+  "core/analysis/src/jvmTest/kotlin/com/kinesis/core/analysis/PerFrameAllocationTest.kt": {
+    "mtime": 1790364835.9998486,
+    "seen": 1791542546.9958901,
+    "ast_hash": "7662a6bb81c40d563ebd7713d39874c9",
+    "semantic_hash": "7662a6bb81c40d563ebd7713d39874c9"
+  },
+  "core/analysis/src/jvmTest/kotlin/com/kinesis/core/analysis/SharedCoreSourceGuardTest.kt": {
+    "mtime": 1791144068.601349,
+    "seen": 1791542546.9958923,
+    "ast_hash": "91d03d5c25c47ca51d799d4212fc6153",
+    "semantic_hash": "91d03d5c25c47ca51d799d4212fc6153"
+  },
+  "core/analysis/src/jvmTest/kotlin/com/kinesis/core/analysis/export/SessionExportGoldenWriter.kt": {
+    "mtime": 1790542232.6881466,
+    "seen": 1791542546.9958937,
+    "ast_hash": "2bd349b849b533d08f78a4229927dfb8",
+    "semantic_hash": "2bd349b849b533d08f78a4229927dfb8"
+  },
+  "core/analysis/src/jvmTest/kotlin/com/kinesis/core/analysis/parity/EngineParityGoldenWriter.kt": {
+    "mtime": 1791652821.6951513,
+    "seen": 1791663611.4286094,
+    "ast_hash": "40c85622ccb1fe30d9585456c713b127",
+    "semantic_hash": ""
+  },
+  "core/build.gradle.kts": {
+    "mtime": 1789821705.4192417,
+    "seen": 1791542546.9958973,
+    "ast_hash": "596c8e0eb2f3988a8c1c205110f4dcdd",
+    "semantic_hash": "596c8e0eb2f3988a8c1c205110f4dcdd"
+  },
+  "core/domain/build.gradle.kts": {
+    "mtime": 1791149131.2890067,
+    "seen": 1791542546.995899,
+    "ast_hash": "6a9e6f59fc216d73d642fcbe6a2f94b6",
+    "semantic_hash": "6a9e6f59fc216d73d642fcbe6a2f94b6"
+  },
+  "core/domain/src/commonMain/kotlin/com/kinesis/core/domain/analysis/AnalysisResult.kt": {
+    "mtime": 1790398141.2058046,
+    "seen": 1791542546.9959006,
+    "ast_hash": "35dd8de71e106a826169d3b39cf1ab81",
+    "semantic_hash": "35dd8de71e106a826169d3b39cf1ab81"
+  },
+  "core/domain/src/commonMain/kotlin/com/kinesis/core/domain/bilateral/BilateralSignal.kt": {
+    "mtime": 1789824930.9698086,
+    "seen": 1791542546.9959025,
+    "ast_hash": "765fd1bede1a8eb5b8a1c3a06956309d",
+    "semantic_hash": "765fd1bede1a8eb5b8a1c3a06956309d"
+  },
+  "core/domain/src/commonMain/kotlin/com/kinesis/core/domain/calibration/CalibrationBaseline.kt": {
+    "mtime": 1790398115.1752434,
+    "seen": 1791542546.995904,
+    "ast_hash": "e20fb4ff762234cbc7c4547fba0a4c8b",
+    "semantic_hash": "e20fb4ff762234cbc7c4547fba0a4c8b"
+  },
+  "core/domain/src/commonMain/kotlin/com/kinesis/core/domain/finding/ClaimLevel.kt": {
+    "mtime": 1789824940.2659523,
+    "seen": 1791542546.995906,
+    "ast_hash": "b328c5f001903ba6a10ac6072308855f",
+    "semantic_hash": "b328c5f001903ba6a10ac6072308855f"
+  },
+  "core/domain/src/commonMain/kotlin/com/kinesis/core/domain/finding/Finding.kt": {
+    "mtime": 1789824963.6856837,
+    "seen": 1791542546.9959078,
+    "ast_hash": "cb9bfa0d78dc4d02fb1429f26d6aca44",
+    "semantic_hash": "cb9bfa0d78dc4d02fb1429f26d6aca44"
+  },
+  "core/domain/src/commonMain/kotlin/com/kinesis/core/domain/landmark/LandmarkId.kt": {
+    "mtime": 1789825027.938953,
+    "seen": 1791542546.9959097,
+    "ast_hash": "18d4d1a00d83bb8a95783ab49228b4db",
+    "semantic_hash": "18d4d1a00d83bb8a95783ab49228b4db"
+  },
+  "core/domain/src/commonMain/kotlin/com/kinesis/core/domain/landmark/Landmarks.kt": {
+    "mtime": 1790132310.7119942,
+    "seen": 1791542546.9959116,
+    "ast_hash": "67519dcc50a1f475ab70c3c91e44abeb",
+    "semantic_hash": "67519dcc50a1f475ab70c3c91e44abeb"
+  },
+  "core/domain/src/commonMain/kotlin/com/kinesis/core/domain/landmark/NormalizedLandmarks.kt": {
+    "mtime": 1789825061.6930914,
+    "seen": 1791542546.9959133,
+    "ast_hash": "81c18983a836f88496f7407037b858e2",
+    "semantic_hash": "81c18983a836f88496f7407037b858e2"
+  },
+  "core/domain/src/commonMain/kotlin/com/kinesis/core/domain/landmark/Validity.kt": {
+    "mtime": 1790132076.3304768,
+    "seen": 1791542546.9959152,
+    "ast_hash": "4c1d40ebf830b9f938cb81a3527f361f",
+    "semantic_hash": "4c1d40ebf830b9f938cb81a3527f361f"
+  },
+  "core/domain/src/commonMain/kotlin/com/kinesis/core/domain/profile/ExerciseProfile.kt": {
+    "mtime": 1789902642.3539138,
+    "seen": 1791542546.995917,
+    "ast_hash": "4cebf9f470482452cf33a2cbbacfc962",
+    "semantic_hash": "4cebf9f470482452cf33a2cbbacfc962"
+  },
+  "core/domain/src/commonMain/kotlin/com/kinesis/core/domain/rep/FormMeasures.kt": {
+    "mtime": 1790928052.1009698,
+    "seen": 1791542546.9959188,
+    "ast_hash": "06384ff1faa49a073539e1dd5ec17dcb",
+    "semantic_hash": "06384ff1faa49a073539e1dd5ec17dcb"
+  },
+  "core/domain/src/commonMain/kotlin/com/kinesis/core/domain/rep/MovementContext.kt": {
+    "mtime": 1791134259.4790668,
+    "seen": 1791542546.9959204,
+    "ast_hash": "f240b0c24889f9126bbd1470fa30adee",
+    "semantic_hash": "f240b0c24889f9126bbd1470fa30adee"
+  },
+  "core/domain/src/commonMain/kotlin/com/kinesis/core/domain/rep/MovementPhase.kt": {
+    "mtime": 1789855444.9930468,
+    "seen": 1791542546.995922,
+    "ast_hash": "c357b93143d21183c0d4fa8f08b454ef",
+    "semantic_hash": "c357b93143d21183c0d4fa8f08b454ef"
+  },
+  "core/domain/src/commonMain/kotlin/com/kinesis/core/domain/rep/RepRecord.kt": {
+    "mtime": 1791134297.9434872,
+    "seen": 1791542546.9959242,
+    "ast_hash": "560f2d9b2702890752b757138b4a7676",
+    "semantic_hash": "560f2d9b2702890752b757138b4a7676"
+  },
+  "core/domain/src/commonMain/kotlin/com/kinesis/core/domain/session/SessionRecord.kt": {
+    "mtime": 1789917780.7367685,
+    "seen": 1791542546.9959257,
+    "ast_hash": "4beaede732ecff48d1913456e236b958",
+    "semantic_hash": "4beaede732ecff48d1913456e236b958"
+  },
+  "core/domain/src/commonTest/kotlin/com/kinesis/core/domain/BilateralIntegrityTest.kt": {
+    "mtime": 1789824637.1757057,
+    "seen": 1791542546.9959276,
+    "ast_hash": "69370809bf47ca833c63c0812080eba4",
+    "semantic_hash": "69370809bf47ca833c63c0812080eba4"
+  },
+  "core/domain/src/commonTest/kotlin/com/kinesis/core/domain/ClaimLevelEnforcementTest.kt": {
+    "mtime": 1789825607.7986953,
+    "seen": 1791542546.995929,
+    "ast_hash": "f6a5d451a43607c4c8063fd19b3c6b62",
+    "semantic_hash": "f6a5d451a43607c4c8063fd19b3c6b62"
+  },
+  "core/domain/src/commonTest/kotlin/com/kinesis/core/domain/FormMeasuresTest.kt": {
+    "mtime": 1790928075.0582368,
+    "seen": 1791542546.9959311,
+    "ast_hash": "aa4f816265f0be411e1fb0325610a1ec",
+    "semantic_hash": "aa4f816265f0be411e1fb0325610a1ec"
+  },
+  "core/domain/src/commonTest/kotlin/com/kinesis/core/domain/LandmarkModelTest.kt": {
+    "mtime": 1789824850.4500568,
+    "seen": 1791542546.9959328,
+    "ast_hash": "fc3822b1babd4a8c1549dd40abe5668f",
+    "semantic_hash": "fc3822b1babd4a8c1549dd40abe5668f"
+  },
+  "core/domain/src/commonTest/kotlin/com/kinesis/core/domain/MovementContextTest.kt": {
+    "mtime": 1791134252.413807,
+    "seen": 1791542546.9959347,
+    "ast_hash": "0199a5783bbe96e4351b7343a1d46e02",
+    "semantic_hash": "0199a5783bbe96e4351b7343a1d46e02"
+  },
+  "desktop/build.gradle.kts": {
+    "mtime": 1789821491.154314,
+    "seen": 1791542546.9959364,
+    "ast_hash": "10c80ffe15c5bd038c05e6b92e575295",
+    "semantic_hash": "10c80ffe15c5bd038c05e6b92e575295"
+  },
+  "gradlew": {
+    "mtime": 1789825905.9861538,
+    "seen": 1791542546.995938,
+    "ast_hash": "780b1d3e23a3b82154795f73df943a14",
+    "semantic_hash": "780b1d3e23a3b82154795f73df943a14"
+  },
+  "settings.gradle.kts": {
+    "mtime": 1790545410.1530137,
+    "seen": 1791542546.9959402,
+    "ast_hash": "a6cead6e6c60297b263d1c28510872c7",
+    "semantic_hash": "a6cead6e6c60297b263d1c28510872c7"
+  },
+  "tools/firestore-rules/firebase.json": {
+    "mtime": 1790279889.861524,
+    "seen": 1791542546.9959416,
+    "ast_hash": "7942d9f73238b836b15800f154f1ba9a",
+    "semantic_hash": "7942d9f73238b836b15800f154f1ba9a"
+  },
+  "tools/firestore-rules/package.json": {
+    "mtime": 1790279831.8819332,
+    "seen": 1791542546.9959433,
+    "ast_hash": "e133b6a915701e6b481725ca527641bd",
+    "semantic_hash": "e133b6a915701e6b481725ca527641bd"
+  },
+  "tools/firestore-rules/rules.test.mjs": {
+    "mtime": 1790279960.4809463,
+    "seen": 1791542546.9959452,
+    "ast_hash": "b5389956d289e25ea09dbb1bb323f059",
+    "semantic_hash": "b5389956d289e25ea09dbb1bb323f059"
+  },
+  "tools/g1-spike/build.gradle.kts": {
+    "mtime": 1789821160.7535563,
+    "seen": 1791542546.9959474,
+    "ast_hash": "e01905192d8350bc00a9e8ae6cb49087",
+    "semantic_hash": "e01905192d8350bc00a9e8ae6cb49087"
+  },
+  "tools/g1-spike/parity/Dump.java": {
+    "mtime": 1789821166.093121,
+    "seen": 1791542546.995949,
+    "ast_hash": "4e30e47747cb1dd4d84613944e0bccd9",
+    "semantic_hash": "4e30e47747cb1dd4d84613944e0bccd9"
+  },
+  "tools/g1-spike/parity/Parity.java": {
+    "mtime": 1789821163.7663524,
+    "seen": 1791542546.9959507,
+    "ast_hash": "3aa1979b663b951d6d7c44192b267f7e",
+    "semantic_hash": "3aa1979b663b951d6d7c44192b267f7e"
+  },
+  "tools/g1-spike/parity/Sweep.java": {
+    "mtime": 1789821164.8407898,
+    "seen": 1791542546.9959521,
+    "ast_hash": "b65a7c7eec0eea41d2215fef5c2cab12",
+    "semantic_hash": "b65a7c7eec0eea41d2215fef5c2cab12"
+  },
+  "tools/g1-spike/parity/dump.js": {
+    "mtime": 1789821167.1720142,
+    "seen": 1791542546.995954,
+    "ast_hash": "a353c953fcf662dd6f3830bc18132228",
+    "semantic_hash": "a353c953fcf662dd6f3830bc18132228"
+  },
+  "tools/g1-spike/parity/parity.js": {
+    "mtime": 1789821164.2763686,
+    "seen": 1791542546.9959555,
+    "ast_hash": "a4de77b5c5cebc1f9e1a5d6ea7373d41",
+    "semantic_hash": "a4de77b5c5cebc1f9e1a5d6ea7373d41"
+  },
+  "tools/g1-spike/parity/sweep.js": {
+    "mtime": 1789821165.4842105,
+    "seen": 1791542546.9959571,
+    "ast_hash": "c9684568b64118f433249354fb21e5eb",
+    "semantic_hash": "c9684568b64118f433249354fb21e5eb"
+  },
+  "tools/g1-spike/settings.gradle.kts": {
+    "mtime": 1789821161.341889,
+    "seen": 1791542546.9959588,
+    "ast_hash": "6e03be1b5101d21c0edbabf34f5b12d3",
+    "semantic_hash": "6e03be1b5101d21c0edbabf34f5b12d3"
+  },
+  "tools/g1-spike/src/commonMain/kotlin/Spike.kt": {
+    "mtime": 1789821162.5085468,
+    "seen": 1791542546.9959605,
+    "ast_hash": "755d899472ceec32988eb24e6f694b3a",
+    "semantic_hash": "755d899472ceec32988eb24e6f694b3a"
+  },
+  "tools/g1-spike/src/commonTest/kotlin/GoldenTest.kt": {
+    "mtime": 1789821163.1311584,
+    "seen": 1791542546.9959624,
+    "ast_hash": "2eca94c0e179a1fd4b793490ea08ce7d",
+    "semantic_hash": "2eca94c0e179a1fd4b793490ea08ce7d"
+  },
+  "tools/mmfit-eval/alignment_by_set.py": {
+    "mtime": 1790608110.6186562,
+    "seen": 1791542546.995964,
+    "ast_hash": "ebc299c847339eee59a98cb5d7ef5d52",
+    "semantic_hash": "ebc299c847339eee59a98cb5d7ef5d52"
+  },
+  "tools/mmfit-eval/analyse.py": {
+    "mtime": 1790706607.5579967,
+    "seen": 1791542546.995966,
+    "ast_hash": "bb03bfeb226079edbfc5652065b04913",
+    "semantic_hash": "bb03bfeb226079edbfc5652065b04913"
+  },
+  "tools/mmfit-eval/anomaly_study.py": {
+    "mtime": 1790803683.5874627,
+    "seen": 1791542546.9959674,
+    "ast_hash": "21f61f14e651b772c47d4440c25a07ee",
+    "semantic_hash": "21f61f14e651b772c47d4440c25a07ee"
+  },
+  "tools/mmfit-eval/build.gradle.kts": {
+    "mtime": 1791134839.9668584,
+    "seen": 1791542546.9959693,
+    "ast_hash": "1a15f68e761e0be8135fdca5ded36bf3",
+    "semantic_hash": "1a15f68e761e0be8135fdca5ded36bf3"
+  },
+  "tools/mmfit-eval/check_alignment.py": {
+    "mtime": 1790545007.1418211,
+    "seen": 1791542546.995971,
+    "ast_hash": "efa7154f31099de78fe2cf9bb607a8f4",
+    "semantic_hash": "efa7154f31099de78fe2cf9bb607a8f4"
+  },
+  "tools/mmfit-eval/decision3.py": {
+    "mtime": 1790805123.3128085,
+    "seen": 1791542546.9959729,
+    "ast_hash": "31331339371f89ddd1ab7c6cbe1d84d6",
+    "semantic_hash": "31331339371f89ddd1ab7c6cbe1d84d6"
+  },
+  "tools/mmfit-eval/exercise_verifier_model.json": {
+    "mtime": 1791135056.6381414,
+    "seen": 1791542546.9959743,
+    "ast_hash": "4627c6c6bd70f67eeec005494e3386de",
+    "semantic_hash": "4627c6c6bd70f67eeec005494e3386de"
+  },
+  "tools/mmfit-eval/extract_landmarks.py": {
+    "mtime": 1790596724.0388987,
+    "seen": 1791542546.9959762,
+    "ast_hash": "1546b5638e7ee31cdbb3a9897b6d437f",
+    "semantic_hash": "1546b5638e7ee31cdbb3a9897b6d437f"
+  },
+  "tools/mmfit-eval/gap_timing.py": {
+    "mtime": 1790804641.2686603,
+    "seen": 1791542546.9959779,
+    "ast_hash": "b641ca1307203afd76d6b064f11d355e",
+    "semantic_hash": "b641ca1307203afd76d6b064f11d355e"
+  },
+  "tools/mmfit-eval/generate_kotlin_verifier.py": {
+    "mtime": 1791135281.4515283,
+    "seen": 1791542546.9959798,
+    "ast_hash": "ae0bdaba01ad541d384dc499bcdb3f90",
+    "semantic_hash": "ae0bdaba01ad541d384dc499bcdb3f90"
+  },
+  "tools/mmfit-eval/label_clock.py": {
+    "mtime": 1790545243.219947,
+    "seen": 1791542546.9959812,
+    "ast_hash": "d047b9c5d9ac4fdc2c98efb4c862392d",
+    "semantic_hash": "d047b9c5d9ac4fdc2c98efb4c862392d"
+  },
+  "tools/mmfit-eval/layer1_test.py": {
+    "mtime": 1790805672.486205,
+    "seen": 1791542546.9959831,
+    "ast_hash": "03cb9cac3cd8703409b6ea2acc715cd4",
+    "semantic_hash": "03cb9cac3cd8703409b6ea2acc715cd4"
+  },
+  "tools/mmfit-eval/personalisation_study.py": {
+    "mtime": 1790696937.6657393,
+    "seen": 1791542546.9959846,
+    "ast_hash": "7ef5856431882e1046cef1b3d007e99f",
+    "semantic_hash": "7ef5856431882e1046cef1b3d007e99f"
+  },
+  "tools/mmfit-eval/raise_rest_angles.py": {
+    "mtime": 1790695105.1779647,
+    "seen": 1791542546.9959865,
+    "ast_hash": "65765d489a3cbbc26e552a9a3c7202d4",
+    "semantic_hash": "65765d489a3cbbc26e552a9a3c7202d4"
+  },
+  "tools/mmfit-eval/raise_threshold_check.py": {
+    "mtime": 1790695128.558209,
+    "seen": 1791542546.9959881,
+    "ast_hash": "0ba7ce5830193b240817b22661df7bcf",
+    "semantic_hash": "0ba7ce5830193b240817b22661df7bcf"
+  },
+  "tools/mmfit-eval/reslice_unseen.py": {
+    "mtime": 1790695481.0925272,
+    "seen": 1791542546.99599,
+    "ast_hash": "8eef09ae0ca330f30f61a408909cd3ce",
+    "semantic_hash": "8eef09ae0ca330f30f61a408909cd3ce"
+  },
+  "tools/mmfit-eval/s5_study.py": {
+    "mtime": 1790804903.1866965,
+    "seen": 1791542546.9959915,
+    "ast_hash": "e4953c4c989a493620c5927913888620",
+    "semantic_hash": "e4953c4c989a493620c5927913888620"
+  },
+  "tools/mmfit-eval/situp_driver_compare.py": {
+    "mtime": 1790930101.3922496,
+    "seen": 1791542546.9959934,
+    "ast_hash": "9499764591df932918f510ea3c0c034f",
+    "semantic_hash": "9499764591df932918f510ea3c0c034f"
+  },
+  "tools/mmfit-eval/src/jvmMain/kotlin/com/kinesis/tools/mmfit/AnomalyStudy.kt": {
+    "mtime": 1790803785.1159496,
+    "seen": 1791542546.9959948,
+    "ast_hash": "60741eb7f8cbfd360b7723e903d7bc85",
+    "semantic_hash": "60741eb7f8cbfd360b7723e903d7bc85"
+  },
+  "tools/mmfit-eval/src/jvmMain/kotlin/com/kinesis/tools/mmfit/ExtractVerifierDataset.kt": {
+    "mtime": 1791134886.748615,
+    "seen": 1791542546.9959967,
+    "ast_hash": "91a79325836d87e41d1719105422cbf7",
+    "semantic_hash": "91a79325836d87e41d1719105422cbf7"
+  },
+  "tools/mmfit-eval/src/jvmMain/kotlin/com/kinesis/tools/mmfit/Harness.kt": {
+    "mtime": 1790695036.2652764,
+    "seen": 1791542546.9959981,
+    "ast_hash": "e3561c571d8ae876fdb96a7104598f8f",
+    "semantic_hash": "e3561c571d8ae876fdb96a7104598f8f"
+  },
+  "tools/mmfit-eval/src/jvmMain/kotlin/com/kinesis/tools/mmfit/MmFit.kt": {
+    "mtime": 1790930544.003391,
+    "seen": 1791542546.996,
+    "ast_hash": "bcf37efeb2a3fcd47b0e03f2b23ca235",
+    "semantic_hash": "bcf37efeb2a3fcd47b0e03f2b23ca235"
+  },
+  "tools/mmfit-eval/src/jvmMain/kotlin/com/kinesis/tools/mmfit/NearSideDiagnostic.kt": {
+    "mtime": 1790611852.69147,
+    "seen": 1791542546.9960082,
+    "ast_hash": "b47da50282aa048279898e5eabe15e7c",
+    "semantic_hash": "b47da50282aa048279898e5eabe15e7c"
+  },
+  "tools/mmfit-eval/src/jvmMain/kotlin/com/kinesis/tools/mmfit/PersonalisationStudy.kt": {
+    "mtime": 1790928873.8734853,
+    "seen": 1791542546.99601,
+    "ast_hash": "f4eeeb72dc773d4d0853fd6e1bb79153",
+    "semantic_hash": "f4eeeb72dc773d4d0853fd6e1bb79153"
+  },
+  "tools/mmfit-eval/src/jvmMain/kotlin/com/kinesis/tools/mmfit/Subjects.kt": {
+    "mtime": 1790696553.490086,
+    "seen": 1791542546.9960117,
+    "ast_hash": "ec20a3243ccd0b92ffd542f72d5dd0cc",
+    "semantic_hash": "ec20a3243ccd0b92ffd542f72d5dd0cc"
+  },
+  "tools/mmfit-eval/src/jvmMain/kotlin/com/kinesis/tools/mmfit/TechniqueStudy.kt": {
+    "mtime": 1790928921.2981398,
+    "seen": 1791542546.9960318,
+    "ast_hash": "dfaa47d697605092838124e667c64055",
+    "semantic_hash": "dfaa47d697605092838124e667c64055"
+  },
+  "tools/mmfit-eval/src/jvmMain/kotlin/com/kinesis/tools/mmfit/TraceSet.kt": {
+    "mtime": 1790596741.946067,
+    "seen": 1791542546.9960332,
+    "ast_hash": "ac26dad5463c09aaac741062874d1001",
+    "semantic_hash": "ac26dad5463c09aaac741062874d1001"
+  },
+  "tools/mmfit-eval/src/jvmTest/kotlin/com/kinesis/tools/mmfit/AnomalyStudyTest.kt": {
+    "mtime": 1790803352.4395518,
+    "seen": 1791542546.996035,
+    "ast_hash": "64a54a0cfff39e125e3a3395051701fc",
+    "semantic_hash": "64a54a0cfff39e125e3a3395051701fc"
+  },
+  "tools/mmfit-eval/src/jvmTest/kotlin/com/kinesis/tools/mmfit/MmFitHarnessTest.kt": {
+    "mtime": 1790596743.007145,
+    "seen": 1791542546.9960368,
+    "ast_hash": "aa8b1bac733271c0f2039d6f44fcc485",
+    "semantic_hash": "aa8b1bac733271c0f2039d6f44fcc485"
+  },
+  "tools/mmfit-eval/src/jvmTest/kotlin/com/kinesis/tools/mmfit/PersonalisationStudyTest.kt": {
+    "mtime": 1790696692.8901472,
+    "seen": 1791542546.9960384,
+    "ast_hash": "d7f3b410252b887ca2f44fa93b03224f",
+    "semantic_hash": "d7f3b410252b887ca2f44fa93b03224f"
+  },
+  "tools/mmfit-eval/src/jvmTest/kotlin/com/kinesis/tools/mmfit/SubjectsTest.kt": {
+    "mtime": 1790695025.8210938,
+    "seen": 1791542546.99604,
+    "ast_hash": "9aae74d9b75596d9b29bdf24d0609f8e",
+    "semantic_hash": "9aae74d9b75596d9b29bdf24d0609f8e"
+  },
+  "tools/mmfit-eval/start_zone_angles.py": {
+    "mtime": 1790695109.286361,
+    "seen": 1791542546.996042,
+    "ast_hash": "4e2d78008b10bea5ebbd68c9cf9be30a",
+    "semantic_hash": "4e2d78008b10bea5ebbd68c9cf9be30a"
+  },
+  "tools/mmfit-eval/start_zone_floor.py": {
+    "mtime": 1790695674.3425865,
+    "seen": 1791542546.9960437,
+    "ast_hash": "e2d8528a6a87b0aebe3d3fee5809d32d",
+    "semantic_hash": "e2d8528a6a87b0aebe3d3fee5809d32d"
+  },
+  "tools/mmfit-eval/subject_sheets.py": {
+    "mtime": 1790694055.4387214,
+    "seen": 1791542546.9960456,
+    "ast_hash": "dbf3d16179dfead034f778dd6f16388a",
+    "semantic_hash": "dbf3d16179dfead034f778dd6f16388a"
+  },
+  "tools/mmfit-eval/subjects.json": {
+    "mtime": 1790695225.715297,
+    "seen": 1791542546.996047,
+    "ast_hash": "cc490738df8c4be03f0b841ed5c36dee",
+    "semantic_hash": "cc490738df8c4be03f0b841ed5c36dee"
+  },
+  "tools/mmfit-eval/subjects.py": {
+    "mtime": 1790695083.8227417,
+    "seen": 1791542546.996049,
+    "ast_hash": "540fb37b67f209c6de1f9f7edc0effab",
+    "semantic_hash": "540fb37b67f209c6de1f9f7edc0effab"
+  },
+  "tools/mmfit-eval/test_anomaly_study.py": {
+    "mtime": 1790803498.4640565,
+    "seen": 1791542546.9960504,
+    "ast_hash": "f56a79356040c98aba336a06ea649c6e",
+    "semantic_hash": "f56a79356040c98aba336a06ea649c6e"
+  },
+  "tools/mmfit-eval/test_subjects.py": {
+    "mtime": 1790695517.147364,
+    "seen": 1791542546.9960523,
+    "ast_hash": "743c7ae63e94120cd144fab5f67e5bcf",
+    "semantic_hash": "743c7ae63e94120cd144fab5f67e5bcf"
+  },
+  "tools/mmfit-eval/trace_set.py": {
+    "mtime": 1790546368.1340225,
+    "seen": 1791542546.9960537,
+    "ast_hash": "8de2797ef555940f20f09357709227dd",
+    "semantic_hash": "8de2797ef555940f20f09357709227dd"
+  },
+  "tools/mmfit-eval/train_verifier.py": {
+    "mtime": 1791135042.9280565,
+    "seen": 1791542546.9960554,
+    "ast_hash": "0e2a9f6659456906ca2d4c2aaff38956",
+    "semantic_hash": "0e2a9f6659456906ca2d4c2aaff38956"
+  },
+  "tools/mmfit-eval/trunk_driver_thresholds.py": {
+    "mtime": 1790929677.0434513,
+    "seen": 1791542546.996057,
+    "ast_hash": "1840ccd8b5574e1f7c56d05333cdb641",
+    "semantic_hash": "1840ccd8b5574e1f7c56d05333cdb641"
+  },
+  "tools/mmfit-eval/verifier_breakdown.py": {
+    "mtime": 1791143487.7487268,
+    "seen": 1791542546.996059,
+    "ast_hash": "a9c773554b1b1484b74dcc6837d23b98",
+    "semantic_hash": "a9c773554b1b1484b74dcc6837d23b98"
+  },
+  "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/PairedKneeFixture.kt": {
+    "mtime": 1791652518.1022096,
+    "seen": 1791663611.4285457,
+    "ast_hash": "7da1750cab32be7604047ddc217420e7",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1791663583.9260058,
+    "seen": 1791663611.4286892,
+    "ast_hash": "63bc4dc74215de5b29497dae7c71aa4c",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1791152575.245769,
+    "seen": 1791663611.4286902,
+    "ast_hash": "144095684a41f0d843bc0b3019b5ad68",
+    "semantic_hash": ""
+  },
+  "app/src/main/assets/licenses/APACHE-2.0.txt": {
+    "mtime": 1790181077.1900623,
+    "seen": 1791663611.428691,
+    "ast_hash": "3b83ef96387f14655fc854ddc3c6bd57",
+    "semantic_hash": ""
+  },
+  "app/src/main/assets/licenses/BSD-3-Clause-libyuv.txt": {
+    "mtime": 1790398013.8290138,
+    "seen": 1791663611.4286916,
+    "ast_hash": "464282cfb405b005b9637f11103a7325",
+    "semantic_hash": ""
+  },
+  "app/src/main/assets/licenses/BSD-3-Clause-protobuf.txt": {
+    "mtime": 1790398006.552507,
+    "seen": 1791663611.4286926,
+    "ast_hash": "37b5762e07f0af8c74ce80a8bda4266b",
+    "semantic_hash": ""
+  },
+  "docs/CONTRACTS.md": {
+    "mtime": 1791153061.8377059,
+    "seen": 1791663611.428693,
+    "ast_hash": "090a8b6d9fc7008fcd7322d33e420fba",
+    "semantic_hash": ""
+  },
+  "docs/DECISIONS.md": {
+    "mtime": 1791663710.3392687,
+    "seen": 1791663719.1991062,
+    "ast_hash": "16c584920888de75c6d52313d4cff92d",
+    "semantic_hash": ""
+  },
+  "docs/EXERCISE_GUIDE.md": {
+    "mtime": 1790930615.2315083,
+    "seen": 1791663611.4286945,
+    "ast_hash": "8bdc8f9a1fc4503b7ec57f0e3fdd68d0",
+    "semantic_hash": ""
+  },
+  "docs/FEATURE_PLAN.md": {
+    "mtime": 1791145332.1407154,
+    "seen": 1791663611.428695,
+    "ast_hash": "824d866b9982db2f35fe2c6fd90246d2",
+    "semantic_hash": ""
+  },
+  "docs/FINAL_ARCHITECTURE.md": {
+    "mtime": 1790026935.3048334,
+    "seen": 1791663611.428696,
+    "ast_hash": "fb46844f124abec13ead2534ebd4d11e",
+    "semantic_hash": ""
+  },
+  "docs/G1_SPIKE_RESULT.md": {
+    "mtime": 1789821158.608598,
+    "seen": 1791663611.4286964,
+    "ast_hash": "7affc3a72e3d43f4f403a90030f353e6",
+    "semantic_hash": ""
+  },
+  "docs/HANDOVER.md": {
+    "mtime": 1791663710.3406804,
+    "seen": 1791663719.199112,
+    "ast_hash": "85819dd15500ac6943887b0fdfb5593b",
+    "semantic_hash": ""
+  },
+  "docs/P4_TOMORROW.md": {
+    "mtime": 1790930615.2315083,
+    "seen": 1791663611.4286978,
+    "ast_hash": "d009af2e5f271d1ea75af60f77951162",
+    "semantic_hash": ""
+  },
+  "docs/PROGRESS_REPORT.md": {
+    "mtime": 1791144895.6190817,
+    "seen": 1791663611.4286983,
+    "ast_hash": "610aca1ea3ae6939653ea1b5ccf6ccf4",
+    "semantic_hash": ""
+  },
+  "docs/PROJECT_STATUS.md": {
+    "mtime": 1791663584.153174,
+    "seen": 1791663611.4286993,
+    "ast_hash": "0751392391cb0b7f0250aadc0d11ff7b",
+    "semantic_hash": ""
+  },
+  "docs/REPOSITORY_STRUCTURE.md": {
+    "mtime": 1790364974.768816,
+    "seen": 1791663611.4287,
+    "ast_hash": "3a26c7afd657fc519c6b0cd683c1e635",
+    "semantic_hash": ""
+  },
+  "docs/ZERO_DATASET_BUILD_PLAN.md": {
+    "mtime": 1789821160.0651045,
+    "seen": 1791663611.4287007,
+    "ast_hash": "3f3692626c64ae7a8d98d8a1e46802c6",
+    "semantic_hash": ""
+  },
+  "docs/antigravity_works.md": {
+    "mtime": 1791144909.085784,
+    "seen": 1791663611.4287012,
+    "ast_hash": "6c0f5e8b234aaf047e1951bfdddedf4a",
+    "semantic_hash": ""
+  },
+  "docs/report/EVALUATION.md": {
+    "mtime": 1791145308.0148783,
+    "seen": 1791663611.4287019,
+    "ast_hash": "0733e2331c6e3adbd0742b764336e01d",
+    "semantic_hash": ""
+  },
+  "tools/mmfit-eval/README.md": {
+    "mtime": 1790708563.0465052,
+    "seen": 1791663611.4287028,
+    "ast_hash": "73822c16336e0fe39c583f1025ebd6c6",
+    "semantic_hash": ""
+  },
+  "docs/third_party/Model_Card_BlazePose_GHUM_3D.pdf": {
+    "mtime": 1790118660.9891312,
+    "seen": 1791663611.4287035,
+    "ast_hash": "25da88a5c8fa34c76372830e90327ecf",
+    "semantic_hash": ""
+  }
+}
