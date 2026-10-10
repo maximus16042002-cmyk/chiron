@@ -1,6 +1,6 @@
 # Evaluation and Results (draft chapter for the final report)
 
-*Draft, 2026-10-05. Written for the final report's examiners. Every figure below was measured on
+*Draft, updated 2026-10-11. Written for the final report's examiners. Every figure below was measured on
 this system and is traced in brackets to the project's decision record (`docs/DECISIONS.md`,
 entries such as "P3-30"). Remove the brackets for the printed report if your college prefers.
 "Chiron" is the app's name in the report; the codebase calls it Kinesis.*
@@ -407,7 +407,17 @@ camera. We report them as preliminary.
   - the smoother adjusts for the result rate, so curls survive throttling [P3-33];
   - the app now pauses counting when the camera view is wrong [P3-55, P3-59].
 
-  **None of these later changes has yet been checked on the phone.**
+  None of these changes has yet been checked in a formal phone session.
+- **Real use, 2026-09-25 to 2026-10-08 (103 sets of our own training)** [P3-70]. Nobody counted
+  alongside, so these show what the app recorded, not whether it was right:
+  - **53 sets were empty.** Most came 1–3 s before a real set of the same exercise, consistent
+    with switching camera at the start. They held no measurement, and the app no longer saves
+    them.
+  - **Squats side-on:** before the near-knee change, 6 of 51 records counted, most lost because
+    the far knee was hidden. On the first set after it, 5 full-range squats counted.
+  - **The lunge** lost most repetitions side-on (1 of 23 counted) for the same reason.
+  - **Many curl and push-up attempts ended "turned back",** with small ranges: partial
+    repetitions, which the app records but does not count.
 
 ---
 
@@ -426,7 +436,7 @@ and it does. The data export, a generated workout plan and the streak rules are 
 identically on the JVM and JavaScript. [P3-19]
 
 **Result:** identical discrete outputs and continuous agreement within 1e-9 on every target. In
-the latest full run, 3,069 test executions passed on all targets (JVM, JavaScript, and Android
+the latest full run, 3,167 test executions passed on all targets (JVM, JavaScript, and Android
 debug and release), with none failing. [P3-59]
 
 ---
@@ -473,7 +483,7 @@ We state these plainly, as the project plan requires.
    has not yet been run on the phone.
 10. **Layer 1's held-out failure and Layer 4's null result** are part of the findings, not
     omitted.
-11. **Automated tests are synthetic.** None of the 3,069 test executions uses a camera frame. A
+11. **Automated tests are synthetic.** None of the 3,167 test executions uses a camera frame. A
     review of our own code found three defects that had passed every test, because each test's
     synthetic input shared the code's mistake [P3-59]. The phone remains the final check.
 

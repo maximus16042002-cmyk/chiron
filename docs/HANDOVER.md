@@ -828,8 +828,8 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 
 ### 8.3 Engineering work that needs no phone (in order)
 
-1. **P12, the evaluation studies and the report** (section 1.1). **A draft of the evaluation
-   chapter exists: `docs/report/EVALUATION.md`** (2026-10-05), every figure traced to its
+1. **P12, the evaluation studies and the report** (section 1.1). **A full report draft exists: `docs/report/REPORT.md`, with the evaluation
+   chapter in `docs/report/EVALUATION.md`** (2026-10-05), every figure traced to its
    DECISIONS entry. It still needs the device studies (4, 5) and the owner's review. Consolidate the repetition-detection
    study; the verifier (P3-52's folds and P3-59's per-exercise breakdown,
    `tools/mmfit-eval/verifier_breakdown.py`); the personalisation write-up (including Layer 1's

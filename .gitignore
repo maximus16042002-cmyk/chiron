@@ -34,3 +34,4 @@ __pycache__/
 /graphify-out/cache/
 /graphify-out/20*/
 *.tmp
+/graphify-out/.rebuild.lock
