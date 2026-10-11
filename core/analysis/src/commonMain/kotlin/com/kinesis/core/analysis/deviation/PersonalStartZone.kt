@@ -1,5 +1,7 @@
 package com.kinesis.core.analysis.deviation
 
+import com.kinesis.core.domain.profile.ExerciseProfile
+import com.kinesis.core.domain.calibration.CalibrationBaseline
 import com.kinesis.core.analysis.profile.RepSignalSpec
 import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.domain.calibration.RepetitionBaseline
@@ -31,7 +33,8 @@ class StartZone(val edge: Double, val source: StartZoneSource)
  * sweep, so a shallow calibration cannot loosen it into counting partial
  * repetitions.
  *
- * **Core only.** Nothing in the app calls this yet (the owner's stop point).
+ * **Used by the app since DECISIONS.md P3-82**, through [countingProfile], after it passed on
+ * MM-Fit's development and held-out people by a protocol fixed before either ran.
  */
 object PersonalStartZone {
 
@@ -104,9 +107,28 @@ object PersonalStartZone {
         }
     }
 
+    /**
+     * The profile a live set counts with - DECISIONS.md P3-82. A push-up calibration set counts with
+     * the floor zone; a calibrated push-up with the user's own zone; anything else as it is.
+     * [baseline] is the one stored for this exercise, or `null`.
+     */
+    fun countingProfile(profile: ExerciseProfile, baseline: CalibrationBaseline?, calibrating: Boolean): ExerciseProfile {
+        if (profile !is RepetitionExercise || profile.id !in PROFILE_IDS) return profile
+        if (calibrating) return forCalibration(profile)
+        val personal = baseline as? RepetitionBaseline ?: return profile
+        val zone = of(profile, personal)
+        return if (zone.source == StartZoneSource.PROFILE) profile else profileWith(profile, zone)
+    }
+
+    /**
+     * The library profile behind a personalised one, or [profile] itself. What the technique rules
+     * and verdicts judge, so a personalised push-up is still the Tier A push-up (P3-82).
+     */
+    fun baseOf(profile: ExerciseProfile): ExerciseProfile = (profile as? WithStartZone)?.base ?: profile
+
     /** A profile whose start zone is personal: everything else is the profile's own, by delegation. */
     private class WithStartZone(
-        private val base: RepetitionExercise,
+        val base: RepetitionExercise,
         override val repSignal: RepSignalSpec,
     ) : RepetitionExercise by base {
         override fun toString(): String = "WithStartZone(${base.id}, start ${repSignal.topThreshold - repSignal.hysteresis})"

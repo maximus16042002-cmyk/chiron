@@ -282,10 +282,17 @@ object Harness {
      * starts one per set; every frame of the window in order, stamped in video time; `onNothingSeen`
      * where MediaPipe found nobody, as the live screen does; `finish` at the window's end.
      */
-    fun runSet(data: LandmarkData, label: MmFitLabel, shift: Int, protocol: Protocol): SetResult {
+    fun runSet(
+        data: LandmarkData,
+        label: MmFitLabel,
+        shift: Int,
+        protocol: Protocol,
+        /** A profile to count with instead of the exercise's own - DECISIONS.md P3-82's start zone. */
+        profileOverride: com.kinesis.core.analysis.profile.RepetitionExercise? = null,
+    ): SetResult {
         val mapping = MmFitExercises.of(label.exercise)
         if (mapping is ExerciseMapping.Excluded) return SetResult.Excluded(mapping.reason)
-        val profile = (mapping as ExerciseMapping.Evaluated).profile
+        val profile = profileOverride ?: (mapping as ExerciseMapping.Evaluated).profile
         val window = protocol.window(label, shift)
         val reps = ArrayList<RepRecord>()
         val analysis = LiveRepetitionAnalysis(profile, temporalConfig = TEMPORAL, onRepetition = { reps += it })

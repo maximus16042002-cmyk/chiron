@@ -1,5 +1,6 @@
 package com.kinesis.core.analysis.verdict
 
+import com.kinesis.core.analysis.deviation.PersonalStartZone
 import com.kinesis.core.analysis.profile.AnalysedSides
 import com.kinesis.core.analysis.profile.ExerciseVariant
 import com.kinesis.core.analysis.profile.RepetitionExercise
@@ -157,7 +158,9 @@ object RepVerdicts {
     }
 
     private fun authorityOf(profile: RepetitionExercise): TechniqueAuthority? {
-        val owner = if (profile is ExerciseVariant) profile.parent else profile
+        // A personalised push-up is the push-up (P3-82); a variant is judged under its parent.
+        val unwrapped = PersonalStartZone.baseOf(profile)
+        val owner = if (unwrapped is ExerciseVariant) unwrapped.parent else unwrapped
         return (owner as? TierAProfile)?.techniqueAuthority
     }
 

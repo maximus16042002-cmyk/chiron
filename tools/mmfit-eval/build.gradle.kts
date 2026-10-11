@@ -168,3 +168,15 @@ tasks.register<JavaExec>("verdictStudy") {
     )
     dependsOn(main.compileTaskProvider)
 }
+
+// DECISIONS.md P3-82: the push-up personal start zone, by the protocol fixed there.
+// gradlew :mmfit-eval:startZoneStudy -Psplit=development
+tasks.register<JavaExec>("startZoneStudy") {
+    group = "evaluation"
+    val main = kotlin.jvm().compilations.getByName("main")
+    classpath = files(main.output.allOutputs, main.runtimeDependencyFiles)
+    mainClass.set("com.kinesis.tools.mmfit.StartZoneStudyKt")
+    val split = project.findProperty("split")?.toString() ?: "development"
+    args = listOf("../../data/mm-fit-mediapipe", "../../data/mm-fit", split, "../../data/p3-82-start-zone-$split.csv")
+    dependsOn(main.compileTaskProvider)
+}

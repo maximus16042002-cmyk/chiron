@@ -40,6 +40,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.kinesis.calibration.CalibrationCoordinator
+import com.kinesis.core.analysis.deviation.PersonalStartZone
 import com.kinesis.core.analysis.calibration.CalibrationGuide
 import com.kinesis.core.analysis.calibration.CalibrationKey
 import com.kinesis.core.analysis.calibration.CalibrationOutcome
@@ -687,6 +688,7 @@ private fun GuidedFlow(
     onChanged: () -> Unit,
     history: List<SessionRecord>,
     onFinished: () -> Unit,
+    baselines: Map<String, CalibrationBaseline>,
 ) {
     val steps = remember(current.plan) { GuidedWorkout.steps(current.plan) }
     val step = steps[current.step]
@@ -696,7 +698,9 @@ private fun GuidedFlow(
         }
 
         GuidedPhase.LIVE -> LiveDestination(
-            profile = WorkoutCatalogue.profileOf(step.item.exerciseId),
+            profile = WorkoutCatalogue.profileOf(step.item.exerciseId).let {
+                PersonalStartZone.countingProfile(it, baselines[CalibrationKey.of(it)], calibrating = false)
+            },
             repository = repository,
             onSessionSaved = onChanged,
             onSetEnded = { session ->
@@ -832,7 +836,7 @@ private fun TrainFlow(
             )
         }
 
-        is Destination.Guided -> GuidedFlow(current, repository, onNavigate, onChanged, history, workouts.onFinished)
+        is Destination.Guided -> GuidedFlow(current, repository, onNavigate, onChanged, history, workouts.onFinished, baselines)
 
         is Destination.Exercise -> ExerciseScreen(
             profile = current.profile,
@@ -853,7 +857,8 @@ private fun TrainFlow(
         )
 
         is Destination.Live -> LiveDestination(
-            profile = current.profile,
+            // DECISIONS.md P3-82: a calibrated push-up counts from the user's own start position.
+            profile = PersonalStartZone.countingProfile(current.profile, baselines[CalibrationKey.of(current.profile)], current.calibrating),
             repository = repository,
             // A set saved by leaving the screen lands after the pages have
             // already been read, so the save itself asks for a re-read.

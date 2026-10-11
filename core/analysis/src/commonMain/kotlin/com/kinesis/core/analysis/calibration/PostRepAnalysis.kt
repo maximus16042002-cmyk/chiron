@@ -2,6 +2,7 @@ package com.kinesis.core.analysis.calibration
 
 import com.kinesis.core.analysis.deviation.AcsmTempoRule
 import com.kinesis.core.analysis.deviation.DeviationRules
+import com.kinesis.core.analysis.deviation.PersonalStartZone
 import com.kinesis.core.analysis.profile.ExerciseVariant
 import com.kinesis.core.analysis.profile.IsometricExercise
 import com.kinesis.core.analysis.profile.RepetitionExercise
@@ -92,7 +93,9 @@ object PostRepAnalysis {
      * author its own" (P3-6). `null` for every other profile, so no Level 3 rule runs.
      */
     private fun techniqueAuthorityOf(profile: ExerciseProfile): TechniqueAuthority? {
-        val owner = if (profile is ExerciseVariant) profile.parent else profile
+        // A personalised push-up is the push-up (P3-82).
+        val unwrapped = PersonalStartZone.baseOf(profile)
+        val owner = if (unwrapped is ExerciseVariant) unwrapped.parent else unwrapped
         return (owner as? TierAProfile)?.techniqueAuthority
     }
 
