@@ -20,26 +20,24 @@ import kotlin.math.pow
  * ### The convention
  *
  * Four states, each mapped to something the engine actually measures today.
- * There is no "correct form" state, because **nothing in the codebase produces a
- * form fault yet** - Layer 2 technique rules are P8, and inventing a red joint
- * with no rule behind it is what CLAUDE.md sections 22 and 23 exist to prevent.
- * [ATTENTION] is reachable today from repetition validity, and is the slot P8's
- * findings will occupy when they exist.
+ * [ATTENTION] is an attempt that did not count through the movement's own fault -
+ * too fast, not a full repetition, a cited form fault (DECISIONS.md P3-78) - or a
+ * hold off its target.
  *
- * ### Why amber, and why not red
+ * ### Red, since P3-78 - and why that is safe here
  *
- * Red on green is the worst pairing available. Roughly eight percent of men have
- * a red-green deficiency, and for them a red joint on a green skeleton is a
- * green joint on a green skeleton. Amber keeps a nameable hue difference for
- * everyone.
+ * P3-12 chose amber over red: roughly eight percent of men have a red-green
+ * deficiency, and a red joint of the *same lightness* as a green one is a green
+ * joint to them. The owner asked for red. This red is safe where P3-12's worry
+ * applied because it is **much darker** than the phosphor green - about 2.3:1 in
+ * luminance, where amber was 1.35:1 - so for a red-green deficient eye the hue
+ * goes and the lightness difference stays. `SkeletonPaletteLegibilityTest` holds
+ * it to at least 2:1. Amber remains the app's colour for advice (`Attention`).
  *
  * ### Why colour alone is not enough, measured rather than assumed
  *
- * Phosphor green and amber are **both bright**. Their luminance contrast ratio is
- * about **1.35:1** - far below anything WCAG would call a distinction. In
- * greyscale, or on a dim screen at arm's length, or through the motion blur of a
- * live repetition, hue is the only thing separating them and hue is the first
- * thing to go.
+ * In greyscale, or on a dim screen at arm's length, or through the motion blur of
+ * a live repetition, hue is the first thing to go.
  *
  * So the attention state carries **three channels at once**: a different hue, a
  * fifty percent wider stroke, and the only pulse animation in the overlay. Any
@@ -97,11 +95,11 @@ enum class OverlayState(
     UNTRACKED(0xFF5C6B5C, strokeDp = 2f, pulses = false, informative = false, meaning = "not visible"),
 
     /**
-     * Something needs the user's eye. Today that is a repetition the FSM
-     * abandoned - `RepValidity.ABORTED` or `INCOMPLETE`. When P8's technique
-     * rules exist, a Level 3 finding lands here too.
+     * The attempt did not count, through the movement's fault - DECISIONS.md P3-78's verdicts
+     * too fast, not a full repetition and a form fault - or a hold is off its target. Red, at
+     * the owner's request; see above for why this red keeps colour-deficient users covered.
      */
-    ATTENTION(0xFFFFB000, strokeDp = 6f, pulses = true, informative = true, meaning = "needs attention");
+    ATTENTION(0xFFFF5A4F, strokeDp = 6f, pulses = true, informative = true, meaning = "needs attention");
 
     val red: Int get() = ((argb shr 16) and 0xFF).toInt()
     val green: Int get() = ((argb shr 8) and 0xFF).toInt()

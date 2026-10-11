@@ -1,5 +1,6 @@
 package com.kinesis.core.analysis.history
 
+import com.kinesis.core.analysis.verdict.CountedRepetitions
 import com.kinesis.core.domain.bilateral.BilateralSignal
 import com.kinesis.core.domain.session.HoldSetRecord
 import com.kinesis.core.domain.session.LocalDay
@@ -37,7 +38,8 @@ object Trends {
                 if (set.exerciseId != exerciseId) continue
                 points += when (set) {
                     is RepetitionSetRecord -> {
-                        val counted = set.validReps
+                        // Counted by the verdict, as the screen counted it - DECISIONS.md P3-78.
+                        val counted = CountedRepetitions.of(set)
                         TrendPoint(
                             day = session.localDay,
                             startedAtEpochMs = session.startedAtEpochMs,

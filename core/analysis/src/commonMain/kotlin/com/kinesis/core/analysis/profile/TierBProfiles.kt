@@ -89,6 +89,15 @@ class LungeProfile : TierBProfile(), RepetitionExercise {
      */
     override val analysedSides: AnalysedSides = AnalysedSides.NEAR_SIDE_ONLY
 
+    /**
+     * DECISIONS.md P3-78: just under the fastest VALID repetition MM-Fit's development subjects made,
+     * 933 ms, in sets the counter got exactly right (421 repetitions).
+     */
+    override val tooFastBelowMs: Double = 930.0
+
+    /** DECISIONS.md P3-78: the owner's real squats and lunges bottom at 40.9 degrees or more; phantoms at 4-27. */
+    override val trackingFloorDeg: Double = 30.0
+
     /** Moving away from the start is the lowering - DECISIONS.md P3-30. */
     override val awayFromStart: Contraction = Contraction.ECCENTRIC
 
@@ -275,6 +284,12 @@ class SitUpProfile : TierBProfile(), RepetitionExercise {
      */
     override val analysedSides: AnalysedSides = AnalysedSides.NEAR_SIDE_ONLY
 
+    /**
+     * DECISIONS.md P3-78: just under the fastest VALID repetition MM-Fit's development subjects made,
+     * 1,133 ms, in sets the counter got exactly right (150 repetitions).
+     */
+    override val tooFastBelowMs: Double = 1_130.0
+
     /** Moving away from the start is the lifting - DECISIONS.md P3-30. */
     override val awayFromStart: Contraction = Contraction.CONCENTRIC
 
@@ -354,6 +369,12 @@ class ShoulderPressProfile : TierBProfile(), RepetitionExercise {
 
     /** Both arms are visible front-on, which is why that view was chosen. */
     override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+
+    /**
+     * DECISIONS.md P3-78: just under the fastest VALID repetition MM-Fit's development subjects made,
+     * 1,067 ms, in sets the counter got exactly right (418 repetitions).
+     */
+    override val tooFastBelowMs: Double = 1_060.0
 
     /** Moving away from the start is the lifting - DECISIONS.md P3-30. */
     override val awayFromStart: Contraction = Contraction.CONCENTRIC

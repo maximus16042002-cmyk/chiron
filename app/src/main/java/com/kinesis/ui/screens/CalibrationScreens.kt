@@ -1,5 +1,7 @@
 package com.kinesis.ui.screens
 
+import com.kinesis.core.analysis.verdict.RepVerdict
+import com.kinesis.core.analysis.verdict.CountedRepetitions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -334,9 +336,22 @@ fun SetSummaryScreen(
 ) {
     val set = session.sets.single()
     val reps = (set as? RepetitionSetRecord)?.reps.orEmpty().associateBy { it.repIndex }
+    // Each attempt's verdict, as the live screen gave it - DECISIONS.md P3-78.
+    val judged = remember(set) { (set as? RepetitionSetRecord)?.let { CountedRepetitions.judged(it) }.orEmpty() }
+    val verdicts = remember(judged) { judged.associate { it.rep.repIndex to it.verdict } }
+    val counted = judged.count { it.verdict.outcome.counts }
+    val attempts = judged.count { it.verdict.isAttempt }
+    // Wobbles and the other side seeing the same movement are not attempts, and are not listed.
+    val shownResults = remember(results, verdicts) {
+        results.filter { it !is RepetitionAnalysisResult || verdicts[it.repIndex]?.isAttempt != false }
+    }
     val holds = (set as? HoldSetRecord)?.holds.orEmpty()
     // Layer 2's cited rules, once per set - DECISIONS.md P3-74. Grouped in the core.
-    val formNotes = remember(results) { FormNotes.of(results.filterIsInstance<RepetitionAnalysisResult>()) }
+    // Over the counted repetitions only, so "X of N" matches the count above (P3-78). A rejected
+    // attempt already says why; a form note on it would judge a repetition that did not count.
+    val formNotes = remember(results, verdicts) {
+        FormNotes.of(results.filterIsInstance<RepetitionAnalysisResult>().filter { verdicts[it.repIndex]?.outcome?.counts != false })
+    }
     val speeds = remember(profile, set) {
         if (set is RepetitionSetRecord && profile is RepetitionExercise) LiftingSpeed.summarise(profile, set.reps) else null
     }
@@ -348,7 +363,7 @@ fun SetSummaryScreen(
             PageTitle(
                 profile.displayName,
                 if (set is RepetitionSetRecord) {
-                    set.completedUnits.toString() + " counted of " + set.reps.size + if (set.reps.size == 1) " attempt" else " attempts"
+                    counted.toString() + " counted of " + attempts + if (attempts == 1) " attempt" else " attempts"
                 } else {
                     set.completedUnits.toString() + if (set.completedUnits == 1) " hold completed" else " holds completed"
                 },
@@ -357,7 +372,7 @@ fun SetSummaryScreen(
         item {
             KCard {
                 if (set is RepetitionSetRecord) {
-                    NumberBlock(set.completedUnits.toString(), if (set.completedUnits == 1) "repetition" else "repetitions")
+                    NumberBlock(counted.toString(), if (counted == 1) "repetition" else "repetitions")
                 } else {
                     NumberBlock(seconds((set as HoldSetRecord).holds.sumOf { it.totalHoldMs }), "held")
                 }
@@ -388,11 +403,11 @@ fun SetSummaryScreen(
         if (formNotes.isNotEmpty()) {
             item { FormNotesCard(formNotes) }
         }
-        items(results) { result ->
+        items(shownResults) { result ->
             when (result) {
                 is RepetitionAnalysisResult -> {
                     val repSpeed = speeds?.repetitions?.firstOrNull { it.repIndex == result.repIndex }
-                    RepetitionRow(result, reps[result.repIndex], repSpeed)
+                    RepetitionRow(result, reps[result.repIndex], verdicts[result.repIndex], repSpeed)
                 }
                 is HoldAnalysisResult -> HoldRow(result, holds.firstOrNull())
             }
@@ -407,6 +422,7 @@ fun SetSummaryScreen(
 private fun RepetitionRow(
     result: RepetitionAnalysisResult,
     rep: RepRecord?,
+    verdict: RepVerdict?,
     speed: RepetitionSpeed? = null,
 ) {
     KCard {
@@ -417,7 +433,9 @@ private fun RepetitionRow(
                 color = Ink,
                 modifier = Modifier.weight(1f),
             )
-            if (rep != null) {
+            if (verdict != null) {
+                Text(verdictLabel(verdict), style = MaterialTheme.typography.labelLarge, color = verdictColor(verdict))
+            } else if (rep != null) {
                 Text(
                     validityLabel(rep.validity),
                     style = MaterialTheme.typography.labelLarge,

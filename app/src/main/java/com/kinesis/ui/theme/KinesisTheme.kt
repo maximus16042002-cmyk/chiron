@@ -46,8 +46,15 @@ object KinesisPalette {
     /** Words on the accent. */
     const val ON_ACCENT: Long = CANVAS
 
-    /** Something needs the user's eye. Amber, as the overlay's attention state, never red. */
+    /** Advice: something needs the user's eye, nothing is wrong yet - the camera view, the frame rate. Amber. */
     const val ATTENTION: Long = 0xFFFFB000
+
+    /**
+     * An attempt that did not count, through the movement's fault - DECISIONS.md P3-78. The same
+     * red as the overlay's attention state, which is darker than the phosphor green so that a
+     * red-green deficient eye still tells them apart.
+     */
+    const val FAULT: Long = 0xFFFF5A4F
 
     /**
      * The charts' left and right series - DECISIONS.md P3-51: the data-viz reference palette's dark
@@ -66,6 +73,7 @@ val InkFaint = Color(KinesisPalette.INK_FAINT)
 val Accent = Color(KinesisPalette.ACCENT)
 val OnAccent = Color(KinesisPalette.ON_ACCENT)
 val Attention = Color(KinesisPalette.ATTENTION)
+val Fault = Color(KinesisPalette.FAULT)
 val SeriesLeft = Color(KinesisPalette.SERIES_LEFT)
 val SeriesRight = Color(KinesisPalette.SERIES_RIGHT)
 

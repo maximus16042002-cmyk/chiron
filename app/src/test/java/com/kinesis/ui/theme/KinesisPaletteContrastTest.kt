@@ -25,6 +25,7 @@ class KinesisPaletteContrastTest {
             "ink secondary" to KinesisPalette.INK_SECONDARY,
             "ink faint" to KinesisPalette.INK_FAINT,
             "attention" to KinesisPalette.ATTENTION,
+            "fault" to KinesisPalette.FAULT,
         )
         for ((surfaceName, surface) in surfaces) for ((textName, text) in texts) {
             val r = ratio(text, surface)

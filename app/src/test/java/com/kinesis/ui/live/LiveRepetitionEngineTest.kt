@@ -3,11 +3,13 @@ package com.kinesis.ui.live
 import com.kinesis.core.analysis.kinematics.DrivingSignal
 import com.kinesis.core.analysis.kinematics.JointAngleId
 import com.kinesis.core.analysis.profile.ArchetypeProfiles
+import com.kinesis.core.analysis.verdict.RepVerdicts
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.landmark.LandmarkId
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
 import com.kinesis.core.domain.rep.MovementPhase
+import com.kinesis.core.domain.rep.RepValidity
 import com.kinesis.ui.theme.OverlayState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -81,13 +83,13 @@ class LiveRepetitionEngineTest {
             feed(170.0)
             readoutStates += bridge.state.overlayState
         }
-        // A squat that turns back before depth: aborted, so attention.
+        // A squat past halfway that turns back before depth: not a full repetition, so red (P3-78).
         for (step in 1..15) {
-            feed(170.0 - 40.0 * step / 15.0)
+            feed(170.0 - 60.0 * step / 15.0)
             readoutStates += bridge.state.overlayState
         }
         for (step in 1..15) {
-            feed(130.0 + 40.0 * step / 15.0)
+            feed(110.0 + 60.0 * step / 15.0)
             readoutStates += bridge.state.overlayState
         }
 
@@ -204,16 +206,67 @@ class LiveRepetitionEngineTest {
         assertEquals(countedAt, skeleton.flashes)
     }
 
-    /** An attempt that turns back before depth is not counted, so it does not flash. */
+    /** A squat past halfway that turns back before depth: red, said, not counted, no flash (P3-78). */
     @Test
-    fun an_aborted_attempt_does_not_flash() {
+    fun a_half_squat_is_red_says_why_and_does_not_flash() {
+        repeat(10) { feed(170.0) }
+        for (step in 1..15) feed(170.0 - 60.0 * step / 15.0)
+        for (step in 1..15) feed(110.0 + 60.0 * step / 15.0)
+
+        assertTrue("the half squat was not shown red", OverlayState.ATTENTION in skeleton.states)
+        assertTrue(published.any { it.verdictMessage == RepVerdicts.NOT_FULL_MESSAGE })
+        assertEquals(0, bridge.state.repCount)
+        assertTrue("flashed: " + skeleton.flashes, skeleton.flashes.isEmpty())
+    }
+
+    /**
+     * A knee folded to 20 degrees: the movement counter counts it, but no squat goes there - it is
+     * MediaPipe losing the legs, as in the owner's session (P3-78). The screen does not count it,
+     * says "lost tracking" and does not blame the user.
+     */
+    @Test
+    fun a_knee_folded_past_any_real_squat_is_not_counted_on_screen() {
+        repeat(10) { feed(170.0) }
+        for (step in 1..30) feed(170.0 - 150.0 * step / 30.0)
+        for (step in 1..30) feed(20.0 + 150.0 * step / 30.0)
+        repeat(10) { feed(170.0) }
+
+        assertTrue("the movement counter did not count it", published.any { it.lastRepValidity == RepValidity.VALID })
+        assertEquals(0, bridge.state.repCount)
+        assertTrue(published.any { it.verdictMessage == RepVerdicts.LOST_TRACKING_MESSAGE })
+        assertTrue("lost tracking turned the figure red", published.none { it.showingAttention })
+        assertTrue("flashed: " + skeleton.flashes, skeleton.flashes.isEmpty())
+    }
+
+    /** A dip of 40 degrees at the top is a wobble, not an attempt: nothing red, nothing said (P3-78). */
+    @Test
+    fun a_wobble_at_the_top_is_silent() {
         repeat(10) { feed(170.0) }
         for (step in 1..15) feed(170.0 - 40.0 * step / 15.0)
         for (step in 1..15) feed(130.0 + 40.0 * step / 15.0)
         repeat(10) { feed(170.0) }
 
-        assertTrue("the attempt was not reported as aborted", OverlayState.ATTENTION in skeleton.states)
+        assertTrue("a wobble turned the figure red", OverlayState.ATTENTION !in skeleton.states)
+        assertTrue(published.all { it.verdictMessage == null })
         assertEquals(0, bridge.state.repCount)
+    }
+
+    /**
+     * Full squats in about half a second: not counted - red, "too fast", no flash. The owner's
+     * "even ultra fast reps count" (P3-78).
+     */
+    @Test
+    fun too_fast_squats_are_red_and_not_counted_on_screen() {
+        repeat(10) { feed(170.0) }
+        repeat(2) {
+            for (step in 1..8) feed(170.0 - 100.0 * step / 8.0)
+            for (step in 1..8) feed(70.0 + 100.0 * step / 8.0)
+            repeat(10) { feed(170.0) }
+        }
+
+        assertEquals(0, bridge.state.repCount)
+        assertTrue(published.any { it.verdictMessage == RepVerdicts.TOO_FAST_MESSAGE })
+        assertTrue(OverlayState.ATTENTION in skeleton.states)
         assertTrue("flashed: " + skeleton.flashes, skeleton.flashes.isEmpty())
     }
 

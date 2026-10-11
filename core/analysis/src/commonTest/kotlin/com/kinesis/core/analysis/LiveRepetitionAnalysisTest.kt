@@ -4,6 +4,8 @@ import com.kinesis.core.analysis.live.LiveRepetitionAnalysis
 import com.kinesis.core.analysis.live.SetupEnforcement
 import com.kinesis.core.analysis.profile.ArchetypeProfiles
 import com.kinesis.core.analysis.temporal.TemporalConfig
+import com.kinesis.core.analysis.verdict.RepOutcome
+import com.kinesis.core.analysis.verdict.RepVerdicts
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.landmark.LandmarkId
 import com.kinesis.core.domain.landmark.Landmarks
@@ -261,6 +263,61 @@ class LiveRepetitionAnalysisTest {
         repeat(20) { both.feed(body(leftElbow = 90.0, rightElbow = 120.0)) }
         assertEquals(90.0, both.angleLeft, 1e-9)
         assertEquals(120.0, both.angleRight, 1e-9)
+    }
+
+    // --- DECISIONS.md P3-78: the verdict decides what the screen counts ----------------------
+
+    /**
+     * Fast full curls are counted by the movement counter (the evaluated layer, unchanged) but not
+     * by the verdict: the screen shows the verdict's count and says why.
+     */
+    @Test
+    fun only_counted_verdicts_reach_the_shown_count() {
+        val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.bicepCurl)
+        repeat(10) { analysis.feed(body(leftElbow = 170.0)) }
+        repeat(2) {
+            for (step in 1..20) analysis.feed(body(leftElbow = 170.0 - 130.0 * step / 20.0))
+            for (step in 1..20) analysis.feed(body(leftElbow = 40.0 + 130.0 * step / 20.0))
+            repeat(10) { analysis.feed(body(leftElbow = 170.0)) }
+        }
+        assertEquals(2, analysis.countedRepetitions)
+        assertEquals(RepOutcome.COUNTED, analysis.lastVerdict?.outcome)
+
+        // Two full curls the state machine times at about 0.57 s: past its 500 ms, under the 630 ms limit.
+        repeat(2) {
+            for (step in 1..9) analysis.feed(body(leftElbow = 170.0 - 130.0 * step / 9.0))
+            for (step in 1..9) analysis.feed(body(leftElbow = 40.0 + 130.0 * step / 9.0))
+            repeat(10) { analysis.feed(body(leftElbow = 170.0)) }
+        }
+
+        assertEquals(4, analysis.repCount, "the movement counter counts them")
+        assertEquals(2, analysis.countedRepetitions, "the verdict does not")
+        assertEquals(RepOutcome.TOO_FAST, analysis.lastVerdict?.outcome)
+        assertEquals(RepVerdicts.TOO_FAST_MESSAGE, analysis.lastVerdict?.message)
+        assertEquals(analysis.recordsReported, analysis.verdictsReported)
+    }
+
+    /** The owner's decision: a curl started with the elbow bent is a form fault - said, and counted. */
+    @Test
+    fun a_form_fault_is_counted_and_says_why() {
+        val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.bicepCurl)
+        repeat(10) { analysis.feed(body(leftElbow = 155.0)) }
+        for (step in 1..20) analysis.feed(body(leftElbow = 155.0 - 115.0 * step / 20.0))
+        for (step in 1..20) analysis.feed(body(leftElbow = 40.0 + 115.0 * step / 20.0))
+        repeat(10) { analysis.feed(body(leftElbow = 155.0)) }
+
+        assertEquals(1, analysis.repCount)
+        assertEquals(1, analysis.countedRepetitions)
+        assertEquals(RepOutcome.FORM_FAULT, analysis.lastVerdict?.outcome)
+    }
+
+    /** A new set starts from nothing: no count, no verdict. */
+    @Test
+    fun before_any_record_there_is_no_verdict() {
+        val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.squat)
+        assertEquals(0, analysis.countedRepetitions)
+        assertNull(analysis.lastVerdict)
+        assertEquals(0, analysis.verdictsReported)
     }
 
     /**

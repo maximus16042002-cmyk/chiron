@@ -1,6 +1,9 @@
 package com.kinesis.ui.live
 
 import com.kinesis.core.analysis.fps.FrameRateHealth
+import com.kinesis.core.analysis.verdict.RepOutcome
+import com.kinesis.core.analysis.verdict.RepVerdict
+import com.kinesis.core.analysis.verdict.RepVerdicts
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.rep.MovementPhase
 import com.kinesis.core.domain.rep.RepValidity
@@ -196,62 +199,98 @@ class LiveAnalysisBridgeTest {
         assertEquals(OverlayState.UNTRACKED, seen.last().overlayState)
     }
 
-    /**
-     * The only route to the attention state today, and it is a real measurement -
-     * the FSM abandoned a repetition. P8's technique findings join it here; until
-     * they exist, nothing else turns a joint amber.
-     */
+    // --- DECISIONS.md P3-78: the verdict, red for the movement's fault ----------------------
+
+    private val tooFast = RepVerdict(RepOutcome.TOO_FAST, RepVerdicts.TOO_FAST_MESSAGE)
+    private val counted = RepVerdict(RepOutcome.COUNTED, null)
+    private val lost = RepVerdict(RepOutcome.LOST_TRACKING, RepVerdicts.LOST_TRACKING_MESSAGE)
+    private val duplicate = RepVerdict(RepOutcome.DUPLICATE, null)
+
+    /** An attempt the movement is to blame for turns the figure red and says why. */
     @Test
-    fun an_abandoned_repetition_is_what_turns_the_overlay_amber() {
+    fun an_attempt_that_did_not_count_turns_the_figure_red_and_says_why() {
         val (bridge, seen) = bridge()
-
-        bridge.onFrame(MovementPhase.TOP, 1, FrameValidity.VALID, RepValidity.VALID, recordsReported = 1, timestampMs = 0.0)
+        bridge.onFrame(MovementPhase.TOP, 1, FrameValidity.VALID, RepValidity.VALID, verdict = counted, verdictsReported = 1, timestampMs = 0.0)
         assertEquals(OverlayState.TRACKED, seen.last().overlayState)
+        assertNull(seen.last().verdictMessage)
 
-        bridge.onFrame(MovementPhase.TOP, 1, FrameValidity.VALID, RepValidity.ABORTED, recordsReported = 2, timestampMs = 100.0)
-        assertEquals(
-            "an abandoned repetition did not surface on the overlay",
-            OverlayState.ATTENTION,
-            seen.last().overlayState,
-        )
+        bridge.onFrame(MovementPhase.TOP, 1, FrameValidity.VALID, RepValidity.VALID, verdict = tooFast, verdictsReported = 2, timestampMs = 100.0)
+        assertEquals(OverlayState.ATTENTION, seen.last().overlayState)
+        assertEquals(RepVerdicts.TOO_FAST_MESSAGE, seen.last().verdictMessage)
+    }
+
+    /** A counted form fault: the count rises, and the figure is red with the rule's reason. */
+    @Test
+    fun a_counted_form_fault_is_red_and_says_why() {
+        val (bridge, seen) = bridge()
+        val form = RepVerdict(RepOutcome.FORM_FAULT, "Upper arm moved forward", "curl_upper_arm_moved_forward")
+        bridge.onFrame(MovementPhase.TOP, 1, FrameValidity.VALID, RepValidity.VALID, verdict = form, verdictsReported = 1, timestampMs = 0.0)
+        assertEquals(1, seen.last().repCount)
+        assertEquals(OverlayState.ATTENTION, seen.last().overlayState)
+        assertEquals("Upper arm moved forward", seen.last().verdictMessage)
+    }
+
+    /** Lost tracking is not the user's fault: it is said, but the figure is not turned red. */
+    @Test
+    fun lost_tracking_is_said_without_turning_the_figure_red() {
+        val (bridge, seen) = bridge()
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.INSUFFICIENT_DATA, verdict = lost, verdictsReported = 1, timestampMs = 0.0)
+        assertEquals(OverlayState.TRACKED, seen.last().overlayState)
+        assertEquals(RepVerdicts.LOST_TRACKING_MESSAGE, seen.last().verdictMessage)
     }
 
     /**
-     * DECISIONS.md P3-23. The amber used to stay until a repetition counted,
-     * which on the phone was almost never, so the figure stopped saying anything
-     * about tracking. It now flashes for ATTENTION_MS and goes back.
+     * The red lasts [LiveAnalysisBridge.VERDICT_MS] and goes: P3-23 found a colour that stayed
+     * stopped meaning anything.
      */
     @Test
-    fun the_amber_lasts_a_moment_then_the_figure_shows_tracking_again() {
+    fun the_red_lasts_a_moment_then_the_figure_shows_tracking_again() {
         val (bridge, seen) = bridge()
-        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.INSUFFICIENT_DATA, recordsReported = 1, timestampMs = 1_000.0)
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.VALID, verdict = tooFast, verdictsReported = 1, timestampMs = 1_000.0)
         assertEquals(OverlayState.ATTENTION, seen.last().overlayState)
 
-        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.INSUFFICIENT_DATA, recordsReported = 1, timestampMs = 2_400.0)
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.VALID, verdict = tooFast, verdictsReported = 1, timestampMs = 2_900.0)
         assertEquals(OverlayState.ATTENTION, seen.last().overlayState)
 
-        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.INSUFFICIENT_DATA, recordsReported = 1, timestampMs = 2_600.0)
-        assertEquals("the amber stuck", OverlayState.TRACKED, seen.last().overlayState)
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.VALID, verdict = tooFast, verdictsReported = 1, timestampMs = 3_100.0)
+        assertEquals("the red stuck", OverlayState.TRACKED, seen.last().overlayState)
+        assertNull(seen.last().verdictMessage)
     }
 
-    /** Two failures in a row have the same validity; the second must still flash. */
+    /** Two rejections in a row have the same verdict; the second must still show. */
     @Test
-    fun every_repetition_that_does_not_count_flashes_again() {
+    fun every_rejected_attempt_shows_again() {
         val (bridge, seen) = bridge()
-        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.ABORTED, recordsReported = 1, timestampMs = 0.0)
-        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.ABORTED, recordsReported = 1, timestampMs = 2_000.0)
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.VALID, verdict = tooFast, verdictsReported = 1, timestampMs = 0.0)
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.VALID, verdict = tooFast, verdictsReported = 1, timestampMs = 2_500.0)
         assertEquals(OverlayState.TRACKED, seen.last().overlayState)
 
-        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.ABORTED, recordsReported = 2, timestampMs = 3_000.0)
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.VALID, verdict = tooFast, verdictsReported = 2, timestampMs = 3_000.0)
         assertEquals(OverlayState.ATTENTION, seen.last().overlayState)
     }
 
     @Test
-    fun a_repetition_that_counts_clears_the_amber_at_once() {
+    fun a_repetition_that_counts_clears_the_red_at_once() {
         val (bridge, seen) = bridge()
-        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.ABORTED, recordsReported = 1, timestampMs = 0.0)
-        bridge.onFrame(MovementPhase.TOP, 1, FrameValidity.VALID, RepValidity.VALID, recordsReported = 2, timestampMs = 300.0)
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.VALID, verdict = tooFast, verdictsReported = 1, timestampMs = 0.0)
+        bridge.onFrame(MovementPhase.TOP, 1, FrameValidity.VALID, RepValidity.VALID, verdict = counted, verdictsReported = 2, timestampMs = 300.0)
         assertEquals(OverlayState.TRACKED, seen.last().overlayState)
+        assertNull(seen.last().verdictMessage)
+    }
+
+    /** A silent verdict - the other side seeing the same movement - neither clears nor shows anything. */
+    @Test
+    fun a_silent_verdict_changes_nothing() {
+        val (bridge, seen) = bridge()
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.VALID, verdict = tooFast, verdictsReported = 1, timestampMs = 0.0)
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.VALID, verdict = duplicate, verdictsReported = 2, timestampMs = 500.0)
+        assertEquals(OverlayState.ATTENTION, seen.last().overlayState)
+        assertEquals(RepVerdicts.TOO_FAST_MESSAGE, seen.last().verdictMessage)
+
+        val (quiet, quietSeen) = bridge()
+        quiet.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.ABORTED, verdict = duplicate, verdictsReported = 1, timestampMs = 0.0)
+        assertEquals(OverlayState.TRACKED, quietSeen.last().overlayState)
+        assertNull(quietSeen.last().verdictMessage)
     }
 
     /**

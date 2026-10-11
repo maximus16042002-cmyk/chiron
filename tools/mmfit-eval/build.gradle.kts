@@ -140,3 +140,31 @@ tasks.register<JavaExec>("extractVerifierDataset") {
     dependsOn(main.compileTaskProvider)
 }
 
+
+// The owner's real repetitions through the app's own post-rep path (P3-78), descriptive only:
+// gradlew :mmfit-eval:ownerReps -Pexport=<owner.export.json> -Pout=<owner-reps.csv>
+tasks.register<JavaExec>("ownerReps") {
+    group = "evaluation"
+    val main = kotlin.jvm().compilations.getByName("main")
+    classpath = files(main.output.allOutputs, main.runtimeDependencyFiles)
+    mainClass.set("com.kinesis.tools.mmfit.OwnerRepsKt")
+    args = listOf(
+        project.findProperty("export")?.toString() ?: "../../local/owner.export.json",
+        project.findProperty("out")?.toString() ?: "../../local/owner-reps.csv",
+    )
+    dependsOn(main.compileTaskProvider)
+}
+
+// P3-78's verdict against MM-Fit's labels, development subjects only:
+// gradlew :mmfit-eval:verdictStudy -Pharness=<harness out dir> -Pout=<verdict.csv>
+tasks.register<JavaExec>("verdictStudy") {
+    group = "evaluation"
+    val main = kotlin.jvm().compilations.getByName("main")
+    classpath = files(main.output.allOutputs, main.runtimeDependencyFiles)
+    mainClass.set("com.kinesis.tools.mmfit.VerdictStudyKt")
+    args = listOf(
+        project.findProperty("harness")?.toString() ?: "../../data/mm-fit-eval-p3-78-dev",
+        project.findProperty("out")?.toString() ?: "../../data/mm-fit-eval-p3-78-dev/verdict.csv",
+    )
+    dependsOn(main.compileTaskProvider)
+}

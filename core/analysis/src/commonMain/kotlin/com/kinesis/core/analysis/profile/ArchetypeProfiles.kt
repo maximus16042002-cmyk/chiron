@@ -107,6 +107,9 @@ class SquatProfile : TierAProfile(), RepetitionExercise {
      */
     override val analysedSides: AnalysedSides = AnalysedSides.NEAR_SIDE_ONLY
 
+    /** DECISIONS.md P3-78: the owner's real squats and lunges bottom at 40.9 degrees or more; phantoms at 4-27. */
+    override val trackingFloorDeg: Double = 30.0
+
     /** Moving away from the start is the lowering - DECISIONS.md P3-30. */
     override val awayFromStart: Contraction = Contraction.ECCENTRIC
 
@@ -180,6 +183,12 @@ class BicepCurlProfile : TierAProfile(), RepetitionExercise {
 
     /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
     override val analysedSides: AnalysedSides = AnalysedSides.BOTH
+
+    /**
+     * DECISIONS.md P3-78: just under the fastest VALID repetition MM-Fit's development subjects made,
+     * 633 ms, in sets the counter got exactly right (436 repetitions).
+     */
+    override val tooFastBelowMs: Double = 630.0
 
     /** Moving away from the start is the lifting - DECISIONS.md P3-30. */
     override val awayFromStart: Contraction = Contraction.CONCENTRIC

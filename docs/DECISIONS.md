@@ -13234,6 +13234,206 @@ could not see that the elbow was the joint being counted, or how far it had bent
 
 ---
 
+## P3-78 — Each attempt gets a verdict: counted, or the reason why not, in red
+
+*2026-10-11. From the owner's first session with the P3-76 build, and three decisions they made.
+The first design was changed by measurement before it shipped. Both are recorded here.*
+
+### What the owner saw
+
+These are the owner's words, checked against the five sets that session saved. The data is in
+`local/p4-2026-10-11/` (not in git). Each rep was read back through the shared core:
+
+```
+python tools/mmfit-eval/owner_db_export.py <db copy> owner.export.json
+gradlew :mmfit-eval:ownerReps
+```
+
+| The owner said | The records show |
+|---|---|
+| Squats: "showed yellow and counted anyway" | 5 slow squats, all counted correctly: knee to 58–65°, 2.8–3.9 s each. The 2 half squats left no record at all. The yellow (P3-23's amber) came from two `INSUFFICIENT_DATA` records on the other knee. |
+| Lunges: "did one, counted two" | Two VALID records: the left knee at 37.0–38.7 s, then the right knee at 39.6–42.9 s. |
+| Lunges: "skeleton started dancing and it counted 5" | Three more "lunges" bottomed at 10.8°, 15.5° and 26.6° at the knee, past any real lunge: MediaPipe had lost the legs. |
+| "Even ultra fast bicep curls count" | Curls of 0.50–0.77 s, each a full curl, all counted. The only rule then was "under 0.5 s is a twitch". |
+| Wrong view: "skeleton danced, counted 2, no banner" | Two squats counted while the owner faced the camera: 1.1 s to 12.0°, and 1.2 s to 40.5°. No advice appeared. The gate shows a message only after one verdict holds for 10 frames in a row (P3-55); a dancing skeleton changes verdict every few frames. This is likely, not shown: no landmarks were recorded. |
+| Force stop | 3 squats saved and recovered, as designed (P3-66). |
+
+### The owner's decisions
+
+1. **"When an exercise is not correct it should say it's not correct, show red, and not count."**
+2. **Too fast: not counted, shown red as "too fast".**
+3. **Form faults (the six cited Layer 2 rules): shown red with the reason, and counted.**
+   - The owner first chose "not counted", twice. The second time they were shown the cost on their
+     own history: about one curl in four (34 of 124).
+   - Measurement then showed that the lateral-raise rule alone would cancel 329 of the 387 lateral
+     raises MM-Fit's development people did normally, from the view the app asks for.
+   - Shown that, the owner chose to count form faults and show them red.
+   - The rules remain unvalidated against a coach (CLAUDE.md §12a). A fault is said, and does not
+     take the repetition away.
+
+### What was built
+
+**1. A verdict per attempt, in the core** (`verdict/RepVerdicts`, version `p3-78-1`).
+- Every repetition record gets exactly one outcome. The live count, the flash and the count beep
+  all count `counts` outcomes only. So do the set summary, history, streaks, the dashboard and
+  trends (`CountedRepetitions`).
+
+| Outcome | When | Counts | Shown |
+|---|---|---|---|
+| `COUNTED` | VALID, and none of the below | yes | "+1" flash |
+| `FORM_FAULT` | VALID, and one of the six cited rules fires (Tier A and its variants only) | **yes** | red, the rule's short reason, e.g. "Upper arm moved forward" |
+| `TOO_FAST` | VALID but under the profile's too-fast limit; or ABORTED after reaching the far position (under the state machine's own minimum); or ABORTED past halfway and under the limit | no | red, "Too fast — not counted" |
+| `NOT_DEEP_ENOUGH` | ABORTED past the midpoint between the profile's thresholds, not fast | no | red, "Not a full repetition — not counted" |
+| `LOST_TRACKING` | INSUFFICIENT_DATA past the midpoint; or any record past the profile's plausibility floor | no | amber, "Lost tracking — not counted"; the figure is not turned red |
+| `DUPLICATE` | near-side profiles: a failed record overlapping a counted one on the other side, or reported while the other side is mid-repetition | no | nothing |
+| `NOISE` | never past the midpoint (a wobble), or INCOMPLETE | no | nothing |
+
+- **Measurement and interpretation stay apart** (CLAUDE.md §15). Every record is stored as the
+  state machine measured it, and the verdict is recomputed from it whenever it is shown. If a rule
+  or limit changes, past counts change with it.
+- **The movement counter is unchanged:** `tracker.repetitionCount`, every VALID record. So are the
+  golden files, the JS facade and every MM-Fit counting figure (P3-27 to P3-71). The count the
+  user sees is that counter's VALID records less the verdict's rejections.
+- **Two sides are reduced in one named place.** Whether an attempt "reached" a threshold, or passed
+  the floor, is decided by the side that went furthest, and one side past the floor is enough.
+  `RepVerdicts.reached` and `belowFloor` say so (CLAUDE.md §3). Nothing is averaged.
+- **The live judge lives outside the real-time path's files.** Its list grows by one record a few
+  times a minute, so it is in `SetJudge`, which is not on the real-time path.
+  `SharedCoreSourceGuardTest` caught the first version, which kept the list in
+  `LiveRepetitionAnalysis`. The guard was not widened.
+
+**2. Too-fast limits, measured.**
+
+`tools/mmfit-eval/verdict_calibration.py`, run over a fresh development-split harness run
+(`data/mm-fit-eval-p3-78-dev`). Each limit is just under the fastest VALID record MM-Fit's
+development subjects made, in sets the counter got exactly right, so every record there is a
+labelled repetition.
+
+| Profile | Fastest real repetition | Too fast below |
+|---|---|---|
+| bicep curl | 633 ms (436 reps) | 630 ms |
+| lunge (and reverse lunge) | 933 ms (421) | 930 ms |
+| lateral raise | 1,067 ms (249) | 1,060 ms |
+| shoulder press | 1,067 ms (418) | 1,060 ms |
+| sit-up | 1,133 ms (150) | 1,130 ms |
+| squat, push-up, row, and the rest | MM-Fit excludes the squat (filmed face-on); push-up has 2 exact sets; row's fastest, 500 ms, is the state machine's minimum | the state machine's minimum |
+
+**3. A plausibility floor for the knee: 30°.**
+- It applies to profiles driven by the knee angle: squat, lunge and their variants.
+- From the owner's records:
+  - real squats bottom at 40.9–93.7°;
+  - real lunges at 56.9–97.6°;
+  - the phantoms at 4.4°, 8.7°, 10.8°, 12.0°, 15.5° and 26.6°.
+- No MM-Fit development lunge was rejected by it.
+- This is one person's squats. It is a tracking check, not a technique judgement.
+
+**4. Live.**
+- The live analysis judges each record as it arrives (post-rep) and counts `counts` only.
+- The bridge shows the verdict's message for 2 s in a large banner at the foot of the camera
+  area. The banner takes the advice banner's place while it shows:
+  - red with dark text, and "✕" or "⚠", when the movement is to blame;
+  - amber when tracking was lost.
+- A counted form fault both flashes "+1" and shows red.
+- A plainly counted repetition clears the banner at once. A silent verdict changes nothing.
+
+**5. Red.**
+- The overlay's attention state is now `#FF5A4F`, and the theme gains a `Fault` colour of the same
+  red. Amber `Attention` stays for advice (the camera view, the frame rate).
+- P3-12 chose amber over red because a red-green deficient eye cannot tell a red and a green of the
+  same lightness apart. This red is much darker than the phosphor green: about 2.3:1 in luminance,
+  where amber was 1.35:1. So for that eye the hue goes and the lightness difference stays.
+- `SkeletonPaletteLegibilityTest` now holds it to at least 2:1. The wider stroke and the pulse
+  remain.
+
+### What measurement changed in the first design
+
+The first design, written above this result before any code ran, had three parts that the data
+rejected. `gradlew :mmfit-eval:verdictStudy`, over the development subjects, counted against
+MM-Fit's labels:
+
+| First design | What it did on MM-Fit | Changed to |
+|---|---|---|
+| The other side's VALID record within 1.5 s of a counted one is the same movement | Cancelled 95 real lunges, 46 sit-ups and 23 rows. Real alternating lunges follow each other on the other knee as close as 0.4 s (median 1.47 s), so no window separates them. The owner's 0.9 s gap is inside that range. | A counted record is never taken away. Only a failed record overlapping a counted one, or one reported while the other side is mid-repetition, is silenced. |
+| Too fast = half the fastest set's average repetition | A set's average includes the pauses, and the state machine times only the movement: 43 real lunges and 13 rows were "too fast". | The fastest real repetition, above. |
+| Form faults not counted | Cancelled 329 of 387 lateral raises and 256 of 436 curls (face-on, so not evidence for the app's side-on curl). | Counted and shown red: the owner's decision. |
+
+**With the final design, MM-Fit's counts are the movement counter's to within one lunge** (437
+against 438). That lunge took 767 ms, in a set where the counter found 8 of MM-Fit's 10.
+
+| Exercise | Labelled | Counter | Verdict |
+|---|---|---|---|
+| bicep curl | 436 | 436 | 436 |
+| lateral raise | 409 | 387 | 387 |
+| lunge | 441 | 438 | 437 |
+| push-up | 448 | 92 | 92 |
+| row | 462 | 311 | 311 |
+| shoulder press | 448 | 441 | 441 |
+| sit-up | 451 | 413 | 413 |
+
+### The owner's session under the final verdict
+
+| Set | Counted before | Counted now | What changed |
+|---|---|---|---|
+| 5 slow squats + 2 half | 5 | 5 | The two "yellow" records: one is silent (it overlapped a counted squat), one says "Lost tracking" in amber. The half squats left no record and still show nothing. |
+| One lunge | 5 | 2 | The three phantoms are gone. Two knees 0.9 s apart still count twice: not fixable by timing (above), and left for a later entry with landmarks recorded. |
+| 5 slow curls, then fast ones | 10 | 6 | Six fast attempts (0.5–0.6 s: four full curls, two turned back) are "too fast", red. Two slow curls and one 0.77 s curl count, red, "Upper arm moved forward". |
+| Squats facing the camera | 6 | 5 | The 12° phantom is gone. The 40.5° one, 1.2 s, still counts: it is the view's problem, for the view gate measured on the owner's setup (a later entry). |
+| Force stop | 3 | 3 | One counted red, "Leaned too far forward". |
+
+The owner's whole history: curls 124 → 119 counted (31 of them form faults), lunges 6 → 3,
+squats 25 → 24.
+
+### Not done here
+
+- Calibration still builds its baseline from every VALID record, including any it would now call
+  too fast. A small inconsistency, left for a later entry: changing it moves the calibration golden
+  files.
+- The camera-view advice not appearing while the skeleton dances needs the debounce studied on
+  recorded landmarks.
+- A first lunge counted twice needs the same.
+
+### Review
+
+A four-angle review ran on the change, with a skeptic assigned to try to refute each finding. Half
+of the skeptic checks were cut off by a usage limit. Every finding is listed here.
+
+- **Fixed: the upward profiles read the start value as the far one.**
+  - `reached` and `belowFloor` compared `peakValue` for the lateral raise, shoulder press, glute
+    bridge and sit-up. `RepFsm` keeps the far extreme in `troughValue` whichever way the signal
+    runs.
+  - So on those four, no turned-back, too-fast-and-aborted or lost-tracking verdict could appear.
+    The count was unaffected, because the VALID path does not use `reached`.
+  - The test that should have caught it built a record `RepFsm` cannot produce. It now builds the
+    real shape and covers all four outcomes.
+- **Fixed: a slow paired record with one side short was called too fast.**
+  - Example: a leg raise where one leg reached the far position and the other fell short.
+  - "Reached the far position" now means too fast only when the attempt was also under the
+    too-fast limit. Otherwise it is "not a full repetition".
+- **Fixed: the set summary's Form notes counted rejected records.** The card now judges counted
+  repetitions only, so its "X of N" matches the count above it.
+- **Fixed:** stale comments in `SkeletonPalette`, `Streaks` and `belowFloor`. `belowFloor`'s
+  any-side rule is now named where it is applied.
+- **Deferred, recorded:**
+  - **The near-side tracker lets an FSM-VALID record claim its time.** If the verdict then rejects
+    that record, for example a far knee read past the floor, the near knee's overlapping real
+    repetition was already dropped. The fix belongs in `BilateralRepTracker`, which every MM-Fit
+    figure rests on, and is left for an entry that can re-run the harness.
+  - **The bridge reads only the last verdict of a frame.** When two records finish on one frame,
+    the earlier one's message is not shown.
+  - **The verdict banner hides the advice banner while it shows.**
+  - **Calibration still uses every VALID record.**
+  - **Re-judging stored history can move a past streak day.** That follows from computing the
+    verdict from the record, which is the intent.
+  - **`FORM_FAULT` is a verdict, not a `TechniqueFault`.** It carries no claim level of its own.
+    Tier B/C exclusion rests on the runtime authority lookup, which the Tier B test pins.
+- **Refuted:** that a stored set should silence failures the live screen silenced. The live
+  screen's extra input, the other side mid-repetition, is not in the record, and the summary
+  listing those attempts was judged the behaviour the design asks for.
+
+**Next entry: P3-79.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

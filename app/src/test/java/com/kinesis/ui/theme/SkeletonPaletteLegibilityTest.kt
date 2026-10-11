@@ -123,6 +123,22 @@ class SkeletonPaletteLegibilityTest {
     }
 
     /**
+     * DECISIONS.md P3-78: the owner asked for red, which P3-12 had ruled out for red-green
+     * deficient users. It is allowed only because this red is much darker than the tracked green:
+     * the hue goes for those users, the lightness difference stays. Amber had 1.35:1.
+     */
+    @Test
+    fun the_red_attention_state_differs_from_tracked_green_in_lightness_too() {
+        val ratio = OverlayState.contrastRatio(OverlayState.TRACKED.argb, OverlayState.ATTENTION.argb)
+        assertTrue(
+            "attention is only " + ratio + ":1 from tracked in lightness: a red-green deficient " +
+                "user cannot tell them apart by colour",
+            ratio >= 2.0,
+        )
+        assertEquals_(OverlayState.ATTENTION.argb.toInt(), KinesisPalette.FAULT.toInt())
+    }
+
+    /**
      * And the scarcity that makes the pulse mean anything. If several states
      * animate, motion stops being a signal and becomes noise.
      */

@@ -1,5 +1,6 @@
 package com.kinesis.ui.screens
 
+import com.kinesis.core.analysis.verdict.RepVerdicts
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -53,6 +54,7 @@ import com.kinesis.ui.live.SkeletonOverlayView
 import com.kinesis.ui.theme.Accent
 import com.kinesis.ui.theme.Attention
 import com.kinesis.ui.theme.Card
+import com.kinesis.ui.theme.Fault
 import com.kinesis.ui.theme.Ink
 import com.kinesis.ui.theme.InkFaint
 import com.kinesis.ui.theme.InkSecondary
@@ -325,6 +327,8 @@ fun LiveAnalysisScreen(
     LiveCameraLayout(
         state.exerciseId, preview, overlay, onEndSet, switchCameraLabel, onSwitchCamera, diagnostics, modifier,
         switchModelLabel, onSwitchModel, modeLabel, state.setupMessage, state.fpsWarningMessage,
+        verdictMessage = state.verdictMessage,
+        verdictIsFault = state.showingAttention,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -423,6 +427,13 @@ private fun LiveCameraLayout(
     /** The setup gate's line (DECISIONS.md P3-59), or `null` when there is nothing to say. */
     setupMessage: String? = null,
     fpsWarningMessage: String? = null,
+    /**
+     * What was wrong with the last attempt (DECISIONS.md P3-78), for two seconds, or `null`. It
+     * takes the advice banner's place while it shows: it is about what the user just did.
+     */
+    verdictMessage: String? = null,
+    /** Red when the movement is to blame; amber when tracking was lost. */
+    verdictIsFault: Boolean = false,
     readout: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
@@ -457,7 +468,26 @@ private fun LiveCameraLayout(
                     Pill(switchModelLabel, Card, InkSecondary, onClick = onSwitchModel)
                 }
             }
-            if (setupMessage != null) {
+            if (verdictMessage != null) {
+                Surface(
+                    color = if (verdictIsFault) Fault else Card.copy(alpha = 0.92f),
+                    shape = RoundedCornerShape(24.dp),
+                    border = if (verdictIsFault) null else BorderStroke(1.dp, Attention.copy(alpha = 0.8f)),
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 16.dp),
+                ) {
+                    // Large, and a mark as well as a colour: read from two metres away, mid-set. A
+                    // form fault counts and says so in its own words; the rest say "not counted".
+                    Text(
+                        (if (verdictMessage.endsWith(RepVerdicts.NOT_COUNTED_SUFFIX)) "✕ " else "⚠ ") + verdictMessage,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = if (verdictIsFault) OnAccent else Attention,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                    )
+                }
+            } else if (setupMessage != null) {
                 Surface(
                     color = Card.copy(alpha = 0.92f),
                     shape = RoundedCornerShape(20.dp),

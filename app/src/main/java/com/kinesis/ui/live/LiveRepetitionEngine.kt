@@ -67,9 +67,9 @@ class LiveRepetitionEngine(
         lastTimestampMs = timestampMs.toDouble()
         analysis.onFrame(lastTimestampMs, landmarks)
         publish()
-        // Only a VALID repetition raises the count, so only a counted one flashes. O(1) per frame.
-        if (analysis.repCount > flashedCount) {
-            flashedCount = analysis.repCount
+        // Only a counted repetition (P3-78's verdict) raises the count, so only it flashes. O(1).
+        if (analysis.countedRepetitions > flashedCount) {
+            flashedCount = analysis.countedRepetitions
             skeleton.repetitionCounted()
         }
         skeleton.submit(landmarks, bridge.state.overlayState, analysis.policy, analysis.angleLeft, analysis.angleRight)
@@ -105,10 +105,12 @@ class LiveRepetitionEngine(
 
     private fun publish() = bridge.onFrame(
         phase = analysis.displayPhase,
-        repCount = analysis.repCount,
+        // The verdict's count, not the movement counter's: what counts is what the screen shows (P3-78).
+        repCount = analysis.countedRepetitions,
         frameValidity = analysis.frameValidity,
         lastRepValidity = analysis.lastRepValidity,
-        recordsReported = analysis.recordsReported,
+        verdict = analysis.lastVerdict,
+        verdictsReported = analysis.verdictsReported,
         timestampMs = lastTimestampMs,
         setupMessage = analysis.setupMessage,
         frameRateHealth = analysis.frameRateHealth,

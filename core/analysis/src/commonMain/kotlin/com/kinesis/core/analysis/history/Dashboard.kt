@@ -1,5 +1,6 @@
 package com.kinesis.core.analysis.history
 
+import com.kinesis.core.analysis.verdict.CountedRepetitions
 import com.kinesis.core.domain.bilateral.BilateralSignal
 import com.kinesis.core.domain.session.HoldSetRecord
 import com.kinesis.core.domain.session.LocalDay
@@ -181,7 +182,8 @@ object Dashboard {
             when (set) {
                 is RepetitionSetRecord -> {
                     var inThisSet = 0
-                    for (rep in set.validReps) {
+                    // Counted by the verdict, as the screen counted it - DECISIONS.md P3-78.
+                    for (rep in CountedRepetitions.of(set)) {
                         validRepCount++
                         inThisSet++
                         addLeft(rep.rangeOfMotion.left)

@@ -1,5 +1,8 @@
 package com.kinesis.ui.screens
 
+import com.kinesis.core.analysis.verdict.RepVerdicts
+import com.kinesis.core.analysis.verdict.RepVerdict
+import com.kinesis.core.analysis.verdict.CountedRepetitions
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -40,6 +43,7 @@ import com.kinesis.core.domain.session.SessionRecord
 import com.kinesis.core.domain.session.SetRecord
 import com.kinesis.ui.theme.Accent
 import com.kinesis.ui.theme.Attention
+import com.kinesis.ui.theme.Fault
 import com.kinesis.ui.theme.Ink
 import com.kinesis.ui.theme.InkFaint
 import com.kinesis.ui.theme.InkSecondary
@@ -165,7 +169,7 @@ fun SessionCard(session: SessionRecord, onClick: () -> Unit) {
             color = Ink,
         )
         Text(
-            plural(session.sets.size, "set") + " · " + plural(session.completedUnits, "counted"),
+            plural(session.sets.size, "set") + " · " + plural(CountedRepetitions.units(session), "counted"),
             style = MaterialTheme.typography.bodySmall,
             color = InkSecondary,
         )
@@ -190,7 +194,7 @@ fun SessionDetailScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item { Box(Modifier.padding(top = 8.dp)) { BackLink(backLabel, onBack) } }
-        item { PageTitle(whenOf(session), plural(session.sets.size, "set") + " · " + plural(session.completedUnits, "counted")) }
+        item { PageTitle(whenOf(session), plural(session.sets.size, "set") + " · " + plural(CountedRepetitions.units(session), "counted")) }
         items(session.sets.withIndex().toList(), key = { "set-" + it.index }) { (index, set) ->
             SetCard(index + 1, set)
         }
@@ -205,15 +209,18 @@ private fun SetCard(position: Int, set: SetRecord) {
         Text(nameOf(set.exerciseId), style = MaterialTheme.typography.titleMedium, color = Ink)
         when (set) {
             is RepetitionSetRecord -> {
+                // Each attempt's verdict, as the live screen gave it - DECISIONS.md P3-78. Wobbles and
+                // the other side seeing the same movement are not attempts, and are not listed.
+                val attempts = remember(set) { CountedRepetitions.judged(set).filter { it.verdict.isAttempt } }
                 Text(
-                    plural(set.completedUnits, "repetition") + " counted of " + plural(set.reps.size, "attempt"),
+                    plural(attempts.count { it.verdict.outcome.counts }, "repetition") + " counted of " + plural(attempts.size, "attempt"),
                     style = MaterialTheme.typography.bodySmall,
                     color = InkSecondary,
                 )
-                if (set.reps.isNotEmpty()) {
+                if (attempts.isNotEmpty()) {
                     Spacer(Modifier.height(8.dp))
                     RepHeader()
-                    for (rep in set.reps) RepLine(rep)
+                    for (attempt in attempts) RepLine(attempt.rep, attempt.verdict)
                 }
             }
             is HoldSetRecord -> {
@@ -235,13 +242,12 @@ private fun RepHeader() {
     }
 }
 
-/** One repetition: whether it counted, each side's range apart, and its two phase times. */
+/** One attempt: whether it counted and if not why, each side's range apart, and its two phase times. */
 @Composable
-private fun RepLine(rep: RepRecord) {
-    val counted = rep.validity == RepValidity.VALID
+private fun RepLine(rep: RepRecord, verdict: RepVerdict) {
     Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
         Cell(rep.repIndex.toString(), 0.6f, InkSecondary)
-        Cell(validityLabel(rep.validity), 1.6f, if (counted) Ink else Attention)
+        Cell(verdictLabel(verdict), 1.6f, verdictColor(verdict))
         Cell(degrees(rep.rangeOfMotion.left), 1.2f, Ink)
         Cell(degrees(rep.rangeOfMotion.right), 1.2f, Ink)
         Cell(secondsShort(rep.descentMs) + " / " + secondsShort(rep.ascentMs), 1.6f, InkSecondary)
@@ -303,6 +309,23 @@ private fun SidesLine(label: String, left: Double, right: Double) {
 }
 
 // --- Words for fields, not judgements --------------------------------------------------------
+
+/**
+ * An attempt's verdict, named: counted, or why not - DECISIONS.md P3-78. Shape as well as colour.
+ * The reason is the core's own words, without the "not counted" the mark already says.
+ */
+internal fun verdictLabel(verdict: RepVerdict): String = when {
+    verdict.outcome.counts && verdict.message != null -> "✓ counted · " + verdict.message
+    verdict.outcome.counts -> "✓ counted"
+    else -> "✕ " + (verdict.message?.removeSuffix(RepVerdicts.NOT_COUNTED_SUFFIX) ?: "not counted")
+}
+
+/** Red when the movement is to blame (a counted form fault too), amber when the system lost it, plain otherwise. */
+internal fun verdictColor(verdict: RepVerdict): androidx.compose.ui.graphics.Color = when {
+    verdict.outcome.blamesMovement -> Fault
+    verdict.outcome.counts -> Ink
+    else -> Attention
+}
 
 /** A record's validity, named: whether it counted, and if not, why. Shape as well as colour. */
 internal fun validityLabel(validity: RepValidity): String = when (validity) {

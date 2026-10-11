@@ -67,10 +67,10 @@ movement. People differ in build, flexibility and habit. We wanted a system that
 
 - **Not a medical or diagnostic tool.** It measures movement; it does not diagnose, treat or
   predict injury.
-- **Not a certified judge of technique.** After each set it shows "Form notes" from six rules
-  whose thresholds come from published exercise guidelines. How often they agree with a coach
-  was not measured, because no labelled data exists here, and the app says so on the card
-  (section 4.7).
+- **Not a certified judge of technique.** Six rules whose thresholds come from published exercise
+  guidelines mark a repetition red as it happens, and after each set the summary shows them as
+  "Form notes". How often they agree with a coach was not measured, because no labelled data
+  exists here, and the app says so on the card (section 4.7). A flagged repetition still counts.
 - **Not a video recorder.** No video is stored or uploaded.
 
 ---
@@ -125,11 +125,14 @@ limb when side-on, and the app does not measure from them. At the joint the exer
 on, each side the app can measure gets an arc between its two bones and the angle in degrees. That
 number is the filtered angle the count is decided on; left and right are shown separately, never
 averaged. Each counted repetition makes the skeleton glow briefly, and a "+1" rises from the head.
-The screen also shows the count and the movement phase. If the camera view does not suit the
-exercise, the screen advises how to stand.
+An attempt that does not count turns the skeleton red, with the reason in large type for two
+seconds: "Too fast — not counted" or "Not a full repetition — not counted" (section 4.4). A
+counted repetition that a technique rule flags is red too, with the rule's reason, such as "Upper
+arm moved forward". The screen also shows the count and the movement phase. If the camera view
+does not suit the exercise, the screen advises how to stand.
 
 **After a set**, the summary shows:
-- the count;
+- the count, and each attempt marked counted, or with the reason it was not;
 - each repetition's range of motion per side;
 - the lifting speed per side, and how much it slowed through the set;
 - with a calibration, each value beside the person's own usual one;
@@ -194,6 +197,23 @@ For every frame, in constant time and memory (no work grows with the length of a
     limb nearer the camera counts, and the same repetition seen by both sides counts once
     [P3-28, P3-68].
 
+**A verdict on each attempt [P3-78].** The state machine above measures; a verdict decides what
+the person is shown. It is computed from the stored record whenever it is needed, so the live
+count, the summary and the history always agree:
+- **counted;**
+- **too fast**, faster than any repetition MM-Fit's development people made, e.g. a curl under
+  0.63 s: red, not counted;
+- **not a full repetition**, turned back past halfway: red, not counted;
+- **lost tracking**, including a knee angle under 30°, which no squat or lunge reaches and which
+  MediaPipe produced when it lost the legs: not counted, without blaming the person;
+- **a technique rule fired:** counted, and red with the rule's reason;
+- a wobble that never got halfway, or the far limb seeing a repetition already counted: nothing
+  said.
+
+On MM-Fit's development sets the verdict counts what the state machine counts, to within one lunge
+out of the 2,518 it counted. On our own session it removed the phantom repetitions and the
+"ultra fast" curls the tester reported.
+
 ### 4.5 After a set: records and storage
 
 Each completed repetition becomes a `RepRecord`, holding per side:
@@ -227,7 +247,7 @@ Every statement the engine can make carries a claim level:
 | Layer | What it does | Status |
 |---|---|---|
 | 1. Deviation rules | Compare a repetition with the person's own baseline (Level 2) | Built; **failed its held-out test, not in the app** |
-| 2. Technique rules | Six rules with thresholds cited from published sources, for Tier A exercises only (Level 3) | **Shown once per set as "Form notes"** with each rule's source [P3-74]; their accuracy is unmeasured, which the card states |
+| 2. Technique rules | Six rules with thresholds cited from published sources, for Tier A exercises only (Level 3) | **Shown live, in red, on the repetition they flag, and once per set as "Form notes"** with each rule's source [P3-74, P3-78]; the repetition still counts; their accuracy is unmeasured, which the card states |
 | 3. Supervised quality classifiers | — | Removed from scope: no labelled data |
 | 4. Personal anomaly detection | An Isolation Forest fitted to the person's own history | Built and studied; **negative result, not in the app** |
 
@@ -343,6 +363,18 @@ See `docs/report/EVALUATION.md`.
     [P3-59].
 11. **Empty sets in real use.** Our own training data showed half of all saved sets were empty,
     split off when the camera was switched. Sets with nothing in them are no longer saved [P3-70].
+12. **"It counted things I didn't do."** A session on the phone counted three lunges that were
+    MediaPipe losing the legs, and curls done in half a second. We added a verdict on each attempt
+    (section 4.4). Its first design was wrong in three ways, and measuring it on MM-Fit before it
+    shipped showed each one:
+    - a 1.5 s window meant to merge one lunge seen by both knees would have deleted 95 real
+      alternating lunges;
+    - "too fast" limits taken from set averages rejected 43 real lunges;
+    - cancelling repetitions for a technique fault would have cancelled 329 of 387 normal lateral
+      raises.
+
+    The window was dropped, the limits were re-measured from real repetitions, and the owner chose
+    to count flagged repetitions and show them red [P3-78].
 
 ---
 

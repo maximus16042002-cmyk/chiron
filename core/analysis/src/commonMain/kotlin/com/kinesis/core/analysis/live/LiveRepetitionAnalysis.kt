@@ -10,6 +10,10 @@ import com.kinesis.core.analysis.rep.BilateralRepTracker
 import com.kinesis.core.analysis.rep.RepSink
 import com.kinesis.core.analysis.setup.SetupGate
 import com.kinesis.core.analysis.temporal.TemporalConfig
+import com.kinesis.core.analysis.verdict.RepVerdict
+import com.kinesis.core.analysis.verdict.RepVerdicts
+import com.kinesis.core.analysis.verdict.SetJudge
+import com.kinesis.core.domain.bilateral.Side
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.landmark.Landmarks
 import com.kinesis.core.domain.landmark.VisibilityPolicy
@@ -94,12 +98,47 @@ class LiveRepetitionAnalysis(
     var recordsReported: Int = 0
         private set
 
+    /** Each record's verdict, post-rep - DECISIONS.md P3-78. */
+    private val setJudge = SetJudge(profile)
+
+    /** Repetitions the verdict counted: the number the screen shows (P3-78). */
+    val countedRepetitions: Int get() = setJudge.counted
+
+    /** The most recent record's verdict, or `null` before the first. */
+    var lastVerdict: RepVerdict? = null
+        private set
+
+    /** Verdicts given so far: lets a display tell a new verdict from the last one repeated. */
+    var verdictsReported: Int = 0
+        private set
+
     private val sink = RepSink { record ->
         lastRepValidity = record.validity
         recordsReported++
+        val verdict = setJudge.judge(record, otherSideMidRepetition(record))
+        lastVerdict = verdict
+        verdictsReported++
         onRepetition.onRepetition(record)
     }
 
+    /**
+     * Whether the side opposite the one [record] was measured on is part-way through a repetition
+     * now. Read when the record is reported, inside the frame that produced it, after both state
+     * machines stepped.
+     */
+    private fun otherSideMidRepetition(record: com.kinesis.core.domain.rep.RepRecord): Boolean {
+        val other = when (RepVerdicts.measuredSide(record)) {
+            Side.LEFT -> tracker.rightPhase
+            Side.RIGHT -> tracker.leftPhase
+            null -> return false
+        }
+        return other == MovementPhase.DESCENDING || other == MovementPhase.BOTTOM || other == MovementPhase.ASCENDING
+    }
+
+    /**
+     * Repetitions the movement counter counted - every VALID record. The evaluated layer (MM-Fit,
+     * parity); the screen shows [countedRepetitions] since DECISIONS.md P3-78.
+     */
     val repCount: Int get() = tracker.repetitionCount
 
     /** Each side's phase, separately - the facade reports both. DECISIONS.md P3-19. */

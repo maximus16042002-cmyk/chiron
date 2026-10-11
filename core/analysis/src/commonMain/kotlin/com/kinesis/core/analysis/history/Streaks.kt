@@ -1,5 +1,6 @@
 package com.kinesis.core.analysis.history
 
+import com.kinesis.core.analysis.verdict.CountedRepetitions
 import com.kinesis.core.domain.session.LocalDay
 import com.kinesis.core.domain.session.SessionRecord
 
@@ -34,7 +35,8 @@ data class StreakSummary(
  * One calendar day, the work completed on it, and whether a freeze was spent on it -
  * DECISIONS.md P3-48 and P3-49.
  *
- * [completedUnits] is the streak's measure (completed repetitions plus completed holds), so a day
+ * [completedUnits] is the streak's measure (counted repetitions - DECISIONS.md P3-78's verdict -
+ * plus completed holds), so a day
  * is [counted] exactly when [Streaks] would count it. A day is never both counted and [frozen]: a
  * freeze is spent only on a day with no work.
  */
@@ -102,7 +104,8 @@ object Streaks {
     fun qualifyingDays(sessions: List<SessionRecord>): Set<LocalDay> {
         val days = HashSet<LocalDay>()
         for (session in sessions) {
-            if (session.completedUnits > 0) days += session.localDay
+            // Counted by the verdict, as the screen counted it - DECISIONS.md P3-78.
+            if (CountedRepetitions.units(session) > 0) days += session.localDay
         }
         return days
     }
@@ -128,7 +131,7 @@ object Streaks {
         val units = IntArray(from.daysUntil(to) + 1)
         for (session in sessions) {
             val index = from.daysUntil(session.localDay)
-            if (index in units.indices) units[index] += session.completedUnits
+            if (index in units.indices) units[index] += CountedRepetitions.units(session)
         }
         val frozen = walk(qualifyingDays(sessions), today).frozen
         return units.indices.map {

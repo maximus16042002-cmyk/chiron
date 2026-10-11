@@ -294,6 +294,12 @@ class LateralRaiseProfile : TierAProfile(), RepetitionExercise {
     /** Both limbs are visible from the required view. DECISIONS.md P3-8. */
     override val analysedSides: AnalysedSides = AnalysedSides.BOTH
 
+    /**
+     * DECISIONS.md P3-78: just under the fastest VALID repetition MM-Fit's development subjects made,
+     * 1,067 ms, in sets the counter got exactly right (249 repetitions).
+     */
+    override val tooFastBelowMs: Double = 1_060.0
+
     /** Moving away from the start is the lifting - DECISIONS.md P3-30. */
     override val awayFromStart: Contraction = Contraction.CONCENTRIC
 

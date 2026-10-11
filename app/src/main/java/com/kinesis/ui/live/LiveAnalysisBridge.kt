@@ -1,6 +1,7 @@
 package com.kinesis.ui.live
 
 import com.kinesis.core.analysis.fps.FrameRateHealth
+import com.kinesis.core.analysis.verdict.RepVerdict
 import com.kinesis.core.domain.landmark.FrameValidity
 import com.kinesis.core.domain.rep.MovementPhase
 import com.kinesis.core.domain.rep.RepValidity
@@ -20,12 +21,17 @@ data class LiveUiState(
     val frameValidity: FrameValidity,
     val lastRepValidity: RepValidity?,
     /**
-     * Whether a repetition that did not count ended in the last
-     * [LiveAnalysisBridge.ATTENTION_MS]. DECISIONS.md P3-23: the amber used to
-     * stay until a repetition did count, which on the phone was almost always,
-     * and while amber the figure said nothing about tracking.
+     * Whether the last attempt was the movement's fault - too fast, not a full repetition, a form
+     * fault - in the last [LiveAnalysisBridge.VERDICT_MS]: the figure is red while it is.
+     * DECISIONS.md P3-78, replacing P3-23's amber for any record that did not count.
      */
     val showingAttention: Boolean = false,
+    /**
+     * What was wrong with the last attempt, for [LiveAnalysisBridge.VERDICT_MS], or `null`: why it
+     * did not count, or the form fault of one that did. The core's words (P3-78). Red when
+     * [showingAttention], amber otherwise (tracking was lost).
+     */
+    val verdictMessage: String? = null,
     /** The setup gate's line, or `null`. A constant string, debounced in the core (P3-59). */
     val setupMessage: String? = null,
     val frameRateHealth: FrameRateHealth = FrameRateHealth.HEALTHY,
@@ -117,9 +123,11 @@ class LiveAnalysisBridge(
         repCount: Int,
         frameValidity: FrameValidity,
         lastRepValidity: RepValidity?,
-        /** Records the analysis has reported so far, valid or not. */
-        recordsReported: Int = 0,
-        /** This frame's time, which the attention flash is measured against. */
+        /** The last attempt's verdict, from the core (P3-78), or `null` before the first. */
+        verdict: RepVerdict? = null,
+        /** Verdicts the analysis has given so far: a change is a new attempt. */
+        verdictsReported: Int = 0,
+        /** This frame's time, which the verdict's message is measured against. */
         timestampMs: Double = 0.0,
         setupMessage: String? = null,
         frameRateHealth: FrameRateHealth = FrameRateHealth.HEALTHY,
@@ -128,17 +136,27 @@ class LiveAnalysisBridge(
     ) {
         frameCount++
 
-        // A new record: one that did not count flashes amber for ATTENTION_MS;
-        // one that did clears it at once.
-        if (recordsReported != recordsSeen) {
-            recordsSeen = recordsReported
-            attentionUntilMs = if (lastRepValidity != null && lastRepValidity != RepValidity.VALID) {
-                timestampMs + ATTENTION_MS
-            } else {
-                Double.NaN
+        // A new verdict (P3-78): one with something to say shows it for VERDICT_MS - red if the
+        // movement is to blame, a counted form fault included; a plainly counted one clears it at
+        // once; a silent one changes nothing.
+        if (verdictsReported != verdictsSeen) {
+            verdictsSeen = verdictsReported
+            when {
+                verdict == null -> Unit
+                verdict.message != null -> {
+                    messageUntilMs = timestampMs + VERDICT_MS
+                    message = verdict.message
+                    fault = verdict.outcome.blamesMovement
+                }
+                verdict.outcome.counts -> {
+                    messageUntilMs = Double.NaN
+                    message = null
+                }
             }
         }
-        val attention = !attentionUntilMs.isNaN() && timestampMs < attentionUntilMs
+        val showing = !messageUntilMs.isNaN() && timestampMs < messageUntilMs
+        val attention = showing && fault
+        val shownMessage = if (showing) message else null
 
         // Compared field by field against the live values rather than by building
         // a candidate and comparing that - constructing one per frame is exactly
@@ -148,6 +166,7 @@ class LiveAnalysisBridge(
             frameValidity == current.frameValidity &&
             lastRepValidity == current.lastRepValidity &&
             attention == current.showingAttention &&
+            shownMessage == current.verdictMessage &&
             setupMessage == current.setupMessage &&
             frameRateHealth == current.frameRateHealth
         if (unchanged) return
@@ -160,6 +179,7 @@ class LiveAnalysisBridge(
                 frameValidity = frameValidity,
                 lastRepValidity = lastRepValidity,
                 showingAttention = attention,
+                verdictMessage = shownMessage,
                 setupMessage = setupMessage,
                 frameRateHealth = frameRateHealth,
                 currentFps = currentFps,
@@ -168,8 +188,10 @@ class LiveAnalysisBridge(
         )
     }
 
-    private var recordsSeen = 0
-    private var attentionUntilMs = Double.NaN
+    private var verdictsSeen = 0
+    private var messageUntilMs = Double.NaN
+    private var message: String? = null
+    private var fault = false
 
     private fun publish(state: LiveUiState) {
         current = state
@@ -180,7 +202,7 @@ class LiveAnalysisBridge(
     val state: LiveUiState get() = current
 
     companion object {
-        /** How long a repetition that did not count shows amber. DECISIONS.md P3-23. */
-        const val ATTENTION_MS: Double = 1_500.0
+        /** How long an attempt that did not count shows why. DECISIONS.md P3-78 (P3-23's was 1.5 s). */
+        const val VERDICT_MS: Double = 2_000.0
     }
 }

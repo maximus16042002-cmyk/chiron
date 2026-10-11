@@ -195,6 +195,19 @@ interface RepetitionExercise : ExerciseProfile {
     val repSignal: RepSignalSpec
 
     /**
+     * Below this a full repetition is "too fast" and does not count - DECISIONS.md P3-78, the owner's
+     * decision. Where MM-Fit has enough of the exercise, just under the fastest repetition its
+     * development subjects made; otherwise the state machine's own minimum.
+     */
+    val tooFastBelowMs: Double get() = repSignal.minRepDurationMs
+
+    /**
+     * A driving angle past this, in the far direction, is not a body but MediaPipe losing it - the
+     * repetition is "lost tracking" and does not count (P3-78). `NaN`, no floor, by default.
+     */
+    val trackingFloorDeg: Double get() = Double.NaN
+
+    /**
      * Joints other than the driving one that each repetition records - DECISIONS.md P3-44.
      * None by default: an exercise that asks for nothing computes nothing per frame. A variant
      * asks for its parent's, through delegation.
