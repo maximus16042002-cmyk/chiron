@@ -41,6 +41,23 @@ class FirebaseAuthGateway(
         auth.signOut()
     }
 
+    override suspend fun sendPasswordReset(email: String): AuthFailure? {
+        if (!PasswordReset.isPlausibleEmail(email)) return AuthFailure.MALFORMED_EMAIL
+        return try {
+            auth.sendPasswordResetEmail(email.trim()).await()
+            null
+        } catch (error: FirebaseNetworkException) {
+            AuthFailure.NETWORK_UNAVAILABLE
+        } catch (error: FirebaseAuthInvalidUserException) {
+            // No account for that address: said as sent, so no one can probe for accounts.
+            null
+        } catch (error: FirebaseAuthInvalidCredentialsException) {
+            AuthFailure.MALFORMED_EMAIL
+        } catch (error: Exception) {
+            AuthFailure.UNKNOWN
+        }
+    }
+
     private suspend fun attempt(block: suspend () -> Any?): AuthResult = try {
         block()
         val uid = auth.currentUser?.uid

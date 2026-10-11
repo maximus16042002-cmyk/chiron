@@ -87,6 +87,7 @@ import com.kinesis.sync.AuthGateway
 import com.kinesis.sync.AuthResult
 import com.kinesis.sync.AuthState
 import com.kinesis.sync.FirebaseAuthGateway
+import com.kinesis.sync.PasswordReset
 import com.kinesis.sync.FirestoreSessionStore
 import com.kinesis.sync.SessionMerge
 import com.kinesis.sync.SyncingSessionRepository
@@ -238,6 +239,7 @@ private fun KinesisRoot(
     var state: AuthState by remember { mutableStateOf(auth.state) }
     var busy by remember { mutableStateOf(false) }
     var failure: AuthFailure? by remember { mutableStateOf(null) }
+    var resetNotice: String? by remember { mutableStateOf(null) }
     var mergedFor: String? by remember { mutableStateOf(null) }
     val scope = rememberCoroutineScope()
 
@@ -269,6 +271,16 @@ private fun KinesisRoot(
         else -> AuthScreen(
             busy = busy,
             failure = failure,
+            resetNotice = resetNotice,
+            // DECISIONS.md P3-80: a reset link by email, through Firebase.
+            onForgotPassword = { email ->
+                scope.launch {
+                    busy = true
+                    failure = null
+                    resetNotice = PasswordReset.messageFor(auth.sendPasswordReset(email))
+                    busy = false
+                }
+            },
             onSignIn = { email, password ->
                 scope.launch {
                     busy = true

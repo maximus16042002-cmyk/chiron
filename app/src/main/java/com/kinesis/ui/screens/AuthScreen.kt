@@ -1,5 +1,7 @@
 package com.kinesis.ui.screens
 
+import com.kinesis.ui.theme.Accent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
@@ -55,6 +57,10 @@ fun AuthScreen(
     busy: Boolean,
     failure: AuthFailure?,
     modifier: Modifier = Modifier,
+    /** Asks for a reset email to the address typed - DECISIONS.md P3-80. */
+    onForgotPassword: (String) -> Unit = {},
+    /** The line after a reset request, or `null`. */
+    resetNotice: String? = null,
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -84,6 +90,22 @@ fun AuthScreen(
         Field("Email", email, onChange = { email = it })
         Spacer(Modifier.height(12.dp))
         Field("Password", password, onChange = { password = it }, secret = true)
+
+        if (!creatingAccount) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "Forgot password?",
+                style = MaterialTheme.typography.labelLarge,
+                color = Accent,
+                modifier = Modifier
+                    .clickable(enabled = !busy) { onForgotPassword(email) }
+                    .padding(vertical = 8.dp),
+            )
+        }
+        if (resetNotice != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(resetNotice, style = MaterialTheme.typography.bodyMedium, color = Ink)
+        }
 
         if (failure != null) {
             Spacer(Modifier.height(16.dp))

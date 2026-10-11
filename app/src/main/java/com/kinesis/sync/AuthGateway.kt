@@ -70,4 +70,33 @@ interface AuthGateway {
     suspend fun signUp(email: String, password: String): AuthResult
 
     suspend fun signOut()
+
+    /**
+     * Asks for a password-reset email to [email] - DECISIONS.md P3-80. `null` when the request was
+     * made, or a reason it could not be. An address with no account is reported as sent, as Firebase
+     * does, so the screen cannot be used to find out which addresses are registered.
+     */
+    suspend fun sendPasswordReset(email: String): AuthFailure? = AuthFailure.UNKNOWN
+}
+
+/** What the sign-in screen says after a reset request - DECISIONS.md P3-80. */
+object PasswordReset {
+
+    const val SENT: String =
+        "If an account uses that email, a link to choose a new password is on its way. Check the inbox and spam."
+
+    /** The line for an outcome: [SENT] when the request was made, otherwise why not. */
+    fun messageFor(failure: AuthFailure?): String = when (failure) {
+        null -> SENT
+        AuthFailure.MALFORMED_EMAIL -> "Type the email address of your account first, then tap Forgot password."
+        AuthFailure.NETWORK_UNAVAILABLE -> "No network. Sending a reset link needs one."
+        else -> "The reset link could not be sent. Try again in a moment."
+    }
+
+    /** An address that cannot be one is refused before anything is sent. */
+    fun isPlausibleEmail(email: String): Boolean {
+        val trimmed = email.trim()
+        val at = trimmed.indexOf('@')
+        return at > 0 && at == trimmed.lastIndexOf('@') && trimmed.indexOf('.', at) > at + 1 && !trimmed.endsWith(".")
+    }
 }

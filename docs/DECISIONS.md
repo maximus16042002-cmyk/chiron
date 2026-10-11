@@ -13453,6 +13453,34 @@ of the skeptic checks were cut off by a usage limit. Every finding is listed her
 
 ---
 
+## P3-80 — "Forgot password?" on the sign-in screen
+
+*2026-10-12. The owner forgot their password, and had signed up with an address that receives no
+mail. They asked for a reset button anyway, for the future, and chose to sign in with a new
+account.*
+
+- **What it does.** A "Forgot password?" link under the password field asks Firebase to email a
+  reset link to the address typed (`AuthGateway.sendPasswordReset`). It is hidden while creating an
+  account.
+- **The address is checked before anything is sent.** One that cannot be an email is refused,
+  with a line saying to type it first.
+- **What the screen says.** "If an account uses that email, a link … is on its way". An address
+  with no account gets the same line, as with sign-in (P3-14), so the screen cannot be used to
+  find registered addresses.
+- **No new dependency.** Firebase Authentication's own `sendPasswordResetEmail`, already permitted
+  by CLAUDE.md §16.
+- **A gateway that does not implement the reset reports a failure.** Test fakes are such gateways,
+  and none can claim a reset was sent.
+- **Tests.**
+  - `PasswordResetTest`, 4 tests: the wording, the failures, the address check, and the default
+    gateway's failure.
+  - App tests: 277 debug, 265 release, 0 failed.
+- **Not tested here:** the email itself. It needs Firebase and a real inbox.
+
+**Next entry: P3-81.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
