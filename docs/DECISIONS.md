@@ -13481,6 +13481,45 @@ account.*
 
 ---
 
+## P3-81 — The owner's history moved to a new account, at their request
+
+*2026-10-12.*
+
+**Why.** The owner's account (`U6ER…`) used an address that receives no mail and its password was
+forgotten, so it could not be recovered. They created a new account (`os9Or…`) on the phone and
+asked for their data to be the same in it.
+
+**Why it was needed.** Per-account databases (P3-60) gave the new account an empty file. The
+history sat in `kinesis.db`, adopted by the old account. The owner approved the device-file change
+explicitly: the automatic permission check had refused it first, as an overwrite of the app's
+database.
+
+**What was done**, with the app stopped:
+
+1. **Backup** to `local/backup-2026-10-12c/` (not in git): the databases and `shared_prefs`.
+   Every database's hash on the phone matched the copy's.
+2. **On a copy of `kinesis.db`:**
+   - the one baseline row (bicep curl) changed `ownerUid` from old to new;
+   - the WAL checkpointed into the file;
+   - integrity check `ok`;
+   - 108 sessions, 437 repetitions and 6 holds, before and after.
+3. **The copy written back.** The stale `-wal` and `-shm` were removed, and the phone's file hash
+   matched the copy's.
+4. **`kinesis-accounts.xml`:** `legacy_database_owner` was set to the new account, so it opens
+   `kinesis.db`. The empty `kinesis-os9Or….db` is left in place, unused.
+
+**After.**
+- The app started with no crash.
+- Within 10 s, 74 sessions had been pushed to the new account's Firestore, and the rest followed.
+- A copy pulled back read 108 sessions, 437 repetitions, 6 holds and the baseline under the new
+  account; integrity `ok`.
+
+**Not done.** The old account's Firestore copy is untouched: it cannot be signed into.
+
+**Next entry: P3-82.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
