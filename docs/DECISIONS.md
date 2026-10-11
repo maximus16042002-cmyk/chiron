@@ -13434,6 +13434,25 @@ of the skeptic checks were cut off by a usage limit. Every finding is listed her
 
 ---
 
+## P3-79 — The P3-78 build installed on the owner's phone
+
+*2026-10-12.*
+
+- **Backup** to `local/backup-2026-10-12/` (not in git), with `SHA256SUMS.txt`.
+  - Every file's hash on the phone matched the copy's.
+  - `kinesis.db` was `ca9bbd6b…5cfcd`.
+- **The install:** `adb install -r` of the debug APK built from `07e7349`, SHA-256
+  `498549d9…54f8b`. Result: "Success".
+  - The installed APK, pulled back from the phone, has the same hash.
+- **After:**
+  - `kinesis.db` was unchanged.
+  - A cold launch took 2,660 ms, the process kept running, and the crash buffer was empty.
+  - Nothing was uninstalled.
+
+**Next entry: P3-80.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
