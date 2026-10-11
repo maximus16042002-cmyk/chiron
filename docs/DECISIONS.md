@@ -13520,6 +13520,73 @@ database.
 
 ---
 
+## P3-82 — Push-ups: the personal start zone measured end to end, with a protocol fixed first
+
+*2026-10-12. The owner asked for the push-up and sit-up undercounts to be investigated, fixed if
+possible, and the evaluation run again, keeping the original figures for comparison.*
+
+### Why push-ups are undercounted
+
+`data/mm-fit-eval-p3-78-dev`, development subjects, movement counter: **92 of 448**. The push-up
+records split three ways:
+
+1. **The start position is never reached.**
+   - Many sets leave almost no record: w02, w07, w09, w11 and w15, at 0–1 records a set. The near
+     elbow's 95th percentile reads only 138–158° in the image, so the state machine never sees
+     the start zone (155° and up), and nothing begins.
+   - P3-29 found the cause: the top of a push-up reads 131–166° in 2D depending on the person and
+     the camera. P3-30 built a **personal start zone** (`PersonalStartZone`): the user's
+     calibration tops, never stricter than 155° and never looser than a 126° floor derived from
+     the development subjects only.
+   - It was never evaluated end to end, and nothing in the app calls it.
+2. **Tracking gaps.** 130 records ended `INSUFFICIENT_DATA`: the near elbow was lost for more than
+   the 500 ms bridge. P3-33 studied the bridge and the outlier gate, so this is not reopened here.
+3. **Shallow bottoms.** In w03 and w04, many attempts turned back at 110–125° and never reached
+   the 90° depth edge. That is the movement's depth; it is not changed here.
+
+### The sit-up
+
+- Development subjects: 413 of 451 counted.
+- Held-out: 146 of 189 after the trunk-angle driver (P3-46). Of the 43 missing, 30 are subject
+  S20, whose trunk barely lifts (P3-46).
+- No change is proposed. It is reported as it stands.
+
+### The protocol, fixed before any result
+
+**Tool:** `StartZoneStudy`, the harness's own `runSet` with a profile passed in. For each workout,
+its push-up sets in label order:
+
+- **Arm A, the app today.** Every set is counted with the push-up profile as it is.
+- **Arm B, the personal start zone.**
+  1. The first push-up set is the calibration set, counted with `PersonalStartZone.forCalibration`
+     (the floor zone), as a calibration set would be.
+  2. `Calibration.fromRepetitions` on its records.
+  3. If that calibrates, every later set is counted with `profileWith(profile, of(profile,
+     baseline))`. If not, the later sets use the profile as it is, as the app would.
+
+**Compared on every set after the first**, the calibration set left out of both arms:
+- the movement counter's VALID records, against MM-Fit's label;
+- the number of sets counted above their label;
+- per subject.
+
+**Pass rule, development subjects** (A, B, C, S19). All three must hold:
+1. No set in arm B is counted above its label.
+2. Arm B's total is higher than arm A's.
+3. No development subject's total is lower in arm B than in arm A.
+
+**Held-out.**
+- Run once, only if development passes.
+- The owner asked for the evaluation to be run again, which is taken as the approval HANDOVER
+  asks for.
+- Same rule, on the six people never used in development.
+- The result is reported whichever way it goes.
+
+**If both pass,** the app uses the personal zone for push-ups once the user has calibrated them,
+and calibrates push-ups with the floor zone. If either fails, the app is unchanged, and the report
+states the push-up figure as it is.
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*
