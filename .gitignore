@@ -35,3 +35,7 @@ __pycache__/
 /graphify-out/20*/
 *.tmp
 /graphify-out/.rebuild.lock
+
+# Report screenshots from the owner's phone (personal; never in git)
+/chiron screenshot/
+/Chiron Report/
