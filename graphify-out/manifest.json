@@ -546,10 +546,10 @@
     "semantic_hash": "b4c1c998932ce94aeee0e5aad098dfd4"
   },
   "app/src/test/java/com/kinesis/calibration/CalibrationCoordinatorTest.kt": {
-    "mtime": 1790696038.5559008,
-    "seen": 1791542546.995467,
-    "ast_hash": "e233bc80391dab54ef044fa05e2a9e13",
-    "semantic_hash": "e233bc80391dab54ef044fa05e2a9e13"
+    "mtime": 1791892092.5484922,
+    "seen": 1791926670.9476814,
+    "ast_hash": "3af7357ddf1e86edc20a3fc17a0612d2",
+    "semantic_hash": ""
   },
   "app/src/test/java/com/kinesis/camera/CameraFacingParityTest.kt": {
     "mtime": 1790132637.3292956,
@@ -882,10 +882,10 @@
     "semantic_hash": "96d288ceadd3318a60c512bfb4e648e2"
   },
   "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/calibration/CalibrationPolicy.kt": {
-    "mtime": 1790398231.5125976,
-    "seen": 1791542546.9955683,
-    "ast_hash": "36210de564e10c29efd25ba3b09f22e2",
-    "semantic_hash": "36210de564e10c29efd25ba3b09f22e2"
+    "mtime": 1791891630.6080601,
+    "seen": 1791926670.9478037,
+    "ast_hash": "61c54844bbd655341985df121c1f40ef",
+    "semantic_hash": ""
   },
   "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/calibration/CurveDistance.kt": {
     "mtime": 1790696127.1688268,
@@ -1404,39 +1404,39 @@
     "semantic_hash": "aeb89f111b9c11b28d50ffd9fa47b612"
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/calibration/BaselineJsonTest.kt": {
-    "mtime": 1791652717.7724657,
-    "seen": 1791663611.4285626,
-    "ast_hash": "5dd91ba926ca12b39c6c0afb073aac82",
+    "mtime": 1791891773.7899435,
+    "seen": 1791926670.9479156,
+    "ast_hash": "2af83efd7ed8bf4a3f9b3e3974b2e2bb",
     "semantic_hash": ""
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/calibration/CalibrationFixtures.kt": {
-    "mtime": 1790398260.3690917,
-    "seen": 1791542546.9958215,
-    "ast_hash": "8a9b87fffb9d021373a5e917650a5b5c",
-    "semantic_hash": "8a9b87fffb9d021373a5e917650a5b5c"
+    "mtime": 1791891764.4494164,
+    "seen": 1791926670.9479165,
+    "ast_hash": "eea88b180058ac4faa49b07ff966e0ea",
+    "semantic_hash": ""
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/calibration/CalibrationGuideTest.kt": {
-    "mtime": 1791126375.1413956,
-    "seen": 1791542546.9958234,
-    "ast_hash": "5b7c10a04c275846ebcd99619f44114a",
-    "semantic_hash": "5b7c10a04c275846ebcd99619f44114a"
+    "mtime": 1791891780.2415447,
+    "seen": 1791926670.947918,
+    "ast_hash": "a5870843a64c4e110036e81508e95a1f",
+    "semantic_hash": ""
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/calibration/CalibrationTest.kt": {
-    "mtime": 1791652727.10803,
-    "seen": 1791663611.4285655,
-    "ast_hash": "19f8dccee64656ea52f1a686f4d3e7bf",
+    "mtime": 1791891923.4942713,
+    "seen": 1791926670.9479187,
+    "ast_hash": "d98e9ac49df0f3ecd67185bf47ca6869",
     "semantic_hash": ""
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/calibration/FacadeCalibrationTest.kt": {
-    "mtime": 1790696037.5114157,
-    "seen": 1791542546.9958267,
-    "ast_hash": "e977fbd26746b25dccab792d6c4a61cd",
-    "semantic_hash": "e977fbd26746b25dccab792d6c4a61cd"
+    "mtime": 1791891838.0362194,
+    "seen": 1791926670.9479196,
+    "ast_hash": "7d1e1df056fea0c808c3f302e46e1d95",
+    "semantic_hash": ""
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/calibration/PostRepAnalysisTest.kt": {
-    "mtime": 1791665579.7647622,
-    "seen": 1791665820.2298186,
-    "ast_hash": "3d5a49282515770d54b4dd9eba24398f",
+    "mtime": 1791891765.2407112,
+    "seen": 1791926670.9479206,
+    "ast_hash": "aaf46e163d12c6c7f5bcbe30d1e76e0e",
     "semantic_hash": ""
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/calibration/RobustStatisticsTest.kt": {
@@ -1452,16 +1452,16 @@
     "semantic_hash": "dc623b3a379a05a8a4144b3e95a72adc"
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/deviation/DeviationRulesTest.kt": {
-    "mtime": 1791652750.1738994,
-    "seen": 1791663611.4285705,
-    "ast_hash": "389218575b9451a85dbb5c7168995c10",
+    "mtime": 1791891767.0235944,
+    "seen": 1791926670.9479253,
+    "ast_hash": "3941f0bc22bf944f4a82581523c5c322",
     "semantic_hash": ""
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/deviation/PersonalStartZoneTest.kt": {
-    "mtime": 1790930457.3312964,
-    "seen": 1791542546.9958353,
-    "ast_hash": "7ceaa9d9f70d3d05c78f12f0c11bf608",
-    "semantic_hash": "7ceaa9d9f70d3d05c78f12f0c11bf608"
+    "mtime": 1791892086.1537535,
+    "seen": 1791926670.9479265,
+    "ast_hash": "663ad8596a3945eca9e2656225a609c5",
+    "semantic_hash": ""
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/deviation/RepFeaturesAndReferencesTest.kt": {
     "mtime": 1790695827.7074933,
@@ -1542,15 +1542,15 @@
     "semantic_hash": "695c3d689e2d71274fe020adf7110393"
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/parity/EngineParity.kt": {
-    "mtime": 1791664473.155155,
-    "seen": 1791664882.5066063,
-    "ast_hash": "ae87397deb38a1e25eb1f3591e69d8ef",
+    "mtime": 1791891852.786451,
+    "seen": 1791926670.947941,
+    "ast_hash": "86370f2df47932d2248bc9faf49f9902",
     "semantic_hash": ""
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/parity/EngineParityGolden.kt": {
-    "mtime": 1791664557.2072666,
-    "seen": 1791664882.5066075,
-    "ast_hash": "5cb3820316d74d3a96cad2bc7a5c233b",
+    "mtime": 1791891881.0992174,
+    "seen": 1791926670.9479423,
+    "ast_hash": "5afa1b5a425b8757692393355e9609e0",
     "semantic_hash": ""
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/parity/EngineParityTest.kt": {
@@ -2010,10 +2010,10 @@
     "semantic_hash": "9499764591df932918f510ea3c0c034f"
   },
   "tools/mmfit-eval/src/jvmMain/kotlin/com/kinesis/tools/mmfit/AnomalyStudy.kt": {
-    "mtime": 1790803785.1159496,
-    "seen": 1791542546.9959948,
-    "ast_hash": "60741eb7f8cbfd360b7723e903d7bc85",
-    "semantic_hash": "60741eb7f8cbfd360b7723e903d7bc85"
+    "mtime": 1791891956.2613976,
+    "seen": 1791926670.9480276,
+    "ast_hash": "4802dd71d330569583db5179099de767",
+    "semantic_hash": ""
   },
   "tools/mmfit-eval/src/jvmMain/kotlin/com/kinesis/tools/mmfit/ExtractVerifierDataset.kt": {
     "mtime": 1791134886.748615,
@@ -2040,10 +2040,10 @@
     "semantic_hash": "b47da50282aa048279898e5eabe15e7c"
   },
   "tools/mmfit-eval/src/jvmMain/kotlin/com/kinesis/tools/mmfit/PersonalisationStudy.kt": {
-    "mtime": 1790928873.8734853,
-    "seen": 1791542546.99601,
-    "ast_hash": "f4eeeb72dc773d4d0853fd6e1bb79153",
-    "semantic_hash": "f4eeeb72dc773d4d0853fd6e1bb79153"
+    "mtime": 1791891955.4352047,
+    "seen": 1791926670.9480343,
+    "ast_hash": "85003c95575608e917767ef0af92b22a",
+    "semantic_hash": ""
   },
   "tools/mmfit-eval/src/jvmMain/kotlin/com/kinesis/tools/mmfit/Subjects.kt": {
     "mtime": 1790696553.490086,
@@ -2064,10 +2064,10 @@
     "semantic_hash": "ac26dad5463c09aaac741062874d1001"
   },
   "tools/mmfit-eval/src/jvmTest/kotlin/com/kinesis/tools/mmfit/AnomalyStudyTest.kt": {
-    "mtime": 1790803352.4395518,
-    "seen": 1791542546.996035,
-    "ast_hash": "64a54a0cfff39e125e3a3395051701fc",
-    "semantic_hash": "64a54a0cfff39e125e3a3395051701fc"
+    "mtime": 1791891956.5693636,
+    "seen": 1791926670.9480424,
+    "ast_hash": "7af33c615f97e239afa887d32e770dd9",
+    "semantic_hash": ""
   },
   "tools/mmfit-eval/src/jvmTest/kotlin/com/kinesis/tools/mmfit/MmFitHarnessTest.kt": {
     "mtime": 1790596743.007145,
@@ -2076,10 +2076,10 @@
     "semantic_hash": "aa8b1bac733271c0f2039d6f44fcc485"
   },
   "tools/mmfit-eval/src/jvmTest/kotlin/com/kinesis/tools/mmfit/PersonalisationStudyTest.kt": {
-    "mtime": 1790696692.8901472,
-    "seen": 1791542546.9960384,
-    "ast_hash": "d7f3b410252b887ca2f44fa93b03224f",
-    "semantic_hash": "d7f3b410252b887ca2f44fa93b03224f"
+    "mtime": 1791891956.973658,
+    "seen": 1791926670.9480445,
+    "ast_hash": "80f64c0313168a4fb3f005708f06a188",
+    "semantic_hash": ""
   },
   "tools/mmfit-eval/src/jvmTest/kotlin/com/kinesis/tools/mmfit/SubjectsTest.kt": {
     "mtime": 1790695025.8210938,
@@ -2196,9 +2196,9 @@
     "semantic_hash": ""
   },
   "docs/DECISIONS.md": {
-    "mtime": 1791753188.7082467,
-    "seen": 1791753196.1486895,
-    "ast_hash": "25d6c1b9f1e17fa7edf12951752f08d7",
+    "mtime": 1791926815.0489256,
+    "seen": 1791926829.7100863,
+    "ast_hash": "d6a1c6643e9559011ebcfaf325238c35",
     "semantic_hash": ""
   },
   "docs/EXERCISE_GUIDE.md": {
@@ -2226,9 +2226,9 @@
     "semantic_hash": ""
   },
   "docs/HANDOVER.md": {
-    "mtime": 1791667637.896469,
-    "seen": 1791667647.0484495,
-    "ast_hash": "d105662d785f14e0e1383fe0858594b4",
+    "mtime": 1791926815.0911956,
+    "seen": 1791926829.7100928,
+    "ast_hash": "c9077301093786d0a1e7ebd6f31d6ac9",
     "semantic_hash": ""
   },
   "docs/P4_TOMORROW.md": {
@@ -2244,9 +2244,9 @@
     "semantic_hash": ""
   },
   "docs/PROJECT_STATUS.md": {
-    "mtime": 1791667585.9183671,
-    "seen": 1791667596.488454,
-    "ast_hash": "27c1d2ae53f58fcfac95a4d49065492e",
+    "mtime": 1791892248.888896,
+    "seen": 1791926670.948075,
+    "ast_hash": "7d82170d439d0b2a31cd70f2fa3ecb5b",
     "semantic_hash": ""
   },
   "docs/REPOSITORY_STRUCTURE.md": {
@@ -2400,15 +2400,21 @@
     "semantic_hash": ""
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/deviation/CountingProfileTest.kt": {
-    "mtime": 1791753349.060715,
-    "seen": 1791753787.9511263,
-    "ast_hash": "adc0beb66c874bf22c27cf379cd7d330",
+    "mtime": 1791891767.5554872,
+    "seen": 1791926670.9479244,
+    "ast_hash": "d7f952f0a2d885260d6b324e7c6c2878",
     "semantic_hash": ""
   },
   "tools/mmfit-eval/src/jvmMain/kotlin/com/kinesis/tools/mmfit/StartZoneStudy.kt": {
-    "mtime": 1791753224.0866873,
-    "seen": 1791753787.9512224,
-    "ast_hash": "76fe3cd36fe9f6c46ee31b9c890bec44",
+    "mtime": 1791891955.876539,
+    "seen": 1791926670.948035,
+    "ast_hash": "5203e90b0817c632844e39118e93d8f1",
+    "semantic_hash": ""
+  },
+  "tools/mmfit-eval/src/jvmMain/kotlin/com/kinesis/tools/mmfit/StudyPolicy.kt": {
+    "mtime": 1791891955.3258495,
+    "seen": 1791926670.9480367,
+    "ast_hash": "bce03dc774b32e33e5a1915656009891",
     "semantic_hash": ""
   }
 }
