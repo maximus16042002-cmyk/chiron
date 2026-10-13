@@ -13661,8 +13661,12 @@ there.
 - A read-only copy of the live `kinesis.db`: integrity "ok", version 3, the same 111 / 111 / 474 /
   6 / 1.
 - **Cold launch: 8,139 ms just after the install, 5,431 ms on a second cold start.** P3-67 measured
-  1,583 ms on 2026-10-07. Not investigated: the cause is not known, and could be the builds since
-  P3-67 or the phone's state at the time. **Open.**
+  1,583 ms on 2026-10-07.
+- **Corrected the same day: not a regression.** Four further cold starts (`am start -W -S`, the
+  process stopped first, the phone at 40 °C and 57% battery): **2,042, 1,717, 1,714 and 1,741 ms**.
+  The two slow launches were the first after the install, while Android was still compiling the
+  new APK. Against P3-67's single 1,583 ms that is about 0.1–0.2 s, which one earlier measurement
+  cannot separate from noise. Nothing to fix.
 
 **Not yet checked on the device:** a calibration under P3-83's 10 valid repetitions.
 

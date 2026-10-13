@@ -765,8 +765,8 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
   redone); the P3-46 build with Room v3.
 - **The build installed on the phone is P3-83's** (SHA-256 `9a43a351…f140`, from commit `1597322`),
   installed 2026-10-14 after a verified backup (P3-84); the previous APK is kept at
-  `local/backup-2026-10-14/previous-app.apk`. Its cold launch measured 5.4 s against P3-67's 1.6 s,
-  cause not investigated (P3-84). P3-76's angle arc and rep flash were rendered on the phone by a
+  `local/backup-2026-10-14/previous-app.apk`. Its cold launch settles at about 1.7 s once Android
+  has compiled it; the 5–8 s seen straight after installing were that compilation (P3-84). P3-76's angle arc and rep flash were rendered on the phone by a
   test, but have not been seen with a person in front of the camera.
 - **Built and unit-tested only, never seen on a device:** everything in P3-48 to P3-51 (the new UI,
   calendar, freezes, records, goal, achievements, reminders and notifications, rest timer, cues and
