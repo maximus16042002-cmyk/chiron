@@ -15,7 +15,7 @@ class CalibrationGuideTest {
     @Test
     fun repetition_instructions_quote_the_policy_and_the_required_view() {
         val text = CalibrationGuide.instructions(ExerciseLibrary.squat)
-        for (part in listOf("usual", "whole body", "side-on", "5", "8", "valid")) {
+        for (part in listOf("usual", "whole body", "side-on", "10", "15", "valid")) {
             assertTrue(text.contains(part), "'$part' missing: $text")
         }
     }

@@ -47,7 +47,7 @@ class CalibrationTest {
     }
 
     private fun calibrate(profile: com.kinesis.core.analysis.profile.RepetitionExercise, reps: List<RepRecord>) =
-        Calibration.fromRepetitions(profile, reps, createdAtEpochMs = 1_000.0, sourceSessionId = "s1")
+        Calibration.fromRepetitions(profile, reps, createdAtEpochMs = 1_000.0, sourceSessionId = "s1", policy = CalibrationFixtures.SMALL_SAMPLE_POLICY)
 
     private fun eightSquats() = (0 until 8).map { paired(it + 1, 100.0 + it, 90.0 + it) }
 
@@ -260,7 +260,7 @@ class CalibrationTest {
     fun the_baseline_records_its_estimator_and_where_it_came_from() {
         val baseline = repetitionBaseline(calibrate(squat, eightSquats()))
         assertEquals("squat", baseline.calibrationId)
-        assertEquals(CalibrationPolicy.PROVISIONAL.version, baseline.estimatorVersion)
+        assertEquals(CalibrationFixtures.SMALL_SAMPLE_POLICY.version, baseline.estimatorVersion)
         assertEquals(1_000.0, baseline.createdAtEpochMs)
         assertEquals("s1", baseline.sourceSessionId)
     }
@@ -311,7 +311,8 @@ class CalibrationTest {
 
     @Test
     fun a_repetition_set_and_a_hold_set_each_go_to_their_own_calibrator() {
-        val squatSet = RepetitionSetRecord("squat", 0.0, eightSquats())
+        // Through the shipped policy, which needs ten.
+        val squatSet = RepetitionSetRecord("squat", 0.0, (0 until 10).map { paired(it + 1, 100.0 + it, 90.0 + it) })
         assertIs<RepetitionBaseline>(
             assertIs<CalibrationOutcome.Calibrated>(Calibration.fromSet(squat, squatSet, 0.0, null)).baseline,
         )
@@ -367,13 +368,47 @@ class CalibrationTest {
 
     // --- The provisional numbers --------------------------------------------------------
 
-    /** DECISIONS.md P3-22 gives the reason for each. Changing one is a new decision. */
+    /**
+     * DECISIONS.md P3-22 gave the first numbers; P3-83 moved the repetitions to the owner's 10 to 15,
+     * nearer what the convergence study found a range-of-motion baseline needs (P3-30 S4: about 12
+     * to 20). Changing one is a new decision.
+     */
     @Test
-    fun the_provisional_policy_is_five_to_eight_repetitions_and_ten_seconds() {
+    fun the_provisional_policy_is_ten_to_fifteen_repetitions_and_ten_seconds() {
         val policy = CalibrationPolicy.PROVISIONAL
-        assertEquals(5, policy.minValidRepsPerSide)
-        assertEquals(8, policy.maxValidRepsPerSide)
+        assertEquals(10, policy.minValidRepsPerSide)
+        assertEquals(15, policy.maxValidRepsPerSide)
         assertEquals(10_000.0, policy.minHoldMs)
-        assertEquals("p6-1", policy.version)
+        assertEquals("p6-2", policy.version)
+    }
+
+    /** The shipped policy, not the small one the other tests use: nine are too few, ten calibrate. */
+    @Test
+    fun ten_valid_repetitions_a_side_calibrate_and_nine_do_not() {
+        fun shipped(count: Int) = Calibration.fromRepetitions(
+            pairedKnee,
+            (1..count).map { paired(it, 100.0 + it, 90.0 + it) },
+            createdAtEpochMs = 1_000.0,
+            sourceSessionId = "s1",
+        )
+
+        val nine = assertIs<CalibrationOutcome.TooFewRepetitions>(shipped(9))
+        assertEquals(9, nine.validLeft)
+        assertEquals(10, nine.requiredPerSide)
+        assertTrue(nine.displayText.contains("10"), nine.displayText)
+
+        val ten = assertIs<CalibrationOutcome.Calibrated>(shipped(10), nine.displayText)
+        assertEquals("p6-2", ten.baseline.estimatorVersion)
+    }
+
+    /** Later repetitions, where fatigue sets in, stay out of the baseline - up to 15 are used. */
+    @Test
+    fun only_the_first_fifteen_valid_repetitions_on_a_side_are_used_by_the_shipped_policy() {
+        val reps = (1..20).map { paired(it, 100.0, 90.0) } + (21..25).map { paired(it, 40.0, 30.0) }
+        val baseline = repetitionBaseline(
+            Calibration.fromRepetitions(pairedKnee, reps, 1_000.0, "s1"),
+        )
+        assertEquals(RobustStatistic(100.0, 0.0, 15), baseline.rangeOfMotion.left)
+        assertEquals(RobustStatistic(90.0, 0.0, 15), baseline.rangeOfMotion.right)
     }
 }

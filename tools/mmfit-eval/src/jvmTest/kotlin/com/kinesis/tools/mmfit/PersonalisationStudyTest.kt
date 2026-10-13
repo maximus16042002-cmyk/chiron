@@ -31,7 +31,7 @@ class PersonalisationStudyTest {
     )
 
     private val baseline by lazy {
-        (Calibration.fromRepetitions(press, (1..8).map { rep(it, 80.0, 70.0) }, 0.0, null) as CalibrationOutcome.Calibrated)
+        (Calibration.fromRepetitions(press, (1..8).map { rep(it, 80.0, 70.0) }, 0.0, null, StudyPolicy.P3_22) as CalibrationOutcome.Calibrated)
             .baseline as RepetitionBaseline
     }
 

@@ -321,7 +321,7 @@ MM-Fit films them front-on and the profile is side-on.
 | `hold/` | `HoldAnalyser`, `HoldReading`: isometric holds, never through the repetition FSM. |
 | `live/` | `LiveRepetitionAnalysis`, `LiveHoldAnalysis`: the per-frame entry points the app calls. |
 | `profile/` | `ExerciseLibrary` (the 17 entries), `ArchetypeProfiles` (squat, curl, plank), `TierBProfiles`, `TierCProfiles`, `ExerciseVariant` (variants delegate to their parent), `ExerciseKinds` (`RepSignalSpec`, `RepetitionSemantics`, `AnalysedSides`). |
-| `calibration/` | P6: `Calibration` (`CalibrationKey`, with a revision `situp@trunk`), `CalibrationPolicy.PROVISIONAL` (5–8 valid repetitions per side, 10 s minimum hold, version `p6-1`), `RobustStatistics`, `PostRepAnalysis` (numbers beside the baseline), `CurveDistance`, `CalibrationGuide` (calibration instructions and the "Setting up" placement text), `BaselineJson`. |
+| `calibration/` | P6: `Calibration` (`CalibrationKey`, with a revision `situp@trunk`), `CalibrationPolicy.PROVISIONAL` (10–15 valid repetitions per side since P3-83, 10 s minimum hold, version `p6-2`; the studies pin the old 5–8 as `StudyPolicy.P3_22`), `RobustStatistics`, `PostRepAnalysis` (numbers beside the baseline), `CurveDistance`, `CalibrationGuide` (calibration instructions and the "Setting up" placement text), `BaselineJson`. |
 | `deviation/` | P8 Layer 1: `DeviationRules`, `DeviationPolicy`, `RepFeatures`, `References`, `AcsmTempoRule`, `PersonalStartZone` (push-up only). **Built and tested, not wired into the app.** |
 | `technique/` | P8 Layer 2: `TechniqueRules`, six cited rules. **Built, not wired.** |
 | `anomaly/` | P9 Layer 4: `IsolationForest`, `RobustDistance`, `PersonalAnomalyModel`, `AnomalyFeatures`, `SplitMix64`. **Built, does not ship.** |
@@ -840,7 +840,7 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 
 | # | Decision | Where it came from |
 |---|---|---|
-| 1 | **The calibration count.** 5–8 valid repetitions per side now; the convergence study says about 12–20 | P3-30 S4, P3-40, P3-42 |
+| 1 | ~~The calibration count~~ **Decided in P3-83:** 10–15 valid repetitions per side (the convergence study said about 12–20) | P3-30 S4, P3-40, P3-42, P3-83 |
 | 2 | **The push-up personal start zone:** adopt or not (the sit-up's was retired with the trunk driver) | P3-29, P3-30 |
 | 3 | ~~Squats side-on~~ **Decided P3-68: the near knee counts.** Originally: **Squats side-on:** count the near knee only (as the row does), use an angled camera, or accept squats as untested. The far knee is often untracked side-on, and a squat counts only when both knees complete | P3-23 "For the owner" item 1; still untouched (P3-29, P3-30) |
 | 4 | **A low frame rate:** a gate weighted by time, or a warning | P3-56 built a warning below 12 results a second (the Antigravity agent's choice, not the owner's); a gate is still open |

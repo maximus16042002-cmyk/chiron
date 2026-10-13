@@ -118,7 +118,7 @@ object EngineParity {
     // --- Calibration - DECISIONS.md P3-22 -----------------------------------------------
 
     /**
-     * A calibration squat set through the facade: nine squats of varying depth,
+     * A calibration squat set through the facade: twelve squats of varying depth,
      * one turned back early and one with a lagging knee. Then `computeBaseline`
      * over every record it produced, and `analyzeRep` over each record against
      * that baseline and once against none.
@@ -128,18 +128,18 @@ object EngineParity {
         run.stand(20)
         run.squatTo(128.0) // ABORTED: not used
         run.stand(12)
-        for ((i, bottom) in listOf(72.0, 68.0, 75.0, 70.0, 66.0, 73.0, 69.0, 71.0, 74.0).withIndex()) {
+        for ((i, bottom) in listOf(72.0, 68.0, 75.0, 70.0, 66.0, 73.0, 69.0, 71.0, 74.0, 67.0, 72.0, 70.0).withIndex()) {
             run.squatTo(bottom, rightLag = if (i == 4) 3 else 0)
             run.stand(12)
         }
         return run.calibrate()
     }
 
-    /** Alternating curls, six on each arm: a baseline per arm, from each arm's own repetitions. */
+    /** Alternating curls, ten on each arm (DECISIONS.md P3-83's minimum): a baseline per arm, from each arm's own repetitions. */
     fun curlCalibration(): List<String> {
         val run = Run("""{"id": "bicep_curl"}""", seed = 19)
         run.arms(160.0, 160.0, frames = 20)
-        for (i in 0 until 6) {
+        for (i in 0 until 10) {
             run.curl(left = true, top = 158.0, bottom = 50.0 + i)
             run.arms(160.0, 160.0, frames = 8)
             run.curl(left = false, top = 162.0, bottom = 56.0 - i)
@@ -169,7 +169,7 @@ object EngineParity {
 
     /**
      * Findings through the facade, so their levels, rule versions, sources and words
-     * are compared on every target. Eight ordinary squats calibrate; then a shallow
+     * are compared on every target. Twelve ordinary squats calibrate; then a shallow
      * one (Level 2: shallower than usual) and a quick one (Level 2: faster than usual;
      * Level 3: faster than ACSM's beginner tempo) are analysed against that baseline.
      * Then a curl set whose first curl is quick, analysed with no baseline: Level 3
@@ -178,7 +178,7 @@ object EngineParity {
     fun layerOneFindings(): List<String> {
         val squats = Run("""{"id": "squat"}""", seed = 31)
         squats.stand(20)
-        for (bottom in listOf(72.0, 68.0, 75.0, 70.0, 66.0, 73.0, 69.0, 71.0)) {
+        for (bottom in listOf(72.0, 68.0, 75.0, 70.0, 66.0, 73.0, 69.0, 71.0, 67.0, 72.0, 70.0, 68.0)) {
             squats.squatTo(bottom)
             squats.stand(12)
         }

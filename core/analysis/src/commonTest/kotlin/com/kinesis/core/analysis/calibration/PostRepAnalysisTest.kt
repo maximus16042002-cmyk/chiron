@@ -40,7 +40,7 @@ class PostRepAnalysisTest {
 
     private fun baseline(profile: RepetitionExercise, reps: List<com.kinesis.core.domain.rep.RepRecord>) =
         assertIs<RepetitionBaseline>(
-            assertIs<CalibrationOutcome.Calibrated>(Calibration.fromRepetitions(profile, reps, 1_000.0, "s")).baseline,
+            assertIs<CalibrationOutcome.Calibrated>(Calibration.fromRepetitions(profile, reps, 1_000.0, "s", CalibrationFixtures.SMALL_SAMPLE_POLICY)).baseline,
         )
 
     private val squatBaseline by lazy { baseline(squat, (0 until 8).map { paired(it + 1, 100.0 + it, 90.0 + it) }) }

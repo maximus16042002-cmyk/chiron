@@ -58,10 +58,10 @@ class CalibrationPolicy(
     companion object {
         /** The only policy in use. Provisional, as above. */
         val PROVISIONAL: CalibrationPolicy = CalibrationPolicy(
-            minValidRepsPerSide = 5,
-            maxValidRepsPerSide = 8,
+            minValidRepsPerSide = 10,
+            maxValidRepsPerSide = 15,
             minHoldMs = 10_000.0,
-            version = "p6-1",
+            version = "p6-2",
         )
     }
 }

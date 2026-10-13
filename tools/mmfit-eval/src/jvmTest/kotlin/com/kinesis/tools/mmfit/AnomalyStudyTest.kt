@@ -133,9 +133,9 @@ class AnomalyStudyTest {
     fun detector_two_on_f1_uses_layer_ones_own_z() {
         val history = (1..40).map { rep(it, 78.0 + (it * 7 % 9), 68.0 + (it * 5 % 7), 850.0 + (it * 13 % 11) * 10.0, 1_050.0 + (it * 3 % 5) * 20.0) }
         val policy = CalibrationPolicy(
-            minValidRepsPerSide = CalibrationPolicy.PROVISIONAL.minValidRepsPerSide,
+            minValidRepsPerSide = StudyPolicy.P3_22.minValidRepsPerSide,
             maxValidRepsPerSide = 40,
-            minHoldMs = CalibrationPolicy.PROVISIONAL.minHoldMs,
+            minHoldMs = StudyPolicy.P3_22.minHoldMs,
             version = "test",
         )
         val baseline = (Calibration.fromRepetitions(press, history, 0.0, null, policy) as CalibrationOutcome.Calibrated).baseline as RepetitionBaseline

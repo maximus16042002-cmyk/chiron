@@ -16,6 +16,20 @@ import kotlin.math.sin
  */
 internal object CalibrationFixtures {
 
+    /**
+     * The calibration policy as it was until DECISIONS.md P3-83 (5 to 8 repetitions a side), for the
+     * tests whose subject is not the policy - the JSON round trip, the deviation rules, the
+     * post-repetition comparison. They build a baseline from a handful of synthetic repetitions with
+     * hand-computed medians, and the numbers they assert would only move if those sets grew. The
+     * shipped policy has its own tests in `CalibrationTest`.
+     */
+    val SMALL_SAMPLE_POLICY: CalibrationPolicy = CalibrationPolicy(
+        minValidRepsPerSide = 5,
+        maxValidRepsPerSide = 8,
+        minHoldMs = 10_000.0,
+        version = "p6-1",
+    )
+
     const val POINTS = 64
     const val TOP_LEFT = 165.0
     const val TOP_RIGHT = 163.0

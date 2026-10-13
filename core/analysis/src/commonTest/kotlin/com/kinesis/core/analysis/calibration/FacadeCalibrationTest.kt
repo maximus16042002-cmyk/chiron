@@ -33,8 +33,10 @@ class FacadeCalibrationTest {
 
     private fun map(json: String): Map<*, *> = MiniJson.parse(json) as Map<*, *>
 
-    private val squats = (0 until 8).map { paired(it + 1, 100.0 + it, 90.0 + it) } +
-        paired(9, 30.0, 30.0, RepValidity.ABORTED)
+    // Fifteen valid repetitions, the shipped policy's most (P3-83): left 100..107 then 100..106, so the
+    // median is 103 and the quartiles 101.5 and 105; right is ten below. One aborted repetition after.
+    private val squats = (0 until 15).map { paired(it + 1, 100.0 + it % 8, 90.0 + it % 8) } +
+        paired(16, 30.0, 30.0, RepValidity.ABORTED)
 
     @Test
     fun the_facade_computes_the_baseline_the_core_computes() {
@@ -57,7 +59,7 @@ class FacadeCalibrationTest {
         val outcome = map(engine("squat").computeBaseline(json(squats.take(3))))
         assertEquals("tooFewRepetitions", outcome["outcome"])
         assertEquals(3.0, outcome["validLeft"])
-        assertEquals(5.0, outcome["requiredPerSide"])
+        assertEquals(10.0, outcome["requiredPerSide"])
         assertTrue((outcome["displayText"] as String).startsWith("No baseline yet."))
     }
 
@@ -71,9 +73,9 @@ class FacadeCalibrationTest {
         val comparison = result["comparison"] as Map<*, *>
         val left = comparison["rangeOfMotionLeft"] as Map<*, *>
         assertEquals(95.0, left["measured"])
-        assertEquals(103.5, left["baseline"])
+        assertEquals(103.0, left["baseline"])
         assertNull(comparison["timingSide"])
-        // P3-30: left 95 against its usual 103.5 is Layer 1's one finding here.
+        // P3-30: left 95 against its usual 103 is Layer 1's one finding here.
         val finding = (result["findings"] as List<*>).single() as Map<*, *>
         assertEquals("deviation", finding["kind"])
         assertEquals("L2_DEVIATION", finding["level"])
@@ -124,7 +126,7 @@ class FacadeCalibrationTest {
         assertFailsWith<IllegalArgumentException> { engine("squat").analyzeRep("[]", "null") }
         // A curl baseline cannot analyse a squat.
         val curlBaseline = extractBaseline(
-            engine("bicep_curl").computeBaseline(json((0 until 10).map { oneSided(it + 1, if (it % 2 == 0) Side.LEFT else Side.RIGHT, 100.0) })),
+            engine("bicep_curl").computeBaseline(json((0 until 20).map { oneSided(it + 1, if (it % 2 == 0) Side.LEFT else Side.RIGHT, 100.0) })),
         )
         assertFailsWith<IllegalArgumentException> { engine("squat").analyzeRep(EngineJson.rep(paired(1, 90.0, 90.0)), curlBaseline) }
     }

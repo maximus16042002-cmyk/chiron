@@ -220,7 +220,7 @@ internal class PersonalisationStudy(private val sets: List<StudySet>, private va
         val sessionRows = StringBuilder("subject,workout,exercise,calibrationSet,outcome,scoredReps\n")
         for ((key, group) in sessions()) {
             val first = group.first()
-            val outcome = Calibration.fromRepetitions(first.profile, first.reps, 0.0, null, com.kinesis.core.analysis.calibration.CalibrationPolicy.PROVISIONAL)
+            val outcome = Calibration.fromRepetitions(first.profile, first.reps, 0.0, null, StudyPolicy.P3_22)
             val baseline = (outcome as? CalibrationOutcome.Calibrated)?.baseline as? RepetitionBaseline
             var scoredCount = 0
             if (baseline != null) {
@@ -287,7 +287,7 @@ internal class PersonalisationStudy(private val sets: List<StudySet>, private va
         val bySession = sessions().filter { (key, group) -> group.first().subject in S5_SUBJECTS && key.second in S5_EXERCISES }
         for ((key, group) in bySession) {
             val first = group.first()
-            val outcome = Calibration.fromRepetitions(first.profile, first.reps, 0.0, null, com.kinesis.core.analysis.calibration.CalibrationPolicy.PROVISIONAL)
+            val outcome = Calibration.fromRepetitions(first.profile, first.reps, 0.0, null, StudyPolicy.P3_22)
             val baseline = (outcome as? CalibrationOutcome.Calibrated)?.baseline as? RepetitionBaseline ?: continue
             for ((otherKey, otherGroup) in bySession) {
                 if (otherKey.second != key.second || otherKey.first == key.first || otherGroup.first().subject != first.subject) continue
@@ -319,7 +319,7 @@ internal class PersonalisationStudy(private val sets: List<StudySet>, private va
         val calibrations = StringBuilder("subject,workout,exercise,calibrated,laterSets\n")
         for ((key, group) in sessions()) {
             val first = group.first()
-            val outcome = Calibration.fromRepetitions(first.profile, first.reps, 0.0, null, com.kinesis.core.analysis.calibration.CalibrationPolicy.PROVISIONAL)
+            val outcome = Calibration.fromRepetitions(first.profile, first.reps, 0.0, null, StudyPolicy.P3_22)
             calibrations.append("${first.subject},${first.workout},${key.second},${outcome is CalibrationOutcome.Calibrated},${group.size - 1}\n")
             val baseline = (outcome as? CalibrationOutcome.Calibrated)?.baseline as? RepetitionBaseline ?: continue
             for (set in group.drop(1)) for (rep in set.reps.sortedBy { it.repIndex }) {

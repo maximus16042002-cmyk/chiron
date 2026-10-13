@@ -13587,6 +13587,57 @@ states the push-up figure as it is.
 
 ---
 
+## P3-83 — Calibration asks for 10 to 15 repetitions a side
+
+*2026-10-13. The owner's decision on HANDOVER 8.2 item 1: "10-15 would be good for calibration".*
+
+**The change.** `CalibrationPolicy.PROVISIONAL` goes from 5–8 valid repetitions a side to
+**10–15**, version `p6-1` → **`p6-2`**. The hold stays 10 s. A side with fewer than 10 valid
+repetitions has no baseline; only the first 15 are used, so the end of a long set, where fatigue
+sets in, stays out.
+
+**Why these numbers, and what they are not.**
+- P3-30 S4 found 5–8 repetitions do not settle a range-of-motion baseline, and about 12–20 would.
+  10–15 moves most of the way there. **10 is below that study's lower end**; the owner chose it, and
+  nothing here measures it. P3-40's finding stands unchanged: a baseline from one session often
+  misdescribes the same person's other sessions, however many repetitions it uses.
+- Still provisional, as the class says.
+
+**What it touches.**
+- **Baselines already saved** (version `p6-1`, on the owner's phone) stay valid. The version is a
+  label; nothing reads it to accept or refuse a baseline.
+- **The calibration instructions** quote the policy, so they now say 10 and 15.
+- **P3-82's personal push-up start zone** comes from the push-up baseline. It now needs 10 valid
+  push-ups to exist, and is drawn from up to 15 rather than 8. P3-82's evaluation ran under 5–8 and
+  is not re-run here.
+- **The studies are pinned to the policy they were measured under.** `tools/mmfit-eval` gets
+  `StudyPolicy.P3_22` (5–8, `p6-1`). The personalisation, start-zone and anomaly studies passed
+  `CalibrationPolicy.PROVISIONAL`, which would have quietly re-measured every cited figure under the
+  new rule. A study of 10–15 would be its own protocol.
+
+**Tests.**
+- New: the policy is pinned at 10/15/`p6-2`; 9 valid repetitions are too few and 10 calibrate; only
+  the first 15 are used.
+- Tests whose subject is not the policy (the JSON round trip, the deviation rules, the post-rep
+  comparison, the start zone) build baselines from hand-computed handfuls of repetitions. They now
+  pass `CalibrationFixtures.SMALL_SAMPLE_POLICY` (the old 5–8) explicitly, so their asserted medians
+  are unchanged and the shipped default is tested on its own.
+- The facade test and the app's `CalibrationCoordinatorTest` can only use the default, so their
+  fixtures grew (15 and 10 repetitions).
+- **Parity reference regenerated on purpose.** Squat calibration 12 squats (11 valid), curl
+  calibration 10 a side, Layer 1's scenario 12 calibration squats. Every calibration scenario still
+  calibrates, and Layer 1's still produces its findings (2 lifting time, 1 lowering time, 2 range).
+- **Suite: 3,423 test executions, 0 failed** (`core/analysis` 681 JVM + 5 allocation, 670 JS, 670
+  debug, 670 release; `core/domain` 40 on each of four; `:app` 277 debug, 265 release;
+  `tools/mmfit-eval` 25).
+
+**On the phone:** a calibration now asks for at least 10 valid repetitions a side. Not yet seen
+there.
+
+**Next entry: P3-84.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

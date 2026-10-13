@@ -180,7 +180,7 @@ testing resumes.
    - a gate weighted by time, or a warning when results fall below about 10 a
      second (P3-33);
    - the six curl features in P3-30's Decision 3 rule (P3-32);
-   - the calibration count (5–8 now; S4 said about 12–20). Both S5 (P3-40) and P3-42's
+   - the calibration count (decided in P3-83: 10–15; S4 said about 12–20). Both S5 (P3-40) and P3-42's
      held-out failure point at it.
 
 **Done before P3-31:**

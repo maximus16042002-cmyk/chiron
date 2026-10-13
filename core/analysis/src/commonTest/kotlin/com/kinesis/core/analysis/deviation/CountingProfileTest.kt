@@ -1,5 +1,6 @@
 package com.kinesis.core.analysis.deviation
 
+import com.kinesis.core.analysis.calibration.CalibrationFixtures
 import com.kinesis.core.analysis.calibration.Calibration
 import com.kinesis.core.analysis.calibration.CalibrationFixtures.oneSided
 import com.kinesis.core.analysis.calibration.CalibrationOutcome
@@ -31,7 +32,7 @@ class CountingProfileTest {
     private fun calibratedWithTops(vararg tops: Double): RepetitionBaseline {
         val reps = tops.mapIndexed { i, top -> oneSided(i + 1, Side.RIGHT, 60.0, attributed = null, top = top) }
         return assertIs<RepetitionBaseline>(
-            assertIs<CalibrationOutcome.Calibrated>(Calibration.fromRepetitions(pushUp, reps, 0.0, null)).baseline,
+            assertIs<CalibrationOutcome.Calibrated>(Calibration.fromRepetitions(pushUp, reps, 0.0, null, CalibrationFixtures.SMALL_SAMPLE_POLICY)).baseline,
         )
     }
 

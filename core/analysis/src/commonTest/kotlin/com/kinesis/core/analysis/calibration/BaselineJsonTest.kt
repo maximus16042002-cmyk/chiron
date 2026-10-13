@@ -26,16 +26,16 @@ class BaselineJsonTest {
     private fun calibrated(outcome: CalibrationOutcome) = assertIs<CalibrationOutcome.Calibrated>(outcome).baseline
 
     private fun squatBaseline() = assertIs<RepetitionBaseline>(
-        calibrated(Calibration.fromRepetitions(ExerciseLibrary.squat, (0 until 8).map { paired(it + 1, 100.0 + it, 90.0 + it) }, 1_234.5, "session-1")),
+        calibrated(Calibration.fromRepetitions(ExerciseLibrary.squat, (0 until 8).map { paired(it + 1, 100.0 + it, 90.0 + it) }, 1_234.5, "session-1", CalibrationFixtures.SMALL_SAMPLE_POLICY)),
     )
 
     // The paired squat as it was until DECISIONS.md P3-68: the shipped squat no longer pairs.
     private fun pairedBaseline() = assertIs<RepetitionBaseline>(
-        calibrated(Calibration.fromRepetitions(PairedKneeFixture.instance, (0 until 8).map { paired(it + 1, 100.0 + it, 90.0 + it) }, 1_234.5, "session-1")),
+        calibrated(Calibration.fromRepetitions(PairedKneeFixture.instance, (0 until 8).map { paired(it + 1, 100.0 + it, 90.0 + it) }, 1_234.5, "session-1", CalibrationFixtures.SMALL_SAMPLE_POLICY)),
     )
 
     private fun rowBaseline() = assertIs<RepetitionBaseline>(
-        calibrated(Calibration.fromRepetitions(ExerciseLibrary.row, (1..6).map { oneSided(it, Side.RIGHT, 70.0 + it, attributed = null) }, 9.0, null)),
+        calibrated(Calibration.fromRepetitions(ExerciseLibrary.row, (1..6).map { oneSided(it, Side.RIGHT, 70.0 + it, attributed = null) }, 9.0, null, CalibrationFixtures.SMALL_SAMPLE_POLICY)),
     )
 
     private fun curlBaseline() = assertIs<RepetitionBaseline>(
@@ -45,6 +45,7 @@ class BaselineJsonTest {
                 (0 until 10).map { i -> oneSided(i + 1, if (i % 2 == 0) Side.LEFT else Side.RIGHT, 100.0 + i) },
                 2.0,
                 "c",
+                CalibrationFixtures.SMALL_SAMPLE_POLICY,
             ),
         ),
     )
@@ -130,7 +131,7 @@ class BaselineJsonTest {
     fun a_curve_with_a_gap_keeps_its_gap() {
         val reps = (0 until 5).map { paired(it + 1, 100.0, 90.0) }
         for (rep in reps) rep.resampledLeft[7] = Double.NaN
-        val original = assertIs<RepetitionBaseline>(calibrated(Calibration.fromRepetitions(ExerciseLibrary.squat, reps, 0.0, null)))
+        val original = assertIs<RepetitionBaseline>(calibrated(Calibration.fromRepetitions(ExerciseLibrary.squat, reps, 0.0, null, CalibrationFixtures.SMALL_SAMPLE_POLICY)))
         assertTrue(original.meanCurveLeft[7].isNaN())
         val back = assertIs<RepetitionBaseline>(BaselineJson.read(BaselineJson.write(original)))
         assertContentEquals(original.meanCurveRight, back.meanCurveRight)

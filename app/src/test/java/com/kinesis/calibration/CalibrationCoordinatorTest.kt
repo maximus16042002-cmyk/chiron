@@ -60,13 +60,14 @@ class CalibrationCoordinatorTest {
     private fun squatSession(id: String, startedAt: Double, reps: List<RepRecord>) =
         SessionRecord(id, startedAt, 60, listOf(RepetitionSetRecord("squat", startedAt + 500.0, reps)))
 
-    private fun eightSquats(rom: Double) = (1..8).map { squat(it, rom) }
+    // Ten, the fewest a baseline needs (DECISIONS.md P3-83).
+    private fun tenSquats(rom: Double) = (1..10).map { squat(it, rom) }
 
     @Test
     fun a_calibration_set_with_enough_valid_repetitions_saves_its_baseline() = runBlocking {
         val baselines = FakeBaselines()
         val outcome = CalibrationCoordinator(baselines)
-            .finishCalibration("uid-a", ExerciseLibrary.squat, squatSession("s1", 1_000.0, eightSquats(100.0)))
+            .finishCalibration("uid-a", ExerciseLibrary.squat, squatSession("s1", 1_000.0, tenSquats(100.0)))
         assertTrue(outcome is CalibrationOutcome.Calibrated)
         val saved = baselines.stored["uid-a" to "squat"] as RepetitionBaseline
         assertEquals(100.0, saved.rangeOfMotion.left.median, 0.0)
@@ -80,8 +81,8 @@ class CalibrationCoordinatorTest {
     fun recalibrating_replaces_the_baseline() = runBlocking {
         val baselines = FakeBaselines()
         val coordinator = CalibrationCoordinator(baselines)
-        coordinator.finishCalibration("uid-a", ExerciseLibrary.squat, squatSession("s1", 0.0, eightSquats(100.0)))
-        coordinator.finishCalibration("uid-a", ExerciseLibrary.squat, squatSession("s2", 9.0, eightSquats(80.0)))
+        coordinator.finishCalibration("uid-a", ExerciseLibrary.squat, squatSession("s1", 0.0, tenSquats(100.0)))
+        coordinator.finishCalibration("uid-a", ExerciseLibrary.squat, squatSession("s2", 9.0, tenSquats(80.0)))
         assertEquals(1, baselines.stored.size)
         assertEquals("s2", baselines.stored.getValue("uid-a" to "squat").sourceSessionId)
     }
@@ -91,9 +92,9 @@ class CalibrationCoordinatorTest {
     fun a_set_that_does_not_calibrate_leaves_the_earlier_baseline_alone() = runBlocking {
         val baselines = FakeBaselines()
         val coordinator = CalibrationCoordinator(baselines)
-        coordinator.finishCalibration("uid-a", ExerciseLibrary.squat, squatSession("s1", 0.0, eightSquats(100.0)))
+        coordinator.finishCalibration("uid-a", ExerciseLibrary.squat, squatSession("s1", 0.0, tenSquats(100.0)))
         val before = baselines.stored.getValue("uid-a" to "squat")
-        val weak = (1..3).map { squat(it, 90.0) } + (4..8).map { squat(it, 40.0, RepValidity.ABORTED) }
+        val weak = (1..3).map { squat(it, 90.0) } + (4..10).map { squat(it, 40.0, RepValidity.ABORTED) }
         val outcome = coordinator.finishCalibration("uid-a", ExerciseLibrary.squat, squatSession("s2", 5.0, weak))
         assertTrue(outcome is CalibrationOutcome.TooFewRepetitions)
         assertTrue(outcome.displayText.startsWith("No baseline yet."))
@@ -105,7 +106,7 @@ class CalibrationCoordinatorTest {
     fun baselines_are_per_user() = runBlocking {
         val baselines = FakeBaselines()
         val coordinator = CalibrationCoordinator(baselines)
-        coordinator.finishCalibration("uid-a", ExerciseLibrary.squat, squatSession("s1", 0.0, eightSquats(100.0)))
+        coordinator.finishCalibration("uid-a", ExerciseLibrary.squat, squatSession("s1", 0.0, tenSquats(100.0)))
         assertNotNull(coordinator.baselineFor("uid-a", ExerciseLibrary.squat))
         assertNull(coordinator.baselineFor("uid-b", ExerciseLibrary.squat))
     }
@@ -115,7 +116,7 @@ class CalibrationCoordinatorTest {
     fun a_variant_reads_its_parents_baseline() = runBlocking {
         val baselines = FakeBaselines()
         val coordinator = CalibrationCoordinator(baselines)
-        coordinator.finishCalibration("uid-a", ExerciseLibrary.squat, squatSession("s1", 0.0, eightSquats(100.0)))
+        coordinator.finishCalibration("uid-a", ExerciseLibrary.squat, squatSession("s1", 0.0, tenSquats(100.0)))
         assertEquals("squat", coordinator.baselineFor("uid-a", ExerciseLibrary.gobletSquat)?.calibrationId)
     }
 
@@ -146,7 +147,7 @@ class CalibrationCoordinatorTest {
     fun the_set_summary_puts_every_record_beside_the_baseline_or_beside_nothing() = runBlocking {
         val baselines = FakeBaselines()
         val coordinator = CalibrationCoordinator(baselines)
-        coordinator.finishCalibration("uid-a", ExerciseLibrary.squat, squatSession("s1", 0.0, eightSquats(100.0)))
+        coordinator.finishCalibration("uid-a", ExerciseLibrary.squat, squatSession("s1", 0.0, tenSquats(100.0)))
         val set = squatSession("s2", 0.0, listOf(squat(1, 92.0), squat(2, 50.0, RepValidity.ABORTED)))
         val baseline = coordinator.baselineFor("uid-a", ExerciseLibrary.squat)
 

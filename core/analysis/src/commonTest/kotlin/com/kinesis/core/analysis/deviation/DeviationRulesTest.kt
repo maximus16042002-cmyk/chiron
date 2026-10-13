@@ -1,5 +1,6 @@
 package com.kinesis.core.analysis.deviation
 
+import com.kinesis.core.analysis.calibration.CalibrationFixtures
 import com.kinesis.core.analysis.PairedKneeFixture
 import com.kinesis.core.analysis.calibration.Calibration
 import com.kinesis.core.analysis.calibration.CalibrationFixtures.TOP_LEFT
@@ -36,7 +37,7 @@ class DeviationRulesTest {
     private val curl = ExerciseLibrary.bicepCurl
 
     private fun baseline(profile: RepetitionExercise, reps: List<RepRecord>) = assertIs<RepetitionBaseline>(
-        assertIs<CalibrationOutcome.Calibrated>(Calibration.fromRepetitions(profile, reps, 0.0, null)).baseline,
+        assertIs<CalibrationOutcome.Calibrated>(Calibration.fromRepetitions(profile, reps, 0.0, null, CalibrationFixtures.SMALL_SAMPLE_POLICY)).baseline,
     )
 
     /**

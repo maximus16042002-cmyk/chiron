@@ -39,7 +39,7 @@ fun main(args: Array<String>) {
         // Arm B's calibration set: the first push-up set, counted with the floor zone.
         val first = labels.first()
         val calibrationSet = Harness.runSet(data, first, shifts.getValue(first.setIndex).value, Protocol.PRIMARY, PersonalStartZone.forCalibration(base)) as SetResult.Evaluated
-        val outcome = Calibration.fromRepetitions(base, calibrationSet.set.reps, 0.0, null)
+        val outcome = Calibration.fromRepetitions(base, calibrationSet.set.reps, 0.0, null, StudyPolicy.P3_22)
         val baseline = (outcome as? CalibrationOutcome.Calibrated)?.baseline as? RepetitionBaseline
         if (baseline != null) calibrated++
         val zone = PersonalStartZone.of(base, baseline)

@@ -372,9 +372,9 @@ internal class AnomalyStudy(private val sets: List<StudySet>, private val out: F
             historyOf(h)
         }
         val policy = CalibrationPolicy(
-            minValidRepsPerSide = CalibrationPolicy.PROVISIONAL.minValidRepsPerSide,
+            minValidRepsPerSide = StudyPolicy.P3_22.minValidRepsPerSide,
             maxValidRepsPerSide = AnomalyWindows.HISTORY,
-            minHoldMs = CalibrationPolicy.PROVISIONAL.minHoldMs,
+            minHoldMs = StudyPolicy.P3_22.minHoldMs,
             version = "p3-37-a2-history",
         )
         val outcome = Calibration.fromRepetitions(h.profile, reps.sortedBy { it.repIndex }, 0.0, null, policy)
