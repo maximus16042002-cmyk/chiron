@@ -13638,6 +13638,38 @@ there.
 
 ---
 
+## P3-84 — The P3-83 build installed on the owner's phone
+
+*2026-10-14. The owner asked for it ("phone is also connected do whatever you want").*
+
+**Before the install** (HANDOVER 9.4):
+- **The installed build** was last updated 2026-10-12 02:11 (SHA-256 `71d3b242…98ee`). Pulled to
+  `local/backup-2026-10-14/previous-app.apk` for a rollback.
+- **Backup** to `local/backup-2026-10-14/` (not in git): every database and preference file, with
+  `SHA256SUMS.txt`. The copies of `kinesis.db` and its write-ahead log match the phone's own
+  SHA-256s.
+  - `kinesis.db` (the owner's account): integrity "ok", Room version 3, **111 sessions, 111 sets,
+    474 repetitions, 6 holds, 1 baseline** (the bicep curl, `p6-1`).
+  - Two per-account databases (P3-60, P3-81): integrity "ok", version 3, empty.
+
+**The install:**
+- `adb install -r` of the debug APK built from `1597322`: SHA-256 `9a43a351…f140`, targetSdk 35.
+- Result: "Success". Nothing was uninstalled.
+
+**Checked afterwards:**
+- The process runs and the crash buffer is empty.
+- A read-only copy of the live `kinesis.db`: integrity "ok", version 3, the same 111 / 111 / 474 /
+  6 / 1.
+- **Cold launch: 8,139 ms just after the install, 5,431 ms on a second cold start.** P3-67 measured
+  1,583 ms on 2026-10-07. Not investigated: the cause is not known, and could be the builds since
+  P3-67 or the phone's state at the time. **Open.**
+
+**Not yet checked on the device:** a calibration under P3-83's 10 valid repetitions.
+
+**Next entry: P3-85.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

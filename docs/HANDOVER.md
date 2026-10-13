@@ -763,9 +763,11 @@ The engineering is far ahead of the report: the remaining work is mostly evaluat
 - **On the phone, at some point:** the live screen on both cameras; counting curls (side-on); saving
   sets; sync to the account; Health Connect; the export; one calibration (front-on curls, to be
   redone); the P3-46 build with Room v3.
-- **The build installed on the phone is P3-76's** (SHA-256 `2fe9129c…2afb3c`), installed 2026-10-11
-  after a verified backup (P3-77). Its angle arc and rep flash were rendered on the phone by a test,
-  but have not been seen with a person in front of the camera.
+- **The build installed on the phone is P3-83's** (SHA-256 `9a43a351…f140`, from commit `1597322`),
+  installed 2026-10-14 after a verified backup (P3-84); the previous APK is kept at
+  `local/backup-2026-10-14/previous-app.apk`. Its cold launch measured 5.4 s against P3-67's 1.6 s,
+  cause not investigated (P3-84). P3-76's angle arc and rep flash were rendered on the phone by a
+  test, but have not been seen with a person in front of the camera.
 - **Built and unit-tested only, never seen on a device:** everything in P3-48 to P3-51 (the new UI,
   calendar, freezes, records, goal, achievements, reminders and notifications, rest timer, cues and
   speech, the workout generator and guided mode, charts), the sit-up trunk driver's live
