@@ -1,7 +1,7 @@
 # Kinesis — Project Status
 
-*Snapshot updated 2026-10-05, from the repository as it stands at the end of
-DECISIONS.md P3-59. This file summarises. It is not an authority: where it
+*Snapshot updated 2026-10-14, from the repository as it stands at the end of
+DECISIONS.md P3-84. This file summarises. It is not an authority: where it
 disagrees with `docs/DECISIONS.md`, DECISIONS.md is right and this file is out
 of date. **`docs/HANDOVER.md` is the complete, self-contained account of the project** -
 read it first if you are new.*
@@ -10,7 +10,21 @@ read it first if you are new.*
 
 ## Next session starts here
 
-**Latest, P3-67 to P3-73 (2026-10-07 to 10-11): demonstrated, and finished in code.**
+**Latest, P3-74 to P3-84 (2026-10-11 to 10-14):**
+- **On screen:** the cited technique rules as "Form notes" (P3-74); the live angle and a flash on
+  each counted repetition (P3-76); a verdict for every attempt (P3-78); "Forgot password?" (P3-80).
+- **P3-81:** the owner's history moved to their new account, at their request.
+- **P3-82:** push-ups count from the user's own start position once calibrated. Passed on MM-Fit's
+  development (52 → 155 of 297) and held-out people (84 → 107 of 141), no set over its label.
+- **P3-83:** calibration asks for 10–15 valid repetitions a side (was 5–8), the owner's decision.
+  The MM-Fit studies keep the policy they were measured under.
+- **P3-84:** that build installed on the phone after a verified backup; 111 sessions intact. Cold
+  launch about 1.7 s once Android has compiled the new APK.
+- **Suite:** 3,423 test executions, 0 failed.
+- **Next, on the phone:** a plank and sit-ups (neither has worked there yet), and recalibrating the
+  curl side-on. The verifier's fate is the owner's decision.
+
+**Before that, P3-67 to P3-73 (2026-10-07 to 10-11): demonstrated, and finished in code.**
 - **Shown to the owner's teacher (P3-67).** It was fixed on the spot and then properly (P3-68):
   - the view gate advises instead of blocking;
   - the squat counts its near knee.

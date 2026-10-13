@@ -13585,6 +13585,18 @@ its push-up sets in label order:
 and calibrates push-ups with the floor zone. If either fails, the app is unchanged, and the report
 states the push-up figure as it is.
 
+### Result (2026-10-12, commit `58a2ce8`)
+
+*Recorded here on 2026-10-14 from that commit's message, which was its only record.*
+
+- **Development subjects: passed.** Arm A 52 → arm B 155 of 297, no set counted above its label.
+- **Held-out subjects: passed.** 84 → 107 of 141, no set counted above its label.
+- Mutation checks: 4 of 4 caught; the 27 earlier mutations re-verified on the current code.
+- **So the app uses the personal zone** for push-ups once the user has calibrated them, and
+  calibrates push-ups with the floor zone.
+- Measured under the 5–8 calibration policy. P3-83 later moved the app to 10–15; the study pins
+  5–8 (`StudyPolicy.P3_22`) and was not re-run.
+
 ---
 
 ## P3-83 — Calibration asks for 10 to 15 repetitions a side

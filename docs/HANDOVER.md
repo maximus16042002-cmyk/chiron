@@ -744,19 +744,18 @@ duration), trained on MM-Fit's development people with one person left out at a 
 | P0 Architecture, P1 Shared core, P2 Kinematics, P3 Profiles & rep engine | ✅ Done |
 | P4 Device reality check | 🟡 Partly done: tests 1–2 of `P4_TOMORROW.md` run (P3-31); tests 3–12 owed |
 | P5 Records & export | ✅ Done |
-| P6 Calibration | 🟡 Built. The only on-device baseline is from front-on curls; recalibration owed |
+| P6 Calibration | ✅ Done: 10–15 valid repetitions a side (P3-83). The only on-device baseline is still from front-on curls; recalibrating is a phone task |
 | P7 MM-Fit pipeline | ✅ Done |
-| P8 Form engine | 🟡 Layer 1 built but not shipping; Layer 2's six rules built, not wired |
+| P8 Form engine | 🟡 Layer 2's cited rules shown as "Form notes" (Tier A, P3-74); Layer 1 built but not shown (failed its held-out test, P3-42) |
 | P9 ML | 🟡 Layer 4 studied, negative result, not shipping. Verifier (Part B) built and evaluated on the development people (P3-52): mean accuracy over the four folds 74.2% (56.6–89.2%). Per exercise, some left-out people had 33–100% of their correct repetitions warned (P3-59), so it is **not shipped**; its held-out run is unspent |
-| P10 Visualisation & Android app | 🟡 Complete in code: P3-48 to P3-51, plus lifting speed, the setup gate, the frame-rate warning and the skeleton restyle (P3-54 to P3-56 as corrected by P3-59); **unseen on the phone** |
+| P10 Visualisation & Android app | ✅ Done and on the phone, in use since 2026-10-07 (P3-68); P3-83's build installed 2026-10-14 (P3-84) |
 | P11 Windows PWA | ✂️ Cut |
-| P12 Evaluation & write-up | 🟡 Rep-count and personalisation studies partly done; the rest owed |
+| P12 Evaluation & write-up | ✅ Written (the owner, 2026-10-13); the device studies still rest on one person and one phone |
 
-**A rough figure:** 6 done + 6 × ½ = about **75%** of the build plan. Phases are not equal in size.
-P3-52 to P3-58 raised this to 79%, 88% and ~90% in different documents by counting P9 and P10 as
-done; P3-59 returned it to 75%: the verifier is evaluated but not shipped, and nothing since P3-47
-has been seen on the phone.
-The engineering is far ahead of the report: the remaining work is mostly evaluation and the write-up.
+**A rough figure (2026-10-14):** 9 done + 3 × ½ (P4, P8, P9) = 10.5 of 12, about **88%** of the
+build plan. Phases are not equal in size. The same count gave 75% at P3-59; since then P6, P10 and
+P12 are done. What is left is on the phone: P4's recorded tests, the plank and sit-up, and the
+curl's side-on calibration; and the owner's decision on the verifier.
 
 ### 7.2 Proven on the phone vs built only
 

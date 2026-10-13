@@ -9,22 +9,39 @@ diagnostic system.
 
 ## Status
 
-**P0-P3, P5 and P7 are complete; the app is feature-complete in code; the device check (P4) and the
-research core (P8-P9 remainder, P12) are not - about 75% of the plan.** As of 2026-10-05
-(DECISIONS.md P3-59):
+As of 2026-10-14 (`docs/DECISIONS.md` P3-84): **about 88% of the build plan**, counted in
+`docs/HANDOVER.md` section 7.1. What is left is on the phone. Phases are those of
+`docs/ZERO_DATASET_BUILD_PLAN.md`.
 
-- The shared analysis engine, all 15 profiles and 2 variants, calibration, the export, the MM-Fit
-  evaluation pipeline, and the Android app (five pages, calendar and streak freezes, records, weekly
-  goal, reminders, workout generator and guided workouts, per-exercise trend charts, lifting speed
-  per side, a camera-view setup gate) are built and tested on JVM, JS and Android: **3,069 test
-  executions, none failing**.
-- The exercise verifier (P9 Part B) is built and evaluated on the development people, and does not
-  ship: on new people it warned on too many correct repetitions (P3-59).
-- On the owner's phone (Nothing Phone 2a, Android 16) the live screen, curl counting, set saving,
-  account sync, Health Connect and the export have run. **Everything built since P3-47 - the whole
-  new look and every feature after it - has not yet been seen on a device.**
-- Still owed: the rest of the phone session (`docs/P4_TOMORROW.md`), then deciding whether to show
-  the cited technique rules, and the evaluation write-up (P12).
+| Phase | State |
+|---|---|
+| P0 Architecture, P1 Shared core, P2 Kinematics, P3 Profiles and rep engine | Done |
+| P4 Device reality check | Partly: the app is in regular use on the owner's phone; `docs/P4_TOMORROW.md`'s recorded tests 3-12 are owed |
+| P5 Records and export, P6 Calibration, P7 MM-Fit pipeline | Done. Calibration asks for 10-15 valid repetitions a side (P3-83) |
+| P8 Form engine | Layer 2's cited technique rules are shown as "Form notes" (Tier A, P3-74). Layer 1's personal-deviation messages are built and not shown: they failed their held-out test (P3-42) |
+| P9 ML | Built, studied, not shipped: personal anomaly detection (a negative result, P3-38) and the exercise verifier (too many warnings on correct repetitions for some people, P3-59) |
+| P10 Android app | Done and on the phone |
+| P11 Windows PWA | Cut (P0-2) |
+| P12 Evaluation and report | Written |
+
+- **Tests:** the shared engine, all 15 profiles and 2 variants, and the Android app are tested on
+  JVM, JS and Android: **3,423 test executions, none failing** (P3-83).
+- **On the owner's phone** (Nothing Phone 2a, Android 16), in use since the demonstration of
+  2026-10-07 (P3-68). The build from P3-83 was installed on 2026-10-14 after a verified backup
+  (P3-84). Since P3-67 the app has gained:
+  - the squat and the lunge counting from the knee nearer the camera (P3-68, P3-71);
+  - a camera-view check that advises rather than blocks (P3-68; `CLAUDE.md` section 10 records the
+    relaxation);
+  - sets and holds that survive the app being killed (P3-66, P3-72);
+  - the live angle and a flash on each counted repetition (P3-76);
+  - a verdict for every attempt, counted or the reason it was not (P3-78);
+  - push-ups counted from the user's own start position once calibrated, which passed on MM-Fit's
+    development and held-out people with no set counted above its label (P3-82).
+- **Still owed:**
+  - the plank, which was not credited in the owner's sessions (P3-70), and the sit-up, which counted
+    nothing in its one attempt there, both to be checked on the phone;
+  - recalibrating the bicep curl side-on: the phone's only baseline is from front-on curls;
+  - `docs/P4_TOMORROW.md`'s recorded tests 3-12.
 - P3-52 to P3-58 were written by another AI agent; P3-59 reviewed and corrected them. Its log is
   `docs/antigravity_works.md`.
 
