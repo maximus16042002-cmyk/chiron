@@ -333,6 +333,8 @@ fun SetSummaryScreen(
     restSeconds: Int,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
+    /** The experimental exercise check's line (P3-85), or null when it is off or has nothing to say. */
+    verifierNote: String? = null,
 ) {
     val set = session.sets.single()
     val reps = (set as? RepetitionSetRecord)?.reps.orEmpty().associateBy { it.repIndex }
@@ -402,6 +404,17 @@ fun SetSummaryScreen(
         }
         if (formNotes.isNotEmpty()) {
             item { FormNotesCard(formNotes) }
+        }
+        if (verifierNote != null) {
+            item {
+                KCard {
+                    Text("Exercise check (experimental)", style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Spacer(Modifier.height(4.dp))
+                    Text(verifierNote, style = MaterialTheme.typography.bodyMedium, color = Ink)
+                    Spacer(Modifier.height(4.dp))
+                    Note("A model's guess, and it can be wrong. It does not change your count.")
+                }
+            }
         }
         items(shownResults) { result ->
             when (result) {

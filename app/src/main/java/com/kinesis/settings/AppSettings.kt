@@ -68,6 +68,11 @@ class AppSettings(context: Context) {
         get() = preferences.getBoolean(SPOKEN_COUNTS, false)
         set(value) = preferences.edit { putBoolean(SPOKEN_COUNTS, value) }
 
+    /** The experimental exercise check on the set summary, off by default - DECISIONS.md P3-85. */
+    var experimentalVerifier: Boolean
+        get() = preferences.getBoolean(EXPERIMENTAL_VERIFIER, false)
+        set(value) = preferences.edit { putBoolean(EXPERIMENTAL_VERIFIER, value) }
+
     /** The last workout started, as its request and seed (P3-50), or `null`. */
     var lastWorkout: PlanRequest?
         get() = preferences.getString(LAST_WORKOUT, null)?.let(PlanRequestCodec::decode)
@@ -90,6 +95,7 @@ class AppSettings(context: Context) {
         const val REP_TONE = "rep_tone"
         const val REP_VIBRATE = "rep_vibrate"
         const val SPOKEN_COUNTS = "spoken_counts"
+        const val EXPERIMENTAL_VERIFIER = "experimental_verifier"
         const val INTRODUCED = "introduced"
         const val WEEKLY_GOAL_DAYS = "weekly_goal_days"
         const val REMINDERS_ON = "reminders_on"

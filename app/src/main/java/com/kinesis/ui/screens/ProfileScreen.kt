@@ -114,6 +114,9 @@ fun ProfileScreen(
     /** The weekly goal in active days, 1 to 7 - P3-49. */
     goalDays: Int,
     onGoalDays: (Int) -> Unit,
+    /** The experimental exercise check, off by default - DECISIONS.md P3-85. */
+    experimentalVerifier: Boolean = false,
+    onExperimentalVerifier: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -156,6 +159,19 @@ fun ProfileScreen(
 
         item { SectionLabel("During a set") }
         item { DuringSetCard(duringSet, onDuringSet) }
+
+        item { SectionLabel("Experimental") }
+        item {
+            KCard {
+                ToggleRow("Exercise check after each set", experimentalVerifier, onExperimentalVerifier)
+                Note(
+                    "After a set, a model trained on the MM-Fit dataset says whether your counted repetitions " +
+                        "looked like the exercise you chose. Push-ups, sit-ups, lateral raises and shoulder " +
+                        "presses only. It can be wrong: in testing it flagged most correct repetitions for some " +
+                        "people. It never changes the exercise or the count.",
+                )
+            }
+        }
 
         item { SectionLabel("Reminders") }
         item { ReminderCard(reminder, onToggleReminders, onReminderMinute, onReminderWeekdays) }

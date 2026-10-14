@@ -13686,6 +13686,44 @@ there.
 
 ---
 
+## P3-85 — The exercise verifier as an experimental check, off by default
+
+*2026-10-14. The owner asked: "add the exercise verifier as experimental".*
+
+**What it is.** A Profile switch, **"Exercise check after each set", off by default**, under a new
+"Experimental" heading. When it is on, the set summary shows one line, for example "3 of 4
+counted repetitions looked like a different exercise, most often Squat", under "Exercise check
+(experimental)" with "A model's guess, and it can be wrong. It does not change your count."
+
+**How.**
+- Core: `VerifierSetCheck.summarise(exerciseId, reps)` runs `ExerciseVerifier` once per finished
+  set, on counted (VALID) repetitions only. Never per frame (CLAUDE.md §6, §13). It only reports:
+  the exercise, the count and every record are untouched.
+- Only P3-59's four covered exercises are judged (push-up, sit-up, lateral raise, shoulder press).
+  Any other says what the check covers and judges nothing.
+- It needs each repetition's movement context, which lives in memory only. So it speaks on the
+  summary straight after a live set, and says nothing for repetitions read back from storage.
+- `MovementContextTracker`, which P3-59 left running for nothing, now feeds this.
+
+**What it is not.** Not validated. P3-59's per-person false warnings (up to 75–100% of one
+person's correct repetitions on some exercises) still stand, and the held-out run was never done.
+That is why it is experimental and off by default. The report may say it is implemented in the app
+as an optional, off-by-default experimental feature, and must say why.
+
+**Tests.** `VerifierSetCheckTest`, 6 tests, on a synthetic model so every verdict is certain:
+matching, mismatching with the most frequent class named, uncounted attempts ignored, no movement
+data gives no line, uncovered exercises are not judged, and the shipped model runs. The source
+guard lists `VerifierSetCheck.kt` as post-rep. **Suite: 3,447 test executions, 0 failed.**
+
+**Installed** on the owner's phone after a verified backup (`local/backup-2026-10-14b/`): debug APK
+SHA-256 `1d28af53…`, "Success", no crash, `kinesis.db` 111 / 111 / 474 / 6 / 1 before and after.
+The setting is absent from the preferences, so off. **Not yet seen on the device:** the switch and
+the card.
+
+**Next entry: P3-86.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

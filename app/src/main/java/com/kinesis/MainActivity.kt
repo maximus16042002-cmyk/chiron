@@ -43,6 +43,7 @@ import com.kinesis.calibration.CalibrationCoordinator
 import com.kinesis.core.analysis.deviation.PersonalStartZone
 import com.kinesis.core.analysis.calibration.CalibrationGuide
 import com.kinesis.core.analysis.calibration.CalibrationKey
+import com.kinesis.core.analysis.verifier.VerifierSetCheck
 import com.kinesis.core.analysis.calibration.CalibrationOutcome
 import com.kinesis.core.analysis.history.Achievement
 import com.kinesis.core.analysis.history.Achievements
@@ -64,6 +65,7 @@ import com.kinesis.core.analysis.workout.WorkoutPlan
 import com.kinesis.core.domain.calibration.CalibrationBaseline
 import com.kinesis.core.domain.profile.ExerciseProfile
 import com.kinesis.core.domain.session.LocalDay
+import com.kinesis.core.domain.session.RepetitionSetRecord
 import com.kinesis.core.domain.session.SessionRecord
 import com.kinesis.export.ExportFiles
 import com.kinesis.health.ActivityContextPermissions
@@ -398,6 +400,7 @@ private fun KinesisApp(
     var achievements: List<Achievement> by remember { mutableStateOf(emptyList()) }
     val settings = LocalContext.current.let { remember(it) { AppSettings(it) } }
     var goalDays by remember { mutableIntStateOf(settings.weeklyGoalDays) }
+    var experimentalVerifier by remember { mutableStateOf(settings.experimentalVerifier) }
     var duringSet by remember {
         mutableStateOf(DuringSetState(settings.repTone, settings.repVibrate, settings.spokenCounts, settings.restSeconds))
     }
@@ -642,6 +645,11 @@ private fun KinesisApp(
                             settings.weeklyGoalDays = it
                             goalDays = settings.weeklyGoalDays
                             reloadToken++
+                        },
+                        experimentalVerifier = experimentalVerifier,
+                        onExperimentalVerifier = {
+                            settings.experimentalVerifier = it
+                            experimentalVerifier = it
                         },
                     )
                 }
@@ -907,6 +915,16 @@ private fun TrainFlow(
                 Records.newIn(history.filter { it.sessionId != current.session.sessionId }, current.session)
                     .map { it.displayText }
             }
+            // The experimental exercise check, only when turned on in Profile - DECISIONS.md P3-85.
+            val appSettings = LocalContext.current.let { remember(it) { AppSettings(it) } }
+            val verifierNote = remember(current) {
+                if (!appSettings.experimentalVerifier) {
+                    null
+                } else {
+                    (current.session.sets.singleOrNull() as? RepetitionSetRecord)
+                        ?.let { VerifierSetCheck.summarise(it.exerciseId, it.reps) }
+                }
+            }
             SetSummaryScreen(
                 profile = current.profile,
                 session = current.session,
@@ -915,6 +933,7 @@ private fun TrainFlow(
                 records = records,
                 restSeconds = restSeconds,
                 onDone = { onNavigate(Destination.Exercise(current.profile)) },
+                verifierNote = verifierNote,
             )
         }
     }

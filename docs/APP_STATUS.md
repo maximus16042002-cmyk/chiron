@@ -53,13 +53,12 @@ Source: code search of `app/src/main`, 2026-10-14.
 
 | Component | State | Why |
 |---|---|---|
-| Exercise verifier (P9) | Built and measured; **no app code uses it** | Warned on too many correct repetitions for some people (P3-59). Shipping it is the owner's decision |
+| Exercise verifier (P9) | **In the app as an experimental check, off by default** (P3-85): a Profile switch, then one line on the set summary | Warned on too many correct repetitions for some people (P3-59), so it is opt-in and labelled as a guess |
 | Personal anomaly detection (Layer 4) | Built and studied; **no app code uses it** | Negative result: flagged 7–30% of normal repetitions (P3-38) |
 | Layer 1 "unusual for you" messages | Built; **not shown** | Failed its held-out test (P3-42) |
 
-**A leftover to decide on:** `MovementContextTracker` was added for the verifier. It still runs on every
-frame inside the rep counter and attaches numbers to each repetition. Nothing reads them. It could be
-removed; that changes the rep counter, so it has not been touched without a yes.
+`MovementContextTracker`, which P3-59 left running for nothing, now feeds the experimental check
+(P3-85).
 
 ## 4. What the owner's phone has recorded, by exercise
 
@@ -98,10 +97,9 @@ right (CLAUDE.md §22).
 1. **Prove the remaining exercises on the phone**, with the real count written down for each: the
    seven with no record, and the plank, wall sit and sit-up, which have never worked there.
 2. **Recalibrate the curl side-on.** The only saved baseline is from front-on curls.
-3. **Decide the verifier:** leave it off and report it as built and measured, or add it as an
-   experimental setting that is off by default (proposed, not built).
-4. **Decide on the leftover collector** in section 3.
-5. Small: the Android 16 `targetSdk` change (needs the phone), and the empty `:desktop` module.
+3. **Look at the experimental exercise check once:** turn it on in Profile, do a push-up set, and
+   check its card on the summary (P3-85; not yet seen on the device).
+4. Small: the Android 16 `targetSdk` change (needs the phone), and the empty `:desktop` module.
 
 ## 6. Build on the phone now
 

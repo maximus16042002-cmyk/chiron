@@ -447,10 +447,13 @@ class SharedCoreSourceGuardTest {
             // P3-59: lifting speed reads a finished set's records, once per set summary.
             "LiftingSpeed.kt",
             // P3-52: the verifier evaluates a finished repetition's context; its model is constants.
-            // Built and wired to nothing (P3-59), and held to the scan all the same.
+            // Unwired by P3-59; P3-85 runs it once per finished set, as an experimental check that is
+            // off by default.
             "ExerciseVerifier.kt",
             "ExerciseVerifierModel.kt",
             "PretrainedExerciseVerifierModel.kt",
+            // P3-85: one line for the set summary, from the finished set's counted repetitions.
+            "VerifierSetCheck.kt",
         )
 
         /**
