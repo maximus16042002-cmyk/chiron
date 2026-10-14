@@ -121,3 +121,10 @@ as that licence asks. The notices cover:
   rendering and storage — no decisions about movement.
 - **Measure, then claim.** No number appears anywhere until it has been measured
   on this system.
+
+
+## Download App
+
+[![Download APK](https://img.shields.io/badge/Download-APK-brightgreen?style=for-the-badge&logo=android)](https://github.com/maximus16042002-cmyk/chiron/releases/download/v1.0-beta/app-debug.apk)
+
+Or visit the [Latest Release](https://github.com/maximus16042002-cmyk/chiron/releases/latest) page.
