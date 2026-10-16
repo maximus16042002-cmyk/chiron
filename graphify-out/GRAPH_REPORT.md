@@ -1,101 +1,101 @@
 # Graph Report - kinesis  (2026-10-17)
 
 ## Corpus Check
-- 402 files · ~474,787 words
+- 402 files · ~475,623 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 21 file(s) not represented in the graph (top: .xml 7, (none) 5, .properties 4)
 
 ## Summary
-- 5643 nodes · 16845 edges · 267 communities (171 shown, 96 thin omitted)
+- 5649 nodes · 16874 edges · 263 communities (162 shown, 101 thin omitted)
 - Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 1826 edges (avg confidence: 0.92)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ee5e7789`
+- Built from commit: `d3319c4d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- WorkoutScreens.kt
+- LiveScreenClippingTest.kt
 - KinesisEngine
-- assertequals
-- Screens.kt
-- Evaluation and Results (draft chapter for the final report)
-- .of
 - Landmarks
+- LiveCameraLayout
+- Evaluation and Results (draft chapter for the final report)
+- RobustStatistic
+- PhaseBProbe
 - Chiron: Camera-Based Personal Movement Analysis for Exercise
 - SkeletonPaletteLegibilityTest
-- TrendCharts.kt
+- Screens.kt
 - PlanRequest
 - .summarise
 - SessionMappingTest
 - .reps
-- LandmarkId
+- NormalizedLandmarks
 - SessionExport
-- RepVerdicts
+- RepVerdictsTest
 - EngineParityTest
-- CalibrationCoordinator
-- ProgressScreens.kt
-- .summarise
+- SetDrafts
+- ProgressScreen
+- StreakRuleTest
 - TemporalPipelineTest
 - HoldAnalyser
 - RealTimeSignalPipeline
 - MovementContext
 - CalibrationScreens.kt
-- RequiredLandmarks
+- CameraView
 - MovementPhase
 - personalisation_study.py
 - CalibrationTest
 - SessionDocument
-- SessionRecorder
+- HealthConnectPermissionFlow.kt
 - Spike.kt
 - .instructions
-- TechniqueFault
+- 3.2 The shared engine (`core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/`)
 - TierBProfileTest
-- SetupGate
+- ActivityContextAbsenceTest
 - .lunge
 - LiveCamera
 - .paired
 - RepFsmDeterminismTest
-- ActivityContextResult
+- What "tested" means here
 - FakeHealthConnectClient.kt
 - ReminderWork.kt
 - SessionSync.kt
 - BaselineJson
 - SessionMerge
 - .of
-- read_bin
+- csv
 - AspectCorrectionRegressionTest
-- FramePipelineBenchmark
+- FramePipelineBenchmark.kt
+- DayActivity
 - LocalDay
 - IsolationForest
-- .fit
 - TierAProfileTest
 - Kinesis — Zero-Dataset Build Plan
-- RepetitionBaseline
+- .fromRepetitions
 - .writeA2
 - ExerciseProfile
 - FrameUpright.kt
 - LiveSetSaverTest
 - Kinesis — Final Architecture Decision
-- .next
+- .summarise
 - LiveHost.kt
-- SetDraftsTest
+- .evaluate
 - Kinesis — Decision Record
 - DoubleRingBuffer
 - RobustDistance
-- SetDrafts
-- RepEntity
+- LiveHoldAnalysis
+- LiveAnalysisBridgeTest
 - VariantInheritanceTest
 - ThirdPartyNoticesTest
 - .oneSided
 - anomaly_study.py
 - AnomalyStudyTest
 - LiveOrientationTest
-- PersonalisationStudy
+- .load
 - numpy
 - PoseLandmarkerSource
-- Why: P3-13's exclusion removed code MediaPipe links against unconditionally
+- MediaPipeTelemetryStandInTest.kt
 - Reader
 - .summarise
 - .rep
@@ -107,43 +107,43 @@
 - LiveRotationOnDeviceTest.kt
 - Run
 - RepFeedback
-- EngineParityGoldenWriter
-- KinesisDatabase
+- EngineParity
+- HealthConnectActivityContextSource.kt
 - SyntheticRgbaFrame
 - .parse
-- Kinesis — Project Status
+- PhaseBStatsTest
 - ClaimLevelEnforcementTest
 - BilateralSignal
 - json
 - BilateralRepTracker
 - RepRecord
-- CameraFacing
+- PhaseBStats
 - GapToleranceTest
 - Kinesis — Engineering Rules for AI Coding Sessions
 - Part 2 — Repetition exercises
 - SkeletonSmoothing
-- What Was Built
+- PersonalisationStudy
 - .read
 - P3-7 — Tier B lower-body and trunk profiles, and an unactioned instruction about the lunge
 - PersonalStartZone
-- csv
+- os
 - KinematicsTest
 - .format
 - PoseLandmarkerOnDeviceTest.kt
 - .of
 - .countingProfile
 - .fromPacked
-- FormTracker
+- FormTrackerTest
 - ZoneJumpTest
 - sys
-- PoseAdapter
-- MediaPipeTelemetryStandInTest.kt
+- CameraFacingParityTest
+- P3-22 — P6: calibration and personal baselines
 - 12. The nine answers
 - LiveHoldEngineTest
-- Execution Log
+- LiveHoldBridge
 - AngleGauge.kt
-- ViewAndSideContractTest
-- SessionRepository
+- Streaks
+- LiveSetSaver
 - P3-59 — A review of P3-52 to P3-58, and the corrections
 - HandOverTimes
 - ExerciseTrendScreen
@@ -151,7 +151,7 @@
 - LocalStore
 - SplitMix64
 - AngleGaugeTest
-- SkeletonOverlayRenderTest.kt
+- .put
 - MainActivity.kt
 - CurlSettingsTest
 - LiveRepetitionEngine
@@ -159,25 +159,25 @@
 - LiveRepetitionAnalysis
 - IconGuardTest
 - .rep
-- P3-28 — The fast-start fix, near-side push-ups and sit-ups, and the lateral raise's start zone
+- ProfileScreen
 - Kinesis — Complete Handover
 - SubjectMapTest
 - RepRecordIntegrityTest
-- Execution Log
-- Kinesis — Feature Plan: from analysis engine to complete fitness app
+- .of
+- FrameRateMonitor
 - P3-30 — MM-Fit's subjects and a split by subject, P8 Layer 1, and the personalisation study on the development subjects
 - 6. Results so far (what has been measured)
-- CameraViewEstimator
+- owner_db_export.py
 - MediaPipeTelemetryStandInTest
-- FormMeasures
+- Side
 - 3. Correction 2 — the KMP decision, judged specifically
-- EmaSmoother
-- test_anomaly_study.py
+- FilterAblationTest
+- .cutRange
 - Dump
 - dump.js
 - sweep.js
-- RepetitionVariant
-- P3-18 — The first Phase B finding: the live screen crashed on MediaPipe's telemetry
+- .of
+- .newIn
 - 11. MVP, Full, Stretch — revised
 - parity.js
 - Parity
@@ -186,41 +186,41 @@
 - Kinesis — Core Contracts
 - switchablePoseModels
 - P3-37 — P9 step 3: the anomaly study on the development subjects
-- Antigravity Works — Activity & Decision Log
-- VisibilityPolicy
+- TechniqueFault
+- Test
 - LiveRepetitionEngineTest
 - .intensity
 - main
-- Built (2026-10-02)
+- AppNameGuardTest
 - MirroringRegressionTest
-- 3.2 The shared engine (`core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/`)
+- RepetitionExercise
 - BaselineJsonTest
 - ApkPackagingGuardTest
-- P3-44 — Layer 2 step B: a per-repetition form summary in the record, and three more rules
-- Execution Log
+- Built (2026-10-02)
+- BodyPoint
 - PerFrameAllocationTest
 - P3-82 — Push-ups: the personal start zone measured end to end, with a protocol fixed first
-- FrameValidity
-- SessionMapping
+- LiveUiState
+- .a_form_round_trips_with_its_unmeasured_side_still_unmeasured
 - 8. Final data model and performance contract
-- UtcOffsetTest.kt
+- .toMap
 - P3-27 — P7: MM-Fit through the phone's own pipeline, and what it found
 - 13. Gates and verdict
-- P3-16 — Frame shape corrected, holds wired, sets saved
+- What "tested" means here
 - MM-Fit evaluation (P7)
-- P3-20 — The repository gets a remote: private GitHub, `google-services.json` included
+- HealthConnectOnDeviceTest.kt
 - P3-24 — A solo check on the phone: curls, face-on squats, amber, and a pause test that did not happen
-- P3-53 — Wiring the Exercise Verifier and Tier A Technique Rules to the Post-Rep Path and Set Summary
-- .evaluate
-- HealthConnectActivityContextSource.kt
+- ExportFilesTest.kt
+- SetupGate
+- HealthConnectExceptionTest.kt
 - PostRepAnalysisTest
-- RealTimeBudgetTest.kt
+- RealTimeBudgetTest
 - 🟡 Partly done
 - Test
 - VerifierParityGolden
 - train_verifier.py
 - P3-43 — P8 Layer 2: the cited technique rules, their sources, and what can be measured now
-- P3-55 — Camera-View Setup Assistant and Framing Gate
+- AuthState
 - .read
 - .arms
 - KinesisPaletteContrastTest
@@ -229,53 +229,48 @@
 - P3-32 — The fixes after P3-31: the curl filmed side-on, and a movement that crosses the whole zone at once
 - MmFit.kt
 - 9.4 Final Verification & Quality Certification
+- .furthestFromTarget
 - KinesisDatabaseMigrationTest
 - P3-2 — Rep engine design decisions no document specifies
 - 10. Evaluation, and what is research vs engineering
-- SubjectsTest
+- P3-23 — The guide demo, diagnosed from the phone, and what it changed
+- Chiron (Kinesis) — App Status
+- .of
 - Chiron
-- .estimate
-- PoseModelAsset
-- AuthState
+- P3-31 — P4 on the phone, 2026-09-29: sideways curls count, facing the phone they count what isn't there
+- P3-33 — The smoother weighted per unit of time, and what the throttled rate's losses are made of
+- 5. Correction 4 — the exercise list, re-cut
+- CameraFacing
+- AuthFailure
 - P3-48 — FEATURE_PLAN Batch 1: the new look, five pages, and onboarding
 - 7. Final ML strategy
+- ReleaseHasNoPhaseBProbeTest.kt
+- 2. Correction 1 — the shared fault detectors
 - LiveHoldEngine
+- 9. Final phase and module structure
 - P3-41 — Decision 3: Layer 1's threshold and floors, by the rule fixed in P3-30
 - .json
 - FirebaseSync.kt
 - OfflineManifestGuardTest
 - 2. The rules (non-negotiable)
 - TrunkInclinationTest
-- P3-29 — Owner decisions on P3-28: the near-side rule, the lateral raise's start zone, and a proposal for the push-up and sit-up
-- AuthFailure
-- P3-5 — Repetition semantics for push-up, lateral raise and glute bridge
-- ExportProviderGuardTest.kt
-- Kinesis — Repository Structure
 - Adopted, as frozen
-- JointAngleId
-- 6. Final scope and claim enforcement
+- DrivingSignal
 - P3-1 — Bicep curl repetition semantics, closed against the label file
-- P3-54 — Phase P10 Fatigue Engine: Velocity Loss and Set Termination Tracking
-- P3-39 — Decision 5 traced: the curl's one-result lifts, a fix tried, and why the engine stays
 - P3-40 — S5: one session's baseline against the same person's other sessions
 - PoseModelSwitchTest.kt
 - P3-14 — Firebase Auth and Firestore sync: the first architecture change
 - MovementContextTracker
-- Consequences
-- Kind
 - RepFsm
-- TransportRuntime
-- AuthResult
-- Test
-- TemporalPipelineTest.kt
+- FirebaseAuthGateway
+- EmaSmoother
 - ReleaseHasNoModelSwitchTest.kt
 - 1. Verdict: YELLOW
-- 11. Firebase, security and the repository
 
 ## God Nodes (most connected - your core abstractions)
-1. `RepRecord` - 236 edges
+1. `RepRecord` - 238 edges
 2. `Landmarks` - 186 edges
-3. `BilateralSignal` - 162 edges
+3. `BilateralSignal` - 163 edges
 4. `SessionRecord` - 155 edges
 5. `LandmarkId` - 131 edges
 6. `Side` - 112 edges
@@ -285,129 +280,125 @@
 10. `VisibilityPolicy` - 82 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `A mistake of mine, and its repair` --references--> `KinesisDatabaseMigrationTest`  [INFERRED]
+  docs/DECISIONS.md → app/src/androidTest/java/com/kinesis/storage/KinesisDatabaseMigrationTest.kt
+- `What happened after the changes` --references--> `KinesisDatabaseMigrationTest`  [INFERRED]
+  docs/DECISIONS.md → app/src/androidTest/java/com/kinesis/storage/KinesisDatabaseMigrationTest.kt
 - `What is NOT verified` --references--> `KinesisDatabaseMigrationTest`  [INFERRED]
   docs/DECISIONS.md → app/src/androidTest/java/com/kinesis/storage/KinesisDatabaseMigrationTest.kt
-- `Overlay alignment, true by construction` --references--> `MainActivity`  [INFERRED]
-  docs/DECISIONS.md → app/src/main/java/com/kinesis/MainActivity.kt
-- `What was built` --references--> `Absent`  [INFERRED]
+- `What is NOT verified — Phase B` --references--> `PoseModelAsset`  [INFERRED]
   docs/DECISIONS.md → app/src/main/java/com/kinesis/camera/PoseModelAsset.kt
-- `Disclosure` --references--> `SyncDisclosure()`  [INFERRED]
-  docs/DECISIONS.md → app/src/main/java/com/kinesis/ui/screens/AuthScreen.kt
-- `Objective` --references--> `SetSummaryScreen()`  [INFERRED]
-  docs/antigravity_works.md → app/src/main/java/com/kinesis/ui/screens/CalibrationScreens.kt
+- `Finding 2: the library needs minSdk 26 and Kinesis supports 24` --references--> `HealthConnectActivityContextSource`  [INFERRED]
+  docs/DECISIONS.md → app/src/main/java/com/kinesis/health/HealthConnectActivityContextSource.kt
 
 ## Import Cycles
 - None detected.
 
-## Communities (267 total, 96 thin omitted)
+## Communities (263 total, 101 thin omitted)
 
-### Community 0 - "WorkoutScreens.kt"
-Cohesion: 0.16
-Nodes (31): GuidedFlow(), CalibrationIntroScreen(), CalibrationResultScreen(), ExerciseScreen(), FilterChip(), KCard(), Note(), NumberBlock() (+23 more)
+### Community 0 - "LiveScreenClippingTest.kt"
+Cohesion: 0.08
+Nodes (5): LiveScreenClippingTest, HealthPermissionsRationaleActivity, MainActivity, KinesisTheme(), Overlay alignment, true by construction
 
 ### Community 1 - "KinesisEngine"
-Cohesion: 0.15
-Nodes (9): KinesisEngine, 5. The JS facade, 8. The JVM/JavaScript parity suite, and what it found on its first run, Decisions for the owner, P3-22 — P6: calibration and personal baselines, The facade, The flow in the app, The provisional numbers, and why each (+1 more)
+Cohesion: 0.18
+Nodes (6): EngineJson, KinesisEngine, 5. The JS facade, 8. The JVM/JavaScript parity suite, and what it found on its first run, Is it ready for P7?, The design
 
-### Community 2 - "assertequals"
-Cohesion: 0.06
-Nodes (9): ArchetypeProfiles, ExerciseLibrary, ExerciseVariant, TemporalConfig, RepValidity, ABORTED, INCOMPLETE, INSUFFICIENT_DATA (+1 more)
+### Community 2 - "Landmarks"
+Cohesion: 0.03
+Nodes (67): OverlayState, ATTENTION, DEGRADED, TRACKED, UNTRACKED, Geometry, HoldReading, JointAngleId (+59 more)
 
-### Community 3 - "Screens.kt"
-Cohesion: 0.09
-Nodes (24): LiveScreenClippingTest, ThirdPartyNotice, ThirdPartyNotices, MainActivity, SectionLabel(), describe(), ExerciseRow(), ExerciseSelectionScreen() (+16 more)
+### Community 3 - "LiveCameraLayout"
+Cohesion: 0.22
+Nodes (14): ThirdPartyNotice, ThirdPartyNotices, fieldName(), HealthContextPanel(), LicencesScreen(), LicenceText(), LiveAnalysisScreen(), LiveCameraLayout() (+6 more)
 
 ### Community 4 - "Evaluation and Results (draft chapter for the final report)"
 Cohesion: 0.06
 Nodes (33): 10. What remains, 1.1 Principles, 1.2 The six studies, 1. How we evaluated Chiron, 2.1 MM-Fit, 2.2 Who is who: a split by person, 2.3 Camera view, 2. The data (+25 more)
 
-### Community 5 - ".of"
-Cohesion: 0.16
-Nodes (4): PopulationReference, scaledDeviation(), RepFeaturesAndReferencesTest, Addendum — Owner decisions before the held-out run
-
-### Community 6 - "Landmarks"
-Cohesion: 0.09
-Nodes (10): PhaseBProbe, JointAngles, SetupEnforcement, BLOCK_SCORING, REPORT_ONLY, Landmark, Landmarks, Not ported, and why (+2 more)
+### Community 5 - "RobustStatistic"
+Cohesion: 0.08
+Nodes (10): PersonalReference, PopulationReference, scaledDeviation(), RepFeaturesAndReferencesTest, BetweenSideMedians, Paired, RobustStatistic, sameDouble() (+2 more)
 
 ### Community 7 - "Chiron: Camera-Based Personal Movement Analysis for Exercise"
 Cohesion: 0.06
 Nodes (31): 10. Use of AI Tools, 1.1 What Chiron is, 1.2 Why we chose this project, 1.3 What Chiron is not, 1. Introduction, 2.1 Objectives, 2.2 Research question, 2.3 Scope and constraints (+23 more)
 
-### Community 9 - "TrendCharts.kt"
-Cohesion: 0.05
-Nodes (14): HealthPermissionsRationaleActivity, postureLabel(), OnboardingScreen(), DuringSetCard(), DuringSetState, ProfileScreen(), Stepper(), ToggleRow() (+6 more)
+### Community 8 - "SkeletonPaletteLegibilityTest"
+Cohesion: 0.13
+Nodes (9): SkeletonPaletteLegibilityTest, Defects found by reading the pipeline, After these batches, Batch 1 — New look and multiple pages (foundation), Batch 3 — Streak calendar with fire, reminders and side features, Batch 4 — Workout generator and guided workouts, Kinesis — Feature Plan: from analysis engine to complete fitness app, Owner decisions this plan is built on (+1 more)
 
 ### Community 10 - "PlanRequest"
 Cohesion: 0.07
-Nodes (32): PlanRequestCodec, PlanRequestCodecTest, BodyArea, CORE, LOWER, UPPER, CatalogueEntry, Equipment (+24 more)
+Nodes (37): PlanRequestCodec, PlanItemCard(), targetText(), PlanRequestCodecTest, BodyArea, CORE, LOWER, UPPER (+29 more)
 
 ### Community 11 - ".summarise"
+Cohesion: 0.06
+Nodes (35): SessionRecorder, SyncingSessionRepository, SyncQueue, FakeRepository, SessionRecorderTest, ExplodingQueue, FakeRepository, RecordingQueue (+27 more)
+
+### Community 12 - "SessionMappingTest"
 Cohesion: 0.07
-Nodes (12): ActivityContextAbsenceTest, FakeRepository, SessionRecorderTest, ExerciseAccumulator, NewRecord, RecordKind, LARGEST_RANGE_OF_MOTION, LONGEST_HOLD (+4 more)
+Nodes (13): KinesisDatabase, SessionDao, BilateralColumns, HoldEntity, RepEntity, SessionEntity, SessionWithSets, SetEntity (+5 more)
 
 ### Community 13 - ".reps"
-Cohesion: 0.06
-Nodes (26): NiceAxis, NiceAxisTest, Trends, WeeklyGoal, AchievementsTest, HistoryFixtures, RecordsTest, RemindersTest (+18 more)
+Cohesion: 0.12
+Nodes (17): HistoryFixtures, RecordsTest, RemindersTest, 0. Before the first set, 10. Dim light — 10 curls *(P3-19 item 8)*, 11. The heat run — 10 minutes, last, 12. Squats — optional *(P3-19 item 19)*, 1. Curls on the new build — right arm, then left arm *(owed to P3-29)* (+9 more)
 
-### Community 14 - "LandmarkId"
-Cohesion: 0.04
-Nodes (42): LandmarkId, LEFT_ANKLE, LEFT_EAR, LEFT_ELBOW, LEFT_EYE, LEFT_EYE_INNER, LEFT_EYE_OUTER, LEFT_FOOT_INDEX (+34 more)
+### Community 14 - "NormalizedLandmarks"
+Cohesion: 0.29
+Nodes (3): NormalizedLandmarks, NormalizedPoint, Normalisation has no real-time consumer
 
 ### Community 15 - "SessionExport"
-Cohesion: 0.19
-Nodes (5): ExportCsv, SessionExport, Table, SessionExportGoldenWriter, 10. The export format
+Cohesion: 0.13
+Nodes (14): ExportFiles, ExportCsv, SessionExport, Table, JsonNumber, SessionExportGolden, 10. The export format, Decisions the owner should know about (+6 more)
 
-### Community 16 - "RepVerdicts"
-Cohesion: 0.05
-Nodes (27): verdictColor(), verdictLabel(), LiveAnalysisBridgeTest, VerdictLabelTest, JudgedRep, RepOutcome, COUNTED, DUPLICATE (+19 more)
+### Community 16 - "RepVerdictsTest"
+Cohesion: 0.06
+Nodes (25): verdictColor(), verdictLabel(), VerdictLabelTest, JudgedRep, RepOutcome, COUNTED, DUPLICATE, FORM_FAULT (+17 more)
 
-### Community 18 - "CalibrationCoordinator"
-Cohesion: 0.07
-Nodes (20): CalibrationCoordinator, BaselineDao, BaselineEntity, BaselineMapping, BaselineRepository, RoomBaselineRepository, CalibrationCoordinatorTest, FakeBaselines (+12 more)
+### Community 18 - "SetDrafts"
+Cohesion: 0.06
+Nodes (16): CalibrationCoordinator, BaselineDao, BaselineEntity, BaselineMapping, BaselineRepository, RoomBaselineRepository, AlreadySaved, DraftRecovery (+8 more)
 
-### Community 19 - "ProgressScreens.kt"
+### Community 19 - "ProgressScreen"
 Cohesion: 0.16
-Nodes (22): AchievementLine(), Cell(), degrees(), HoldLine(), holdValidityLabel(), nameOf(), plural(), ProgressScreen() (+14 more)
+Nodes (19): AchievementLine(), Cell(), degrees(), HoldLine(), holdValidityLabel(), nameOf(), plural(), ProgressScreen() (+11 more)
 
-### Community 20 - ".summarise"
-Cohesion: 0.10
-Nodes (17): Ledger, StreakFreezeRuleTest, StreakRuleTest, Already done, On the live and summary screens, Order and checks, P3-49 — FEATURE_PLAN Batch 3: streak freezes, the calendar, records, goals, reminders, Personal records and the weekly goal (core) (+9 more)
+### Community 20 - "StreakRuleTest"
+Cohesion: 0.21
+Nodes (4): StreakRuleTest, Result — steps 2 and 3 built, The day model, and why there is no date library, The four decisions P3-3 left open
 
 ### Community 22 - "HoldAnalyser"
-Cohesion: 0.05
-Nodes (16): HoldAnalyser, HoldReading, LiveHoldAnalysis, HoldReadingTest, HoldSnapshotTest, HoldSteadinessTest, IsometricSeparationTest, LiveHoldAnalysisTest (+8 more)
+Cohesion: 0.08
+Nodes (10): HoldAnalyser, HoldSnapshotTest, HoldSteadinessTest, IsometricSeparationTest, TierCProfileTest, P3-9 — Wall Sit and Side Plank, and why neither threshold carries a citation, The library is complete: 17 / 15 / 2, confirmed, The side plank's one-sidedness: no `AnalysedSides` for holds (+2 more)
 
 ### Community 23 - "RealTimeSignalPipeline"
-Cohesion: 0.15
-Nodes (9): RealTimeSignalPipeline, SmoothingRateTest, 1. At 6 results a second, the loss was the smoother (P3-32 decision 4), 2. The change: the smoother weighted per unit of time (P3-32 decision 2), 3. What it does on MM-Fit's development workouts, 4. At 6 a second, the loss is now the gate, Checks, Decisions for the owner (+1 more)
+Cohesion: 0.23
+Nodes (3): RealTimeSignalPipeline, SmoothingRateTest, 2. The change: the smoother weighted per unit of time (P3-32 decision 2)
 
 ### Community 24 - "MovementContext"
 Cohesion: 0.07
-Nodes (14): ExerciseVerifier, Match, Mismatch, Unverified, VerificationResult, VerifierPrediction, ExerciseVerifierModel, PretrainedExerciseVerifierModel (+6 more)
+Nodes (15): ExerciseVerifier, Match, Mismatch, Unverified, VerificationResult, VerifierPrediction, ExerciseVerifierModel, PretrainedExerciseVerifierModel (+7 more)
 
 ### Community 25 - "CalibrationScreens.kt"
-Cohesion: 0.22
-Nodes (25): BaselineCard(), BaselinesPanel(), Beside(), day(), degrees(), formatLoss(), formatVelocity(), formatVelocityWithLoss() (+17 more)
+Cohesion: 0.10
+Nodes (55): StreakHeader(), BaselineCard(), BaselinesPanel(), Beside(), CalibrationIntroScreen(), CalibrationResultScreen(), day(), degrees() (+47 more)
 
-### Community 26 - "RequiredLandmarks"
-Cohesion: 0.21
-Nodes (27): BicepCurlProfile, SquatProfile, AnalysedSides, BOTH, NEAR_SIDE_ONLY, Contraction, CONCENTRIC, ECCENTRIC (+19 more)
+### Community 26 - "CameraView"
+Cohesion: 0.15
+Nodes (39): BicepCurlProfile, SquatProfile, AnalysedSides, BOTH, NEAR_SIDE_ONLY, Contraction, CONCENTRIC, ECCENTRIC (+31 more)
 
 ### Community 27 - "MovementPhase"
-Cohesion: 0.12
-Nodes (9): BilateralPhase, BilateralPhaseTest, MovementPhase, ASCENDING, BOTTOM, DESCENDING, IDLE, TOP (+1 more)
+Cohesion: 0.16
+Nodes (8): BilateralPhaseTest, MovementPhase, ASCENDING, BOTTOM, DESCENDING, IDLE, TOP, The phase-reduction rule
 
 ### Community 28 - "personalisation_study.py"
 Cohesion: 0.11
 Nodes (20): floor_of(), henderson(), icc(), main(), num(), operating_point(), rates(), read() (+12 more)
 
-### Community 30 - "SessionDocument"
-Cohesion: 0.13
-Nodes (3): SessionDocument, SessionDocumentFormTest, SessionDocumentHoldFieldsTest
-
-### Community 31 - "SessionRecorder"
-Cohesion: 0.16
-Nodes (11): SessionRecorder, SyncingSessionRepository, SyncQueue, ExplodingQueue, FakeRepository, RecordingQueue, SyncOutageTest, NoNetwork (+3 more)
+### Community 31 - "HealthConnectPermissionFlow.kt"
+Cohesion: 0.10
+Nodes (21): ActivityContextPermissions, ActivityContextResult, ActivityContextSource, ContextUnavailable, NOT_INSTALLED, PERMISSIONS_DENIED, PLATFORM_TOO_OLD, PROVIDER_UPDATE_REQUIRED (+13 more)
 
 ### Community 32 - "Spike.kt"
 Cohesion: 0.12
@@ -417,141 +408,137 @@ Nodes (15): BilateralSignal, jointAngleAcos(), jointAngleAtan2(), legLandmarks()
 Cohesion: 0.14
 Nodes (9): CalibrationGuide, CalibrationGuideTest, Checking the two assumptions, as instructed, Library counts, P3-8 — Tier B upper body, and a camera-view contract that nothing was enforcing, Repetition semantics, both measured, The gap this uncovered: a view contract nothing was enforcing, Two smaller decisions (+1 more)
 
-### Community 34 - "TechniqueFault"
+### Community 34 - "3.2 The shared engine (`core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/`)"
 Cohesion: 0.07
-Nodes (30): PostRepAnalysis, TechniqueRules, AnalysisResult, BaselineReference, BesideBaseline, HoldAnalysisResult, HoldComparison, RepetitionAnalysisResult (+22 more)
+Nodes (29): CalibrationKey, CurveDistance, PostRepAnalysis, AcsmTempoRule, DeviationPolicy, DeviationRules, PersonalDeviations, tenths() (+21 more)
+
+### Community 36 - "ActivityContextAbsenceTest"
+Cohesion: 0.14
+Nodes (5): Available, ContextAvailability, DailyActivityContext, ActivityContextAbsenceTest, FakeActivityContextSource
 
 ### Community 37 - ".lunge"
-Cohesion: 0.13
-Nodes (18): 2.2 Work Completed, Step 1: Design & Decisions Recorded, Step 3: Dataset Extraction Pipeline, Step 4: Python Training & 4-Fold LOSOCV Evaluation, Step 5: Pure Kotlin Multiplatform Evaluator & Parity Guard, Step 6: Full Multiplatform Test Suite Run, Step 7: Documentation & Commit, 1. Purpose and Non-Negotiable Boundaries (+10 more)
-
-### Community 39 - ".paired"
-Cohesion: 0.18
-Nodes (3): PersonalDeviations, tenths(), DeviationRulesTest
-
-### Community 41 - "ActivityContextResult"
 Cohesion: 0.09
-Nodes (30): ActivityContextPermissions, ActivityContextResult, ActivityContextSource, Available, ContextAvailability, ContextUnavailable, NOT_INSTALLED, PERMISSIONS_DENIED (+22 more)
+Nodes (26): 1. Context & User Directives, 2.1 Research Protocols & Non-Negotiables (CLAUDE.md §13, §17, §18), 2.2 Work Completed, 2. Phase P9 Part B: The Exercise Verifier, 3. Log of Committed Files, 7. Phase P3-57: Display-Only Focus Zoom (Auto-Framing) & Progress Report Housekeeping, Antigravity Works — Activity & Decision Log, Empirical Foundation & Architectural Invariants (+18 more)
+
+### Community 41 - "What "tested" means here"
+Cohesion: 0.15
+Nodes (20): DailyMetric, Measured, NoData, NotPermitted, ReadFailed, 1. Screenshots of the owner stay out of git, 2. The skeleton is clipped to the camera area, 7. Health Connect on the phone: the client was out of date, and a failure looked like an empty day (+12 more)
 
 ### Community 43 - "ReminderWork.kt"
-Cohesion: 0.07
-Nodes (6): HealthConnectOnDeviceTest, ReminderWorker, SessionSyncWorker, WorkManagerSyncQueue, Reminders, What is NOT verified — the camera session
+Cohesion: 0.06
+Nodes (9): hasCameraPermission(), rememberCameraPermissionLauncher(), ReminderNotification, ReminderScheduler, ReminderWorker, SessionSyncWorker, WorkManagerSyncQueue, Reminders (+1 more)
 
 ### Community 44 - "SessionSync.kt"
 Cohesion: 0.14
 Nodes (10): Failed, Pushed, RemoteSessionStore, SyncFailure, NETWORK_UNAVAILABLE, NOT_PERMITTED, UNKNOWN, SyncResult (+2 more)
 
-### Community 45 - "BaselineJson"
-Cohesion: 0.24
-Nodes (3): BaselineJson, Writer, P0-9 — Module structure adopted, and a P0 incident
-
 ### Community 46 - "SessionMerge"
-Cohesion: 0.40
+Cohesion: 0.36
 Nodes (4): SessionMerge, FakeRemote, FakeRepository, SessionMergeTest
 
-### Community 47 - ".of"
-Cohesion: 0.18
-Nodes (7): AnomalyKey, nearestRank(), AnomalyFeaturesTest, Built, before the study (2026-10-01), Detector 4 — the robust covariance distance, How it enters A1–A4, P3-36 — A2 amended before any run: a robust covariance distance joins the comparison
+### Community 48 - "csv"
+Cohesion: 0.13
+Nodes (12): angle(), main(), valleys(), cycles(), main(), main(), peaks(), series_for() (+4 more)
 
-### Community 48 - "read_bin"
-Cohesion: 0.10
-Nodes (18): best_lag(), main(), write_shifts(), main(), read_bin(), main(), movement(), onset_offset() (+10 more)
-
-### Community 51 - "LocalDay"
+### Community 51 - "DayActivity"
 Cohesion: 0.12
-Nodes (21): calendarOf(), DayCell(), dayTitle(), MonthArrow(), MonthCalendar(), MonthGrid(), monthLength(), monthStart() (+13 more)
+Nodes (16): ReminderTiming, calendarOf(), DayCell(), dayTitle(), MonthArrow(), MonthCalendar(), MonthGrid(), monthLength() (+8 more)
 
-### Community 52 - "IsolationForest"
-Cohesion: 0.17
-Nodes (7): Builder, IsolationForest, Order of work, and the stop points, P3-34 — P9 in scope: its design, and the anomaly study's protocol, before any code, Part A — Layer 4, personal anomaly detection, Part B — the exercise verifier (designed now, built after Part A), The anomaly study's protocol (A1–A4), fixed before any run
+### Community 52 - "LocalDay"
+Cohesion: 0.13
+Nodes (7): weekdayLetter(), ExerciseAccumulator, ExerciseSummary, WeeklyGoal, WeeklyGoalTest, LocalDay, Result — step 2, records, the weekly goal, achievements
 
-### Community 53 - ".fit"
-Cohesion: 0.22
-Nodes (5): IsolationForestTest, For the owner, before A1–A4 run, P3-35 — P9 step 2: Layer 4 in the shared core, and what it cannot see, Tested, What it cannot see, measured before any study
+### Community 53 - "IsolationForest"
+Cohesion: 0.13
+Nodes (8): Builder, IsolationForest, IsolationForestTest, Order of work, and the stop points, P3-34 — P9 in scope: its design, and the anomaly study's protocol, before any code, Part A — Layer 4, personal anomaly detection, Part B — the exercise verifier (designed now, built after Part A), The anomaly study's protocol (A1–A4), fixed before any run
+
+### Community 54 - "TierAProfileTest"
+Cohesion: 0.06
+Nodes (16): TierAProfileTest, ViewAndSideContractTest, 1. Near-side counting: only a counted repetition blocks, 2. The lateral raise: start zone at or below 36°, 3. The push-up and sit-up start zones: a proposal, not applied, Addendum (2026-09-29): the owner's curl check, recorded in P3-31, Checks, Consequences (+8 more)
 
 ### Community 55 - "Kinesis — Zero-Dataset Build Plan"
 Cohesion: 0.05
 Nodes (42): An honest caution, Calibration is not training data, Form-label datasets that exist but are gated, Guard rails for building with Claude Code, How to actually run the build, Kinesis — Zero-Dataset Build Plan, MM-Fit - the one you build on, Rating (+34 more)
 
-### Community 56 - "RepetitionBaseline"
-Cohesion: 0.06
-Nodes (23): Calibrated, Calibration, CalibrationKey, CalibrationOutcome, HoldNotUsable, timingSideOf(), TooFewRepetitions, CalibrationPolicy (+15 more)
+### Community 56 - ".fromRepetitions"
+Cohesion: 0.12
+Nodes (9): Calibrated, Calibration, CalibrationOutcome, HoldNotUsable, timingSideOf(), TooFewRepetitions, CalibrationPolicy, BilateralStatistic (+1 more)
 
 ### Community 57 - ".writeA2"
 Cohesion: 0.18
 Nodes (6): AnomalyStudy, AnomalyWindows, Distance, KeyHistory, main(), RobustZ
 
 ### Community 58 - "ExerciseProfile"
-Cohesion: 0.12
-Nodes (32): MeasurementPlane, IMAGE_2D, SPATIAL_3D, PlankProfile, HoldSignalSpec, IsometricExercise, SidePlankProfile, WallSitProfile (+24 more)
+Cohesion: 0.11
+Nodes (27): MeasurementPlane, IMAGE_2D, SPATIAL_3D, PlankProfile, HoldSignalSpec, IsometricExercise, IsometricVariant, RepetitionVariant (+19 more)
 
 ### Community 59 - "FrameUpright.kt"
-Cohesion: 0.21
+Cohesion: 0.19
 Nodes (3): FrameUpright, UprightFrames, P3-64 — Lint's code findings, tidied
 
-### Community 60 - "LiveSetSaverTest"
-Cohesion: 0.22
-Nodes (4): LiveHoldBridge, FailingStore, LiveSetSaverTest, What "tested" means here
-
 ### Community 61 - "Kinesis — Final Architecture Decision"
-Cohesion: 0.09
-Nodes (22): 2. Correction 1 — the shared fault detectors, 4. Correction 3 — configuration cheap ≠ validation cheap, 5. Correction 4 — the exercise list, re-cut, 9. Final phase and module structure, Counting honestly, Cut list, final, Kinesis — Final Architecture Decision, Module count after revision (+14 more)
+Cohesion: 0.25
+Nodes (7): 4. Correction 3 — configuration cheap ≠ validation cheap, Kinesis — Final Architecture Decision, The four honest categories, The rule this gives you, The three things to hold on to, What the table shows, YELLOW
+
+### Community 62 - ".summarise"
+Cohesion: 0.27
+Nodes (3): StreakSummary, StreakFreezeRuleTest, Result — step 1, freezes and the calendar
 
 ### Community 63 - "LiveHost.kt"
-Cohesion: 0.06
-Nodes (26): hasCameraPermission(), rememberCameraPermissionLauncher(), Checking, HealthConnectPermissionState, healthPermissionContract(), PermissionUiState, rememberHealthConnectPermissions(), rememberHealthPermissionLauncher() (+18 more)
+Cohesion: 0.09
+Nodes (22): Absent, PoseModelAsset, PoseModelState, Present, Unreadable, findActivity(), LiveCameraGate(), LiveCameraSession() (+14 more)
 
 ### Community 65 - "Kinesis — Decision Record"
-Cohesion: 0.07
-Nodes (27): CLOSED — Bicep curl repetition semantics, CLOSED — Is `app/` the instrumentation harness or the product shell?, CLOSED — The old prototype has not been inspected, Document precedence, Kinesis — Decision Record, P0-1 — Repository state findings, P0-2 — The Kotlin/JS target survives; the React PWA does not, P0-3 — Glute Bridge stays Tier A (+19 more)
+Cohesion: 0.06
+Nodes (34): Checked before the first push, CLOSED — Bicep curl repetition semantics, CLOSED — Is `app/` the instrumentation harness or the product shell?, CLOSED — The old prototype has not been inspected, Context and Motivation, Document precedence, `google-services.json` is committed on purpose, Kinesis — Decision Record (+26 more)
 
 ### Community 67 - "RobustDistance"
-Cohesion: 0.22
-Nodes (3): RobustDistance, RobustDistanceTest, P3-38 — The owner delegates: Layer 4 does not ship, and the order of work to a complete app
+Cohesion: 0.16
+Nodes (8): nearestRank(), RobustDistance, RobustDistanceTest, Built, before the study (2026-10-01), Detector 4 — the robust covariance distance, How it enters A1–A4, P3-36 — A2 amended before any run: a robust covariance distance joins the comparison, P3-38 — The owner delegates: Layer 4 does not ship, and the order of work to a complete app
 
-### Community 68 - "SetDrafts"
-Cohesion: 0.17
-Nodes (5): AlreadySaved, DraftRecovery, Recovered, SetDrafts, Unreadable
-
-### Community 69 - "RepEntity"
-Cohesion: 0.27
-Nodes (8): HoldEntity, RepEntity, SessionEntity, SessionWithSets, SetEntity, SetWithChildren, StoredSession, StoredSet
+### Community 68 - "LiveHoldAnalysis"
+Cohesion: 0.32
+Nodes (3): LiveHoldAnalysis, LiveHoldAnalysisTest, Holds wired
 
 ### Community 71 - "ThirdPartyNoticesTest"
 Cohesion: 0.23
 Nodes (6): ThirdPartyNoticesTest, Item 4, built: a debug-only lite/full switch, Item 5, built: the two BSD texts ship, P3-19's five decisions for the owner, P3-21 — Owner decisions: the camera session waits, P6 goes first, and P3-19's list, The camera session is deferred, and P6 goes ahead of P5 and P7
 
 ### Community 73 - "anomaly_study.py"
-Cohesion: 0.19
-Nodes (17): a1_section(), a2_section(), a4_section(), column(), cuts_for(), data_section(), detection(), equal_cut() (+9 more)
+Cohesion: 0.13
+Nodes (18): a1_section(), a2_section(), a4_section(), column(), cuts_for(), data_section(), detection(), equal_cut() (+10 more)
 
 ### Community 75 - "LiveOrientationTest"
-Cohesion: 0.19
+Cohesion: 0.20
 Nodes (4): LiveOrientation, OrientationEventListener, LiveOrientationTest, 3. An upside-down phone is supported (owner's decision)
 
-### Community 76 - "PersonalisationStudy"
-Cohesion: 0.08
-Nodes (11): Feature, main(), PersonalisationStudy, Planting, StudyInput, StudySet, MiniJson, Subjects (+3 more)
+### Community 76 - ".load"
+Cohesion: 0.13
+Nodes (5): StudyInput, MiniJson, Subjects, main(), main()
 
 ### Community 77 - "numpy"
-Cohesion: 0.21
-Nodes (14): Decision 3: the selection rule — fixed before any run, derived_floors(), evaluate(), main(), num(), pct(), rates(), read() (+6 more)
+Cohesion: 0.23
+Nodes (13): derived_floors(), evaluate(), main(), num(), pct(), rates(), read(), robust_sd() (+5 more)
 
 ### Community 78 - "PoseLandmarkerSource"
-Cohesion: 0.09
-Nodes (6): UprightFramesOnDeviceTest, Failed, Opened, PoseLandmarkerSource, PoseSourceOpening, The live screen fails safe
+Cohesion: 0.16
+Nodes (5): Failed, Opened, PoseLandmarkerSource, PoseSourceOpening, The live screen fails safe
 
-### Community 79 - "Why: P3-13's exclusion removed code MediaPipe links against unconditionally"
-Cohesion: 0.19
-Nodes (7): DiscardingTransport, Encoding, Event, Transformer, Transport, TransportFactory, Why: P3-13's exclusion removed code MediaPipe links against unconditionally
+### Community 79 - "MediaPipeTelemetryStandInTest.kt"
+Cohesion: 0.08
+Nodes (18): CCTDestination, DiscardingTransport, Encoding, Event, Transformer, Transport, TransportFactory, Destination (+10 more)
 
 ### Community 81 - ".summarise"
 Cohesion: 0.25
 Nodes (5): LiftingSpeed, RepetitionSpeed, SetSpeedSummary, SideTally, LiftingSpeedTest
 
+### Community 84 - "SharedCoreSourceGuardTest"
+Cohesion: 0.07
+Nodes (29): OverlayGeometry, SharedCoreSourceGuardTest, 5. Phase P10: Fatigue Engine — Velocity-Based Training & Set Cutoff (P3-54), Execution Log, Execution Log, Objective, Scientific Foundation & Non-Negotiables (CLAUDE.md §1, §12, §13, §18), Step 1: Core Multiplatform Zoom Engine (+21 more)
+
 ### Community 86 - "SkeletonOverlayView"
-Cohesion: 0.12
-Nodes (9): SkeletonOverlayView, 7. Phase P3-57: Display-Only Focus Zoom (Auto-Framing) & Progress Report Housekeeping, Empirical Foundation & Architectural Invariants, Objective, Context and Motivation, P3-56 — Low Frame-Rate Warning Gate and Skeleton Visual Redesign, Principles and Guardrails (Non-Negotiables), What was built (+1 more)
+Cohesion: 0.13
+Nodes (6): SkeletonOverlayView, Context and Motivation, P3-56 — Low Frame-Rate Warning Gate and Skeleton Visual Redesign, Principles and Guardrails (Non-Negotiables), What was built, What Was Built
 
 ### Community 87 - "package.json"
 Cohesion: 0.11
@@ -559,35 +546,31 @@ Nodes (15): firebase, @firebase/rules-unit-testing, firebase-tools, description,
 
 ### Community 90 - "RepFeedback"
 Cohesion: 0.06
-Nodes (14): AccountDatabaseNames, AccountRegistry, RepCountWatcher, RepFeedback, RestTimer, AccountDatabaseNamesTest, MapRegistry, RepCountWatcherTest (+6 more)
-
-### Community 95 - "Kinesis — Project Status"
-Cohesion: 0.09
-Nodes (21): 1. What Kinesis is, 2. Where it stands, in one paragraph, 3. How much is finished, 4. Features, 5. What still needs to be finished, 6. What it is built with, 7. Rules the project holds itself to, By phase (+13 more)
+Nodes (15): AccountDatabaseNames, AccountRegistry, RepCountWatcher, RepFeedback, RestTimer, AccountDatabaseNamesTest, MapRegistry, RepCountWatcherTest (+7 more)
 
 ### Community 96 - "ClaimLevelEnforcementTest"
-Cohesion: 0.29
-Nodes (4): ClaimLevelEnforcementTest, PlankUnderTest, RowUnderTest, SquatUnderTest
+Cohesion: 0.24
+Nodes (5): Measurement, ClaimLevelEnforcementTest, PlankUnderTest, RowUnderTest, SquatUnderTest
 
 ### Community 97 - "BilateralSignal"
 Cohesion: 0.08
-Nodes (11): CalibrationFixtures, TechniqueRulesTest, BilateralSignal, Side, LEFT, RIGHT, BilateralIntegrityTest, 1. BilateralSignal (+3 more)
+Nodes (12): BilateralSignal, FormMeasure, BODY_LINE_HIKE_MAX, BODY_LINE_SAG_MAX, TRUNK_MINUS_SHIN_LEAN, UPPER_ARM_TRUNK_MAX, FormMeasures, BilateralIntegrityTest (+4 more)
 
 ### Community 98 - "json"
-Cohesion: 0.12
-Nodes (12): angle(), main(), raw_phases(), records(), format_doubles(), main(), doubles(), form() (+4 more)
+Cohesion: 0.11
+Nodes (17): best_lag(), main(), write_shifts(), main(), read_bin(), angle(), main(), raw_phases() (+9 more)
 
 ### Community 99 - "BilateralRepTracker"
-Cohesion: 0.24
+Cohesion: 0.26
 Nodes (5): BilateralRepTracker, RepSink, Step 2: Domain Modeling & Real-Time Tracking, Audit Close-out: Final Checks, AUDIT SUMMARY
 
 ### Community 100 - "RepRecord"
-Cohesion: 0.08
-Nodes (30): 15. Data model, Dashboard, Streaks, CountedRepetitions, CountedRepetitionsTest, HoldValidity, BROKEN, INSUFFICIENT_DATA (+22 more)
+Cohesion: 0.06
+Nodes (36): 15. Data model, Dashboard, CountedRepetitions, SessionExportFixture, CountedRepetitionsTest, CalibrationBaseline, HoldValidity, BROKEN (+28 more)
 
-### Community 101 - "CameraFacing"
-Cohesion: 0.08
-Nodes (13): CaptureStats, DebugPhaseBProbe, GapRuns, phaseBProbeOrNull(), PhaseBStats, CameraFacing, BACK, FRONT (+5 more)
+### Community 101 - "PhaseBStats"
+Cohesion: 0.14
+Nodes (5): CaptureStats, DebugPhaseBProbe, GapRuns, phaseBProbeOrNull(), PhaseBStats
 
 ### Community 103 - "Kinesis — Engineering Rules for AI Coding Sessions"
 Cohesion: 0.08
@@ -597,9 +580,9 @@ Nodes (25): 10. Camera-view contract, 11. Analysis modes, 12. Deterministic-firs
 Cohesion: 0.07
 Nodes (27): 10. Shoulder Press — Tier B, both arms together, **seated**, 11. Bent-over Row — Tier B, **near side only**, hinged, 12. Lying Leg Raise — Tier B, both legs together, 13. Plank — Tier C, 14. Wall Sit — Tier C, 15. Side Plank — Tier C, 1. Squat — Tier A, both legs together, 1a. Goblet Squat — a variant of the Squat (+19 more)
 
-### Community 106 - "What Was Built"
-Cohesion: 0.45
-Nodes (11): FeetOutOfFrame, HeadOutOfFrame, NoPerson, Ready, SetupVerdict, TooClose, TooFar, WrongView (+3 more)
+### Community 106 - "PersonalisationStudy"
+Cohesion: 0.34
+Nodes (4): Feature, main(), PersonalisationStudy, StudySet
 
 ### Community 108 - "P3-7 — Tier B lower-body and trunk profiles, and an unactioned instruction about the lunge"
 Cohesion: 0.22
@@ -609,45 +592,49 @@ Nodes (9): Assumed from anatomy — Hip Abduction, Knee Raise, Leg Raise, Measur
 Cohesion: 0.16
 Nodes (9): PersonalStartZone, StartZone, StartZoneSource, FLOOR, PERSONAL, PROFILE, WithStartZone, PersonalStartZoneTest (+1 more)
 
-### Community 110 - "csv"
-Cohesion: 0.14
-Nodes (8): extract(), labels_of(), landmarker(), shifts_of(), crops(), main(), main(), percentile()
-
-### Community 111 - "KinematicsTest"
-Cohesion: 0.11
-Nodes (5): Geometry, bothSidesMeasured(), LandmarkVelocity, KinematicsTest, Frame shape: corrected in the adapter
-
-### Community 112 - ".format"
-Cohesion: 0.14
-Nodes (11): ExportFiles, JsonNumber, JsonNumberTest, Decisions the owner should know about, Is it ready for P7?, On the phone, P3-25 — P5: the export, one format on every platform, Tests (+3 more)
+### Community 110 - "os"
+Cohesion: 0.13
+Nodes (8): extract(), labels_of(), landmarker(), shifts_of(), format_doubles(), main(), crops(), main()
 
 ### Community 114 - ".of"
-Cohesion: 0.22
-Nodes (9): FormNote, FormNotes, FormNotesTest, P3-74 — The owner turns the cited technique rules on: "Form notes" on the set summary, Result (2026-10-11), Tests first, The risk accepted, What is shown (+1 more)
+Cohesion: 0.20
+Nodes (10): FormNote, FormNotes, FormNotesTest, P3-74 — The owner turns the cited technique rules on: "Form notes" on the set summary, Result (2026-10-11), Tests first, The risk accepted, What is shown (+2 more)
 
-### Community 117 - "FormTracker"
-Cohesion: 0.14
-Nodes (3): FormTracker, FormTrackerTest, Frame
+### Community 116 - ".fromPacked"
+Cohesion: 0.21
+Nodes (3): LandmarkNormalizer, NormalizationAndValidityTest, The torso check no longer allocates
+
+### Community 118 - "ZoneJumpTest"
+Cohesion: 0.24
+Nodes (5): ZoneJumpTest, Decided: the engine is not changed, P3-39 — Decision 5 traced: the curl's one-result lifts, a fix tried, and why the engine stays, The fix tried, The trace
 
 ### Community 119 - "sys"
-Cohesion: 0.09
-Nodes (19): load(), main(), metrics(), view_index(), line(), main(), measured(), rows() (+11 more)
-
-### Community 120 - "PoseAdapter"
 Cohesion: 0.11
-Nodes (16): PoseAdapter, RawLandmarks, CameraFacingParityTest, A flaky allocation guard, made reliable without loosening it, Front or back camera, Holds, and one device constraint, Mirroring is made true in capture, not assumed, P1-5 — The front-camera mirroring assumption, stated explicitly (+8 more)
+Nodes (16): load(), main(), metrics(), view_index(), line(), main(), measured(), rows() (+8 more)
+
+### Community 120 - "CameraFacingParityTest"
+Cohesion: 0.23
+Nodes (6): CameraFacingParityTest, A flaky allocation guard, made reliable without loosening it, Front or back camera, P3-17 — Either camera, the model's licence, a gate that re-admits, and a Phase B readout, The pose model's licence, read and recorded, What is NOT verified — Phase B
+
+### Community 121 - "P3-22 — P6: calibration and personal baselines"
+Cohesion: 0.15
+Nodes (10): DatabaseVersionGuardTest, Decisions for the owner, P3-22 — P6: calibration and personal baselines, Storage: Room version 2, never destructive, Test 2: the first calibration, and curls facing the phone, The facade, The flow in the app, The provisional numbers, and why each (+2 more)
 
 ### Community 122 - "12. The nine answers"
 Cohesion: 0.20
 Nodes (10): 12. The nine answers, A. What should definitely remain, B. What should definitely be removed, C. What should be postponed, D. Highest technical risk, E. Highest academic risk, F. Highest timeline risk, G. The assumption I am least confident about (+2 more)
 
-### Community 124 - "Execution Log"
-Cohesion: 0.18
-Nodes (8): OverlayGeometry, Execution Log, Step 1: Core Multiplatform Zoom Engine, Step 2: Multiplatform Unit Testing Suite, Step 3: Analysis Pipeline Wiring, Step 4: UI Engine, Canvas Overlay & Compose Integration, Step 5: Repository Progress Report Synchronization, Step 6: Full Verification Suite
+### Community 124 - "LiveHoldBridge"
+Cohesion: 0.22
+Nodes (11): LiveHoldBridge, LiveHoldUiState, HoldState, DEVIATING, ENDED, HOLDING, NOT_STARTED, Context and Motivation (+3 more)
 
-### Community 127 - "SessionRepository"
-Cohesion: 0.13
-Nodes (11): SessionRepository, Failed, LiveSetSaver, NothingToSave, Saved, SetSaveOutcome, P3-63 — A set that fails to save is always reported, Result (2026-10-05) (+3 more)
+### Community 126 - "Streaks"
+Cohesion: 0.15
+Nodes (12): Ledger, Streaks, Already done, On the live and summary screens, Order and checks, P3-49 — FEATURE_PLAN Batch 3: streak freezes, the calendar, records, goals, reminders, Personal records and the weekly goal (core), Reminders (local only) (+4 more)
+
+### Community 127 - "LiveSetSaver"
+Cohesion: 0.11
+Nodes (13): LiveEngine, Failed, LiveSetSaver, NothingToSave, Saved, SetSaveOutcome, P3-63 — A set that fails to save is always reported, P3-72 — A hold survives the app being killed too (+5 more)
 
 ### Community 128 - "P3-59 — A review of P3-52 to P3-58, and the corrections"
 Cohesion: 0.40
@@ -658,16 +645,20 @@ Cohesion: 0.26
 Nodes (3): HandOverTimes, HandOverTimesTest, 5. The frame rate: MediaPipe's inference is the ceiling
 
 ### Community 130 - "ExerciseTrendScreen"
-Cohesion: 0.23
-Nodes (11): CountColumns(), degreesOrDash(), ExerciseTrendScreen(), Legend(), Line(), nearestIndex(), RangeChart(), readout() (+3 more)
+Cohesion: 0.29
+Nodes (10): CountColumns(), degreesOrDash(), ExerciseTrendScreen(), Legend(), Line(), nearestIndex(), RangeChart(), readout() (+2 more)
 
 ### Community 132 - "LocalStore"
 Cohesion: 0.22
 Nodes (3): SkeletonSink, LocalStore, NoSkeleton
 
+### Community 133 - "SplitMix64"
+Cohesion: 0.21
+Nodes (6): SplitMix64, SplitMix64Test, For the owner, before A1–A4 run, P3-35 — P9 step 2: Layer 4 in the shared core, and what it cannot see, Tested, What it cannot see, measured before any study
+
 ### Community 136 - "MainActivity.kt"
 Cohesion: 0.06
-Nodes (45): AccountStorage, backFrom(), backLabel(), Builder, CalibrationIntro, CalibrationResult, Destination, displayNameOf() (+37 more)
+Nodes (48): AccountStorage, backFrom(), backLabel(), Builder, CalibrationIntro, CalibrationResult, Destination, displayNameOf() (+40 more)
 
 ### Community 138 - "LiveRepetitionEngine"
 Cohesion: 0.17
@@ -677,53 +668,49 @@ Nodes (6): LiveRepetitionEngine, Decided: a set with nothing in it is not saved,
 Cohesion: 0.27
 Nodes (5): IconGuardTest, Checks, P3-62 — A launcher icon, Result (2026-10-05), The icon
 
-### Community 143 - "P3-28 — The fast-start fix, near-side push-ups and sit-ups, and the lateral raise's start zone"
-Cohesion: 0.33
-Nodes (6): 1. The fast-start fix, 3. The lateral raise's start zone: investigated, a proposal, not applied, Checks, For the owner, P3-28 — The fast-start fix, near-side push-ups and sit-ups, and the lateral raise's start zone, What is NOT verified
+### Community 143 - "ProfileScreen"
+Cohesion: 0.28
+Nodes (10): DuringSetCard(), DuringSetState, ProfileScreen(), Stepper(), ToggleRow(), DayToggle(), ReminderCard(), ReminderState (+2 more)
 
 ### Community 144 - "Kinesis — Complete Handover"
 Cohesion: 0.05
-Nodes (37): 0.1 What to read, in what order, 0.2 Document precedence (from CLAUDE.md), 0.3 How work is done here (the pattern every session followed), 0.4 A ready-made briefing for another AI, 0. Read this first, 10. Running the MM-Fit evaluation, 12. What is not in git, 13.1 Traps (+29 more)
+Nodes (42): 0.1 What to read, in what order, 0.2 Document precedence (from CLAUDE.md), 0.3 How work is done here (the pattern every session followed), 0.4 A ready-made briefing for another AI, 0. Read this first, 10. Running the MM-Fit evaluation, 11.1 What is in use, 11.2 The security rules (`firestore.rules`) (+34 more)
 
-### Community 147 - "Execution Log"
-Cohesion: 0.25
-Nodes (8): 8. Phase P3-58: APK Footprint Optimization & Mobile ARM ABI Filtering, Empirical Foundation & Architectural Invariants, Execution Log, Objective, Step 1: Build Configuration, Step 3: Empirical Measurement, Step 4: Documentation & Decisions, Step 5: Full Verification Suite
-
-### Community 148 - "Kinesis — Feature Plan: from analysis engine to complete fitness app"
-Cohesion: 0.25
-Nodes (7): After these batches, Batch 1 — New look and multiple pages (foundation), Batch 3 — Streak calendar with fire, reminders and side features, Batch 4 — Workout generator and guided workouts, Kinesis — Feature Plan: from analysis engine to complete fitness app, Owner decisions this plan is built on, Rules every batch keeps (from CLAUDE.md — restated because new UI work tempts people to break them)
+### Community 147 - ".of"
+Cohesion: 0.32
+Nodes (4): NiceAxis, Trends, TrendsTest, Result
 
 ### Community 149 - "P3-30 — MM-Fit's subjects and a split by subject, P8 Layer 1, and the personalisation study on the development subjects"
-Cohesion: 0.14
-Nodes (14): Checks, Checks at Step 0, Decision 2, result: the held-out figures on the six unseen people, Decision 2: the re-slice, and when it stops, Decisions for the owner, Decisions for the owner at Step 0 (decided in Part 2), How the workouts were grouped, P3-30 — MM-Fit's subjects and a split by subject, P8 Layer 1, and the personalisation study on the development subjects (+6 more)
+Cohesion: 0.10
+Nodes (17): Checks, Checks at Step 0, Decision 1: one subject map, and the split by subject, Decision 2, result: the held-out figures on the six unseen people, Decision 2: the re-slice, and when it stops, Decision 3: the selection rule — fixed before any run, Decisions for the owner, Decisions for the owner at Step 0 (decided in Part 2) (+9 more)
 
 ### Community 150 - "6. Results so far (what has been measured)"
 Cohesion: 0.25
 Nodes (8): 6.1 Repetition counting on MM-Fit (P7), 6.2 Personalisation study (P3-30, P3-40), development subjects only, 6.3 Layer 1 (personal deviation messages), 6.4 Layer 2 (cited technique rules, Tier A), 6.5 Layer 4 (personal anomaly detection), 6.6 Cross-platform parity, 6.7 The exercise verifier (P9 Part B), development subjects only, 6. Results so far (what has been measured)
 
-### Community 151 - "CameraViewEstimator"
+### Community 151 - "owner_db_export.py"
 Cohesion: 0.29
-Nodes (7): CameraViewEstimator, Decided, Owed, P3-68 — The demonstration day: the view gate advises, and the squat counts its near knee, Tests, What happened on the phone (P3-67's build), 8.1 Needs the phone (the owner connects it over USB)
+Nodes (4): doubles(), form(), main(), pair()
 
 ### Community 152 - "MediaPipeTelemetryStandInTest"
-Cohesion: 0.24
-Nodes (4): MediaPipeTelemetryStandInTest, MemberRef, ScannedClass, The fix: inert stand-ins, so MediaPipe links and sends nothing
+Cohesion: 0.17
+Nodes (8): Kind, FIELD, INTERFACE_METHOD, INVOKE_DYNAMIC, METHOD, MediaPipeTelemetryStandInTest, MemberRef, ScannedClass
 
-### Community 153 - "FormMeasures"
-Cohesion: 0.11
-Nodes (10): EngineJson, FormMeasure, BODY_LINE_HIKE_MAX, BODY_LINE_SAG_MAX, TRUNK_MINUS_SHIN_LEAN, UPPER_ARM_TRUNK_MAX, FormMeasures, FormMeasuresTest (+2 more)
+### Community 153 - "Side"
+Cohesion: 0.08
+Nodes (15): ExerciseLibrary, ExerciseVariant, CalibrationFixtures, Side, LEFT, RIGHT, AsymmetryBaseline, HoldBaseline (+7 more)
 
 ### Community 154 - "3. Correction 2 — the KMP decision, judged specifically"
 Cohesion: 0.29
 Nodes (7): 3. Correction 2 — the KMP decision, judged specifically, Bundle size and debugging, The design change: expose a facade, not the core, The gate, and the fallback that is not a rewrite, The numeric-parity claim, corrected, Why not Wasm, and why not a TypeScript rewrite, Why your core is close to the best case
 
-### Community 155 - "EmaSmoother"
-Cohesion: 0.17
-Nodes (7): EmaSmoother, DeterministicNoise, FilterAblationTest, Trial, 3. Frame rate (P3-31 error 3): measured, not fixed, P2-4 — First ablation result: smoothing lag, not noise, is the binding constraint, The outlier gate re-admits a sustained change
+### Community 155 - "FilterAblationTest"
+Cohesion: 0.24
+Nodes (5): DeterministicNoise, FilterAblationTest, Trial, P2-4 — First ablation result: smoothing lag, not noise, is the binding constraint, The outlier gate re-admits a sustained change
 
-### Community 161 - "P3-18 — The first Phase B finding: the live screen crashed on MediaPipe's telemetry"
-Cohesion: 0.33
-Nodes (6): Found on the phone, not fixed, P3-18 — The first Phase B finding: the live screen crashed on MediaPipe's telemetry, The crash, from the phone, Verified on the phone, What is NOT verified — Phase B, What "tested" means here
+### Community 161 - ".newIn"
+Cohesion: 0.24
+Nodes (6): NewRecord, RecordKind, LARGEST_RANGE_OF_MOTION, LONGEST_HOLD, MOST_REPETITIONS_IN_A_SET, Records
 
 ### Community 162 - "11. MVP, Full, Stretch — revised"
 Cohesion: 0.33
@@ -741,13 +728,13 @@ Nodes (8): 2. ClaimLevel and Finding, 3. ExerciseProfile tier gating, 4. The mir
 Cohesion: 0.40
 Nodes (5): Checks, For the owner, P3-37 — P9 step 3: the anomaly study on the development subjects, Results (2026-10-01), What it means
 
-### Community 172 - "Antigravity Works — Activity & Decision Log"
-Cohesion: 0.10
-Nodes (19): 1. Context & User Directives, 2.1 Research Protocols & Non-Negotiables (CLAUDE.md §13, §17, §18), 2. Phase P9 Part B: The Exercise Verifier, 3. Log of Committed Files, 4. Phase: Wiring the Exercise Verifier & Tier A Technique Rules (P3-53), 5. Phase P3-55: Camera-View Setup Assistant & Framing Gate, Antigravity Works — Activity & Decision Log, Empirical Foundation & Non-Negotiables (+11 more)
+### Community 172 - "TechniqueFault"
+Cohesion: 0.15
+Nodes (12): TechniqueRules, TechniqueFault, TechniqueAuthority, 4. Phase: Wiring the Exercise Verifier & Tier A Technique Rules (P3-53), Execution Log, Objective, Research Principles & Non-Negotiables Upheld, Step 2: Multiplatform Unit Testing (`PostRepAnalysisTest.kt`) (+4 more)
 
-### Community 181 - "VisibilityPolicy"
-Cohesion: 0.10
-Nodes (10): SkeletonSink, SkeletonColouring, OverlayState, ATTENTION, DEGRADED, TRACKED, UNTRACKED, SkeletonColouringTest (+2 more)
+### Community 182 - "LiveRepetitionEngineTest"
+Cohesion: 0.13
+Nodes (8): LiveRepetitionEngineTest, RecordingSkeleton, 1. The fast-start fix, 3. The lateral raise's start zone: investigated, a proposal, not applied, Checks, For the owner, P3-28 — The fast-start fix, near-side push-ups and sit-ups, and the lateral raise's start zone, What is NOT verified
 
 ### Community 183 - ".intensity"
 Cohesion: 0.21
@@ -757,33 +744,33 @@ Nodes (8): RepFlash, RepFlashTest, P3-76 — The live skeleton shows the angle b
 Cohesion: 0.13
 Nodes (13): main(), writeSample(), FrameShape, frameTimeMs(), LandmarkData, LandmarkFile, LandmarkRecord, MmFitLabel (+5 more)
 
-### Community 185 - "Built (2026-10-02)"
-Cohesion: 0.18
-Nodes (8): AppNameGuardTest, SessionExportGolden, EngineParityGolden, Built (2026-10-02), Cloud backup, P3-65 — The app is called Chiron; cloud backup is off, Result (2026-10-05), The name
+### Community 185 - "AppNameGuardTest"
+Cohesion: 0.31
+Nodes (5): AppNameGuardTest, Cloud backup, P3-65 — The app is called Chiron; cloud backup is off, Result (2026-10-05), The name
 
-### Community 187 - "3.2 The shared engine (`core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/`)"
-Cohesion: 0.06
-Nodes (16): ReleaseModelAssetsTest, AnomalyFeatures, AnomalyPolicy, hundredths(), PersonalAnomalyModel, CurveDistance, RobustStatistics, DeviationPolicy (+8 more)
+### Community 187 - "RepetitionExercise"
+Cohesion: 0.07
+Nodes (10): ReleaseModelAssetsTest, AnomalyFeatures, AnomalyPolicy, hundredths(), PersonalAnomalyModel, RobustStatistics, Achievements, RepetitionExercise (+2 more)
 
 ### Community 189 - "ApkPackagingGuardTest"
-Cohesion: 0.20
-Nodes (11): ApkPackagingGuardTest, Step 2: Automated Packaging Guard Test, §17 check: Health Connect 1.1.0, Checks, Context and Motivation, P3-58 — APK Footprint Optimization & Mobile ARM ABI Filtering, P3-61 — The toolchain batch: AGP 8.9.1, compileSdk 36, the stable Health Connect client, Principles and Non-Negotiables (+3 more)
+Cohesion: 0.12
+Nodes (19): ApkPackagingGuardTest, 8. Phase P3-58: APK Footprint Optimization & Mobile ARM ABI Filtering, Empirical Foundation & Architectural Invariants, Execution Log, Objective, Step 1: Build Configuration, Step 2: Automated Packaging Guard Test, Step 3: Empirical Measurement (+11 more)
 
-### Community 190 - "P3-44 — Layer 2 step B: a per-repetition form summary in the record, and three more rules"
-Cohesion: 0.40
-Nodes (5): Checks, before any MM-Fit number, How often step B would speak on MM-Fit's development subjects (descriptive), P3-44 — Layer 2 step B: a per-repetition form summary in the record, and three more rules, The three rules (rule version `p8-layer2-2`), Why the record changes
+### Community 190 - "Built (2026-10-02)"
+Cohesion: 0.25
+Nodes (7): EngineParityGolden, Built (2026-10-02), Checks, before any MM-Fit number, How often step B would speak on MM-Fit's development subjects (descriptive), P3-44 — Layer 2 step B: a per-repetition form summary in the record, and three more rules, The three rules (rule version `p8-layer2-2`), Why the record changes
 
-### Community 191 - "Execution Log"
-Cohesion: 0.20
-Nodes (10): 5. Phase P10: Fatigue Engine — Velocity-Based Training & Set Cutoff (P3-54), Execution Log, Objective, Scientific Foundation & Non-Negotiables (CLAUDE.md §1, §12, §13, §18), Step 1: Domain Model (`core/domain/src/commonMain/kotlin/.../fatigue/Fatigue.kt`), Step 2: Domain Unit Tests (`core/domain/src/commonTest/kotlin/.../fatigue/FatigueTest.kt`), Step 3: Analysis Engine (`core/analysis/src/commonMain/kotlin/.../fatigue/FatigueEngine.kt`), Step 4: Analysis Engine Unit Tests (`core/analysis/src/commonTest/kotlin/.../fatigue/FatigueEngineTest.kt`) (+2 more)
+### Community 191 - "BodyPoint"
+Cohesion: 0.18
+Nodes (9): BodyPoint, ANKLE, ELBOW, FOOT_INDEX, HEEL, HIP, KNEE, SHOULDER (+1 more)
 
 ### Community 193 - "P3-82 — Push-ups: the personal start zone measured end to end, with a protocol fixed first"
 Cohesion: 0.40
 Nodes (5): P3-82 — Push-ups: the personal start zone measured end to end, with a protocol fixed first, Result (2026-10-12, commit `58a2ce8`), The protocol, fixed before any result, The sit-up, Why push-ups are undercounted
 
-### Community 194 - "FrameValidity"
-Cohesion: 0.05
-Nodes (41): LiveAnalysisBridge, LiveUiState, LiveHoldUiState, FrameRateHealth, DEGRADED, HEALTHY, MODERATE, FrameRateMonitor (+33 more)
+### Community 194 - "LiveUiState"
+Cohesion: 0.09
+Nodes (26): LiveAnalysisBridge, LiveUiState, FrameRateHealth, DEGRADED, HEALTHY, MODERATE, 6. Phase P3-56: Low Frame-Rate Warning Gate & Skeleton Visual Redesign, Empirical Foundation & Non-Negotiables (+18 more)
 
 ### Community 196 - "8. Final data model and performance contract"
 Cohesion: 0.40
@@ -797,29 +784,21 @@ Nodes (12): A defect in the engine: a fast start is lost before it begins, Exclu
 Cohesion: 0.50
 Nodes (4): 13. Gates and verdict, The three go/no-go gates, Verdict, What to build first — the first three weeks
 
-### Community 200 - "P3-16 — Frame shape corrected, holds wired, sets saved"
-Cohesion: 0.19
-Nodes (8): SkeletonPulseTest, A risk found, not fixed: the outlier gate can lock a side out, Housekeeping, Overlay alignment, true by construction, P3-16 — Frame shape corrected, holds wired, sets saved, The attention pulse, drawn, The torso check no longer allocates, What is NOT verified — Phase B
+### Community 200 - "What "tested" means here"
+Cohesion: 0.13
+Nodes (10): LiveCameraFrameShapeTest, UtcOffsetTest, SkeletonPulseTest, A risk found, not fixed: the outlier gate can lock a side out, Housekeeping, P3-16 — Frame shape corrected, holds wired, sets saved, Sets saved, The attention pulse, drawn (+2 more)
 
 ### Community 201 - "MM-Fit evaluation (P7)"
 Cohesion: 0.50
 Nodes (3): MM-Fit evaluation (P7), Run it, The pieces
 
-### Community 202 - "P3-20 — The repository gets a remote: private GitHub, `google-services.json` included"
-Cohesion: 0.67
-Nodes (3): Checked before the first push, `google-services.json` is committed on purpose, P3-20 — The repository gets a remote: private GitHub, `google-services.json` included
-
 ### Community 203 - "P3-24 — A solo check on the phone: curls, face-on squats, amber, and a pause test that did not happen"
 Cohesion: 0.18
 Nodes (11): 1. Curls: 15 of 15, 2. Squats facing the camera, 3. Amber: a flash that clears, and nothing stuck, 3b. The short-interruption test did not happen, Added to the camera-session list, Conditions, Lifting and lowering fast, "NOT VISIBLE" during side-on curls (+3 more)
 
-### Community 204 - "P3-53 — Wiring the Exercise Verifier and Tier A Technique Rules to the Post-Rep Path and Set Summary"
-Cohesion: 0.67
-Nodes (3): Context and Motivation, P3-53 — Wiring the Exercise Verifier and Tier A Technique Rules to the Post-Rep Path and Set Summary, Verification
-
-### Community 206 - "HealthConnectActivityContextSource.kt"
-Cohesion: 0.11
-Nodes (8): readMetric(), HealthConnectExceptionTest, HealthMetricReadTest, 1. Screenshots of the owner stay out of git, 9. Housekeeping, Decisions for the owner, P3-19 — Phase B without the camera: screenshots out of git, the overlay clipped, What "tested" means here
+### Community 205 - "SetupGate"
+Cohesion: 0.06
+Nodes (39): CameraViewEstimator, ViewOrientation, SetupAssistant, SetupGate, FeetOutOfFrame, HeadOutOfFrame, NoPerson, Ready (+31 more)
 
 ### Community 209 - "🟡 Partly done"
 Cohesion: 0.15
@@ -833,9 +812,9 @@ Nodes (7): f(), load_data(), main(), make_feature_names(), run_losocv(), train_a
 Cohesion: 0.25
 Nodes (8): How often the rules speak on MM-Fit's development subjects, How the rules are checked, P3-43 — P8 Layer 2: the cited technique rules, their sources, and what can be measured now, Step A built (2026-10-01), Step A — three rules from what each repetition already records, Step B — the rules that need a second joint (next, its own entry), The sources, read on 2026-10-01, The tolerance, and why it is the app's, not the sources'
 
-### Community 214 - "P3-55 — Camera-View Setup Assistant and Framing Gate"
-Cohesion: 0.67
-Nodes (3): Context and Motivation, P3-55 — Camera-View Setup Assistant and Framing Gate, Principles and Guardrails (Non-Negotiables)
+### Community 214 - "AuthState"
+Cohesion: 0.22
+Nodes (5): AuthState, SignedIn, SignedOut, Unknown, AuthGateway
 
 ### Community 219 - "P3-26 — Owner decisions: telling the user a repetition was fast, after P7"
 Cohesion: 0.33
@@ -854,12 +833,8 @@ Cohesion: 0.13
 Nodes (13): main(), Evaluated, Excluded, ExerciseMapping, Harness, MmFitExercises, RepetitionExercise, Protocol (+5 more)
 
 ### Community 223 - "9.4 Final Verification & Quality Certification"
-Cohesion: 0.25
-Nodes (8): 9.1 Complete Git Commit Ledger, 9.2 Complete File Inventory by Architectural Module, 9.3 Master Mathematical & Algorithmic Registry, 9.4 Final Verification & Quality Certification, 9. Comprehensive Master Audit Registry, Documentation (`docs/`), Module `:core:domain` (Multiplatform Types & Contracts), Module `tools/mmfit-eval` (Offline Evaluation Pipeline)
-
-### Community 225 - "KinesisDatabaseMigrationTest"
-Cohesion: 0.14
-Nodes (9): KinesisDatabaseMigrationTest, A mistake of mine, and its repair, For the owner, P3-23 — The guide demo, diagnosed from the phone, and what it changed, The 2026-09-26 attempt: mostly (a), partly (b), not (c), The rehearsals, recorded live, What happened after the changes, What is NOT verified (+1 more)
+Cohesion: 0.16
+Nodes (10): ExportProviderGuardTest, 9.1 Complete Git Commit Ledger, 9.2 Complete File Inventory by Architectural Module, 9.3 Master Mathematical & Algorithmic Registry, 9.4 Final Verification & Quality Certification, 9. Comprehensive Master Audit Registry, Documentation (`docs/`), Module `:app` (Android UI, Canvas Overlay & Hardware Integration) (+2 more)
 
 ### Community 227 - "P3-2 — Rep engine design decisions no document specifies"
 Cohesion: 0.40
@@ -869,17 +844,37 @@ Nodes (5): A side whose partner never completes is reported, not discarded, Hyst
 Cohesion: 0.33
 Nodes (6): 10. Evaluation, and what is research vs engineering, Evaluation plan — revised, Reporting discipline, The four studies that carry the report, The hierarchy to present, The honest sorting
 
+### Community 229 - "P3-23 — The guide demo, diagnosed from the phone, and what it changed"
+Cohesion: 0.22
+Nodes (9): A mistake of mine, and its repair, For the owner, P3-23 — The guide demo, diagnosed from the phone, and what it changed, The 2026-09-26 attempt: mostly (a), partly (b), not (c), The rehearsals, recorded live, What happened after the changes, What is NOT verified, What was changed, at the owner's direction (+1 more)
+
+### Community 230 - "Chiron (Kinesis) — App Status"
+Cohesion: 0.25
+Nodes (7): 1. The answer, 2. What the app does (built, in the code), 3. Built but not in the app, 4. What the owner's phone has recorded, by exercise, 5. What is left, for the app, 6. Build on the phone now, Chiron (Kinesis) — App Status
+
 ### Community 232 - "Chiron"
 Cohesion: 0.25
 Nodes (7): Build and test, Chiron, Download App, Licences, Read in this order, Status, The three things that matter most
 
-### Community 236 - "PoseModelAsset"
-Cohesion: 0.25
-Nodes (6): Absent, PoseModelAsset, PoseModelState, Present, Unreadable, What is NOT verified — Phase B
+### Community 233 - "P3-31 — P4 on the phone, 2026-09-29: sideways curls count, facing the phone they count what isn't there"
+Cohesion: 0.29
+Nodes (7): Errors found, recorded and not fixed here, P3-31 — P4 on the phone, 2026-09-29: sideways curls count, facing the phone they count what isn't there, Test 1: curls, done sideways, The build on the phone is not the 21:57 install, The owner's decisions at the end, What did not run, What is NOT verified
 
-### Community 237 - "AuthState"
+### Community 234 - "P3-33 — The smoother weighted per unit of time, and what the throttled rate's losses are made of"
+Cohesion: 0.33
+Nodes (6): 1. At 6 results a second, the loss was the smoother (P3-32 decision 4), 3. What it does on MM-Fit's development workouts, 4. At 6 a second, the loss is now the gate, Checks, Decisions for the owner, P3-33 — The smoother weighted per unit of time, and what the throttled rate's losses are made of
+
+### Community 235 - "5. Correction 4 — the exercise list, re-cut"
+Cohesion: 0.33
+Nodes (6): 5. Correction 4 — the exercise list, re-cut, Counting honestly, Cut list, final, The final list — 15 entries, 13 profiles, 2 variants, The replacements, The three problems
+
+### Community 236 - "CameraFacing"
+Cohesion: 0.13
+Nodes (16): CameraFacing, BACK, FRONT, PoseAdapter, RawLandmarks, phaseBProbeOrNull(), Holds, and one device constraint, Mirroring is made true in capture, not assumed (+8 more)
+
+### Community 237 - "AuthFailure"
 Cohesion: 0.14
-Nodes (7): AuthState, PasswordReset, SignedIn, SignedOut, Unknown, PasswordResetTest, AuthGateway
+Nodes (11): AuthFailure, EMAIL_ALREADY_IN_USE, INVALID_CREDENTIALS, MALFORMED_EMAIL, NETWORK_UNAVAILABLE, UNKNOWN, WEAK_PASSWORD, PasswordReset (+3 more)
 
 ### Community 238 - "P3-48 — FEATURE_PLAN Batch 1: the new look, five pages, and onboarding"
 Cohesion: 0.18
@@ -889,65 +884,41 @@ Nodes (11): KinesisPalette, How they are drawn, Kept, whatever the look, P3-48 �
 Cohesion: 0.33
 Nodes (6): 7. Final ML strategy, Fallback, Models and deployment, The experiment, stated properly, What is deterministic, What ML actually does — three things
 
-### Community 242 - "LiveHoldEngine"
-Cohesion: 0.11
-Nodes (8): LiveEngine, LiveHoldEngine, Context and Motivation, P3-57 — Display-Only Focus Zoom (Auto-Framing) and Progress Report Housekeeping, P3-72 — A hold survives the app being killed too, Principles and Guardrails (Non-Negotiables), Results of P3-71 and P3-72 (2026-10-11), What Was Built
+### Community 241 - "2. Correction 1 — the shared fault detectors"
+Cohesion: 0.40
+Nodes (5): 2. Correction 1 — the shared fault detectors, The corrected design, The experiment that replaces it, The two errors, What this costs and buys
+
+### Community 243 - "9. Final phase and module structure"
+Cohesion: 0.50
+Nodes (4): 9. Final phase and module structure, Module count after revision, Timeline effect, What P8 becomes
 
 ### Community 244 - "P3-41 — Decision 3: Layer 1's threshold and floors, by the rule fixed in P3-30"
 Cohesion: 0.50
 Nodes (4): P3-41 — Decision 3: Layer 1's threshold and floors, by the rule fixed in P3-30, Results (2026-10-01), The readings of the rule, fixed before the run, What follows
 
 ### Community 246 - ".json"
-Cohesion: 0.19
-Nodes (6): ExportFilesTest, SessionExportReadTest, P3-66 — A repetition set survives the app being killed, Result (2026-10-05), Tests first, main()
+Cohesion: 0.20
+Nodes (6): SessionExportReadTest, SessionExportGoldenWriter, P3-66 — A repetition set survives the app being killed, Result (2026-10-05), Tests first, main()
 
-### Community 251 - "FirebaseSync.kt"
-Cohesion: 0.13
-Nodes (3): FirebaseAuthGateway, FirestoreSessionStore, What is NOT verified, and needs the project owner
+### Community 252 - "OfflineManifestGuardTest"
+Cohesion: 0.12
+Nodes (14): OfflineManifestGuardTest, 16. Privacy and offline operation, §17 check: CameraX, §17 check: MediaPipe Pose — code and model checked separately, P3-13 — CameraX and MediaPipe: two §17 checks, and a hard line nearly crossed, The finding that matters: MediaPipe added INTERNET, What Phase A could not test, 6. Final scope and claim enforcement (+6 more)
 
 ### Community 253 - "2. The rules (non-negotiable)"
 Cohesion: 0.20
 Nodes (10): 2.1 Architecture, 2.2 Left and right, 2.3 Real time, 2.4 Claim levels, 2.5 ML scope, 2.6 Privacy and offline (CLAUDE.md §16, amended by P3-14), 2.7 Dependencies, 2.8 Evaluation integrity: the MM-Fit split (corrected) (+2 more)
 
-### Community 256 - "P3-29 — Owner decisions on P3-28: the near-side rule, the lateral raise's start zone, and a proposal for the push-up and sit-up"
-Cohesion: 0.25
-Nodes (8): 1. Near-side counting: only a counted repetition blocks, 2. The lateral raise: start zone at or below 36°, 3. The push-up and sit-up start zones: a proposal, not applied, Addendum (2026-09-29): the owner's curl check, recorded in P3-31, Checks, For the owner, On the phone, P3-29 — Owner decisions on P3-28: the near-side rule, the lateral raise's start zone, and a proposal for the push-up and sit-up
-
-### Community 257 - "AuthFailure"
-Cohesion: 0.20
-Nodes (8): AuthFailure, EMAIL_ALREADY_IN_USE, INVALID_CREDENTIALS, MALFORMED_EMAIL, NETWORK_UNAVAILABLE, UNKNOWN, WEAK_PASSWORD, P3-80 — "Forgot password?" on the sign-in screen
-
-### Community 261 - "P3-5 — Repetition semantics for push-up, lateral raise and glute bridge"
-Cohesion: 0.33
-Nodes (6): Consequences, Decisions, Evidence, Glute bridge — an assumption, not a measurement, Method, and one correction to P3-1's, P3-5 — Repetition semantics for push-up, lateral raise and glute bridge
-
-### Community 268 - "Kinesis — Repository Structure"
-Cohesion: 0.33
-Nodes (5): Kinesis — Repository Structure, Open sequencing question, The one rule this layout encodes, Version catalog, What is deliberately absent
-
 ### Community 269 - "Adopted, as frozen"
 Cohesion: 0.40
 Nodes (5): Adopted, as frozen, Frozen, P3-46 — The sit-up's trunk driver, tested once on the held-out people, Result (2026-10-02): PASS, What follows
 
-### Community 284 - "JointAngleId"
-Cohesion: 0.09
-Nodes (24): BodyPoint, ANKLE, ELBOW, FOOT_INDEX, HEEL, HIP, KNEE, SHOULDER (+16 more)
-
-### Community 285 - "6. Final scope and claim enforcement"
-Cohesion: 0.29
-Nodes (7): 6. Final scope and claim enforcement, Amendment: the backend line, and exactly what it now permits, Final scope, How it is enforced, The three claim levels, enforced in code, What the user sees, Why this is worth the effort
+### Community 284 - "DrivingSignal"
+Cohesion: 0.14
+Nodes (11): SkeletonSink, DrivingSignal, SegmentInclination, TRUNK, Built and run (2026-10-02), For the owner: the profile change, P3-45 — The sit-up's trunk-angle driver: the method and the test, before any measurement, The engine change (built test-first, used by no shipped profile) (+3 more)
 
 ### Community 286 - "P3-1 — Bicep curl repetition semantics, closed against the label file"
 Cohesion: 0.50
 Nodes (4): Consequences, Decision, Evidence, P3-1 — Bicep curl repetition semantics, closed against the label file
-
-### Community 288 - "P3-54 — Phase P10 Fatigue Engine: Velocity Loss and Set Termination Tracking"
-Cohesion: 0.40
-Nodes (5): Context and Motivation, P3-54 — Phase P10 Fatigue Engine: Velocity Loss and Set Termination Tracking, Principles and Guardrails (Non-Negotiables), Verification, What Was Built
-
-### Community 289 - "P3-39 — Decision 5 traced: the curl's one-result lifts, a fix tried, and why the engine stays"
-Cohesion: 0.50
-Nodes (4): Decided: the engine is not changed, P3-39 — Decision 5 traced: the curl's one-result lifts, a fix tried, and why the engine stays, The fix tried, The trace
 
 ### Community 290 - "P3-40 — S5: one session's baseline against the same person's other sessions"
 Cohesion: 0.50
@@ -957,53 +928,41 @@ Nodes (4): P3-40 — S5: one session's baseline against the same person's other 
 Cohesion: 0.33
 Nodes (6): §17 check: Firebase, Disclosure, P3-14 — Firebase Auth and Firestore sync: the first architecture change, The contradiction, stated before it was resolved, The offline guard was rewritten, not weakened, What was decided, and by whom
 
-### Community 294 - "MovementContextTracker"
-Cohesion: 0.13
-Nodes (9): MovementContextTracker, MovementContextTrackerTest, 1. The answer, 2. What the app does (built, in the code), 3. Built but not in the app, 4. What the owner's phone has recorded, by exercise, 5. What is left, for the app, 6. Build on the phone now (+1 more)
-
-### Community 295 - "Consequences"
-Cohesion: 0.40
-Nodes (5): Consequences, P3-6 — Exercise variants: the documented list, and the mechanism no document specifies, The list, quoted, What is built here, and what is blocked, What the documents do not say, stated rather than guessed
-
-### Community 299 - "Kind"
-Cohesion: 0.40
-Nodes (5): Kind, FIELD, INTERFACE_METHOD, INVOKE_DYNAMIC, METHOD
-
 ### Community 300 - "RepFsm"
-Cohesion: 0.21
-Nodes (5): RepCycle, RepFsm, SignalResampler, 4. The P3-18 squat set: two bugs found and fixed, one behaviour for the owner, A change to this folder that was not this session's
+Cohesion: 0.25
+Nodes (3): RepCycle, RepFsm, A change to this folder that was not this session's
 
-### Community 302 - "AuthResult"
-Cohesion: 0.27
-Nodes (4): AuthGateway, AuthResult, Failed, Success
+### Community 302 - "FirebaseAuthGateway"
+Cohesion: 0.18
+Nodes (5): AuthGateway, AuthResult, Failed, Success, FirebaseAuthGateway
+
+### Community 311 - "EmaSmoother"
+Cohesion: 0.15
+Nodes (6): EmaSmoother, GapInterpolator, SignalMetrics, SignalResampler, 3. Frame rate (P3-31 error 3): measured, not fixed, 4. The P3-18 squat set: two bugs found and fixed, one behaviour for the owner
 
 ### Community 314 - "1. Verdict: YELLOW"
 Cohesion: 0.40
 Nodes (5): 1. Verdict: YELLOW, The one-line summary, The three gates before you commit, What I got wrong, What survives unchanged
 
-### Community 316 - "11. Firebase, security and the repository"
-Cohesion: 0.40
-Nodes (5): 11.1 What is in use, 11.2 The security rules (`firestore.rules`), 11.3 What has not been checked (owner's checks), 11.4 The Git remote, 11. Firebase, security and the repository
-
 ## Knowledge Gaps
 - **179 isolated node(s):** `PREPARE`, `LIVE`, `REST`, `SUMMARY`, `PLATFORM_TOO_OLD` (+174 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1222 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **96 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **101 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `RepRecord` connect `RepRecord` to `KinesisEngine`, `assertequals`, `.of`, `Landmarks`, `LiveRepetitionEngine`, `.summarise`, `SessionMappingTest`, `.rep`, `SessionExport`, `RepVerdicts`, `CalibrationCoordinator`, `ProgressScreens.kt`, `RepRecordIntegrityTest`, `MovementContext`, `CalibrationScreens.kt`, `FormMeasures`, `CalibrationTest`, `SessionDocument`, `SessionRecorder`, `TechniqueFault`, `TierBProfileTest`, `.paired`, `Kinesis — Core Contracts`, `Antigravity Works — Activity & Decision Log`, `RepFsm`, `SessionMerge`, `.of`, `VisibilityPolicy`, `TierAProfileTest`, `RepetitionBaseline`, `.writeA2`, `ExerciseProfile`, `3.2 The shared engine (`core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/`)`, `P3-44 — Layer 2 step B: a per-repetition form summary in the record, and three more rules`, `SessionMapping`, `VariantInheritanceTest`, `.oneSided`, `AnomalyStudyTest`, `PersonalisationStudy`, `PostRepAnalysisTest`, `.summarise`, `.rep`, `SessionExportTest`, `P3-43 — P8 Layer 2: the cited technique rules, their sources, and what can be measured now`, `.parse`, `MmFit.kt`, `BilateralSignal`, `BilateralRepTracker`, `Kinesis — Engineering Rules for AI Coding Sessions`, `.read`, `.json`, `ViewAndSideContractTest`?**
-  _High betweenness centrality (0.140) - this node is a cross-community bridge._
+- **Why does `RepRecord` connect `RepRecord` to `KinesisEngine`, `Landmarks`, `RobustStatistic`, `Screens.kt`, `LiveRepetitionEngine`, `.summarise`, `SessionMappingTest`, `.rep`, `SessionExport`, `RepVerdictsTest`, `SetDrafts`, `ProgressScreen`, `RepRecordIntegrityTest`, `MovementContext`, `CalibrationScreens.kt`, `Side`, `.cutRange`, `CalibrationTest`, `SessionDocument`, `3.2 The shared engine (`core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/`)`, `TierBProfileTest`, `ActivityContextAbsenceTest`, `.lunge`, `.paired`, `Kinesis — Core Contracts`, `TechniqueFault`, `SessionMerge`, `.of`, `TierAProfileTest`, `EmaSmoother`, `.fromRepetitions`, `.writeA2`, `RepetitionExercise`, `.summarise`, `Built (2026-10-02)`, `.evaluate`, `.a_form_round_trips_with_its_unmeasured_side_still_unmeasured`, `VariantInheritanceTest`, `.oneSided`, `AnomalyStudyTest`, `ExportFilesTest.kt`, `SetupGate`, `.load`, `PostRepAnalysisTest`, `.summarise`, `.rep`, `SessionExportTest`, `P3-43 — P8 Layer 2: the cited technique rules, their sources, and what can be measured now`, `.parse`, `MmFit.kt`, `BilateralSignal`, `BilateralRepTracker`, `Kinesis — Engineering Rules for AI Coding Sessions`, `PersonalisationStudy`, `P3-22 — P6: calibration and personal baselines`?**
+  _High betweenness centrality (0.144) - this node is a cross-community bridge._
 - **Are the 25 inferred relationships involving `RepRecord` (e.g. with `15. Data model` and `6. Real-time performance contract`) actually correct?**
   _`RepRecord` has 25 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `PREPARE`, `LIVE`, `REST` to the rest of the system?**
   _179 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `assertequals` be split into smaller, more focused modules?**
-  _Cohesion score 0.06489675516224189 - nodes in this community are weakly interconnected._
-- **Why does `SessionRecord` connect `RepRecord` to `WorkoutScreens.kt`, `assertequals`, `LocalStore`, `MainActivity.kt`, `TrendCharts.kt`, `.summarise`, `SessionMappingTest`, `.reps`, `SessionExport`, `CalibrationCoordinator`, `ProgressScreens.kt`, `.summarise`, `CalibrationScreens.kt`, `6. Final scope and claim enforcement`, `SessionDocument`, `SessionRecorder`, `TechniqueFault`, `P3-14 — Firebase Auth and Firestore sync: the first architecture change`, `ReminderWork.kt`, `SessionSync.kt`, `SessionMerge`, `LocalDay`, `RepetitionBaseline`, `3.2 The shared engine (`core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/`)`, `LiveSetSaverTest`, `LiveHost.kt`, `SetDraftsTest`, `SetDrafts`, `SessionExportTest`, `Run`, `KinesisDatabase`, `MmFit.kt`, `BilateralSignal`, `.read`, `.format`, `.json`, `FirebaseSync.kt`, `OfflineManifestGuardTest`, `2. The rules (non-negotiable)`, `SessionRepository`?**
-  _High betweenness centrality (0.112) - this node is a cross-community bridge._
+- **Should `LiveScreenClippingTest.kt` be split into smaller, more focused modules?**
+  _Cohesion score 0.08067226890756303 - nodes in this community are weakly interconnected._
+- **Why does `SessionRecord` connect `RepRecord` to `KinesisEngine`, `Landmarks`, `LocalStore`, `MainActivity.kt`, `Screens.kt`, `.summarise`, `SessionMappingTest`, `.reps`, `SessionExport`, `SetDrafts`, `ProgressScreen`, `StreakRuleTest`, `.of`, `CalibrationScreens.kt`, `.of`, `.newIn`, `ActivityContextAbsenceTest`, `P3-14 — Firebase Auth and Firestore sync: the first architecture change`, `ReminderWork.kt`, `SessionSync.kt`, `SessionMerge`, `LocalDay`, `.fromRepetitions`, `RepetitionExercise`, `LiveSetSaverTest`, `.summarise`, `LiveHost.kt`, `.a_form_round_trips_with_its_unmeasured_side_still_unmeasured`, `.toMap`, `ExportFilesTest.kt`, `SessionExportTest`, `Run`, `MmFit.kt`, `.read`, `.json`, `FirebaseSync.kt`, `OfflineManifestGuardTest`, `2. The rules (non-negotiable)`, `Streaks`, `LiveSetSaver`?**
+  _High betweenness centrality (0.133) - this node is a cross-community bridge._
 - **Are the 5 inferred relationships involving `Landmarks` (e.g. with `4. The mirroring contract` and `Frame shape: corrected in the adapter`) actually correct?**
   _`Landmarks` has 5 INFERRED edges - model-reasoned connections that need verification._
-- **Should `Screens.kt` be split into smaller, more focused modules?**
-  _Cohesion score 0.09371980676328502 - nodes in this community are weakly interconnected._
+- **Should `Landmarks` be split into smaller, more focused modules?**
+  _Cohesion score 0.03138850100176067 - nodes in this community are weakly interconnected._

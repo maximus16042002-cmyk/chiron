@@ -13756,6 +13756,29 @@ Every completed repetition carries a 145-dimensional `MovementContext` (`rep.mov
 
 ---
 
+## P3-87 — Active movement duration speed gating and Lunge cross-exercise discrimination
+
+*2026-10-17. Following P3-86, the user tested the Lunge profile on a physical Nothing Phone 2a (Set #116) and reported: "even if the form is 50 percent wrong it still counts....and even if i do it fast it still counts....please fix it".*
+
+**1. Speed Gating: Active Movement Duration (`descentMs + ascentMs`).**
+- *Root Cause*: In `RepRecord`, `durationMs` was defined as `endMs - startMs`. In `RepFsm`, `startMs` is set upon entering `TOP` or `DESCENDING`. If the user pauses or stands slightly bent before moving, `endMs - startMs` accumulates that dwell time and reports 1500–2500+ ms.
+- Consequently, repetitions executed with high speed (e.g. Set #116 Rep 33: descent 401 ms + ascent 201 ms = 602 ms total active movement) were evaluated as `rep.durationMs = 2139.0 ms > profile.tooFastBelowMs (930.0 ms)` and counted as valid!
+- *Fix*: In `RepVerdicts`, introduced `isTooFast(profile, rep)` which evaluates active movement duration:
+  `val activeDurationMs = if (!rep.descentMs.isNaN() && !rep.ascentMs.isNaN() && rep.descentMs > 0.0 && rep.ascentMs > 0.0) rep.descentMs + rep.ascentMs else rep.durationMs`
+  `val isTooFast = minOf(rep.durationMs, activeDurationMs) < profile.tooFastBelowMs`
+- If either total duration or active movement duration falls below `profile.tooFastBelowMs`, the repetition is marked `TOO_FAST` ("Too fast — not counted").
+
+**2. Cross-Exercise Discrimination on Lunge Profile.**
+- *Root Cause*: `isWrongExercise` was only checking `isSquat` (P3-86). On the Lunge screen, squats (bilateral knee flexion with torso forward lean) and standing leg curls completed the knee cycle on the near leg (P3-71) and counted as lunges (e.g. Set #116 Rep 11).
+- *Fix*: Expanded `isWrongExercise` in `RepVerdicts` for `lunge` and `reverse_lunge`:
+  1. *Squats on Lunge*: In a squat, both hips flex deeply and symmetrically (`nearHipMin <= 125.0`, `farHipMin <= 125.0`, `abs(nearHipMin - farHipMin) < 22.0`) with torso forward lean (`trunkLeanMax >= 12.0`). In a true lunge, the stance is split: trailing hip stays in extension (`farHipMin > 135.0`) or large hip asymmetry (`abs(nearHipMin - farHipMin) > 25.0`). Rejects squats on the lunge screen as `WRONG_EXERCISE`.
+  2. *Standing Leg Curls*: In standing leg curls, neither hip flexes into a lunge stance (`minOf(nearHipMin, farHipMin) > 130.0`). Rejects leg curls on the lunge screen as `WRONG_EXERCISE`.
+  3. *Collapsed Torso / 50% Bent Form*: In a lunge, the torso remains upright. Excessive forward lean (`trunkLeanMax > 28.0`) is rejected as `WRONG_EXERCISE`.
+
+**Next entry: P3-88.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

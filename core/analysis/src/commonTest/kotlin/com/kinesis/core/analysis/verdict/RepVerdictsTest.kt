@@ -381,6 +381,121 @@ class RepVerdictsTest {
         assertEquals(RepOutcome.COUNTED, v.outcome)
     }
 
+    @Test
+    fun fast_repetition_with_short_active_duration_is_rejected_as_too_fast() {
+        // Total duration is 2.0s, but active movement (descent + ascent) is only 600ms (< 930ms for lunge)
+        val fastRep = RepRecord(
+            repIndex = 1,
+            attributedSide = Side.RIGHT,
+            startMs = 0.0,
+            endMs = 2000.0,
+            validity = RepValidity.VALID,
+            rangeOfMotion = BilateralSignal(Double.NaN, 95.0),
+            peakValue = BilateralSignal(Double.NaN, 175.0),
+            troughValue = BilateralSignal(Double.NaN, 80.0),
+            descentMs = 400.0,
+            ascentMs = 200.0,
+            resampledLeft = DoubleArray(64) { Double.NaN },
+            resampledRight = DoubleArray(64) { Double.NaN },
+        )
+        val v = judge(ExerciseLibrary.lunge, fastRep)
+        assertEquals(RepOutcome.TOO_FAST, v.outcome)
+        assertFalse(v.outcome.counts)
+        assertEquals(RepVerdicts.TOO_FAST_MESSAGE, v.message)
+    }
+
+    @Test
+    fun lunge_rejects_squats_as_wrong_exercise() {
+        // Squat: trunk leans forward (20 deg), both hips flex deeply (75 deg) and symmetrically
+        val squatContext = movementContextTrajectory(
+            nearHip = (0..15).map { if (it < 8) 170.0 - (95.0 * it / 8.0) else 75.0 + (95.0 * (it - 8) / 7.0) },
+            farHip = (0..15).map { if (it < 8) 170.0 - (92.0 * it / 8.0) else 78.0 + (92.0 * (it - 8) / 7.0) },
+            trunkLean = (0..15).map { if (it < 8) 5.0 + (15.0 * it / 8.0) else 20.0 - (15.0 * (it - 8) / 7.0) },
+        )
+        val v = judge(
+            ExerciseLibrary.lunge,
+            rep(
+                RepValidity.VALID,
+                durationMs = 2_000.0,
+                side = Side.RIGHT,
+                rightPeak = 170.0,
+                rightTrough = 70.0,
+                movementContext = squatContext,
+            ),
+        )
+        assertEquals(RepOutcome.WRONG_EXERCISE, v.outcome)
+        assertFalse(v.outcome.counts)
+    }
+
+    @Test
+    fun lunge_rejects_standing_leg_curls_as_wrong_exercise() {
+        // Leg curl: hips remain extended (> 130 deg), but knee flexes
+        val curlContext = movementContextTrajectory(
+            nearHip = (0..15).map { if (it < 8) 170.0 - (5.0 * it / 8.0) else 165.0 + (5.0 * (it - 8) / 7.0) },
+            farHip = List(16) { 170.0 },
+            trunkLean = (0..15).map { if (it < 8) 2.0 + (6.0 * it / 8.0) else 8.0 - (6.0 * (it - 8) / 7.0) },
+        )
+        val v = judge(
+            ExerciseLibrary.lunge,
+            rep(
+                RepValidity.VALID,
+                durationMs = 2_000.0,
+                side = Side.RIGHT,
+                rightPeak = 170.0,
+                rightTrough = 70.0,
+                movementContext = curlContext,
+            ),
+        )
+        assertEquals(RepOutcome.WRONG_EXERCISE, v.outcome)
+        assertFalse(v.outcome.counts)
+    }
+
+    @Test
+    fun lunge_rejects_collapsed_torso_as_wrong_exercise() {
+        // Torso bent forward excessively (> 28 deg)
+        val collapsedContext = movementContextTrajectory(
+            nearHip = (0..15).map { if (it < 8) 170.0 - (85.0 * it / 8.0) else 85.0 + (85.0 * (it - 8) / 7.0) },
+            farHip = (0..15).map { if (it < 8) 170.0 - (20.0 * it / 8.0) else 150.0 + (20.0 * (it - 8) / 7.0) },
+            trunkLean = (0..15).map { if (it < 8) 5.0 + (30.0 * it / 8.0) else 35.0 - (30.0 * (it - 8) / 7.0) },
+        )
+        val v = judge(
+            ExerciseLibrary.lunge,
+            rep(
+                RepValidity.VALID,
+                durationMs = 2_000.0,
+                side = Side.RIGHT,
+                rightPeak = 170.0,
+                rightTrough = 70.0,
+                movementContext = collapsedContext,
+            ),
+        )
+        assertEquals(RepOutcome.WRONG_EXERCISE, v.outcome)
+        assertFalse(v.outcome.counts)
+    }
+
+    @Test
+    fun clean_lunge_is_counted() {
+        // True lunge: upright torso (< 20 deg), front hip flexes (85 deg), rear hip stays extended (150 deg)
+        val lungeContext = movementContextTrajectory(
+            nearHip = (0..15).map { if (it < 8) 170.0 - (85.0 * it / 8.0) else 85.0 + (85.0 * (it - 8) / 7.0) },
+            farHip = (0..15).map { if (it < 8) 170.0 - (20.0 * it / 8.0) else 150.0 + (20.0 * (it - 8) / 7.0) },
+            trunkLean = (0..15).map { if (it < 8) 3.0 + (5.0 * it / 8.0) else 8.0 - (5.0 * (it - 8) / 7.0) },
+        )
+        val v = judge(
+            ExerciseLibrary.lunge,
+            rep(
+                RepValidity.VALID,
+                durationMs = 2_000.0,
+                side = Side.RIGHT,
+                rightPeak = 170.0,
+                rightTrough = 70.0,
+                movementContext = lungeContext,
+            ),
+        )
+        assertEquals(RepOutcome.COUNTED, v.outcome)
+        assertTrue(v.outcome.counts)
+    }
+
     // --- Helpers -------------------------------------------------------------------------------
 
     private fun judge(profile: RepetitionExercise, rep: RepRecord): RepVerdict = RepVerdicts.judge(profile, rep, emptyList())

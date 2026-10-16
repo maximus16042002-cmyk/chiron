@@ -128,12 +128,20 @@ object RepVerdicts {
 
     // --- One record on its own ------------------------------------------------------------------
 
+    private fun isTooFast(profile: RepetitionExercise, rep: RepRecord): Boolean {
+        if (rep.durationMs < profile.tooFastBelowMs) return true
+        if (!rep.descentMs.isNaN() && !rep.ascentMs.isNaN() && rep.descentMs > 0.0 && rep.ascentMs > 0.0) {
+            if ((rep.descentMs + rep.ascentMs) < profile.tooFastBelowMs) return true
+        }
+        return false
+    }
+
     private fun base(profile: RepetitionExercise, rep: RepRecord): RepVerdict {
         if (rep.validity == RepValidity.INCOMPLETE) return NOISE
         if (belowFloor(profile, rep)) return LOST_TRACKING
         return when (rep.validity) {
             RepValidity.VALID -> when {
-                rep.durationMs < profile.tooFastBelowMs -> TOO_FAST
+                isTooFast(profile, rep) -> TOO_FAST
                 isWrongExercise(profile, rep) -> WRONG_EXERCISE
                 else -> formFault(profile, rep) ?: COUNTED
             }
@@ -143,10 +151,10 @@ object RepVerdicts {
             RepValidity.ABORTED -> when {
                 // A full cycle the state machine timed under its minimum. A paired record is also
                 // ABORTED when one side fell short, so a slow one is not "too fast".
-                reached(profile, rep, profile.repSignal.bottomThreshold) && rep.durationMs < profile.tooFastBelowMs -> TOO_FAST
+                reached(profile, rep, profile.repSignal.bottomThreshold) && isTooFast(profile, rep) -> TOO_FAST
                 reached(profile, rep, profile.repSignal.bottomThreshold) -> NOT_FULL
                 !reached(profile, rep, halfway(profile)) -> NOISE
-                rep.durationMs < profile.tooFastBelowMs -> TOO_FAST
+                isTooFast(profile, rep) -> TOO_FAST
                 else -> NOT_FULL
             }
             RepValidity.INSUFFICIENT_DATA -> if (reached(profile, rep, halfway(profile))) LOST_TRACKING else NOISE
@@ -234,14 +242,14 @@ object RepVerdicts {
     private fun overlap(a: RepRecord, b: RepRecord): Boolean = b.startMs < a.endMs && a.startMs < b.endMs
 
     /**
-     * Rejects movements on the Squat profile that are not squats (DECISIONS.md P3-86).
+     * Rejects movements on the Squat and Lunge profiles that are not the target exercise (DECISIONS.md P3-86, P3-87).
      *
-     * In SquatProfile, knee flexion drives repetition detection and is evaluated near-side only
-     * (P3-68). As a result, non-squat leg movements (standing leg curls, lunges, knee raises)
-     * can complete a knee cycle. If movement context is available, we evaluate:
-     * 1. Near-side hip flexion: in a true squat to knee depth (<= 90 deg), near hip must flex (<= 125 deg).
-     * 2. Trunk lean and bilateral hip coordination: in a squat, hips push back with torso lean (>= 12 deg).
-     *    In a lunge or knee raise, torso stays upright (< 12 deg) and trailing/supporting hip stays extended.
+     * In SquatProfile and LungeProfile, knee flexion drives repetition detection and is evaluated near-side only
+     * (P3-68, P3-71). As a result, cross-exercise leg movements (squats done on lunge, lunges done on squat,
+     * standing leg curls) can complete a knee cycle. If movement context is available, we evaluate:
+     * - Squat: near hip must flex (<= 125 deg); torso must lean (>= 12 deg) without split-hip lunge asymmetry.
+     * - Lunge: leading hip must flex (<= 125 deg, catches leg curls); torso must stay upright (<= 28 deg);
+     *   bilateral hips must not flex deeply and symmetrically with squat-like trunk lean (catches squats on lunge).
      */
     private fun isWrongExercise(profile: RepetitionExercise, rep: RepRecord): Boolean {
         val unwrapped = PersonalStartZone.baseOf(profile)
@@ -249,7 +257,11 @@ object RepVerdicts {
             (unwrapped is ExerciseVariant && unwrapped.parent.id == "squat") ||
             profile.id == "squat" ||
             profile.id == "goblet_squat"
-        if (!isSquat) return false
+        val isLunge = unwrapped.id == "lunge" ||
+            (unwrapped is ExerciseVariant && unwrapped.parent.id == "lunge") ||
+            profile.id == "lunge" ||
+            profile.id == "reverse_lunge"
+        if (!isSquat && !isLunge) return false
 
         val context = rep.movementContext ?: return false
         val features = context.features
@@ -293,33 +305,62 @@ object RepVerdicts {
             return false
         }
 
-        // 1. Biomechanical discriminator: Hip flexion.
-        // In a true squat reaching the knee threshold (<= 90 deg), the near hip MUST flex deeply.
-        // In standing leg curls, stiff-leg positions, or trailing lunge legs, hip angle stays > 125 deg.
-        if (nearHipMin > 125.0) {
-            return true
-        }
-
-        // 2. Biomechanical discriminator: Trunk lean & hip coordination (Squat vs Lunge / Knee Raise).
-        // In a squat, the hips travel backward and the trunk leans forward (maxTrunkLean >= 12 deg).
-        // In a lunge (with leading leg near camera) or knee raise, the trunk remains upright (< 12 deg).
         val farHipMin = if (farHipSignal != null) minSignal(features, farHipSignal) else null
         val farHipMeasured = farHipSignal != null && !isDefaultSignal(features, farHipSignal)
 
-        if (trunkLeanMax < 12.0) {
-            // Upright torso: If the far leg is measured and in extension (> 135 deg) or asymmetric (> 35 deg),
-            // this is definitively a lunge or single-leg knee raise.
-            if (farHipMeasured && farHipMin != null && (farHipMin > 135.0 || abs(nearHipMin - farHipMin) > 35.0)) {
+        if (isSquat) {
+            // 1. Biomechanical discriminator: Hip flexion.
+            // In a true squat reaching the knee threshold (<= 90 deg), the near hip MUST flex deeply.
+            // In standing leg curls, stiff-leg positions, or trailing lunge legs, hip angle stays > 125 deg.
+            if (nearHipMin > 125.0) {
                 return true
             }
-            // Even if far leg is occluded, a rep flexing knee to 90 deg with completely upright torso (< 10 deg)
-            // is not a bodyweight squat (where torso forward inclination is biomechanically required for balance).
-            if (trunkLeanMax < 10.0) {
+
+            // 2. Biomechanical discriminator: Trunk lean & hip coordination (Squat vs Lunge / Knee Raise).
+            // In a squat, the hips travel backward and the trunk leans forward (maxTrunkLean >= 12 deg).
+            // In a lunge (with leading leg near camera) or knee raise, the trunk remains upright (< 12 deg).
+            if (trunkLeanMax < 12.0) {
+                // Upright torso: If the far leg is measured and in extension (> 135 deg) or asymmetric (> 35 deg),
+                // this is definitively a lunge or single-leg knee raise.
+                if (farHipMeasured && farHipMin != null && (farHipMin > 135.0 || abs(nearHipMin - farHipMin) > 35.0)) {
+                    return true
+                }
+                // Even if far leg is occluded, a rep flexing knee to 90 deg with completely upright torso (< 10 deg)
+                // is not a bodyweight squat (where torso forward inclination is biomechanically required for balance).
+                if (trunkLeanMax < 10.0) {
+                    return true
+                }
+            } else if (farHipMeasured && farHipMin != null && abs(nearHipMin - farHipMin) > 40.0) {
+                // Even with some forward lean, massive hip asymmetry (> 40 deg) indicates a split stance (lunge).
                 return true
             }
-        } else if (farHipMeasured && farHipMin != null && abs(nearHipMin - farHipMin) > 40.0) {
-            // Even with some forward lean, massive hip asymmetry (> 40 deg) indicates a split stance (lunge).
-            return true
+            return false
+        }
+
+        if (isLunge) {
+            // 1. Standing leg curl / stiff-leg movement:
+            // In a lunge, the leading leg's hip must flex into the lunge stance (<= 125 deg).
+            // If neither hip flexes (> 130 deg), the person is bending a knee backwards while standing.
+            val minHip = if (farHipMeasured && farHipMin != null) minOf(nearHipMin, farHipMin) else nearHipMin
+            if (minHip > 130.0) {
+                return true
+            }
+
+            // 2. Squat performed on Lunge profile:
+            // In a squat, torso leans forward (trunkLeanMax >= 12 deg) and BOTH hips flex deeply and symmetrically.
+            // In a true lunge, the stance is split: trailing hip stays in extension (> 135 deg) or asymmetric (> 25 deg).
+            if (trunkLeanMax >= 12.0 && farHipMeasured && farHipMin != null) {
+                if (nearHipMin <= 125.0 && farHipMin <= 125.0 && abs(nearHipMin - farHipMin) < 22.0) {
+                    return true
+                }
+            }
+
+            // 3. Collapsed torso / excessive forward lean:
+            // In a lunge, the torso remains upright (< 28 deg). Bending 50% forward at the waist is not a lunge.
+            if (trunkLeanMax > 28.0) {
+                return true
+            }
+            return false
         }
 
         return false
