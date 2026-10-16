@@ -44,4 +44,12 @@ class VerdictLabelTest {
         assertEquals("✕ Lost tracking", verdictLabel(v))
         assertEquals(Attention, verdictColor(v))
     }
+
+    /** DECISIONS.md P3-86: a wrong exercise attempt says wrong exercise, in red. */
+    @Test
+    fun a_wrong_exercise_attempt_says_wrong_exercise_in_red() {
+        val v = RepVerdict(RepOutcome.WRONG_EXERCISE, RepVerdicts.WRONG_EXERCISE_MESSAGE)
+        assertEquals("✕ Wrong exercise", verdictLabel(v))
+        assertEquals(Fault, verdictColor(v))
+    }
 }

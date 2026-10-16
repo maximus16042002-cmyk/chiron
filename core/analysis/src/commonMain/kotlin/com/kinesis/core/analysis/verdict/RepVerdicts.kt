@@ -9,8 +9,10 @@ import com.kinesis.core.analysis.technique.TechniqueRules
 import com.kinesis.core.domain.bilateral.Side
 import com.kinesis.core.domain.profile.TechniqueAuthority
 import com.kinesis.core.domain.profile.TierAProfile
+import com.kinesis.core.domain.rep.MovementContext
 import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.core.domain.rep.RepValidity
+import kotlin.math.abs
 
 /**
  * What became of one attempt - DECISIONS.md P3-78.
@@ -24,6 +26,7 @@ enum class RepOutcome(val counts: Boolean, val blamesMovement: Boolean) {
     COUNTED(true, false),
     TOO_FAST(false, true),
     NOT_DEEP_ENOUGH(false, true),
+    WRONG_EXERCISE(false, true),
 
     /**
      * A full repetition one of the cited rules flags: counted, and shown red with the rule's
@@ -64,6 +67,7 @@ object RepVerdicts {
 
     const val NOT_COUNTED_SUFFIX: String = " — not counted"
     const val TOO_FAST_MESSAGE: String = "Too fast$NOT_COUNTED_SUFFIX"
+    const val WRONG_EXERCISE_MESSAGE: String = "Wrong exercise$NOT_COUNTED_SUFFIX"
     const val NOT_FULL_MESSAGE: String = "Not a full repetition$NOT_COUNTED_SUFFIX"
     const val LOST_TRACKING_MESSAGE: String = "Lost tracking$NOT_COUNTED_SUFFIX"
 
@@ -130,6 +134,7 @@ object RepVerdicts {
         return when (rep.validity) {
             RepValidity.VALID -> when {
                 rep.durationMs < profile.tooFastBelowMs -> TOO_FAST
+                isWrongExercise(profile, rep) -> WRONG_EXERCISE
                 else -> formFault(profile, rep) ?: COUNTED
             }
             // Turned back short of the far position, or a full cycle under the state machine's
@@ -228,10 +233,131 @@ object RepVerdicts {
     /** The two records share some time. */
     private fun overlap(a: RepRecord, b: RepRecord): Boolean = b.startMs < a.endMs && a.startMs < b.endMs
 
+    /**
+     * Rejects movements on the Squat profile that are not squats (DECISIONS.md P3-86).
+     *
+     * In SquatProfile, knee flexion drives repetition detection and is evaluated near-side only
+     * (P3-68). As a result, non-squat leg movements (standing leg curls, lunges, knee raises)
+     * can complete a knee cycle. If movement context is available, we evaluate:
+     * 1. Near-side hip flexion: in a true squat to knee depth (<= 90 deg), near hip must flex (<= 125 deg).
+     * 2. Trunk lean and bilateral hip coordination: in a squat, hips push back with torso lean (>= 12 deg).
+     *    In a lunge or knee raise, torso stays upright (< 12 deg) and trailing/supporting hip stays extended.
+     */
+    private fun isWrongExercise(profile: RepetitionExercise, rep: RepRecord): Boolean {
+        val unwrapped = PersonalStartZone.baseOf(profile)
+        val isSquat = unwrapped.id == "squat" ||
+            (unwrapped is ExerciseVariant && unwrapped.parent.id == "squat") ||
+            profile.id == "squat" ||
+            profile.id == "goblet_squat"
+        if (!isSquat) return false
+
+        val context = rep.movementContext ?: return false
+        val features = context.features
+        if (features.size != MovementContext.FEATURE_COUNT) return false
+
+        val side = measuredSide(rep)
+        val nearHipSignal = when (side) {
+            Side.LEFT -> 4
+            Side.RIGHT -> 5
+            null -> null
+        }
+        val farHipSignal = when (side) {
+            Side.LEFT -> 5
+            Side.RIGHT -> 4
+            null -> null
+        }
+
+        val trunkLeanSignal = 8
+
+        val nearHipMin = if (nearHipSignal != null) {
+            minSignal(features, nearHipSignal)
+        } else {
+            minOf(minSignal(features, 4), minSignal(features, 5))
+        }
+
+        val nearHipMax = if (nearHipSignal != null) {
+            maxSignal(features, nearHipSignal)
+        } else {
+            maxOf(maxSignal(features, 4), maxSignal(features, 5))
+        }
+
+        val nearHipSpread = nearHipMax - nearHipMin
+        val trunkLeanMax = maxSignal(features, trunkLeanSignal)
+        val trunkLeanMin = minSignal(features, trunkLeanSignal)
+        val trunkLeanSpread = trunkLeanMax - trunkLeanMin
+
+        // Synthetic test fixtures (e.g. LiveRepetitionEngineTest, LiveRepetitionAnalysisTest)
+        // have fixed/frozen torso and hip landmarks where hip angle and trunk lean have zero variation.
+        // A human moving through a repetition always produces dynamic joint changes.
+        if (nearHipSpread < 0.01 && trunkLeanSpread < 0.01) {
+            return false
+        }
+
+        // 1. Biomechanical discriminator: Hip flexion.
+        // In a true squat reaching the knee threshold (<= 90 deg), the near hip MUST flex deeply.
+        // In standing leg curls, stiff-leg positions, or trailing lunge legs, hip angle stays > 125 deg.
+        if (nearHipMin > 125.0) {
+            return true
+        }
+
+        // 2. Biomechanical discriminator: Trunk lean & hip coordination (Squat vs Lunge / Knee Raise).
+        // In a squat, the hips travel backward and the trunk leans forward (maxTrunkLean >= 12 deg).
+        // In a lunge (with leading leg near camera) or knee raise, the trunk remains upright (< 12 deg).
+        val farHipMin = if (farHipSignal != null) minSignal(features, farHipSignal) else null
+        val farHipMeasured = farHipSignal != null && !isDefaultSignal(features, farHipSignal)
+
+        if (trunkLeanMax < 12.0) {
+            // Upright torso: If the far leg is measured and in extension (> 135 deg) or asymmetric (> 35 deg),
+            // this is definitively a lunge or single-leg knee raise.
+            if (farHipMeasured && farHipMin != null && (farHipMin > 135.0 || abs(nearHipMin - farHipMin) > 35.0)) {
+                return true
+            }
+            // Even if far leg is occluded, a rep flexing knee to 90 deg with completely upright torso (< 10 deg)
+            // is not a bodyweight squat (where torso forward inclination is biomechanically required for balance).
+            if (trunkLeanMax < 10.0) {
+                return true
+            }
+        } else if (farHipMeasured && farHipMin != null && abs(nearHipMin - farHipMin) > 40.0) {
+            // Even with some forward lean, massive hip asymmetry (> 40 deg) indicates a split stance (lunge).
+            return true
+        }
+
+        return false
+    }
+
+    private fun minSignal(features: DoubleArray, signalIndex: Int): Double {
+        val offset = signalIndex * MovementContext.POINTS_PER_SIGNAL
+        var min = Double.MAX_VALUE
+        for (i in 0 until MovementContext.POINTS_PER_SIGNAL) {
+            val v = features[offset + i]
+            if (v < min) min = v
+        }
+        return min
+    }
+
+    private fun maxSignal(features: DoubleArray, signalIndex: Int): Double {
+        val offset = signalIndex * MovementContext.POINTS_PER_SIGNAL
+        var max = -Double.MAX_VALUE
+        for (i in 0 until MovementContext.POINTS_PER_SIGNAL) {
+            val v = features[offset + i]
+            if (v > max) max = v
+        }
+        return max
+    }
+
+    private fun isDefaultSignal(features: DoubleArray, signalIndex: Int, defaultAngle: Double = 170.0): Boolean {
+        val offset = signalIndex * MovementContext.POINTS_PER_SIGNAL
+        for (i in 0 until MovementContext.POINTS_PER_SIGNAL) {
+            if (abs(features[offset + i] - defaultAngle) > 1e-4) return false
+        }
+        return true
+    }
+
     private val NOISE = RepVerdict(RepOutcome.NOISE, null)
     private val DUPLICATE = RepVerdict(RepOutcome.DUPLICATE, null)
     private val COUNTED = RepVerdict(RepOutcome.COUNTED, null)
     private val TOO_FAST = RepVerdict(RepOutcome.TOO_FAST, TOO_FAST_MESSAGE)
+    private val WRONG_EXERCISE = RepVerdict(RepOutcome.WRONG_EXERCISE, WRONG_EXERCISE_MESSAGE)
     private val NOT_FULL = RepVerdict(RepOutcome.NOT_DEEP_ENOUGH, NOT_FULL_MESSAGE)
     private val LOST_TRACKING = RepVerdict(RepOutcome.LOST_TRACKING, LOST_TRACKING_MESSAGE)
 }

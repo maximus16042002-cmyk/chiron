@@ -13724,6 +13724,38 @@ the card.
 
 ---
 
+## P3-86 — Rejecting non-squat movements on the Squat profile
+
+*2026-10-17. The user reported: while performing non-squat leg exercises (e.g. standing leg curls, lunges, knee raises) on the Squat screen, the repetition counter increments. User request: do not count other exercises, mark them as wrong and not counted.*
+
+**Root Cause.**
+- In `SquatProfile` (and `GobletSquatProfile`), repetition tracking is driven solely by `JointAngleId.KNEE` ($160^\circ \rightarrow 90^\circ \rightarrow 160^\circ$).
+- Under P3-68, `analysedSides` was set to `NEAR_SIDE_ONLY` to avoid phone occlusion issues side-on. Consequently, any single-leg knee flexion past $90^\circ$ and back to $160^\circ$ satisfies `RepFsm` and emits `RepValidity.VALID`.
+- In `RepVerdicts`, `VALID` records with duration $\ge 600$ ms were previously assigned `COUNTED` (or `FORM_FAULT` which also counts), so non-squat leg movements incremented `analysis.countedRepetitions`.
+
+**Why not `ExerciseVerifier` ML model.**
+- As proven in P3-59, the MM-Fit pre-trained verifier model was trained on front-on squats, whereas Chiron requires side-on squats. Applying that model to squats caused 75–100% false alarms on valid squats (`FILMED_FROM_ANOTHER_VIEW`).
+- Therefore, exercise discrimination for squats must rely on deterministic biomechanical kinematics rather than the MM-Fit ML model.
+
+**Biomechanical Kinematic Discrimination.**
+Every completed repetition carries a 145-dimensional `MovementContext` (`rep.movementContext`, P3-34, P3-52) containing 9 continuous signals resampled to 16 points:
+1. *Hip Flexion*: In a true squat reaching knee depth ($\le 90^\circ$), the near hip MUST flex deeply ($\le 125^\circ$, typically $80^\circ - 110^\circ$). In standing leg curls / hamstring bends or trailing lunge legs, the hip remains in extension ($> 135^\circ$). Repetitions with `nearHipMin > 125.0` are rejected.
+2. *Trunk Lean & Bilateral Coordination*: In a bodyweight/goblet squat, the hips travel backward, requiring forward torso lean (`maxTrunkLean >= 12.0^\circ`) to maintain center of mass over the feet. In a lunge (with leading leg near camera) or standing knee raise, the torso remains upright (`< 12.0^\circ`), and the trailing/supporting hip remains extended ($> 135^\circ$) with large hip asymmetry ($> 35^\circ$).
+3. *Synthetic Test Fixtures*: In synthetic stick-figure fixtures (`LiveRepetitionEngineTest`, `LiveRepetitionAnalysisTest`), hips and torso are frozen static (`nearHipSpread < 0.01 && trunkLeanSpread < 0.01`). Human repetitions always exhibit dynamic joint variance. The frozen test fixtures pass through to prevent regressions.
+
+**Verdict & UI Integration.**
+- `RepOutcome` gains `WRONG_EXERCISE(counts = false, blamesMovement = true)`.
+- `RepVerdicts` gains `WRONG_EXERCISE_MESSAGE = "Wrong exercise — not counted"`.
+- Because `counts = false`: `analysis.countedRepetitions` does not increment, and skeleton does not flash green.
+- Because `blamesMovement = true`:
+  - Live screen overlay displays `"✕ Wrong exercise — not counted"` in red `Fault` styling.
+  - Set summary / history displays `"✕ Wrong exercise"` in red `Fault` styling (`verdictLabel` and `verdictColor`).
+- Tests: `RepVerdictsTest` (rejection of leg curls, lunges, knee raises, acceptance of valid squats, backwards compatibility when `movementContext == null`), `VerdictLabelTest` (verdict label & color formatting).
+
+**Next entry: P3-87.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

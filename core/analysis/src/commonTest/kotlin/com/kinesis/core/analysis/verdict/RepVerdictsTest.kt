@@ -4,8 +4,10 @@ import com.kinesis.core.analysis.profile.ArchetypeProfiles
 import com.kinesis.core.analysis.profile.ExerciseLibrary
 import com.kinesis.core.analysis.profile.RepetitionExercise
 import com.kinesis.core.analysis.technique.TechniqueRules
+import com.kinesis.core.analysis.verifier.MovementContextTracker
 import com.kinesis.core.domain.bilateral.BilateralSignal
 import com.kinesis.core.domain.bilateral.Side
+import com.kinesis.core.domain.rep.MovementContext
 import com.kinesis.core.domain.rep.RepRecord
 import com.kinesis.core.domain.rep.RepValidity
 import kotlin.test.Test
@@ -241,6 +243,144 @@ class RepVerdictsTest {
         assertEquals(RepOutcome.LOST_TRACKING, judge(squat, rep(RepValidity.VALID, durationMs = 1_100.0, rightPeak = 172.9, rightTrough = 12.0)).outcome)
     }
 
+    // --- DECISIONS.md P3-86: rejecting non-squat movements on the squat profile ---------------
+
+    @Test
+    fun a_squat_with_no_hip_flexion_is_rejected_as_wrong_exercise() {
+        // A standing leg curl: knee flexes to 70 deg, but hip stays extended (> 135 deg)
+        val context = movementContextTrajectory(
+            nearHip = List(16) { 165.0 - (it % 3) },
+            trunkLean = List(16) { 5.0 },
+        )
+        val v = judge(
+            squat,
+            rep(
+                RepValidity.VALID,
+                durationMs = 2_000.0,
+                side = Side.RIGHT,
+                rightPeak = 175.0,
+                rightTrough = 70.0,
+                movementContext = context,
+            ),
+        )
+        assertEquals(RepOutcome.WRONG_EXERCISE, v.outcome)
+        assertFalse(v.outcome.counts)
+        assertTrue(v.outcome.blamesMovement)
+        assertEquals(RepVerdicts.WRONG_EXERCISE_MESSAGE, v.message)
+    }
+
+    @Test
+    fun a_lunge_during_squat_is_rejected_as_wrong_exercise() {
+        // A lunge with leading leg near camera: near hip flexes to 105 deg, but torso stays upright (6 deg)
+        // and trailing far hip is in extension (155 deg)
+        val context = movementContextTrajectory(
+            nearHip = (0..15).map { if (it < 8) 165.0 - (60.0 * it / 8.0) else 105.0 + (60.0 * (it - 8) / 7.0) },
+            farHip = List(16) { 155.0 },
+            trunkLean = List(16) { 6.0 },
+        )
+        val v = judge(
+            squat,
+            rep(
+                RepValidity.VALID,
+                durationMs = 2_000.0,
+                side = Side.RIGHT,
+                rightPeak = 170.0,
+                rightTrough = 75.0,
+                movementContext = context,
+            ),
+        )
+        assertEquals(RepOutcome.WRONG_EXERCISE, v.outcome)
+        assertFalse(v.outcome.counts)
+        assertTrue(v.outcome.blamesMovement)
+        assertEquals(RepVerdicts.WRONG_EXERCISE_MESSAGE, v.message)
+    }
+
+    @Test
+    fun a_standing_knee_raise_during_squat_is_rejected_as_wrong_exercise() {
+        // A single-leg knee raise: raised knee flexes to 80 deg, hip flexes to 85 deg, but torso stays upright (4 deg)
+        // and supporting far hip stays straight (170 deg)
+        val context = movementContextTrajectory(
+            nearHip = (0..15).map { if (it < 8) 170.0 - (85.0 * it / 8.0) else 85.0 + (85.0 * (it - 8) / 7.0) },
+            farHip = List(16) { 170.0 - (it % 2) },
+            trunkLean = List(16) { 4.0 },
+        )
+        val v = judge(
+            squat,
+            rep(
+                RepValidity.VALID,
+                durationMs = 1_800.0,
+                side = Side.RIGHT,
+                rightPeak = 175.0,
+                rightTrough = 80.0,
+                movementContext = context,
+            ),
+        )
+        assertEquals(RepOutcome.WRONG_EXERCISE, v.outcome)
+        assertFalse(v.outcome.counts)
+        assertTrue(v.outcome.blamesMovement)
+        assertEquals(RepVerdicts.WRONG_EXERCISE_MESSAGE, v.message)
+    }
+
+    @Test
+    fun a_valid_squat_with_proper_hip_and_trunk_kinematics_counts() {
+        // A true squat: near hip flexes to 95 deg, torso leans forward to 25 deg, far hip flexes symmetrically
+        val context = movementContextTrajectory(
+            nearHip = (0..15).map { if (it < 8) 170.0 - (75.0 * it / 8.0) else 95.0 + (75.0 * (it - 8) / 7.0) },
+            farHip = (0..15).map { if (it < 8) 170.0 - (75.0 * it / 8.0) else 95.0 + (75.0 * (it - 8) / 7.0) },
+            trunkLean = (0..15).map { if (it < 8) 5.0 + (20.0 * it / 8.0) else 25.0 - (20.0 * (it - 8) / 7.0) },
+        )
+        val v = judge(
+            squat,
+            rep(
+                RepValidity.VALID,
+                durationMs = 2_200.0,
+                side = Side.RIGHT,
+                rightPeak = 175.0,
+                rightTrough = 75.0,
+                movementContext = context,
+            ),
+        )
+        assertEquals(RepOutcome.COUNTED, v.outcome)
+        assertTrue(v.outcome.counts)
+        assertNull(v.message)
+    }
+
+    @Test
+    fun a_squat_without_movement_context_still_counts_for_backwards_compatibility() {
+        val rep = rep(
+            RepValidity.VALID,
+            durationMs = 2_000.0,
+            rightPeak = 175.0,
+            rightTrough = 75.0,
+            movementContext = null,
+        )
+        val v = judge(squat, rep)
+        assertEquals(RepOutcome.COUNTED, v.outcome)
+        assertTrue(v.outcome.counts)
+    }
+
+    @Test
+    fun frozen_synthetic_test_fixtures_are_not_rejected_as_wrong_exercise() {
+        // Synthetic test fixtures where hip and torso are static frozen
+        val context = movementContextTrajectory(
+            nearHip = List(16) { 180.0 },
+            farHip = List(16) { 180.0 },
+            trunkLean = List(16) { 0.0 },
+        )
+        val v = judge(
+            squat,
+            rep(
+                RepValidity.VALID,
+                durationMs = 2_000.0,
+                side = Side.RIGHT,
+                rightPeak = 170.0,
+                rightTrough = 70.0,
+                movementContext = context,
+            ),
+        )
+        assertEquals(RepOutcome.COUNTED, v.outcome)
+    }
+
     // --- Helpers -------------------------------------------------------------------------------
 
     private fun judge(profile: RepetitionExercise, rep: RepRecord): RepVerdict = RepVerdicts.judge(profile, rep, emptyList())
@@ -255,6 +395,7 @@ class RepVerdictsTest {
         leftTrough: Double = Double.NaN,
         rightPeak: Double = Double.NaN,
         rightTrough: Double = Double.NaN,
+        movementContext: MovementContext? = null,
     ) = RepRecord(
         repIndex = index,
         attributedSide = side,
@@ -268,5 +409,31 @@ class RepVerdictsTest {
         ascentMs = durationMs / 2.0,
         resampledLeft = DoubleArray(64) { Double.NaN },
         resampledRight = DoubleArray(64) { Double.NaN },
+        movementContext = movementContext,
     )
+
+    private fun movementContextTrajectory(
+        nearHip: List<Double>,
+        farHip: List<Double> = List(16) { 170.0 },
+        trunkLean: List<Double> = List(16) { 10.0 },
+        durationMs: Double = 2_000.0,
+        nearSide: Side = Side.RIGHT,
+    ): MovementContext {
+        val f = DoubleArray(MovementContext.FEATURE_COUNT)
+        for (s in 0 until 9) {
+            val defaultVal = MovementContextTracker.DEFAULT_ANGLES[s]
+            for (p in 0 until 16) {
+                f[s * 16 + p] = defaultVal
+            }
+        }
+        val nearSignal = if (nearSide == Side.LEFT) 4 else 5
+        val farSignal = if (nearSide == Side.LEFT) 5 else 4
+        for (p in 0 until 16) {
+            f[nearSignal * 16 + p] = nearHip[p]
+            f[farSignal * 16 + p] = farHip[p]
+            f[8 * 16 + p] = trunkLean[p]
+        }
+        f[144] = durationMs
+        return MovementContext(f)
+    }
 }
