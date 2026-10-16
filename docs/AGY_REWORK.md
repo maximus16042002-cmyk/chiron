@@ -152,12 +152,22 @@ BUILD SUCCESSFUL in 1m 16s
 1. **Squat Test (Set #115):**
    - User tested squat counting with non-squat movements.
    - User confirmed: *"thankyou so much..now it works"*.
-2. **Lunge Test (Set #116):**
+2. **Lunge Baseline Test (Set #116):**
    - User tested fast lunges and wrong movements, identifying that rapid movement and squats still counted.
-   - Deployed P3-87 speed gating and lunge discrimination.
-   - Verified that fast reps ($< 930\text{ ms}$) trigger `"✕ Too fast — not counted"`.
-   - Verified that bilateral squats and standing leg curls trigger `"✕ Wrong exercise — not counted"`.
-   - Verified that genuine, controlled lunges cleanly increment the count with green flash.
+   - Root causes identified: idle top pause masking sub-second active movement, and absence of lunge cross-exercise discriminator.
+3. **Lunge Verification Test (Set #117 — P3-87 Verified on Device):**
+   - User tested lunges with the P3-87 build installed on Nothing Phone 2a.
+   - User feedback: *"did the lunges testing too i think it was nice..you can check the log files too"*.
+   - **Telemetry Breakdown (35 total movement attempts):**
+     - **Controlled Clean Lunges (6 reps counted):** Reps 2, 3, 4, 5, 23, 24 with controlled active durations (1,236 ms – 1,370 ms) and deep knee troughs ($50.1^\circ - 76.5^\circ$) were correctly credited with green flash.
+     - **Fast Reps Rejected (5 reps blocked by $t_{\text{active}} < 930\text{ ms}$):**
+       - Rep 15: active duration 299 ms $\to$ **Too fast — not counted**.
+       - Rep 20: active duration 401 ms (total span 1,169 ms masked by pause) $\to$ **Too fast — not counted**.
+       - Rep 21: active duration 635 ms (total span 1,403 ms) $\to$ **Too fast — not counted**.
+       - Rep 28: active duration 568 ms $\to$ **Too fast — not counted**.
+       - Rep 30: active duration 868 ms $\to$ **Too fast — not counted**.
+     - **Aborted / Partial Movements (24 attempts):** Sub-threshold twitches and short reversals cleanly rejected by `RepFsm` without false increments.
+     - **Device Stability:** MediaPipe Pose ran smoothly at 10.8–19.2 fps, Camera at 29.9 fps with 0 dropped frames. Session synced cleanly to Firestore via `SessionSyncWorker` (`Worker result SUCCESS`).
 
 ---
 *End of AGY Rework Log. Future reworks should append new sections to this document.*
