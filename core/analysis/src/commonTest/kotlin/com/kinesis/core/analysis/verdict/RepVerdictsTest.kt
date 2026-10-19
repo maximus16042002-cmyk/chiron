@@ -140,19 +140,18 @@ class RepVerdictsTest {
     // --- Form ---------------------------------------------------------------------------------
 
     /**
-     * The owner's decision, made with the measured cost (P3-78): a cited form fault is said in red,
-     * with the rule's short reason, and the repetition still counts.
+     * DECISIONS.md P3-88: a cited form fault is said in red, with the rule's short reason, and does not count.
      */
     @Test
-    fun a_form_fault_is_said_in_red_and_still_counts() {
+    fun a_form_fault_is_said_in_red_and_does_not_count() {
         // ACE's curl starts from a straightened elbow; Chiron says so below 180 - tolerance.
         val bent = rep(RepValidity.VALID, durationMs = 2_500.0, side = Side.RIGHT, rightPeak = 140.0, rightTrough = 40.0)
         val v = judge(curl, bent)
         assertEquals(RepOutcome.FORM_FAULT, v.outcome)
-        assertTrue(v.outcome.counts)
+        assertFalse(v.outcome.counts)
         assertTrue(v.outcome.blamesMovement)
         assertEquals(TechniqueRules.CURL_STARTED_ELBOW_BENT, v.faultId)
-        assertEquals(RepVerdicts.FORM_SHORT_TEXT.getValue(TechniqueRules.CURL_STARTED_ELBOW_BENT), v.message)
+        assertEquals(RepVerdicts.FORM_SHORT_TEXT.getValue(TechniqueRules.CURL_STARTED_ELBOW_BENT) + RepVerdicts.NOT_COUNTED_SUFFIX, v.message)
     }
 
     /** Every fault FormNotes shows has a short live reason, and no other rule is said live. */

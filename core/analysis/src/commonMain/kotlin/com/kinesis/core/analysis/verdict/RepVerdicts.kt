@@ -17,8 +17,7 @@ import kotlin.math.abs
 /**
  * What became of one attempt - DECISIONS.md P3-78.
  *
- * [counts]: whether it adds to the count the user sees - [COUNTED], and [FORM_FAULT], which the
- * owner chose to count once its measured cost was known. [blamesMovement]: the screen says what
+ * [counts]: whether it adds to the count the user sees - [COUNTED]. [blamesMovement]: the screen says what
  * was wrong with the movement, in red; the others are the system's own limits, or nothing at all,
  * and must not tell the user they did something wrong.
  */
@@ -29,11 +28,10 @@ enum class RepOutcome(val counts: Boolean, val blamesMovement: Boolean) {
     WRONG_EXERCISE(false, true),
 
     /**
-     * A full repetition one of the cited rules flags: counted, and shown red with the rule's
-     * reason. The owner first chose "not counted", then, shown that on MM-Fit it would cancel 329
-     * of 387 lateral raises, chose to count it (P3-78). The rules are unvalidated (CLAUDE.md 12a).
+     * A full repetition one of the cited rules flags: not counted, and shown red with the rule's
+     * reason (DECISIONS.md P3-88, user decision).
      */
-    FORM_FAULT(true, true),
+    FORM_FAULT(false, true),
     LOST_TRACKING(false, false),
     DUPLICATE(false, false),
     NOISE(false, false),
@@ -130,9 +128,10 @@ object RepVerdicts {
 
     private fun isTooFast(profile: RepetitionExercise, rep: RepRecord): Boolean {
         if (rep.durationMs < profile.tooFastBelowMs) return true
-        if (!rep.descentMs.isNaN() && !rep.ascentMs.isNaN() && rep.descentMs > 0.0 && rep.ascentMs > 0.0) {
-            if ((rep.descentMs + rep.ascentMs) < profile.tooFastBelowMs) return true
-        }
+        val descent = if (!rep.descentMs.isNaN() && rep.descentMs > 0.0) rep.descentMs else 0.0
+        val ascent = if (!rep.ascentMs.isNaN() && rep.ascentMs > 0.0) rep.ascentMs else 0.0
+        val active = descent + ascent
+        if (active > 0.0 && active < profile.tooFastBelowMs) return true
         return false
     }
 
@@ -167,7 +166,7 @@ object RepVerdicts {
         val authority = authorityOf(profile) ?: return null
         val fault = TechniqueRules.evaluate(authority, profile, rep).firstOrNull { it.faultId in FormNotes.SHOWN } ?: return null
         val text = FORM_SHORT_TEXT[fault.faultId] ?: return null
-        return RepVerdict(RepOutcome.FORM_FAULT, text, fault.faultId)
+        return RepVerdict(RepOutcome.FORM_FAULT, text + NOT_COUNTED_SUFFIX, fault.faultId)
     }
 
     private fun authorityOf(profile: RepetitionExercise): TechniqueAuthority? {

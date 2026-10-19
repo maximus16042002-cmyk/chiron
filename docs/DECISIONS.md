@@ -13779,6 +13779,47 @@ Every completed repetition carries a 145-dimensional `MovementContext` (`rep.mov
 
 ---
 
+## P3-88 — Strict Form Fault Enforcement: Repetitions with Form Faults Do Not Count
+
+*2026-10-17. Following P3-87, the user tested the Bicep Curl profile on their physical Nothing Phone 2a (Set #118) and reported: "even if i do too fast it still counts and also shows red...".*
+
+**1. Context and Problem:**
+- In P3-78, `RepOutcome.FORM_FAULT` was defined as `(counts = true, blamesMovement = true)`. The rationale was that repetitions that completed the kinematic cycle but had technique flaws (e.g. forward upper-arm movement or starting with elbow bent) should count toward volume while displaying the technique note in red.
+- On physical device testing, fast or swinging curls (e.g. Set #118 Rep 6: span 835 ms, active movement 400 ms) triggered Layer 2 technique rules (`CURL_UPPER_ARM_MOVED_FORWARD`, `CURL_STARTED_ELBOW_BENT`).
+- Under P3-78's semantics, the app showed a red fault banner (`"✕ Upper arm moved forward"`), but simultaneously incremented the rep counter (+1) and triggered counted feedback.
+- To the user, seeing the red banner while the repetition was still credited was contradictory and felt like a defect: "even if i do too fast it still counts and also shows red...".
+- When clarified, the user explicitly selected: **Strict: reject repetitions that have form faults — do not count them, show them in red as not counted**.
+
+**2. Core Decisions & Implementations:**
+- **Form Faults Do Not Count (`counts = false`):**
+  - Updated `RepOutcome.FORM_FAULT` to `(counts = false, blamesMovement = true)` in `RepVerdicts.kt`.
+  - In `RepVerdicts.formFault()`, appended `NOT_COUNTED_SUFFIX` (`" — not counted"`).
+  - UI display format:
+    - Live screen overlay displays `"✕ [Reason] — not counted"` in red `Fault` color.
+    - Set summary / history displays `"✕ [Reason]"` in red `Fault` color.
+  - Count accumulation:
+    - `LiveRepetitionAnalysis.countedRepetitions` does NOT increment on form faults.
+    - Screen counter, audio chimes, and TTS cues do NOT count form faults.
+    - Historical aggregations (`CountedRepetitions`, `Dashboard`, `Trends`, `Streaks`) only count clean repetitions.
+- **Speed Gating Robustness:**
+  - In `isTooFast()`, handles single-phase and partial duration measurements cleanly by summing valid positive phase durations:
+    ```kotlin
+    val descent = if (!rep.descentMs.isNaN() && rep.descentMs > 0.0) rep.descentMs else 0.0
+    val ascent = if (!rep.ascentMs.isNaN() && rep.ascentMs > 0.0) rep.ascentMs else 0.0
+    val active = descent + ascent
+    if (active > 0.0 && active < profile.tooFastBelowMs) return true
+    ```
+- **Tests Updated:**
+  - `RepVerdictsTest`: Verified form fault produces `counts == false` and `" — not counted"` suffix.
+  - `VerdictLabelTest`: Verified `"✕ [Reason]"` and red `Fault` color.
+  - `LiveAnalysisBridgeTest`: Verified overlay shows attention/red and `repCount == 0`.
+  - `LiveRepetitionAnalysisTest`: Verified `countedRepetitions == 0` when elbow start is bent.
+  - `CountedRepetitionsTest`: Verified sets with form faults do not count faulted reps towards streaks, dashboard, or trends.
+
+**Next entry: P3-89.**
+
+---
+
 ## CLOSED — Bicep curl repetition semantics
 
 *Raised 2026-09-19. Closed 2026-09-20 by P3-1.*

@@ -29,12 +29,12 @@ class CountedRepetitionsTest {
             listOf(
                 curl(1, durationMs = 2_000.0), // counted
                 curl(2, durationMs = 500.0), // too fast
-                curl(3, durationMs = 2_000.0, peak = 140.0), // started bent: a form fault, counted
+                curl(3, durationMs = 2_000.0, peak = 140.0), // started bent: a form fault, not counted (P3-88)
             ),
         )
         assertEquals(3, set.completedUnits, "the measurement layer still sees three VALID records")
-        assertEquals(2, CountedRepetitions.units(set))
-        assertEquals(listOf(1, 3), CountedRepetitions.of(set).map { it.repIndex })
+        assertEquals(1, CountedRepetitions.units(set))
+        assertEquals(listOf(1), CountedRepetitions.of(set).map { it.repIndex })
         assertEquals(3, CountedRepetitions.attempts(set))
     }
 
@@ -60,8 +60,8 @@ class CountedRepetitionsTest {
             listOf(RepetitionSetRecord("bicep_curl", 2 * DAY_MS, listOf(curl(1, 2_000.0), curl(2, 500.0), curl(3, 2_000.0, peak = 140.0)))),
         )
         assertEquals(1, Streaks.qualifyingDays(listOf(mixed)).size)
-        assertEquals(2, Dashboard.perExercise(listOf(mixed)).single().validRepCount)
-        assertEquals(2, Trends.of(listOf(mixed), "bicep_curl", 5).single().countedRepetitions)
+        assertEquals(1, Dashboard.perExercise(listOf(mixed)).single().validRepCount)
+        assertEquals(1, Trends.of(listOf(mixed), "bicep_curl", 5).single().countedRepetitions)
     }
 
     /** An exercise the library no longer knows keeps the measurement layer's count rather than vanishing. */

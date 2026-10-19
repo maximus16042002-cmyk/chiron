@@ -22,11 +22,11 @@ class VerdictLabelTest {
         assertEquals(Ink, verdictColor(v))
     }
 
-    /** The owner's decision: a form fault counts, and is named in red. */
+    /** DECISIONS.md P3-88: a form fault does not count, and is named in red with an 'X'. */
     @Test
-    fun a_counted_form_fault_says_both_in_red() {
-        val v = RepVerdict(RepOutcome.FORM_FAULT, "Upper arm moved forward", "curl_upper_arm_moved_forward")
-        assertEquals("✓ counted · Upper arm moved forward", verdictLabel(v))
+    fun a_form_fault_says_why_in_red_without_repeating_not_counted() {
+        val v = RepVerdict(RepOutcome.FORM_FAULT, "Upper arm moved forward" + RepVerdicts.NOT_COUNTED_SUFFIX, "curl_upper_arm_moved_forward")
+        assertEquals("✕ Upper arm moved forward", verdictLabel(v))
         assertEquals(Fault, verdictColor(v))
     }
 

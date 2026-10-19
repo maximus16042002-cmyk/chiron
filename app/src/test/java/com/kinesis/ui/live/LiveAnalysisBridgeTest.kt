@@ -219,15 +219,15 @@ class LiveAnalysisBridgeTest {
         assertEquals(RepVerdicts.TOO_FAST_MESSAGE, seen.last().verdictMessage)
     }
 
-    /** A counted form fault: the count rises, and the figure is red with the rule's reason. */
+    /** DECISIONS.md P3-88: A form fault: the count does not rise, and the figure is red with the rule's reason. */
     @Test
-    fun a_counted_form_fault_is_red_and_says_why() {
+    fun a_form_fault_is_red_and_does_not_count() {
         val (bridge, seen) = bridge()
-        val form = RepVerdict(RepOutcome.FORM_FAULT, "Upper arm moved forward", "curl_upper_arm_moved_forward")
-        bridge.onFrame(MovementPhase.TOP, 1, FrameValidity.VALID, RepValidity.VALID, verdict = form, verdictsReported = 1, timestampMs = 0.0)
-        assertEquals(1, seen.last().repCount)
+        val form = RepVerdict(RepOutcome.FORM_FAULT, "Upper arm moved forward" + RepVerdicts.NOT_COUNTED_SUFFIX, "curl_upper_arm_moved_forward")
+        bridge.onFrame(MovementPhase.TOP, 0, FrameValidity.VALID, RepValidity.VALID, verdict = form, verdictsReported = 1, timestampMs = 0.0)
+        assertEquals(0, seen.last().repCount)
         assertEquals(OverlayState.ATTENTION, seen.last().overlayState)
-        assertEquals("Upper arm moved forward", seen.last().verdictMessage)
+        assertEquals("Upper arm moved forward" + RepVerdicts.NOT_COUNTED_SUFFIX, seen.last().verdictMessage)
     }
 
     /** Lost tracking is not the user's fault: it is said, but the figure is not turned red. */

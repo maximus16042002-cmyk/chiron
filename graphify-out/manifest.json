@@ -732,9 +732,9 @@
     "semantic_hash": "03ddd59f4ac8f1024294511111f242fb"
   },
   "app/src/test/java/com/kinesis/ui/live/LiveAnalysisBridgeTest.kt": {
-    "mtime": 1791741204.696676,
-    "seen": 1791750344.228534,
-    "ast_hash": "a253e245bebf329756028eb8ff27c4ee",
+    "mtime": 1792191067.3670788,
+    "seen": 1792191325.7872212,
+    "ast_hash": "f53b180f1631cb65b62aaf4c93acb20d",
     "semantic_hash": ""
   },
   "app/src/test/java/com/kinesis/ui/live/LiveHoldEngineTest.kt": {
@@ -1296,9 +1296,9 @@
     "semantic_hash": ""
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/LiveRepetitionAnalysisTest.kt": {
-    "mtime": 1792185030.0211294,
-    "seen": 1792185304.234282,
-    "ast_hash": "b462cd153fe9e4c9c6f8175010fd8196",
+    "mtime": 1792191114.070105,
+    "seen": 1792191325.787313,
+    "ast_hash": "fd15c39735beee08f1c84c535ebb23a2",
     "semantic_hash": ""
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/NormalizationAndValidityTest.kt": {
@@ -2196,9 +2196,9 @@
     "semantic_hash": ""
   },
   "docs/DECISIONS.md": {
-    "mtime": 1792182159.3586037,
-    "seen": 1792185304.2346685,
-    "ast_hash": "61806a3047d4043780abb5763fef374d",
+    "mtime": 1792191264.607414,
+    "seen": 1792191325.7874587,
+    "ast_hash": "20520c0c61867bd127b46bb0ebbb3a22",
     "semantic_hash": ""
   },
   "docs/EXERCISE_GUIDE.md": {
@@ -2334,9 +2334,9 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/kinesis/ui/screens/VerdictLabelTest.kt": {
-    "mtime": 1792185022.708091,
-    "seen": 1792185304.234069,
-    "ast_hash": "4b470ea2dcda16565c9407a0e41a5d9a",
+    "mtime": 1792191057.3492105,
+    "seen": 1792191325.787232,
+    "ast_hash": "73d1a6cc04d719d956afaa5c47afeeef",
     "semantic_hash": ""
   },
   "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/verdict/CountedRepetitions.kt": {
@@ -2346,9 +2346,9 @@
     "semantic_hash": ""
   },
   "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/verdict/RepVerdicts.kt": {
-    "mtime": 1792185015.8498728,
-    "seen": 1792185304.2342346,
-    "ast_hash": "18f88d78d77f4d233be98fa1e8a61ff4",
+    "mtime": 1792191046.6827745,
+    "seen": 1792191325.7872944,
+    "ast_hash": "95006d7ecc69da7dd36ecc58cd87ed74",
     "semantic_hash": ""
   },
   "core/analysis/src/commonMain/kotlin/com/kinesis/core/analysis/verdict/SetJudge.kt": {
@@ -2358,15 +2358,15 @@
     "semantic_hash": ""
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/verdict/CountedRepetitionsTest.kt": {
-    "mtime": 1791741204.696676,
-    "seen": 1791750344.2286754,
-    "ast_hash": "992ec568ec4742a797818f93958484a3",
+    "mtime": 1792191124.4564474,
+    "seen": 1792191325.787364,
+    "ast_hash": "a7f5c7ef3714169db56e3700374adcbd",
     "semantic_hash": ""
   },
   "core/analysis/src/commonTest/kotlin/com/kinesis/core/analysis/verdict/RepVerdictsTest.kt": {
-    "mtime": 1792185071.9249563,
-    "seen": 1792185304.234427,
-    "ast_hash": "39a5e26621b3b8b7db61c3339882dd0b",
+    "mtime": 1792191079.190528,
+    "seen": 1792191325.787365,
+    "ast_hash": "45f8d1c72dcf2b82bc4b84a62f69bff2",
     "semantic_hash": ""
   },
   "tools/mmfit-eval/owner_db_export.py": {
@@ -2433,6 +2433,12 @@
     "mtime": 1791975727.3027434,
     "seen": 1791976094.8134713,
     "ast_hash": "3612831ce9e2af0fa438987605affe89",
+    "semantic_hash": ""
+  },
+  "docs/AGY_REWORK.md": {
+    "mtime": 1792191701.0397863,
+    "seen": 1792191715.242815,
+    "ast_hash": "321ef3005ed651e48048eb18f2e344f1",
     "semantic_hash": ""
   }
 }

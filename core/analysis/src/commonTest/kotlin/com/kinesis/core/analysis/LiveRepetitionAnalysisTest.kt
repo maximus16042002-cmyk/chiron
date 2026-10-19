@@ -297,9 +297,9 @@ class LiveRepetitionAnalysisTest {
         assertEquals(analysis.recordsReported, analysis.verdictsReported)
     }
 
-    /** The owner's decision: a curl started with the elbow bent is a form fault - said, and counted. */
+    /** The owner's decision (P3-88): a curl started with the elbow bent is a form fault - said in red, and NOT counted. */
     @Test
-    fun a_form_fault_is_counted_and_says_why() {
+    fun a_form_fault_does_not_count_and_says_why() {
         val analysis = LiveRepetitionAnalysis(ArchetypeProfiles.bicepCurl)
         repeat(10) { analysis.feed(body(leftElbow = 155.0)) }
         for (step in 1..20) analysis.feed(body(leftElbow = 155.0 - 115.0 * step / 20.0))
@@ -307,7 +307,7 @@ class LiveRepetitionAnalysisTest {
         repeat(10) { analysis.feed(body(leftElbow = 155.0)) }
 
         assertEquals(1, analysis.repCount)
-        assertEquals(1, analysis.countedRepetitions)
+        assertEquals(0, analysis.countedRepetitions)
         assertEquals(RepOutcome.FORM_FAULT, analysis.lastVerdict?.outcome)
     }
 
